@@ -4,9 +4,6 @@ import KeyboardUtils from "./keyboardUtils";
 import type Trie from "./trie";
 import type { TrieMeta } from "./trie";
 
-// runtime.js is still untyped JS; RUNTIME carries a dynamic `repeats` counter.
-const rt = RUNTIME as unknown as { repeats: number };
-
 declare global {
     interface Event {
         sk_keyName?: string;
@@ -352,24 +349,24 @@ export default class Mode {
                     event.sk_stopPropagation = true;
                 } else {
                     this.setLastKeys?.(meta.word);
-                    rt.repeats = parseInt(this.repeats ?? "", 10) || 1;
+                    RUNTIME.repeats = parseInt(this.repeats ?? "", 10) || 1;
                     event.sk_stopPropagation =
                         !meta.stopPropagation || callStopPropagation(meta, key);
-                    if (rt.repeats > runtime.conf.repeatThreshold) {
+                    if (RUNTIME.repeats > runtime.conf.repeatThreshold) {
                         dispatchSKEvent("front", [
                             "showDialog",
-                            `Do you really want to repeat this action (${meta.annotation}) ${rt.repeats} times?`,
+                            `Do you really want to repeat this action (${meta.annotation}) ${RUNTIME.repeats} times?`,
                             () => {
-                                while (rt.repeats > 0) {
+                                while (RUNTIME.repeats > 0) {
                                     code!();
-                                    rt.repeats--;
+                                    RUNTIME.repeats--;
                                 }
                             },
                         ]);
                     } else {
-                        while (rt.repeats > 0) {
+                        while (RUNTIME.repeats > 0) {
                             code!();
-                            rt.repeats--;
+                            RUNTIME.repeats--;
                         }
                     }
                     actionDone = Mode.finish(thisMode);

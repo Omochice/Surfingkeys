@@ -98,12 +98,7 @@ function createClipboard(): Clipboard {
             cb();
         } else {
             // works for Firefox and Safari now.
-            // runtime.js is untyped; its inferred signature marks args/callback as
-            // required, but the callback is optional. Narrow the call until it is typed.
-            (RUNTIME as (action: string, args?: Record<string, unknown>) => void)(
-                "writeClipboard",
-                { text },
-            );
+            RUNTIME("writeClipboard", { text });
             cb();
         }
     };
