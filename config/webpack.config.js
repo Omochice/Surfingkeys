@@ -134,6 +134,11 @@ module.exports = (env, argv) => {
         },
         resolve: {
             extensions: ['.ts', '.js'],
+            // Resolve explicit ".js" imports to a sibling ".ts" when present, so a
+            // module can be converted to TypeScript without rewriting every importer.
+            extensionAlias: {
+                '.js': ['.ts', '.js'],
+            },
         },
         module: {
             rules: [
@@ -180,6 +185,11 @@ module.exports = (env, argv) => {
         },
         resolve: {
             extensions: ['.ts', '.js'],
+            // Resolve explicit ".js" imports to a sibling ".ts" when present, so a
+            // module can be converted to TypeScript without rewriting every importer.
+            extensionAlias: {
+                '.js': ['.ts', '.js'],
+            },
         },
         target: 'web',
         entry: moduleEntries,
