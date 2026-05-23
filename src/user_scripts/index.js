@@ -1,7 +1,5 @@
 import { RUNTIME, dispatchSKEvent } from '../content_scripts/common/runtime.js';
 import {
-    aceVimMap,
-    addVimMapKey,
     applyUserSettings,
     getBrowserName,
     getClickableElements,
@@ -74,7 +72,6 @@ const functionsToListSuggestions = {};
 let inlineQuery;
 let hintsFunction;
 let onClipboardReadFn;
-let onEditorWriteFn;
 let userScriptTask = () => {};
 let hintsCreationResolve;
 initSKFunctionListener("user", {
@@ -118,9 +115,6 @@ initSKFunctionListener("user", {
     onClipboardRead: (resp) => {
         onClipboardReadFn(resp);
     },
-    onEditorWrite: (data) => {
-        onEditorWriteFn(data);
-    },
     onHintClicked: (shiftKey, element) => {
         if (typeof(hintsFunction) === 'function') {
             hintsFunction(element, shiftKey);
@@ -158,8 +152,6 @@ function createCssSelectorForElements(cssSelector, elements) {
 
 const api = {
     RUNTIME,
-    aceVimMap,
-    addVimMapKey,
     addSearchAlias,
     addCommand,
     cmap,
@@ -263,17 +255,6 @@ const api = {
         registerInlineQuery: (args) => {
             inlineQuery = args;
             dispatchSKEvent('api', ['front:registerInlineQuery']);
-        },
-        showEditor: (element, onWrite, type) => {
-            if (typeof(element) !== 'string') {
-                const elementEditing = "surfingkeys--element--editing";
-                if (createCssSelectorForElements(elementEditing, element) === 0) {
-                    return;
-                }
-                element = `.${elementEditing}`;
-            }
-            onEditorWriteFn = onWrite;
-            dispatchSKEvent('api', ['front:showEditor', element, type]);
         },
         openOmnibar: (args) => {
             dispatchSKEvent('api', ['front:openOmnibar', args]);

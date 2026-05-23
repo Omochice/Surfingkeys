@@ -39,15 +39,6 @@ export default function(api, clipboard, insert, normal, hints, visual, front, br
         front.openOmniquery({query: getWordUnderCursor(), style: "opacity: 0.8;"});
     });
     imapkey("<Ctrl-'>", '#15Toggle quotes in an input element', toggleQuote);
-    function openVim() {
-        var element = getRealEdit();
-        element.blur();
-        insert.exit();
-        front.showEditor(element, null, null);
-    }
-    imapkey('<Ctrl-i>', '#15Open vim editor for current input', function() {
-        openVim();
-    });
 
     mapkey(";ql", '#0Show last action', function() {
         showPopup(htmlEncode(runtime.conf.lastKeys.map(function(k) {
@@ -60,11 +51,6 @@ export default function(api, clipboard, insert, normal, hints, visual, front, br
     });
     mapkey('i', '#1Go to edit box', function() {
         hints.create(getCssSelectorsOfEditable(), hints.dispatchMouseClick);
-    });
-    mapkey('I', '#1Go to edit box with vim editor', function() {
-        hints.create(getCssSelectorsOfEditable(), function(element) {
-            front.showEditor(element);
-        });
     });
     mapkey('L', '#1Enter regional Hints mode', function() {
         hints.create(getLargeElements(), (e) => { }, { regionalHints: true });
@@ -631,17 +617,6 @@ export default function(api, clipboard, insert, normal, hints, visual, front, br
     mapkey(';e', '#11Edit Settings', function() {
         tabOpenLink("/pages/options.html");
     });
-    mapkey(';u', '#4Edit current URL with vim editor, and open in new tab', function() {
-        front.showEditor(window.location.href, function(data) {
-            tabOpenLink(data);
-        }, 'url');
-    });
-    mapkey(';U', '#4Edit current URL with vim editor, and reload', function() {
-        front.showEditor(window.location.href, function(data) {
-            window.location.href = data;
-        }, 'url');
-    });
-
     addSearchAlias('g', 'google', 'https://www.google.com/search?q=', 's', 'https://www.google.com/complete/search?client=chrome-omni&gs_ri=chrome-ext&oit=1&cp=1&pgcl=7&q=', function(response) {
         var res = JSON.parse(response.text);
         return res[1];

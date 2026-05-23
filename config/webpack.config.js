@@ -78,7 +78,6 @@ module.exports = (env, argv) => {
         content: `./src/content_scripts/${browser}.js`,
         'pages/frontend': `./src/content_scripts/ui/frontend.js`,
         'pages/start': './src/content_scripts/start.js',
-        'pages/ace': './src/content_scripts/ace.js',
     };
     const moduleEntries = {
         'pages/options': './src/content_scripts/options.js',
@@ -92,7 +91,6 @@ module.exports = (env, argv) => {
         { from: 'src/pages', to: 'pages', globOptions: pagesCopyOptions },
         { from: 'src/content_scripts/ui/frontend.html', to: 'pages' },
         { from: 'src/content_scripts/ui/frontend.css', to: 'pages' },
-        { from: 'node_modules/ace-builds/src-noconflict/worker-javascript.js', to: 'pages' },
         { from: 'src/icons', to: 'icons' },
         { from: 'src/content_scripts/content.css', to: 'content.css' },
         {

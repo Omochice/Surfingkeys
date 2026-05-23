@@ -2,9 +2,6 @@ body {
     margin: 5% 10%;
     width: 80%;
 }
-.ace_editor {
-    display: inline-block;
-}
 #mappings_container {
     font-size: 0;
     width: 100%;

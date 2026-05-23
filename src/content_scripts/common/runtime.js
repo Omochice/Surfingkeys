@@ -88,7 +88,6 @@ const runtime = (function() {
             textAnchorPat: /(^[\n\r\s]*\S{3,}|\b\S{4,})/g,
             ignoredFrameHosts: ["https://tpc.googlesyndication.com"],
             scrollFriction: 0,
-            aceKeybindings: "vim",
             caretViewport: null,
             mouseSelectToQuery: [],
             useLocalMarkdownAPI: true

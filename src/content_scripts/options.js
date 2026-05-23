@@ -12,63 +12,32 @@ export default function(
 ) {
     var mappingsEditor = null;
     function createMappingEditor(elmId) {
-        var _ace = ace.edit(elmId);
-        _ace.mode = "normal";
+        var _textarea = document.getElementById(elmId);
+        if (!_textarea || _textarea.tagName !== 'TEXTAREA') {
+            var div = document.getElementById(elmId);
+            _textarea = document.createElement('textarea');
+            _textarea.id = elmId;
+            _textarea.style.width = '100%';
+            _textarea.style.height = '400px';
+            _textarea.style.fontFamily = 'monospace';
+            _textarea.style.fontSize = '13px';
+            if (div) {
+                div.parentNode.replaceChild(_textarea, div);
+            }
+        }
 
         var self = new Mode("mappingsEditor");
 
-        self.container = _ace.container;
+        self.container = _textarea;
         self.setValue = function(v, cursorPos) {
-            _ace.setValue(v, cursorPos);
+            _textarea.value = v;
+            if (cursorPos === -1) {
+                _textarea.setSelectionRange(0, 0);
+            }
         };
         self.getValue = function() {
-            return _ace.getValue();
+            return _textarea.value;
         };
-
-        self.addEventListener('keydown', function(event) {
-            event.sk_suppressed = true;
-            if (Mode.isSpecialKeyOf("<Esc>", event.sk_keyName)
-                && _ace.mode === 'normal' // vim in normal mode
-                && (_ace.state.cm.state.vim.status === null || _ace.state.cm.state.vim.status === "") // and no pending normal operation
-            ) {
-                document.activeElement.blur();
-                self.exit();
-            }
-        });
-        document.querySelector('#mappings textarea').onfocus = function() {
-            setTimeout(function() {
-                self.enter(0, true);
-            }, 10);
-        };
-
-        _ace.setTheme("ace/theme/chrome");
-        ace.config.loadModule('ace/ext/language_tools', function (mod) {
-            ace.config.loadModule('ace/autocomplete', function (mod) {
-                mod.Autocomplete.startCommand.bindKey = "Tab";
-                mod.Autocomplete.prototype.commands['Space'] = mod.Autocomplete.prototype.commands['Tab'];
-                mod.Autocomplete.prototype.commands['Tab'] = mod.Autocomplete.prototype.commands['Down'];
-                mod.Autocomplete.prototype.commands['Shift-Tab'] = mod.Autocomplete.prototype.commands['Up'];
-            });
-            _ace.setOptions({
-                enableBasicAutocompletion: true,
-                enableLiveAutocompletion: false,
-                enableSnippets: false
-            });
-        });
-        _ace.setKeyboardHandler('ace/keyboard/vim', function() {
-            var cm = _ace.state.cm;
-            cm.on('vim-mode-change', function(data) {
-                _ace.mode = data.mode;
-            });
-            cm.constructor.Vim.defineEx("write", "w", function(cm, input) {
-                saveSettings();
-            });
-            cm.constructor.Vim.defineEx("quit", "q", function(cm, input) {
-                window.close();
-            });
-        });
-        _ace.getSession().setMode("ace/mode/javascript");
-        _ace.$blockScrolling = Infinity;
 
         return self;
     }
@@ -108,8 +77,6 @@ export default function(
             localPathInput.value = rs.localPath;
             localPathSaved = rs.localPath;
         }
-        var h = window.innerHeight / 2;
-        mappingsEditor.container.style.height = h + "px";
         if (rs.snippets && rs.snippets.length) {
             mappingsEditor.setValue(rs.snippets, -1);
         } else {

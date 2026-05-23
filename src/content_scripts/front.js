@@ -219,95 +219,6 @@ function createFront(insert, normal, hints, visual, browser) {
         });
     }
 
-    function updateElementBehindEditor(data) {
-        // setEditorText and setValueWithEventDispatched are experimental APIs from Brook Build of Chromium
-        // https://brookhong.github.io/2021/04/18/brook-build-of-chromium.html
-        if (elementBehindEditor.nodeName === "DIV") {
-            if (elementBehindEditor.className === "CodeMirror-code") {
-                window.getSelection().selectAllChildren(elementBehindEditor)
-                let dataTransfer = new DataTransfer()
-                dataTransfer.items.add(data, 'text/plain')
-                elementBehindEditor.dispatchEvent(new ClipboardEvent('paste', {clipboardData: dataTransfer}))
-            } else {
-                data = data.replace(/\n+$/, '');
-
-                if (typeof elementBehindEditor.setEditorText === "function") {
-                    elementBehindEditor.setEditorText(data);
-                } else {
-                    elementBehindEditor.innerText = data;
-                }
-            }
-        } else {
-            if (typeof elementBehindEditor.setValueWithEventDispatched === "function") {
-                elementBehindEditor.setValueWithEventDispatched(data);
-            } else {
-                elementBehindEditor.value = data;
-                var evt = document.createEvent("HTMLEvents");
-                evt.initEvent("change", false, true);
-                elementBehindEditor.dispatchEvent(evt);
-            }
-        }
-    }
-
-    var onEditorSaved, elementBehindEditor;
-
-    /**
-     * Launch the vim editor.
-     *
-     * @param {HTMLElement} element the target element which the vim editor is launched for, this parameter can also be a string, which will be used as default content in vim editor.
-     * @param {function} onWrite a callback function to be executed on written back from vim editor.
-     * @param {string} [type=null] the type for the vim editor, which can be `url`, if not provided, it will be tag name of the target element.
-     * @name Front.showEditor
-     *
-     * @example
-     * mapkey(';U', '#4Edit current URL with vim editor, and reload', function() {
-     *     Front.showEditor(window.location.href, function(data) {
-     *         window.location.href = data;
-     *     }, 'url');
-     * });
-     */
-    self.showEditor = function(element, onWrite, type) {
-        var content,
-            type = type || element.localName,
-            initial_line = 0;
-        if (typeof(element) === "string") {
-            content = element;
-            elementBehindEditor = document.body;
-        } else if (type === 'select') {
-            var selected = element.value;
-            content = Array.from(element.querySelectorAll('option')).map(function(n, i) {
-                if (n.value === selected) {
-                    initial_line = i;
-                }
-                return n.innerText.trim() + " >< " + n.value;
-            }).join('\n');
-            elementBehindEditor = element;
-        } else {
-            elementBehindEditor = element;
-            if (elementBehindEditor.nodeName === "DIV") {
-                if (elementBehindEditor.className === "CodeMirror-code") {
-                    let codeMirrorLines = elementBehindEditor.querySelectorAll(".CodeMirror-line")
-                    content = Array.from(codeMirrorLines).map(el => el.innerText).join("\n")
-                    // Remove the red dot (char code 8226) that CodeMirror uses to visualize the zero-width space.
-                    content = content.replace(/\u200B/g, "")
-
-                } else {
-                    content = elementBehindEditor.innerText;
-                }
-            } else {
-                content = elementBehindEditor.value;
-            }
-        }
-        onEditorSaved = onWrite || updateElementBehindEditor;
-        const cmd = {
-            action: 'showEditor',
-            type: type || "textarea",
-            initial_line: initial_line,
-            content: content
-        };
-        self.command(cmd);
-    };
-
     self.chooseTab = function() {
         if (normal.repeats !== "") {
             RUNTIME('focusTabByIndex');
@@ -579,30 +490,6 @@ function createFront(insert, normal, hints, visual, browser) {
         showStatus: self.showStatus,
         toggleStatus: self.toggleStatus,
     });
-
-    _actions["ace_editor_saved"] = function(response) {
-        if (response.data !== undefined) {
-            onEditorSaved(response.data);
-        }
-        if (runtime.conf.focusOnSaved && isEditable(elementBehindEditor)) {
-            normal.passFocus(true);
-            elementBehindEditor.focus();
-            insert.enter(elementBehindEditor);
-        }
-    };
-    _actions["nextEdit"] = function(response) {
-        var sel = hints.getSelector() || "input, textarea, *[contenteditable=true], select";
-        sel = getElements(sel);
-        if (sel.length) {
-            var i = sel.indexOf(elementBehindEditor);
-            i = (i + (response.backward ? -1 : 1)) % sel.length;
-            sel = sel[i];
-            scrollIntoViewIfNeeded(sel);
-            flashPressedLink(sel, () => {
-                self.showEditor(sel);
-            });
-        }
-    };
 
     _actions["omnibar_query_entered"] = function(response) {
         RUNTIME('updateInputHistory', { OmniQuery: response.query });
