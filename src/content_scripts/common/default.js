@@ -759,9 +759,6 @@ export default function(api, clipboard, insert, normal, hints, visual, front, br
         mapkey('gs', '#12View page source', function() {
             RUNTIME("viewSource", { tab: { tabbed: true }});
         });
-        mapkey(';pm', '#11Preview markdown', function() {
-            tabOpenLink("/pages/markdown.html");
-        });
         mapkey(';di', '#1Download image', function() {
             hints.create('img', function(element) {
                 RUNTIME('download', {

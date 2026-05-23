@@ -114,7 +114,6 @@ module.exports = (env, argv) => {
     const module2Plugins = [];
 
     if (browser !== "safari") {
-        entry['pages/markdown'] = './src/content_scripts/markdown.js';
         if (mode === "production") {
             const zipPlugin = new FileManagerPlugin({
                 events: {
@@ -132,7 +131,6 @@ module.exports = (env, argv) => {
             module2Plugins.push(zipPlugin);
         }
     } else {
-        pagesCopyOptions.ignore.push('**/markdown.html');
         pagesCopyOptions.ignore.push('**/donation.png');
     }
     console.log(pagesCopyOptions);

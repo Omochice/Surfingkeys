@@ -54,7 +54,6 @@
   },
   "dependencies": {
     "dompurify": "^3.2.4",
-    "lodash": "^4.17.21",
-    "marked": "^4.0.10"
+    "lodash": "^4.17.21"
   }
 }

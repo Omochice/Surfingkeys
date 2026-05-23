@@ -89,8 +89,7 @@ const runtime = (function() {
             ignoredFrameHosts: ["https://tpc.googlesyndication.com"],
             scrollFriction: 0,
             caretViewport: null,
-            mouseSelectToQuery: [],
-            useLocalMarkdownAPI: true
+            mouseSelectToQuery: []
         },
     }, _handlers = {};
 
