@@ -353,15 +353,7 @@ div.hint-scrollable {
                 mouseEventModifiers[modKey] = true;
             }
             flashPressedLink(element,() => {
-                if (tabbed && getBrowserName().startsWith("Safari")) {
-                    RUNTIME("openLink", {
-                        tab: {
-                            tabbed: tabbed,
-                            active: mouseEventModifiers.shiftKey
-                        },
-                        url: getHref(element)
-                    });
-                } else {
+                {
                     self.mouseoutLastElement();
                     dispatchMouseEvent(element, behaviours.mouseEvents, mouseEventModifiers);
                     dispatchSKEvent("observer", ['turnOn']);

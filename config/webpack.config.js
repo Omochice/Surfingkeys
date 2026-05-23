@@ -19,11 +19,6 @@ function modifyManifest(browser, mode, buffer) {
         manifest.permissions.push("cookies");
         manifest.permissions.push("contextualIdentities");
         manifest.permissions.push("<all_urls>");
-    } else if (browser === "safari") {
-        manifest.incognito = "split";
-        manifest.options_page = "pages/options.html";
-        manifest.permissions.push("<all_urls>");
-        manifest.background.persistent = false;
     } else {
         // chromium family
         manifest.manifest_version = 3;
@@ -113,25 +108,21 @@ module.exports = (env, argv) => {
     ];
     const module2Plugins = [];
 
-    if (browser !== "safari") {
-        if (mode === "production") {
-            const zipPlugin = new FileManagerPlugin({
-                events: {
-                    onEnd: {
-                        archive: [
-                            {
-                                source: buildPath,
-                                destination: `${buildPath}/sk.zip`
-                            },
-                        ],
-                    },
+    if (mode === "production") {
+        const zipPlugin = new FileManagerPlugin({
+            events: {
+                onEnd: {
+                    archive: [
+                        {
+                            source: buildPath,
+                            destination: `${buildPath}/sk.zip`
+                        },
+                    ],
                 },
-            });
-            module1Plugins.push(zipPlugin);
-            module2Plugins.push(zipPlugin);
-        }
-    } else {
-        pagesCopyOptions.ignore.push('**/donation.png');
+            },
+        });
+        module1Plugins.push(zipPlugin);
+        module2Plugins.push(zipPlugin);
     }
     console.log(pagesCopyOptions);
 

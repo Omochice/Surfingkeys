@@ -130,16 +130,12 @@ function applyUserSettings(delta) {
 
 /**
  * Get current browser name
- * @returns {string} "Chrome" | "Firefox" | "Safari"
+ * @returns {string} "Chrome" | "Firefox"
  *
  */
 function getBrowserName() {
     if (window.navigator.userAgent.indexOf("Chrome") !== -1) {
         return "Chrome";
-    } else if (window.navigator.vendor.indexOf("Apple Computer, Inc.") === 0) {
-        let isIOS = /iPad|iPhone|iPod/.test(navigator.platform)
-            || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
-        return isIOS ? "Safari-iOS" : "Safari";
     } else if (window.navigator.userAgent.indexOf("Firefox") !== -1) {
         return "Firefox";
     }
@@ -1067,8 +1063,6 @@ function attachFaviconToImgSrc(tab, imgEl) {
     const browserName = getBrowserName();
     if (browserName === "Chrome") {
         imgEl.src = chrome.runtime.getURL(`/_favicon/?pageUrl=${encodeURIComponent(tab.url)}`);
-    } else if (browserName.startsWith("Safari")) {
-        imgEl.src = new URL(tab.url).origin + "/favicon.ico";
     } else {
         imgEl.src = tab.favIconUrl;
     }
