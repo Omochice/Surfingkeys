@@ -370,7 +370,6 @@ export default function(api, clipboard, insert, normal, hints, visual, front, br
         });
     });
 
-    map('<Ctrl-i>', 'I');
     cmap('<ArrowDown>', '<Ctrl-n>');
     cmap('<ArrowUp>', '<Ctrl-p>');
     mapkey('q', '#1Click on an Image or a button', function() {
