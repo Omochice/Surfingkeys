@@ -17,8 +17,8 @@
     "test:watch": "vitest",
     "lint": "oxlint",
     "lint:fix": "oxlint --fix",
-    "format": "oxfmt",
-    "format:check": "oxfmt --check"
+    "fmt": "oxfmt",
+    "fmt:check": "oxfmt --check"
   },
   "repository": {
     "type": "git",
