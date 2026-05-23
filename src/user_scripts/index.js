@@ -267,7 +267,7 @@ const api = {
             inlineQuery = args;
             dispatchSKEvent('api', ['front:registerInlineQuery']);
         },
-        showEditor: (element, onWrite, type, useNeovim) => {
+        showEditor: (element, onWrite, type) => {
             if (typeof(element) !== 'string') {
                 const elementEditing = "surfingkeys--element--editing";
                 if (createCssSelectorForElements(elementEditing, element) === 0) {
@@ -276,7 +276,7 @@ const api = {
                 element = `.${elementEditing}`;
             }
             onEditorWriteFn = onWrite;
-            dispatchSKEvent('api', ['front:showEditor', element, type, useNeovim]);
+            dispatchSKEvent('api', ['front:showEditor', element, type]);
         },
         openOmnibar: (args) => {
             dispatchSKEvent('api', ['front:openOmnibar', args]);

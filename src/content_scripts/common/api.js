@@ -436,10 +436,10 @@ function createAPI(clipboard, insert, normal, hints, visual, front, browser) {
         "hints:setNumeric": hints.setNumeric,
         "hints:style": hints.style,
         "front:registerInlineQuery": front.registerInlineQuery,
-        "front:showEditor": (element, type, useNeovim) => {
+        "front:showEditor": (element, type) => {
             front.showEditor(element, (data) => {
                 dispatchSKEvent('user', ["onEditorWrite", data]);
-            }, type, useNeovim);
+            }, type);
         },
         "front:openOmnibar": front.openOmnibar,
         "normal:feedkeys": normal.feedkeys,

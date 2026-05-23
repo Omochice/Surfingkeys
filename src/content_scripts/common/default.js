@@ -43,20 +43,17 @@ export default function(api, clipboard, insert, normal, hints, visual, front, br
         front.openOmniquery({query: getWordUnderCursor(), style: "opacity: 0.8;"});
     });
     imapkey("<Ctrl-'>", '#15Toggle quotes in an input element', toggleQuote);
-    function openVim(useNeovim) {
+    function openVim() {
         var element = getRealEdit();
         element.blur();
         insert.exit();
-        front.showEditor(element, null, null, useNeovim);
+        front.showEditor(element, null, null);
     }
     imapkey('<Ctrl-i>', '#15Open vim editor for current input', function() {
-        openVim(false);
+        openVim();
     });
     const browserName = getBrowserName();
     if (browserName === "Chrome") {
-        imapkey('<Ctrl-Alt-i>', '#15Open neovim for current input', function() {
-            openVim(true);
-        });
         mapkey(';s', 'Toggle PDF viewer from SurfingKeys', function() {
             var pdfUrl = window.location.href;
             if (pdfUrl.indexOf(chrome.runtime.getURL("/pages/pdf_viewer.html")) === 0) {
@@ -821,9 +818,6 @@ export default function(api, clipboard, insert, normal, hints, visual, front, br
         });
         mapkey(';i', '#12Open Chrome Inspect', function() {
             tabOpenLink("chrome://inspect/#devices");
-        });
-        mapkey(';v', '#11Open neovim', function() {
-            tabOpenLink("/pages/neovim.html");
         });
     }
 

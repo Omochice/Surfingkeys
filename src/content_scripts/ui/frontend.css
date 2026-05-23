@@ -248,13 +248,6 @@ body {
     z-index: 2147483298;
     padding: 1rem;
 }
-#sk_nvim {
-    position: fixed;
-    top: 10%;
-    left: 10%;
-    width: 80%;
-    height: 30%;
-}
 #sk_popup img {
     width: 100%;
 }

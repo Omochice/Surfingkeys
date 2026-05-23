@@ -257,7 +257,6 @@ function createFront(insert, normal, hints, visual, browser) {
      * @param {HTMLElement} element the target element which the vim editor is launched for, this parameter can also be a string, which will be used as default content in vim editor.
      * @param {function} onWrite a callback function to be executed on written back from vim editor.
      * @param {string} [type=null] the type for the vim editor, which can be `url`, if not provided, it will be tag name of the target element.
-     * @param {boolean} [useNeovim=false] the vim editor will be the embeded JS implementation, if `useNeovim` is true, neovim will be used through natvie messaging.
      * @name Front.showEditor
      *
      * @example
@@ -267,7 +266,7 @@ function createFront(insert, normal, hints, visual, browser) {
      *     }, 'url');
      * });
      */
-    self.showEditor = function(element, onWrite, type, useNeovim) {
+    self.showEditor = function(element, onWrite, type) {
         var content,
             type = type || element.localName,
             initial_line = 0;
@@ -306,9 +305,6 @@ function createFront(insert, normal, hints, visual, browser) {
             initial_line: initial_line,
             content: content
         };
-        if (useNeovim || runtime.conf.useNeovim) {
-            cmd.file_name = `${new URL(window.location.origin).host}/${elementBehindEditor.nodeName.toLowerCase()}`;
-        }
         self.command(cmd);
     };
 
