@@ -51,9 +51,6 @@ function modifyManifest(browser, mode, buffer) {
                     "pages/emoji.tsv",
                     "pages/l10n.json",
                     "pages/frontend.html",
-                    "pages/pdf_viewer.html",
-                    "pages/pdf_viewer.css",
-                    "pages/pdf_viewer.mjs",
                     "pages/shadow.css"
                 ],
                 "matches": [
@@ -93,7 +90,6 @@ module.exports = (env, argv) => {
     const pagesCopyOptions = {
         ignore: [
             '**/images/*',
-            '**/pdf_viewer.*',
         ]
     };
     const copyPatterns = [
@@ -114,12 +110,6 @@ module.exports = (env, argv) => {
     if (browser === "chrome") {
         pagesCopyOptions.ignore = [];
         moduleEntries['api'] = './src/user_scripts/index.js';
-        const chromeOnlyCopyPatterns = [
-            { from: 'node_modules/pdfjs-dist/cmaps', to: 'pages/cmaps' },
-            { from: 'node_modules/pdfjs-dist/build/pdf.min.mjs', to: 'pages' },
-            { from: 'node_modules/pdfjs-dist/build/pdf.worker.min.mjs', to: 'pages' },
-        ];
-        copyPatterns.push(...chromeOnlyCopyPatterns);
     }
 
     const module1Plugins = [

@@ -56,7 +56,6 @@
     "ace-builds": "^1.4.12",
     "dompurify": "^3.2.4",
     "lodash": "^4.17.21",
-    "marked": "^4.0.10",
-    "pdfjs-dist": "4.8.69"
+    "marked": "^4.0.10"
   }
 }

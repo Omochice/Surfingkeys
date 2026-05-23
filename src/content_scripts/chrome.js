@@ -4,10 +4,6 @@ import {
 import { dispatchSKEvent, runtime, RUNTIME } from './common/runtime.js';
 import { start } from './content.js';
 
-function usePdfViewer() {
-    window.location.replace(chrome.runtime.getURL("/pages/pdf_viewer.html") + "?file=" + encodeURIComponent(document.URL));
-}
-
 function readText(text, options) {
     options = options || {
         enqueue: true,
@@ -54,6 +50,5 @@ function readText(text, options) {
 }
 
 start({
-    usePdfViewer,
     readText
 });
