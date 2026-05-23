@@ -5,7 +5,7 @@ import startScrollNodeObserver from './common/observer.js';
 import createInsert from './common/insert';
 import createVisual from './common/visual.js';
 import createHints from './common/hints.js';
-import createClipboard from './common/clipboard.js';
+import createClipboard from './common/clipboard';
 import {
     applyUserSettings,
     createElementWithContent,

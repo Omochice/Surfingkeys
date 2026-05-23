@@ -16,7 +16,7 @@ import {
 import { RUNTIME, runtime } from '../common/runtime.js';
 import KeyboardUtils from '../common/keyboardUtils';
 import Mode from '../common/mode';
-import createClipboard from '../common/clipboard.js';
+import createClipboard from '../common/clipboard';
 import createInsert from '../common/insert';
 import createNormal from '../common/normal.js';
 import createVisual from '../common/visual.js';
