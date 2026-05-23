@@ -20,9 +20,6 @@
         },
         "closeTab": {
             "description": "Close the current tab."
-        },
-        "proxyThis": {
-            "description": "Toggle current site in autoproxy_hosts."
         }
     },
     "browser_action": {

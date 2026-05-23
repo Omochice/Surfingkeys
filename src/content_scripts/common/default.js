@@ -688,39 +688,6 @@ export default function(api, clipboard, insert, normal, hints, visual, front, br
             tabOpenLink("about:blank");
         });
     } else if (bn === "Chrome") {
-        mapkey('cp', '#13Toggle proxy for current site', function() {
-            var host = window.location.host.replace(/:\d+/,'');
-            if (host && host.length) {
-                RUNTIME('updateProxy', {
-                    host: host,
-                    operation: "toggle"
-                });
-            }
-        });
-        mapkey(';cp', '#13Copy proxy info', function() {
-            RUNTIME('getSettings', {
-                key: ['proxyMode', 'proxy', 'autoproxy_hosts']
-            }, function(response) {
-                clipboard.write(JSON.stringify(response.settings, null, 4));
-            });
-        });
-        mapkey(';ap', '#13Apply proxy info from clipboard', function() {
-            clipboard.read(function(response) {
-                var proxyConf = JSON.parse(response.data);
-                RUNTIME('updateProxy', {
-                    operation: 'set',
-                    host: proxyConf.autoproxy_hosts,
-                    proxy: proxyConf.proxy,
-                    mode: proxyConf.proxyMode
-                });
-            });
-        });
-        // create shortcuts for the command with different parameters
-        map(';pa', ':setProxyMode always', 0, '#13set proxy mode `always`');
-        map(';pb', ':setProxyMode byhost', 0, '#13set proxy mode `byhost`');
-        map(';pd', ':setProxyMode direct', 0, '#13set proxy mode `direct`');
-        map(';ps', ':setProxyMode system', 0, '#13set proxy mode `system`');
-        map(';pc', ':setProxyMode clear', 0, '#13set proxy mode `clear`');
         mapkey('on', '#3Open newtab', function() {
             tabOpenLink("chrome://newtab/");
         });
