@@ -5,7 +5,8 @@
         "correctness": "error"
     },
     "rules": {
-        "typescript/no-this-alias": "off"
+        "typescript/no-this-alias": "off",
+        "no-unused-expressions": ["error", { "allowShortCircuit": true, "allowTernary": true }]
     },
     "env": {
         "builtin": true,

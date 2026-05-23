@@ -1,4 +1,4 @@
-import Mode from './common/mode.js';
+import Mode from './common/mode';
 import {
     createElementWithContent,
     flashPressedLink,

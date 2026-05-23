@@ -1,5 +1,5 @@
 import { RUNTIME, dispatchSKEvent, runtime } from './common/runtime.js';
-import Mode from './common/mode.js';
+import Mode from './common/mode';
 import createNormal from './common/normal.js';
 import startScrollNodeObserver from './common/observer.js';
 import createInsert from './common/insert.js';
