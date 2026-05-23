@@ -206,9 +206,7 @@ Mode.init(window === top ? undefined : ()=> {
 
 let _browser;
 function start(browser) {
-    _browser = browser || {
-        readText: () => {},
-    };
+    _browser = browser || {};
     if (window === top) {
         new Promise((r, j) => {
             if (window.location.href === chrome.runtime.getURL("/pages/options.html")) {

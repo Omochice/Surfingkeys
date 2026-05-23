@@ -30,9 +30,6 @@ function RUNTIME(action, args, callback) {
     try {
         args.needResponse = callback !== undefined;
         chrome.runtime.sendMessage(args, callback);
-        if (action === 'read') {
-            runtime.on('onTtsEvent', callback);
-        }
     } catch (e) {
         dispatchSKEvent("front", ['showPopup', '[runtime exception] ' + e]);
     }
@@ -41,7 +38,6 @@ function RUNTIME(action, args, callback) {
 const runtime = (function() {
     const self = {
         conf: {
-            autoSpeakOnInlineQuery: false,
             lastKeys: "",
             // local part from settings
             blocklistPattern: undefined,
@@ -54,7 +50,6 @@ const runtime = (function() {
             editableSelector: "div.CodeMirror-scroll,div.ace_content",
             cursorAtEndOfInput: true,
             defaultSearchEngine: "g",
-            defaultVoice: "Daniel",
             editableBodyCare: true,
             enableAutoFocus: true,
             enableEmojiInsertion: false,

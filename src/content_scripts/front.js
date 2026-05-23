@@ -375,9 +375,6 @@ function createFront(insert, normal, hints, visual, browser) {
             }
             hidePopup();
         } else if (_inlineQuery) {
-            if (runtime.conf.autoSpeakOnInlineQuery) {
-                browser.readText(query);
-            }
             query = query.toLocaleLowerCase();
             RUNTIME('updateInputHistory', { OmniQuery: query });
 

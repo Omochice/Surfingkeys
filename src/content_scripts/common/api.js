@@ -468,7 +468,6 @@ function createAPI(clipboard, insert, normal, hints, visual, front, browser) {
                 dispatchSKEvent('user', ["callUserFunction", `visual:${keys}`]);
             }, options);
         },
-        readText: browser.readText,
     });
     return {
         RUNTIME,
@@ -488,7 +487,6 @@ function createAPI(clipboard, insert, normal, hints, visual, front, browser) {
         iunmap,
         vunmap,
         mapkey,
-        readText: browser.readText,
         removeSearchAlias,
         searchSelectedWith,
         tabOpenLink,

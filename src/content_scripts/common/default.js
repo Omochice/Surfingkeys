@@ -23,7 +23,6 @@ export default function(api, clipboard, insert, normal, hints, visual, front, br
         map,
         mapkey,
         imapkey,
-        readText,
         vmapkey,
         searchSelectedWith,
     } = api;
@@ -240,7 +239,6 @@ export default function(api, clipboard, insert, normal, hints, visual, front, br
 
     vmapkey("q", '#9Translate word under cursor', function() {
         var w = getWordUnderCursor();
-        browser.readText(w);
         var b = visual.getCursorPixelPos();
         front.performInlineQuery(w, {
             top: b.top,
@@ -726,15 +724,6 @@ export default function(api, clipboard, insert, normal, hints, visual, front, br
         map(';pd', ':setProxyMode direct', 0, '#13set proxy mode `direct`');
         map(';ps', ':setProxyMode system', 0, '#13set proxy mode `system`');
         map(';pc', ':setProxyMode clear', 0, '#13set proxy mode `clear`');
-        mapkey('gr', '#14Read selected text or text from clipboard', function() {
-            clipboard.read(function(response) {
-                readText(window.getSelection().toString() || response.data, {verbose: true});
-            });
-        });
-        vmapkey('gr', '#9Read selected text', function() {
-            readText(window.getSelection().toString(), {verbose: true});
-        });
-
         mapkey('on', '#3Open newtab', function() {
             tabOpenLink("chrome://newtab/");
         });
