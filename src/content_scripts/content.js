@@ -2,7 +2,7 @@ import { RUNTIME, dispatchSKEvent, runtime } from './common/runtime.js';
 import Mode from './common/mode';
 import createNormal from './common/normal.js';
 import startScrollNodeObserver from './common/observer.js';
-import createInsert from './common/insert.js';
+import createInsert from './common/insert';
 import createVisual from './common/visual.js';
 import createHints from './common/hints.js';
 import createClipboard from './common/clipboard.js';
