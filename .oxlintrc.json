@@ -4,7 +4,9 @@
     "categories": {
         "correctness": "error"
     },
-    "rules": {},
+    "rules": {
+        "typescript/no-this-alias": "off"
+    },
     "env": {
         "builtin": true,
         "browser": true
