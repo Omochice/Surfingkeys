@@ -19,7 +19,6 @@ function modifyManifest(browser, mode, buffer) {
         manifest.permissions.push("cookies");
         manifest.permissions.push("contextualIdentities");
         manifest.permissions.push("<all_urls>");
-        manifest.permissions.push("tabGroups");
     } else if (browser === "safari") {
         manifest.incognito = "split";
         manifest.options_page = "pages/options.html";
@@ -32,7 +31,6 @@ function modifyManifest(browser, mode, buffer) {
         manifest.permissions.push("downloads.shelf");
         manifest.permissions.push("favicon");
         manifest.permissions.push("userScripts");
-        manifest.permissions.push("tabGroups");
         manifest.incognito = "split";
         manifest.options_page = "pages/options.html";
         manifest.background = {

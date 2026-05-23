@@ -318,12 +318,6 @@ function createFront(insert, normal, hints, visual, browser) {
         }
     };
 
-    self.groupTab = function() {
-        self.command({
-            action: 'groupTab'
-        });
-    };
-
     /**
      * Open the omnibar.
      *

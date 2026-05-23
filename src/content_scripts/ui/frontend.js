@@ -315,57 +315,6 @@ const Front = (function() {
         });
     };
     self.chooseTab = _actions['chooseTab'];
-    _actions['groupTab'] = function() {
-        RUNTIME('getTabGroups', {}, function(response) {
-            const groups = response.groups;
-            if (groups.length === 0) {
-                self.openOmnibar({type: "Commands", pref: "createTabGroup"});
-                return;
-            }
-
-            showElement(_tabs, () => {
-                setSanitizedContent(_tabs, "");
-                _tabs.className = "";
-                const hintLabels = hints.genLabels(groups.length*2 + 1);
-                groups.forEach(function(g, i) {
-                    const group = document.createElement('div');
-                    group.setAttribute('class', 'sk_tab_group');
-                    const labels = [hintLabels[2*i],hintLabels[2*i + 1]];
-                    setSanitizedContent(group, `<div class=sk_tab_group_header><div><div class=sk_tab_hint>${labels[0]}</div><span class=sk_tab_group_title></span></div><div><div class=sk_tab_hint>${labels[1]}</div><span class=sk_tab_group_state></span></div></div><div class=sk_tab_group_details></div>`);
-                    renderTabTitles(group.querySelector("div.sk_tab_group_details"), g.tabs);
-                    const activeState = g.active ? '☑' : '☐';
-                    setSanitizedContent(group.querySelector("span.sk_tab_group_title"), activeState + htmlEncode(g.title));
-                    const collapsedState = g.collapsed ? '☑' : '☐';
-                    setSanitizedContent(group.querySelector("span.sk_tab_group_state"), collapsedState + "Collapsed");
-                    const tabHints = group.querySelectorAll("div.sk_tab_hint");
-                    tabHints[0].label = labels[0];
-                    tabHints[0].link = {id: g.id, active: g.active, action: "group"};
-                    tabHints[1].label = labels[1];
-                    tabHints[1].link = {id: g.id, collapsed: g.collapsed, action: "collapse"};
-                    _tabs.append(group);
-                });
-                const newTabGroup = createElementWithContent('div', `<div class=sk_tab_hint>${hintLabels[groups.length*2]}</div> New tab group`, { "class": 'sk_tab_group' });
-                const tabHint = newTabGroup.querySelector("div.sk_tab_hint");
-                tabHint.label = hintLabels[groups.length*2];
-                tabHint.link = {action: "new"};
-                _tabs.append(newTabGroup);
-            }, (matched) => {
-                if (matched.action === "collapse") {
-                    RUNTIME('collapseGroup', {groupId: matched.id, collapsed: !matched.collapsed});
-                } else if (matched.action === "new") {
-                    setTimeout(() => {
-                        self.openOmnibar({type: "Commands", pref: "createTabGroup"});
-                    }, 10);
-                } else {
-                    if (matched.active) {
-                        RUNTIME('ungroupTab');
-                    } else {
-                        RUNTIME('createTabGroup', {groupId: matched.id});
-                    }
-                }
-            });
-        });
-    };
 
     function localizeAnnotation(locale, annotation) {
         if (annotation.constructor.name === "Array") {
