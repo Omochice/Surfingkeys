@@ -1,16 +1,18 @@
 {
-  "compilerOptions": {
-    "target": "esnext",
-    "types": ["node", "offscreencanvas"],
-    "allowJs": true,
-    "strict": true,
-    "moduleResolution": "node",
-    "sourceMap": true,
-    "declaration": false,
-    "skipLibCheck": true,
-    "allowSyntheticDefaultImports": true,
-    "isolatedModules": true,
-    "baseUrl": "."
-  },
-  "include": ["src", "@types"]
+    "compilerOptions": {
+        "target": "esnext",
+        "types": ["node", "offscreencanvas"],
+        "allowJs": true,
+        "strict": true,
+        "moduleResolution": "node",
+        "sourceMap": true,
+        "declaration": false,
+        "skipLibCheck": true,
+        "allowSyntheticDefaultImports": true,
+        "isolatedModules": true,
+        "jsx": "preserve",
+        "jsxImportSource": "solid-js",
+        "baseUrl": "."
+    },
+    "include": ["src", "@types"]
 }
