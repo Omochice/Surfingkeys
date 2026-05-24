@@ -172,10 +172,7 @@ function applySettings(api: Api, normal: Normal, rs: any): void {
 
 function _initModules(): Modes {
     const clipboard = createClipboard();
-    // The god object is not dissolved yet (task #13): insert's overridden enter
-    // signature clashes with the structural InsertLike each factory expects, so
-    // it is passed through an any-typed wiring binding here.
-    const insert: any = createInsert();
+    const insert = createInsert();
     const normal = createNormal(insert);
     normal.enter();
     startScrollNodeObserver(normal);

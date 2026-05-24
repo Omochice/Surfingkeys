@@ -46,12 +46,20 @@ export function deleteNextWord(str: string, dir: number, cur: number): [string, 
     return [s, dir > 0 ? cur : pos];
 }
 
-type InsertMode = Mode & {
-    enableEmojiInsertion: () => void;
+// `enter` is retyped to the element-entry signature this mode actually exposes
+// to callers (normal/hints focus an editable). The base Mode.enter (the
+// stack-push) is still used internally; it is reached through a localized cast
+// below. `mappings`/`map_node` are required here because createInsert always
+// assigns them, which lets InsertMode satisfy the structural mode interfaces.
+type InsertMode = Omit<Mode, "enter"> & {
+    enter(elm: HTMLElement, keepCursor?: boolean): void;
+    enableEmojiInsertion(): void;
+    mappings: Trie;
+    map_node: Trie;
 };
 
 function createInsert(): InsertMode {
-    const self = new Mode("Insert") as InsertMode;
+    const self = new Mode("Insert") as unknown as InsertMode;
 
     function moveCursorEOL(): void {
         const element = getRealEdit();
@@ -263,7 +271,7 @@ function createInsert(): InsertMode {
         if (!isEditable(realTarget)) {
             self.exit();
         } else if (event.sk_keyName?.length) {
-            Mode.handleMapKey.call(self, event, (last) => {
+            Mode.handleMapKey.call(self as unknown as Mode, event, (last) => {
                 // for insert mode to insert unmapped chars with preceding chars same as some mapkeys
                 // such as, to insert `,m` in case of mapkey `,,` defined.
                 const pw = last.getPrefixWord();
@@ -313,12 +321,14 @@ function createInsert(): InsertMode {
     });
 
     let _element: HTMLElement | undefined;
-    const _enter = self.enter;
+    // Capture the base stack-push enter before overriding the public name. The
+    // cast reaches Mode.enter through InsertMode's narrowed `enter` slot.
+    const _enter = (self as unknown as Mode).enter;
     self.enter = function (elm: HTMLElement, keepCursor?: boolean): void {
         if (elm === document.body) {
             runtime.conf.showModeStatus = false;
         }
-        let changed = _enter.call(self, 0, true) === -1;
+        let changed = _enter.call(self as unknown as Mode, 0, true) === -1;
         if (_element !== elm) {
             _element = elm;
             changed = true;
@@ -331,7 +341,7 @@ function createInsert(): InsertMode {
         ) {
             moveCursorEOL();
         }
-    } as unknown as typeof self.enter;
+    };
 
     return self;
 }

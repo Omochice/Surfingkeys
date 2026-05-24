@@ -28,9 +28,7 @@ import createCommands from "./command.js";
 const Front = (() => {
     const clipboard = createClipboard();
     Mode.init();
-    // The god object is not dissolved yet (#13); insert's overridden enter clashes
-    // with the structural InsertLike each factory expects, so it is wired untyped.
-    const insert: any = createInsert();
+    const insert = createInsert();
     const normal = createNormal(insert);
     normal.enter();
     const hints = createHints(insert, normal, clipboard);
