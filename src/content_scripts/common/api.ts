@@ -1,4 +1,5 @@
 import { RUNTIME, dispatchSKEvent } from "./runtime.js";
+import type { ModeContext } from "./modeGraph";
 import Trie from "./trie";
 import Mode from "./mode";
 import KeyboardUtils from "./keyboardUtils";
@@ -18,39 +19,6 @@ import {
 } from "./utils.js";
 
 type ModeWithMappings = { name: string; mappings: Trie; map_node: Trie };
-type ClipboardLike = {
-    read(cb: (resp: { data: string }) => void): void;
-    write(text: string): void;
-};
-type NormalLike = ModeWithMappings & {
-    addLurkMap(newKeystroke: string, oldKeystroke: string): void;
-    feedkeys(keys: string): void;
-    jumpVIMark(mark: string): void;
-    passThrough(timeout?: number): unknown;
-    scroll(type: string): void;
-};
-type VisualLike = ModeWithMappings & { style(element: string, style: string): void };
-type InsertLike = ModeWithMappings;
-type HintsLike = {
-    click(links: string | Element[], force?: boolean): void;
-    create(
-        cssSelector: string | Element[] | RegExp,
-        onHintKey: ((element: any) => void) | null,
-        attrs?: Record<string, any>,
-    ): Promise<number>;
-    dispatchMouseClick(element: any): void;
-    style(css: string, mode?: string): void;
-    setNumeric(): void;
-    setCharacters(chars: string): void;
-};
-type FrontLike = {
-    executeCommand(cmd: string): void;
-    addSearchAlias?: (...args: any[]) => void;
-    removeSearchAlias(alias: string): void;
-    openOmnibar(args: unknown): void;
-    registerInlineQuery: (...args: any[]) => void;
-    setHintsCharacters?: (chars: string) => void;
-};
 
 type KeyTarget = {
     code: (...args: any[]) => void;
@@ -61,15 +29,8 @@ type KeyTarget = {
 type Annotation = { annotation: string | string[]; feature_group?: number };
 type MapOptions = { domain?: RegExp; repeatIgnore?: boolean; codeHasParameter?: boolean };
 
-function createAPI(
-    clipboard: ClipboardLike,
-    insert: InsertLike,
-    normal: NormalLike,
-    hints: HintsLike,
-    visual: VisualLike,
-    front: FrontLike,
-    _browser: unknown,
-) {
+function createAPI(ctx: ModeContext) {
+    const { clipboard, insert, normal, hints, visual, front } = ctx;
     function createKeyTarget(
         code: (...args: any[]) => void,
         ag: Annotation | null,

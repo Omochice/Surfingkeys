@@ -1,4 +1,5 @@
 import { RUNTIME, dispatchSKEvent, runtime } from "./runtime.js";
+import type { ModeContext } from "./modeGraph";
 import KeyboardUtils from "./keyboardUtils";
 import {
     getBrowserName,
@@ -59,62 +60,8 @@ type ApiLike = {
         alias?: string,
     ) => void;
 };
-type ClipboardLike = {
-    read(cb: (resp: { data: string }) => void): void;
-    write(text: string): void;
-};
-type NormalLike = {
-    addVIMark(mark: string, url?: string): void;
-    jumpVIMark(mark: string): void;
-    highlightElement(elm: Element): void;
-    rotateFrame(): void;
-    feedkeys(keys: string): void;
-    refreshScrollableElements(): HTMLElement[];
-};
-type HintsLike = {
-    previousPage(): boolean;
-    nextPage(): boolean;
-    createInputLayer(): void;
-    create(
-        cssSelector: string | Element[] | RegExp,
-        onHintKey: ((element: any, event?: any) => void) | null,
-        attrs?: Record<string, any>,
-    ): Promise<number>;
-    dispatchMouseClick(element: any, event?: any): void;
-    mouseoutLastElement(): void;
-    feedkeys(keys: string): void;
-};
-type VisualLike = {
-    toggle(ex?: string): void;
-    restore(): void;
-    star(): void;
-    feedkeys(keys: string): void;
-    next(backward?: boolean): void;
-    getCursorPixelPos(): DOMRect;
-};
-type FrontLike = {
-    chooseTab(): void;
-    showUsage(): void;
-    openOmniquery(args: unknown): void;
-    openOmnibar(args: unknown): void;
-    toggleStatus(visible: boolean): void;
-    performInlineQuery(
-        word: string,
-        pos: { top: number; left: number; height: number; width: number },
-        cb: (pos: unknown, queryResult: unknown) => void,
-    ): void;
-};
-
-export default function (
-    api: ApiLike,
-    clipboard: ClipboardLike,
-    _insert: unknown,
-    normal: NormalLike,
-    hints: HintsLike,
-    visual: VisualLike,
-    front: FrontLike,
-    _browser?: unknown,
-): void {
+export default function (api: ApiLike, ctx: ModeContext): void {
+    const { clipboard, normal, hints, visual, front } = ctx;
     const { addSearchAlias, cmap, map, mapkey, imapkey, vmapkey, searchSelectedWith } = api;
 
     mapkey("[[", "#1Click on the previous link on current page", hints.previousPage);
@@ -443,7 +390,7 @@ export default function (
     mapkey("<Ctrl-h>", "#1Mouse over elements.", () => {
         hints.create(
             "",
-            (element: any, event: any) => {
+            (element: any) => {
                 if (chrome.surfingkeys) {
                     const r = element.getClientRects()[0];
                     chrome.surfingkeys.sendMouseEvent(
@@ -453,7 +400,7 @@ export default function (
                         0,
                     );
                 } else {
-                    hints.dispatchMouseClick(element, event);
+                    hints.dispatchMouseClick(element);
                 }
             },
             { mouseEvents: ["mouseover"] },

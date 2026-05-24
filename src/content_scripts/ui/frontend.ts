@@ -22,6 +22,7 @@ import createVisual from "../common/visual.js";
 import createHints from "../common/hints.js";
 import createAPI from "../common/api.js";
 import createDefaultMappings from "../common/default.js";
+import type { ModeContext } from "../common/modeGraph";
 import createOmnibar from "./omnibar.js";
 import createCommands from "./command.js";
 
@@ -52,8 +53,9 @@ const Front = (() => {
         Omnibar: omnibar,
     };
 
-    const api = createAPI(clipboard, insert, normal, hints, visual, self, {});
-    createDefaultMappings(api, clipboard, insert, normal, hints, visual, self);
+    const ctx: ModeContext = { clipboard, insert, normal, hints, visual, front: self };
+    const api = createAPI(ctx);
+    createDefaultMappings(api, ctx);
 
     const _actions: Record<string, (message?: any) => any> = self._actions;
     const _callbacks: Record<string, (msg: any) => any> = {};

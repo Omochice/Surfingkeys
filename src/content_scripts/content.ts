@@ -22,6 +22,7 @@ import {
 import createFront from "./front.js";
 import createAPI from "./common/api.js";
 import createDefaultMappings from "./common/default.js";
+import type { ModeContext } from "./common/modeGraph";
 
 import KeyboardUtils from "./common/keyboardUtils";
 import browser from "./common/browser";
@@ -180,8 +181,9 @@ function _initModules(): Modes {
     const visual = createVisual(clipboard, hints);
     const front = createFront(insert, normal, hints, visual, _browser);
 
-    const api = createAPI(clipboard, insert, normal, hints, visual, front, _browser);
-    createDefaultMappings(api, clipboard, insert, normal, hints, visual, front, _browser);
+    const ctx: ModeContext = { clipboard, insert, normal, hints, visual, front };
+    const api = createAPI(ctx);
+    createDefaultMappings(api, ctx);
     if (typeof _browser.plugin === "function") {
         _browser.plugin({ front });
     }
