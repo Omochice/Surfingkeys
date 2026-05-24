@@ -94,7 +94,7 @@ module.exports = (env, argv) => {
         {
             from: "src/manifest.json",
             to:   ".",
-            transform (content, path) {
+            transform (content) {
                 return modifyManifest(browser, mode, content)
             }
         }

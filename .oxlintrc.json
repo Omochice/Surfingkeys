@@ -1,5 +1,10 @@
 {
     "$schema": "./node_modules/oxlint/configuration_schema.json",
+    "ignorePatterns": [
+        "firefox_pac.js",
+        "src/content_scripts/gist.js",
+        "src/content_scripts/common/debug_utils.js"
+    ],
     "plugins": ["typescript", "unicorn", "oxc"],
     "categories": {
         "correctness": "error"
