@@ -73,6 +73,7 @@ module.exports = (env, argv) => {
         content: `./src/content_scripts/${browser}.js`,
         'pages/frontend': `./src/content_scripts/ui/frontend.js`,
         'pages/start': './src/content_scripts/start.js',
+        'pages/popup': './src/pages/popup.ts',
     };
     const moduleEntries = {
         'pages/options': './src/content_scripts/options.js',
@@ -80,6 +81,8 @@ module.exports = (env, argv) => {
     const pagesCopyOptions = {
         ignore: [
             '**/images/*',
+            // popup.ts is compiled to pages/popup.js by a webpack entry; don't ship the source.
+            '**/*.ts',
         ]
     };
     const copyPatterns = [
@@ -97,7 +100,7 @@ module.exports = (env, argv) => {
         }
     ];
     if (browser === "chrome") {
-        pagesCopyOptions.ignore = [];
+        pagesCopyOptions.ignore = ['**/*.ts'];
         moduleEntries['api'] = './src/user_scripts/index.js';
     }
 
