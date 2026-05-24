@@ -49,7 +49,7 @@ type NormalMode = Mode & {
     passThrough(timeout?: number): PassThroughMode;
     once(): void;
     scroll(type: string): void;
-    refreshScrollableElements(): HTMLElement[] | null;
+    refreshScrollableElements(): HTMLElement[];
     addScrollableElement(elm: HTMLElement): void;
     rotateFrame(): void;
     feedkeys(keys: string): void;
@@ -752,7 +752,7 @@ function createNormal(insert: InsertLike): NormalMode {
     self.refreshScrollableElements = () => {
         scrollNodes = null;
         initScrollIndex();
-        return scrollNodes;
+        return scrollNodes!;
     };
 
     self.addScrollableElement = (elm) => {

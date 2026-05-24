@@ -90,8 +90,10 @@ function createAPI(
         return keybound;
     }
 
-    function _isDomainApplicable(domain?: RegExp): boolean {
-        return !domain || domain.test(document.location.href) || domain.test(window.origin);
+    function _isDomainApplicable(domain?: RegExp | number): boolean {
+        // A falsy domain (undefined or the legacy 0 sentinel) means "applies everywhere".
+        const re = domain as RegExp;
+        return !domain || re.test(document.location.href) || re.test(window.origin);
     }
 
     function _mapkey(
@@ -215,7 +217,7 @@ function createAPI(
     function map(
         new_keystroke: string,
         old_keystroke: string,
-        domain?: RegExp,
+        domain?: RegExp | number,
         new_annotation?: string,
     ): void {
         if (_isDomainApplicable(domain)) {
