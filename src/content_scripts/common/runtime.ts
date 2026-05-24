@@ -83,7 +83,7 @@ type MessageHandler = (
 const _handlers: Record<string, MessageHandler> = {};
 
 const conf = {
-    lastKeys: "",
+    lastKeys: [] as string[],
     // local part from settings
     blocklistPattern: undefined as RegExp | undefined,
     lurkingPattern: undefined as RegExp | undefined,
