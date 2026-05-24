@@ -328,7 +328,7 @@ function initSKFunctionListener(
 function dispatchMouseEvent(
     element: Element,
     events: string[],
-    modifiers: { ctrlKey: boolean; altKey: boolean; shiftKey: boolean; metaKey: boolean },
+    modifiers: { ctrlKey?: boolean; altKey?: boolean; shiftKey?: boolean; metaKey?: boolean },
 ): void {
     events.forEach((eventName) => {
         const event = new MouseEvent(eventName, {
@@ -1169,7 +1169,7 @@ function getCssSelectorsOfEditable(): string {
 type Hint = HTMLElement & { label: string; link: unknown };
 
 function refreshHints(
-    hints: Hint[],
+    hints: ArrayLike<Hint> & Iterable<Hint>,
     pressedKeys: string,
 ): { candidates: number; matched?: unknown } {
     const result: { candidates: number; matched?: unknown } = { candidates: 0 };
