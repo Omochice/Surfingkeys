@@ -1,10 +1,7 @@
 import { LOG } from "../common/utils.js";
 import { runtime } from "./common/runtime.js";
 import { getDocumentOrigin } from "./common/utils.js";
-
-// Browser-extension global. The typed BrowserAdapter (task #13) will replace
-// this narrow declaration once cross-browser API access is centralized.
-declare const chrome: { runtime: { getURL(path: string): string } };
+import browser from "./common/browser";
 
 type BrowserLike = {
     getBackFocusFromFrontend?: () => void;
@@ -13,12 +10,12 @@ type BrowserLike = {
 type UiHost = HTMLDivElement & { tryDetach(): void };
 type ActiveContent = { window: Window; origin: string } | null;
 
-function createUiHost(browser: BrowserLike, onload: (uiHost: HTMLElement) => void): void {
+function createUiHost(adapter: BrowserLike, onload: (uiHost: HTMLElement) => void): void {
     const uiHost = document.createElement("div") as UiHost;
     uiHost.style.display = "block";
     uiHost.style.opacity = "1";
     uiHost.style.colorScheme = "light";
-    const frontEndURL = chrome.runtime.getURL("pages/frontend.html");
+    const frontEndURL = browser.runtime.getURL("pages/frontend.html");
     const ifr = document.createElement("iframe");
     ifr.setAttribute("allowtransparency", "true");
     ifr.setAttribute("frameborder", "0");
@@ -138,8 +135,8 @@ function createUiHost(browser: BrowserLike, onload: (uiHost: HTMLElement) => voi
             ifr.blur();
             // test with https://docs.google.com/ and https://web.whatsapp.com/
             if (lastStateOfPointerEvents !== response.pointerEvents && activeContent) {
-                if (browser.getBackFocusFromFrontend) {
-                    browser.getBackFocusFromFrontend();
+                if (adapter.getBackFocusFromFrontend) {
+                    adapter.getBackFocusFromFrontend();
                 } else {
                     activeContent.window.postMessage(
                         {
@@ -156,8 +153,8 @@ function createUiHost(browser: BrowserLike, onload: (uiHost: HTMLElement) => voi
                 document.body.style.overflowY = _origOverflowY ?? "";
             }
         } else {
-            if (browser.focusFrontend) {
-                browser.focusFrontend(ifr);
+            if (adapter.focusFrontend) {
+                adapter.focusFrontend(ifr);
             }
             if (document.body) {
                 document.body.style.animationFillMode = "none";

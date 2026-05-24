@@ -24,10 +24,7 @@ import createAPI from "./common/api.js";
 import createDefaultMappings from "./common/default.js";
 
 import KeyboardUtils from "./common/keyboardUtils";
-
-// Browser-extension global. The typed BrowserAdapter (task #13) will replace
-// this narrow declaration once cross-browser API access is centralized.
-declare const chrome: { runtime: { getURL(path: string): string } };
+import browser from "./common/browser";
 
 declare global {
     interface Window {
@@ -151,7 +148,7 @@ function applySettings(api: Api, normal: Normal, rs: any): void {
     } else if (
         !rs.isMV3 &&
         rs.snippets &&
-        !document.location.href.startsWith(chrome.runtime.getURL("/"))
+        !document.location.href.startsWith(browser.runtime.getURL("/"))
     ) {
         const settings = {};
         let error = "";
@@ -267,11 +264,11 @@ Mode.init(
           },
 );
 
-function start(browser?: BrowserAdapter): void {
-    _browser = browser || {};
+function start(adapter?: BrowserAdapter): void {
+    _browser = adapter || {};
     if (window === top) {
         new Promise<Modes>((r) => {
-            if (window.location.href === chrome.runtime.getURL("/pages/options.html")) {
+            if (window.location.href === browser.runtime.getURL("/pages/options.html")) {
                 const optionsPath = "./pages/options.js";
                 import(/* webpackIgnore: true */ optionsPath).then((optionsLib) => {
                     optionsLib.default(

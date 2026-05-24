@@ -1,13 +1,10 @@
 import { RUNTIME } from "./common/runtime.js";
 import { setSanitizedContent } from "./common/utils.js";
-
-// Browser-extension global. The typed BrowserAdapter (task #13) will replace
-// this narrow declaration once cross-browser API access is centralized.
-declare const chrome: { runtime: { getURL(path: string): string } };
+import browser from "./common/browser";
 
 RUNTIME("getTopSites", null, (response) => {
     const urls = response.urls.map((u: { url: string; title: string }) => {
-        const favUrl = chrome.runtime.getURL(`/_favicon/?pageUrl=${encodeURIComponent(u.url)}`);
+        const favUrl = browser.runtime.getURL(`/_favicon/?pageUrl=${encodeURIComponent(u.url)}`);
         return `<li><a href="${u.url}"><i style="background:url(${favUrl}) no-repeat"></i>${u.title}</a></li>`;
     });
     setSanitizedContent(document.querySelector("#topSites>ul")!, urls.join("\n"));
