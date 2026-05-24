@@ -1,7 +1,7 @@
-import Trie from './trie';
-import { RUNTIME, dispatchSKEvent, runtime } from './runtime.js';
-import Mode from './mode';
-import KeyboardUtils from './keyboardUtils';
+import Trie from "./trie";
+import { RUNTIME, dispatchSKEvent, runtime } from "./runtime.js";
+import Mode from "./mode";
+import KeyboardUtils from "./keyboardUtils";
 import {
     getRealEdit,
     isEditable,
@@ -10,13 +10,62 @@ import {
     isInUIFrame,
     mapInMode,
     scrollIntoViewIfNeeded,
-    setSanitizedContent,
     showBanner,
     showPopup,
-} from './utils.js';
+} from "./utils.js";
 
-function createDisabled(normal) {
-    const self = new Mode("Disabled");
+// Browser-extension global. The typed BrowserAdapter (task #13) will replace
+// this narrow declaration once cross-browser API access is centralized.
+declare const chrome: { runtime: { getURL(path: string): string } };
+
+// Surfingkeys attaches scroll helpers and bookkeeping fields onto scrollable
+// elements; these expandos type those additions.
+type SKElement = HTMLElement & {
+    skScrollBy?: (x: number, y: number) => unknown;
+    smoothScrollBy?: (x: number, y: number, d: number) => void;
+    safeScroll_?: (prop: "scrollTop" | "scrollLeft", value: number, increasing: boolean) => boolean;
+    lastScrollTop?: number;
+    lastScrollLeft?: number;
+    newlyCreated?: boolean;
+    enableAutoFocus?: boolean;
+    style: CSSStyleDeclaration;
+};
+
+type InsertLike = { enter(elm: HTMLElement, keepCursor?: boolean): void; exit(): void };
+
+type DisabledMode = Mode & { activatedOnElement: boolean };
+type LurkMode = Mode & { mappings: Trie };
+type PassThroughMode = Mode & { setTimeout: (timeout?: number) => void };
+
+type NormalMode = Mode & {
+    mappings: Trie;
+    map_node: Trie;
+    passFocus(pf: boolean): void;
+    startLurk(): string;
+    revertToLurk(): void;
+    getLurkMode(): LurkMode | undefined;
+    addLurkMap(newKeystroke: string, oldKeystroke: string): void;
+    toggleBlocklist(): void;
+    passThrough(timeout?: number): PassThroughMode;
+    once(): void;
+    scroll(type: string): void;
+    refreshScrollableElements(): HTMLElement[] | null;
+    addScrollableElement(elm: HTMLElement): void;
+    rotateFrame(): void;
+    feedkeys(keys: string): void;
+    appendKeysForRepeat(mode: string, keys: string): void;
+    addVIMark(mark: string, url?: string): void;
+    jumpVIMark(mark: string): void;
+    moveTab(pos: number): void;
+    captureElement(elm: SKElement): void;
+    highlightElement(elm: Element): void;
+    isScrollKeyInHints(key: string): boolean;
+    disable(onElement?: boolean): void;
+    enable(): void;
+};
+
+function createDisabled(normal: NormalMode): DisabledMode {
+    const self = new Mode("Disabled") as DisabledMode;
 
     // hide status line for Disabled mode
     self.statusLine = "";
@@ -25,13 +74,17 @@ function createDisabled(normal) {
     self.priority = 99;
 
     self.activatedOnElement = false;
-    self.addEventListener('keydown', function(event) {
+    self.addEventListener("keydown", (event) => {
         // prevent this event to be handled by Surfingkeys' other listeners
         event.sk_suppressed = true;
-        if (self.activatedOnElement && !document.activeElement.matches(runtime.conf.disabledOnActiveElementPattern)) {
+        const keyName = event.sk_keyName ?? "";
+        if (
+            self.activatedOnElement &&
+            !document.activeElement!.matches(runtime.conf.disabledOnActiveElementPattern as string)
+        ) {
             normal.enable();
             self.activatedOnElement = false;
-        } else if (Mode.isSpecialKeyOf("<Alt-s>", event.sk_keyName)) {
+        } else if (Mode.isSpecialKeyOf("<Alt-s>", keyName)) {
             normal.toggleBlocklist();
             self.exit();
             event.sk_stopPropagation = true;
@@ -41,14 +94,14 @@ function createDisabled(normal) {
     return self;
 }
 
-function createLurk(normal) {
-    const self = new Mode("Lurk");
+function createLurk(normal: NormalMode): LurkMode {
+    const self = new Mode("Lurk") as LurkMode;
 
     function enterNormal() {
         normal.enter();
         if (window === top) {
-            RUNTIME('setSurfingkeysIcon', {
-                status: "enabled"
+            RUNTIME("setSurfingkeysIcon", {
+                status: "enabled",
             });
         }
     }
@@ -58,62 +111,63 @@ function createLurk(normal) {
     self.mappings.add(KeyboardUtils.encodeKeystroke("<Alt-i>"), {
         annotation: "Enter normal mode",
         feature_group: 16,
-        code: enterNormal
+        code: enterNormal,
     });
     self.mappings.add("p", {
         annotation: "Enter ephemeral normal mode to temporarily enable SurfingKeys",
         feature_group: 16,
-        code: function() {
+        code: () => {
             enterNormal();
             setTimeout(() => {
                 normal.revertToLurk();
             }, 1000);
-        }
+        },
     });
 
     // Lurk and Disabled should be mutually exclusive.
-    self.addEventListener('keydown', function(event) {
-        var realTarget = getRealEdit(event);
-        if (!isEditable(realTarget) && event.sk_keyName.length) {
+    self.addEventListener("keydown", (event) => {
+        const realTarget = getRealEdit(event);
+        if (!isEditable(realTarget) && event.sk_keyName?.length) {
             Mode.handleMapKey.call(self, event);
             if (event.sk_stopPropagation) {
                 // keyup event also needs to be suppressed for the key whose keydown has been suppressed.
-                Mode.suppressKeyUp(event.keyCode);
+                Mode.suppressKeyUp(event.keyCode!);
             }
         }
     });
     return self;
 }
 
-function createPassThrough() {
-    var self = new Mode("PassThrough");
-    var _autoExit, _timeout;
+function createPassThrough(): PassThroughMode {
+    const self = new Mode("PassThrough") as PassThroughMode;
+    let _autoExit: ReturnType<typeof setTimeout> | undefined;
+    let _timeout: number | undefined;
 
-    self.addEventListener('keydown', function(event) {
+    self.addEventListener("keydown", (event) => {
         // prevent this event to be handled by Surfingkeys' other listeners
         event.sk_suppressed = true;
-        if (Mode.isSpecialKeyOf("<Esc>", event.sk_keyName)) {
+        if (Mode.isSpecialKeyOf("<Esc>", event.sk_keyName ?? "")) {
             self.exit();
             event.sk_stopPropagation = true;
-        } else if (_timeout > 0) {
+        } else if (_timeout && _timeout > 0) {
             if (_autoExit) {
                 clearTimeout(_autoExit);
                 _autoExit = undefined;
             }
-            _autoExit = setTimeout(function() {
+            _autoExit = setTimeout(() => {
                 self.exit();
             }, _timeout);
         }
-    }).addEventListener('mousedown', function(event) {
+    }).addEventListener("mousedown", (event) => {
         event.sk_suppressed = true;
     });
-    self.addEventListener('focus', function(event) {
+    self.addEventListener("focus", (event) => {
         event.sk_suppressed = true;
     });
 
-    self.onEnter = function() {
-        if (_timeout > 0) {
-            _autoExit = setTimeout(function() {
+    self.onEnter = () => {
+        if (_timeout && _timeout > 0) {
+            _autoExit = setTimeout(() => {
                 self.exit();
             }, _timeout);
             self.statusLine = `ephemeral(${_timeout}ms) pass through`;
@@ -122,34 +176,42 @@ function createPassThrough() {
         }
     };
 
-    self.setTimeout = function(timeout) {
+    self.setTimeout = (timeout) => {
         _timeout = timeout;
     };
 
     return self;
 }
 
-function createNormal(insert) {
-    var self = new Mode("Normal");
+function createNormal(insert: InsertLike): NormalMode {
+    const self = new Mode("Normal") as NormalMode;
 
     self.mappings = new Trie();
     self.map_node = self.mappings;
 
     // let next focus event pass
-    var _passFocus = false;
-    self.passFocus = function(pf) {
+    let _passFocus = false;
+    let _lurk: LurkMode | undefined = undefined;
+    let _lurkMaps: [string, string][] | undefined = [];
+    let _once = false;
+    let keyHeld = 0;
+    let scrollNodes: HTMLElement[] | null = null;
+    let scrollIndex = 0;
+    let lastKeys: string[] | undefined;
+    const _nodesHasSKScroll: SKElement[] = [];
+
+    self.passFocus = (pf) => {
         _passFocus = pf;
     };
 
-    let _lurk = undefined;
     self.startLurk = () => {
         let state = "lurking";
         if (!_lurk) {
             self.exit();
             _lurk = createLurk(self);
-            _lurkMaps.forEach((keymap) => {
-                mapInMode(_lurk, keymap[0], keymap[1]);
-                _lurk.mappings.remove(KeyboardUtils.encodeKeystroke(keymap[1]));
+            _lurkMaps!.forEach((keymap) => {
+                mapInMode(_lurk!, keymap[0], keymap[1]);
+                _lurk!.mappings.remove(KeyboardUtils.encodeKeystroke(keymap[1]));
             });
             _lurkMaps = undefined;
             _lurk.enter(0, true);
@@ -162,44 +224,50 @@ function createNormal(insert) {
         // peeking exit to keep modes such hints above normal.
         self.exit(true);
         if (window === top) {
-            RUNTIME('setSurfingkeysIcon', {
-                status: "lurking"
+            RUNTIME("setSurfingkeysIcon", {
+                status: "lurking",
             });
         }
     };
     self.getLurkMode = () => {
         return _lurk;
     };
-    let _lurkMaps = [];
-    self.addLurkMap = (new_keystroke, old_keystroke) => {
-        _lurkMaps.push([new_keystroke, old_keystroke]);
+    self.addLurkMap = (newKeystroke, oldKeystroke) => {
+        _lurkMaps!.push([newKeystroke, oldKeystroke]);
     };
 
-    var _once = false;
-    self.addEventListener('keydown', function(event) {
-        var realTarget = getRealEdit(event);
+    self.addEventListener("keydown", (event) => {
+        const realTarget = getRealEdit(event);
+        const keyName = event.sk_keyName ?? "";
+        const eventKey = (event as KeyboardEvent).key;
         if (isEditable(realTarget) && event.isTrusted) {
-            if (Mode.isSpecialKeyOf("<Esc>", event.sk_keyName)) {
+            if (Mode.isSpecialKeyOf("<Esc>", keyName)) {
                 realTarget.blur();
                 insert.exit();
             } else {
-                if (runtime.conf.editableBodyCare && realTarget === document.body && event.key !== "i") {
+                if (
+                    runtime.conf.editableBodyCare &&
+                    realTarget === document.body &&
+                    eventKey !== "i"
+                ) {
                     self.statusLine = "Press i to enter Insert mode";
                     runtime.conf.showModeStatus = true;
-                    if (event.sk_keyName.length) {
+                    if (keyName.length) {
                         Mode.handleMapKey.call(self, event);
                     }
                 } else {
-                    event.sk_stopPropagation = (runtime.conf.editableBodyCare
-                        && realTarget === document.body && event.key === "i");
+                    event.sk_stopPropagation =
+                        runtime.conf.editableBodyCare &&
+                        realTarget === document.body &&
+                        eventKey === "i";
                     if (event.sk_stopPropagation) {
                         self.passFocus(true);
                         realTarget.focus();
                     }
 
-                    var stealFocus = false;
+                    let stealFocus = false;
                     if (!isElementPartiallyInViewport(realTarget)) {
-                        var n = realTarget;
+                        let n = realTarget;
                         while (n !== document.documentElement && !n.newlyCreated) {
                             n = n.parentElement;
                         }
@@ -208,23 +276,22 @@ function createNormal(insert) {
                     if (stealFocus) {
                         // steal focus from dynamically created input widget
                         realTarget.blur();
-                        delete n.newlyCreated;
+                        delete realTarget.newlyCreated;
                         Mode.handleMapKey.call(self, event);
                     } else {
                         // keep cursor where it is
                         insert.enter(realTarget, true);
                     }
-
                 }
             }
-        } else if (Mode.isSpecialKeyOf("<Alt-s>", event.sk_keyName)) {
+        } else if (Mode.isSpecialKeyOf("<Alt-s>", keyName)) {
             self.toggleBlocklist();
             Mode.finish(self);
             event.sk_stopPropagation = true;
-        } else if (event.sk_keyName.length) {
-            var done = Mode.handleMapKey.call(self, event, () => {
+        } else if (keyName.length) {
+            const done = Mode.handleMapKey.call(self, event, () => {
                 // revert to lurk only when Esc is not handled and lurk mode available.
-                if (Mode.isSpecialKeyOf("<Esc>", event.sk_keyName) && _lurk) {
+                if (Mode.isSpecialKeyOf("<Esc>", keyName) && _lurk) {
                     self.revertToLurk();
                 }
             });
@@ -235,16 +302,16 @@ function createNormal(insert) {
         }
         if (event.sk_stopPropagation) {
             // keyup event also needs to be suppressed for the key whose keydown has been suppressed.
-            Mode.suppressKeyUp(event.keyCode);
+            Mode.suppressKeyUp(event.keyCode!);
         }
     });
-    self.addEventListener('blur', function(event) {
+    self.addEventListener("blur", () => {
         keyHeld = 0;
     });
-    self.addEventListener('focus', function(event) {
+    self.addEventListener("focus", (event) => {
         Mode.showStatus();
         if (runtime.conf.stealFocusOnLoad && !isInUIFrame()) {
-            var elm = getRealEdit(event);
+            const elm = getRealEdit(event);
             if (isEditable(elm)) {
                 if (_passFocus || elm.enableAutoFocus) {
                     if (!runtime.conf.enableAutoFocus) {
@@ -258,12 +325,12 @@ function createNormal(insert) {
             }
         }
     });
-    self.addEventListener('keyup', function(event) {
-        setTimeout(function() {
+    self.addEventListener("keyup", () => {
+        setTimeout(() => {
             keyHeld = 0;
         }, 0);
     });
-    self.addEventListener('mousedown', function(event) {
+    self.addEventListener("mousedown", (event) => {
         // The isTrusted read-only property of the Event interface is a boolean
         // that is true when the event was generated by a user action, and false
         // when the event was created or modified by a script or dispatched via dispatchEvent.
@@ -275,7 +342,7 @@ function createNormal(insert) {
             self.passFocus(event.isTrusted);
         }
 
-        var realTarget = getRealEdit(event);
+        const realTarget = getRealEdit(event);
         if (isEditable(realTarget)) {
             // keep cursor where it is
             insert.enter(realTarget, true);
@@ -283,30 +350,41 @@ function createNormal(insert) {
             insert.exit();
         }
 
-        if (document.activeElement.matches(runtime.conf.disabledOnActiveElementPattern)) {
+        if (
+            document.activeElement!.matches(runtime.conf.disabledOnActiveElementPattern as string)
+        ) {
             setTimeout(() => {
                 self.disable(true);
             }, 100);
         }
     });
 
-    self.toggleBlocklist = function() {
+    self.toggleBlocklist = () => {
         if (document.location.href.indexOf(chrome.runtime.getURL("/")) !== 0) {
-            RUNTIME('toggleBlocklist', {
-                blocklistPattern: (runtime.conf.blocklistPattern ? runtime.conf.blocklistPattern : "")
-            }, function(resp) {
-                if (resp.state === "disabled") {
-                    if (resp.blocklist.hasOwnProperty(".*")) {
-                        showBanner('Surfingkeys is globally disabled, please enable it globally from popup menu.', 3000);
+            RUNTIME(
+                "toggleBlocklist",
+                {
+                    blocklistPattern: runtime.conf.blocklistPattern
+                        ? runtime.conf.blocklistPattern
+                        : "",
+                },
+                (resp) => {
+                    if (resp.state === "disabled") {
+                        if (Object.prototype.hasOwnProperty.call(resp.blocklist, ".*")) {
+                            showBanner(
+                                "Surfingkeys is globally disabled, please enable it globally from popup menu.",
+                                3000,
+                            );
+                        } else {
+                            showBanner("Surfingkeys turned OFF for " + resp.url, 3000);
+                        }
                     } else {
-                        showBanner('Surfingkeys turned OFF for ' + resp.url, 3000);
+                        showBanner("Surfingkeys turned ON for " + resp.url, 3000);
                     }
-                } else {
-                    showBanner('Surfingkeys turned ON for ' + resp.url, 3000);
-                }
-            });
+                },
+            );
         } else {
-            showBanner('You could not toggle Surfingkeys on its own pages.', 3000);
+            showBanner("You could not toggle Surfingkeys on its own pages.", 3000);
         }
     };
 
@@ -318,7 +396,7 @@ function createNormal(insert) {
      * @name Normal.passThrough
      *
      */
-    self.passThrough = function(timeout) {
+    self.passThrough = (timeout) => {
         _passThrough.setTimeout(timeout);
         _passThrough.enter();
         return _passThrough;
@@ -330,39 +408,32 @@ function createNormal(insert) {
     self.mappings.add(KeyboardUtils.encodeKeystroke("<Alt-i>"), {
         annotation: "Enter PassThrough mode to temporarily suppress SurfingKeys",
         feature_group: 0,
-        code: function() {
+        code: () => {
             self.passThrough();
-        }
+        },
     });
     self.mappings.add("p", {
         annotation: "Enter ephemeral PassThrough mode to temporarily suppress SurfingKeys",
         feature_group: 0,
-        code: function() {
+        code: () => {
             self.passThrough(1000);
-        }
+        },
     });
 
     self.repeats = "";
-    var keyHeld = 0;
 
-    var scrollNodes, scrollIndex = 0,
-        lastKeys;
-
-    function easeFn(t, b, c, d) {
-        // t: current time, b: begInnIng value, c: change In value, d: duration
-        return (t === d) ? b + c : c * (-Math.pow(2, -10 * t / d) + 1) + b;
-    }
-
-    var _nodesHasSKScroll = [];
-    function initScroll(elm) {
-        elm.skScrollBy = function(x, y) {
-            if (runtime.conf.smartPageBoundary && ((this === document.scrollingElement)
-                || scrollNodes.length === 1 && this === scrollNodes[0])) {
+    function initScroll(elm: SKElement): void {
+        elm.skScrollBy = function (this: SKElement, x: number, y: number) {
+            if (
+                runtime.conf.smartPageBoundary &&
+                (this === document.scrollingElement ||
+                    (scrollNodes!.length === 1 && this === scrollNodes![0]))
+            ) {
                 if (this.scrollTop === 0 && y < 0) {
-                    return dispatchSKEvent("hints", ['topBoundaryHit']);
+                    return dispatchSKEvent("hints", ["topBoundaryHit"]);
                 }
                 if (this.scrollHeight - this.scrollTop <= this.clientHeight + 1 && y > 0) {
-                    return dispatchSKEvent("hints", ['bottomBoundaryHit']);
+                    return dispatchSKEvent("hints", ["bottomBoundaryHit"]);
                 }
             }
             if (RUNTIME.repeats > 1) {
@@ -371,22 +442,28 @@ function createNormal(insert) {
                 RUNTIME.repeats = 0;
             }
             if (runtime.conf.smoothScroll) {
-                var d = Math.max(100, 20 * Math.log(Math.abs( x || y)));
-                elm.smoothScrollBy(x, y, d);
+                const d = Math.max(100, 20 * Math.log(Math.abs(x || y)));
+                elm.smoothScrollBy!(x, y, d);
             } else {
-                dispatchSKEvent("hints", ['scrollStarted']);
+                dispatchSKEvent("hints", ["scrollStarted"]);
                 elm.scrollBy({
-                    'behavior': 'instant',
-                    'left': x,
-                    'top': y,
+                    // "instant" is a valid runtime value the lib types omit.
+                    behavior: "instant" as ScrollBehavior,
+                    left: x,
+                    top: y,
                 });
-                dispatchSKEvent("hints", ['scrollDone']);
+                dispatchSKEvent("hints", ["scrollDone"]);
             }
         };
         elm.safeScroll_ = (prop, value, increasing) => {
-            const clientHeight = elm === document.scrollingElement ? window.innerHeight : elm.clientHeight;
-            const clientWidth = elm === document.scrollingElement ? window.innerWidth : elm.clientWidth;
-            const range = prop === "scrollTop" ? [0, elm.scrollHeight - clientHeight] : [0, elm.scrollWidth - clientWidth];
+            const clientHeight =
+                elm === document.scrollingElement ? window.innerHeight : elm.clientHeight;
+            const clientWidth =
+                elm === document.scrollingElement ? window.innerWidth : elm.clientWidth;
+            const range =
+                prop === "scrollTop"
+                    ? [0, elm.scrollHeight - clientHeight]
+                    : [0, elm.scrollWidth - clientWidth];
             const boundary = increasing ? range[1] : range[0];
             if (value >= range[0] && value <= range[1]) {
                 elm[prop] = value;
@@ -396,48 +473,56 @@ function createNormal(insert) {
                 return true;
             }
         };
-        elm.smoothScrollBy = function(x, y, d) {
+        elm.smoothScrollBy = function (x: number, y: number, d: number) {
             if (!keyHeld) {
-                var [prop, distance] = y ? ['scrollTop', y] : ['scrollLeft', x],
-                    duration = d,
-                    previousTimestamp = 0,
-                    originValue = elm[prop],
-                    stepCompleted = false;
+                const prop: "scrollTop" | "scrollLeft" = y ? "scrollTop" : "scrollLeft";
+                const distance = y ? y : x;
+                const duration = d;
+                let previousTimestamp = 0;
+                let originValue = elm[prop];
+                let stepCompleted = false;
                 keyHeld = 1;
-                function step(t) {
+                const step = (t: number): void => {
                     if (previousTimestamp === 0) {
                         // init previousTimestamp in first step
                         previousTimestamp = t;
-                        dispatchSKEvent("hints", ['scrollStarted']);
-                        return window.requestAnimationFrame(step);
+                        dispatchSKEvent("hints", ["scrollStarted"]);
+                        window.requestAnimationFrame(step);
+                        return;
                     }
-                    var old = elm[prop], delta = (t - previousTimestamp) * distance / duration;
+                    const old = elm[prop];
+                    const delta = ((t - previousTimestamp) * distance) / duration;
                     let boundaryHit = false;
                     if (Math.abs(old + delta - originValue) >= Math.abs(distance)) {
                         stepCompleted = true;
                         if (keyHeld > runtime.conf.scrollFriction) {
-                            boundaryHit = elm.safeScroll_(prop, old + delta, distance > 0);
+                            boundaryHit = elm.safeScroll_!(prop, old + delta, distance > 0);
                             originValue = elm[prop];
                         } else if (keyHeld > 0) {
-                            keyHeld ++;
+                            keyHeld++;
                         } else {
-                            boundaryHit = elm.safeScroll_(prop, originValue + distance, distance > 0);
+                            boundaryHit = elm.safeScroll_!(
+                                prop,
+                                originValue + distance,
+                                distance > 0,
+                            );
                         }
                     } else {
-                        boundaryHit = elm.safeScroll_(prop, old + delta, distance > 0);
+                        boundaryHit = elm.safeScroll_!(prop, old + delta, distance > 0);
                     }
                     previousTimestamp = t;
 
-                    if (!keyHeld && (boundaryHit
-                        || stepCompleted )// distance completed
+                    if (
+                        !keyHeld &&
+                        (boundaryHit || stepCompleted) // distance completed
                     ) {
-                        elm.style.scrollBehavior = '';
-                        dispatchSKEvent("hints", ['scrollDone']);
+                        elm.style.scrollBehavior = "";
+                        dispatchSKEvent("hints", ["scrollDone"]);
                     } else {
                         window.requestAnimationFrame(step);
                     }
-                }
-                elm.style.scrollBehavior = 'auto';
+                };
+                elm.style.scrollBehavior = "auto";
                 window.requestAnimationFrame(step);
             }
         };
@@ -445,24 +530,25 @@ function createNormal(insert) {
     }
 
     // set scrollIndex to the highest node
-    function initScrollIndex() {
+    function initScrollIndex(): void {
         if (!scrollNodes || scrollNodes.length === 0) {
             scrollNodes = Mode.getScrollableElements();
-            scrollNodes.forEach(function (n) {
-                n.removeEventListener('mousedown', scrollableMousedownHandler);
-                n.addEventListener('mousedown', scrollableMousedownHandler);
-                n.dataset.hint_scrollable = true;
+            scrollNodes.forEach((n) => {
+                n.removeEventListener("mousedown", scrollableMousedownHandler);
+                n.addEventListener("mousedown", scrollableMousedownHandler);
+                n.dataset.hint_scrollable = "true";
             });
             scrollIndex = 0;
         }
     }
 
-    function scrollableMousedownHandler(e) {
-        var n = e.currentTarget;
-        if (!n.contains(e.target)) return;
-        var index = scrollNodes.lastIndexOf(e.target);
-        for (var i = scrollNodes.length - 1; i >= 0 && index === -1; i--) {
-            if (scrollNodes[i] !== document.body && scrollNodes[i].contains(e.target)) {
+    function scrollableMousedownHandler(e: MouseEvent): void {
+        const n = e.currentTarget as HTMLElement;
+        const target = e.target as HTMLElement;
+        if (!n.contains(target)) return;
+        let index = scrollNodes!.lastIndexOf(target);
+        for (let i = scrollNodes!.length - 1; i >= 0 && index === -1; i--) {
+            if (scrollNodes![i] !== document.body && scrollNodes![i].contains(target)) {
                 index = i;
             }
         }
@@ -471,33 +557,36 @@ function createNormal(insert) {
         }
     }
 
-    self.highlightElement = function(elm) {
-        var rc;
+    self.highlightElement = (elm) => {
+        let rc;
         if (document.scrollingElement === elm) {
             rc = {
                 top: 0,
                 left: 0,
                 width: window.innerWidth,
-                height: window.innerHeight
+                height: window.innerHeight,
             };
         } else {
             rc = elm.getBoundingClientRect();
         }
-        dispatchSKEvent("front", ['highlightElement', {
-            duration: 200,
-            rect: {
-                top: rc.top,
-                left: rc.left,
-                width: rc.width,
-                height: rc.height
-            }
-        }]);
-    }
-    function changeScrollTarget(silent) {
+        dispatchSKEvent("front", [
+            "highlightElement",
+            {
+                duration: 200,
+                rect: {
+                    top: rc.top,
+                    left: rc.left,
+                    width: rc.width,
+                    height: rc.height,
+                },
+            },
+        ]);
+    };
+    function changeScrollTarget(silent?: boolean): void {
         scrollNodes = Mode.getScrollableElements();
         if (scrollNodes.length > 0) {
             scrollIndex = (scrollIndex + 1) % scrollNodes.length;
-            var sn = scrollNodes[scrollIndex];
+            const sn = scrollNodes[scrollIndex];
             scrollIntoViewIfNeeded(sn);
             if (!silent) {
                 self.highlightElement(sn);
@@ -506,30 +595,30 @@ function createNormal(insert) {
     }
 
     const scrollTypeDirections = new Map([
-        ['down', 'vertical'],
-        ['up', 'vertical'],
-        ['pageDown', 'vertical'],
-        ['fullPageDown', 'vertical'],
-        ['pageUp', 'vertical'],
-        ['fullPageUp', 'vertical'],
-        ['top', 'vertical'],
-        ['bottom', 'vertical'],
-        ['byRatio', 'vertical'],
-        ['left', 'horizontal'],
-        ['right', 'horizontal'],
-        ['leftmost', 'horizontal'],
-        ['rightmost', 'horizontal']
+        ["down", "vertical"],
+        ["up", "vertical"],
+        ["pageDown", "vertical"],
+        ["fullPageDown", "vertical"],
+        ["pageUp", "vertical"],
+        ["fullPageUp", "vertical"],
+        ["top", "vertical"],
+        ["bottom", "vertical"],
+        ["byRatio", "vertical"],
+        ["left", "horizontal"],
+        ["right", "horizontal"],
+        ["leftmost", "horizontal"],
+        ["rightmost", "horizontal"],
     ]);
 
-    function canScrollInDirection(elm, direction) {
+    function canScrollInDirection(elm: HTMLElement, direction: string): boolean {
         const isMainPage = elm === document.scrollingElement || elm === document.body;
         const clientHeight = isMainPage ? window.innerHeight : elm.clientHeight;
         const clientWidth = isMainPage ? window.innerWidth : elm.clientWidth;
 
         switch (direction) {
-            case 'vertical':
+            case "vertical":
                 return elm.scrollHeight > clientHeight + 1;
-            case 'horizontal':
+            case "horizontal":
                 return elm.scrollWidth > clientWidth + 1;
             default:
                 return false;
@@ -543,26 +632,30 @@ function createNormal(insert) {
      * @name Normal.scroll
      *
      */
-    self.scroll = function(type) {
+    self.scroll = (type) => {
         initScrollIndex();
-        var scrollNode = document.scrollingElement;
-        if (scrollNodes.length > 0) {
-            scrollNode = scrollNodes[scrollIndex];
+        let scrollNode = document.scrollingElement as SKElement | null;
+        if (scrollNodes!.length > 0) {
+            scrollNode = scrollNodes![scrollIndex] as SKElement;
             if (scrollNode !== document.scrollingElement && scrollNode !== document.body) {
-                var br = scrollNode.getBoundingClientRect();
-                if (br.width === 0 || br.height === 0 || !isElementPartiallyInViewport(scrollNode)
-                    || !Mode.hasScroll(scrollNode, 'x', 16) && !Mode.hasScroll(scrollNode, 'y', 16)) {
+                const br = scrollNode.getBoundingClientRect();
+                if (
+                    br.width === 0 ||
+                    br.height === 0 ||
+                    !isElementPartiallyInViewport(scrollNode) ||
+                    (!Mode.hasScroll(scrollNode, "x", 16) && !Mode.hasScroll(scrollNode, "y", 16))
+                ) {
                     // Recompute scrollable elements, the webpage has changed.
                     self.refreshScrollableElements();
-                    scrollNode = scrollNodes[scrollIndex];
+                    scrollNode = scrollNodes![scrollIndex] as SKElement;
                 }
             }
         }
         if (!scrollNode && !document.scrollingElement && document.body) {
             // to set document.body.style.overflow auto will make document.scrollingElement null
             // set visible to bring it back.
-            document.body.style.overflow = 'visible';
-            scrollNode = document.scrollingElement;
+            document.body.style.overflow = "visible";
+            scrollNode = document.scrollingElement as SKElement | null;
         }
         if (!scrollNode) {
             // scrollNode could be null on a page with frameset as its body.
@@ -570,91 +663,112 @@ function createNormal(insert) {
         }
 
         // Fall back to document scrolling if enabled and current element can't scroll in requested direction
-        if (runtime.conf.scrollFallback &&
+        if (
+            runtime.conf.scrollFallback &&
             scrollNode !== document.scrollingElement &&
-            scrollNode !== document.body) {
+            scrollNode !== document.body
+        ) {
             const direction = scrollTypeDirections.get(type);
 
             if (direction && !canScrollInDirection(scrollNode, direction)) {
-                scrollNode = document.scrollingElement;
+                scrollNode = document.scrollingElement as SKElement | null;
                 if (!scrollNode && document.body) {
-                    document.body.style.overflow = 'visible';
-                    scrollNode = document.scrollingElement;
+                    document.body.style.overflow = "visible";
+                    scrollNode = document.scrollingElement as SKElement | null;
                 }
             }
         }
 
+        if (!scrollNode) {
+            return;
+        }
         if (!scrollNode.skScrollBy) {
             initScroll(scrollNode);
         }
-        var size = (scrollNode === document.scrollingElement) ? [window.innerWidth, window.innerHeight] : [scrollNode.offsetWidth, scrollNode.offsetHeight];
+        const size =
+            scrollNode === document.scrollingElement
+                ? [window.innerWidth, window.innerHeight]
+                : [scrollNode.offsetWidth, scrollNode.offsetHeight];
         scrollNode.lastScrollTop = scrollNode.scrollTop;
         scrollNode.lastScrollLeft = scrollNode.scrollLeft;
         switch (type) {
-            case 'down':
-                scrollNode.skScrollBy(0, runtime.conf.scrollStepSize);
+            case "down":
+                scrollNode.skScrollBy!(0, runtime.conf.scrollStepSize);
                 break;
-            case 'up':
-                scrollNode.skScrollBy(0, -runtime.conf.scrollStepSize);
+            case "up":
+                scrollNode.skScrollBy!(0, -runtime.conf.scrollStepSize);
                 break;
-            case 'pageDown':
-                scrollNode.skScrollBy(0, Math.round(size[1] / 2));
+            case "pageDown":
+                scrollNode.skScrollBy!(0, Math.round(size[1] / 2));
                 break;
-            case 'fullPageDown':
-                scrollNode.skScrollBy(0, size[1]);
+            case "fullPageDown":
+                scrollNode.skScrollBy!(0, size[1]);
                 break;
-            case 'pageUp':
-                scrollNode.skScrollBy(0, -Math.round(size[1] / 2));
+            case "pageUp":
+                scrollNode.skScrollBy!(0, -Math.round(size[1] / 2));
                 break;
-            case 'fullPageUp':
-                scrollNode.skScrollBy(0, -size[1]);
+            case "fullPageUp":
+                scrollNode.skScrollBy!(0, -size[1]);
                 break;
-            case 'top':
-                scrollNode.skScrollBy(0, -scrollNode.scrollTop);
+            case "top":
+                scrollNode.skScrollBy!(0, -scrollNode.scrollTop);
                 break;
-            case 'bottom':
-                scrollNode.skScrollBy(scrollNode.scrollLeft, scrollNode.scrollHeight - scrollNode.scrollTop);
+            case "bottom":
+                scrollNode.skScrollBy!(
+                    scrollNode.scrollLeft,
+                    scrollNode.scrollHeight - scrollNode.scrollTop,
+                );
                 break;
-            case 'left':
-                scrollNode.skScrollBy(-Math.round(runtime.conf.scrollStepSize / 2), 0);
+            case "left":
+                scrollNode.skScrollBy!(-Math.round(runtime.conf.scrollStepSize / 2), 0);
                 break;
-            case 'right':
-                scrollNode.skScrollBy(Math.round(runtime.conf.scrollStepSize / 2), 0);
+            case "right":
+                scrollNode.skScrollBy!(Math.round(runtime.conf.scrollStepSize / 2), 0);
                 break;
-            case 'leftmost':
-                scrollNode.skScrollBy(-scrollNode.scrollLeft - 10, 0);
+            case "leftmost":
+                scrollNode.skScrollBy!(-scrollNode.scrollLeft - 10, 0);
                 break;
-            case 'rightmost':
-                scrollNode.skScrollBy(scrollNode.scrollWidth - scrollNode.scrollLeft - size[0] + 20, 0);
+            case "rightmost":
+                scrollNode.skScrollBy!(
+                    scrollNode.scrollWidth - scrollNode.scrollLeft - size[0] + 20,
+                    0,
+                );
                 break;
-            case 'byRatio':
-                var y = parseInt(RUNTIME.repeats * scrollNode.scrollHeight / 100) - size[1] / 2 - scrollNode.scrollTop;
+            case "byRatio": {
+                const y =
+                    parseInt(String((RUNTIME.repeats * scrollNode.scrollHeight) / 100)) -
+                    size[1] / 2 -
+                    scrollNode.scrollTop;
                 RUNTIME.repeats = 0;
-                scrollNode.skScrollBy(0, y);
+                scrollNode.skScrollBy!(0, y);
                 break;
+            }
             default:
                 break;
         }
-        dispatchSKEvent("observer", ['turnOff']);
+        dispatchSKEvent("observer", ["turnOff"]);
     };
 
-    self.refreshScrollableElements = function () {
+    self.refreshScrollableElements = () => {
         scrollNodes = null;
         initScrollIndex();
         return scrollNodes;
     };
 
-    self.addScrollableElement = function(elm) {
-        if (!scrollNodes || !elm.contains(scrollNodes[scrollIndex]) && scrollNodes.indexOf(elm) === -1) {
+    self.addScrollableElement = (elm) => {
+        if (
+            !scrollNodes ||
+            (!elm.contains(scrollNodes[scrollIndex]) && scrollNodes.indexOf(elm) === -1)
+        ) {
             initScrollIndex();
-            scrollNodes.push(elm);
-            scrollIndex = scrollNodes.length - 1;
+            scrollNodes!.push(elm);
+            scrollIndex = scrollNodes!.length - 1;
         }
     };
 
-    self.rotateFrame = function() {
-        RUNTIME('nextFrame', {
-            frameId: window.frameId
+    self.rotateFrame = () => {
+        RUNTIME("nextFrame", {
+            frameId: (window as unknown as { frameId: number }).frameId,
         });
     };
 
@@ -665,48 +779,48 @@ function createNormal(insert) {
      * @name Normal.feedkeys
      *
      */
-    self.feedkeys = function(keys) {
-        setTimeout(function() {
-            var evt = new Event("keydown");
-            for (var i = 0; i < keys.length; i ++) {
+    self.feedkeys = (keys) => {
+        setTimeout(() => {
+            const evt = new Event("keydown");
+            for (let i = 0; i < keys.length; i++) {
                 evt.sk_keyName = keys[i];
                 Mode.handleMapKey.call(self, evt);
             }
         }, 1);
     };
 
-    self.setLastKeys = function(key) {
-        if (!this.map_node.meta.repeatIgnore && key.length > 1) {
+    self.setLastKeys = function (this: Mode, key: string) {
+        if (!this.map_node!.meta!.repeatIgnore && key.length > 1) {
             lastKeys = [key];
             saveLastKeys();
         }
     };
 
-    function saveLastKeys() {
-        RUNTIME('localData', {
+    function saveLastKeys(): void {
+        RUNTIME("localData", {
             data: {
-                lastKeys: lastKeys
-            }
+                lastKeys: lastKeys,
+            },
         });
     }
 
-    self.appendKeysForRepeat = function(mode, keys) {
+    self.appendKeysForRepeat = (mode, keys) => {
         if (lastKeys && lastKeys.length > 0) {
             // keys for normal mode must be pushed.
-            lastKeys.push('{0}\t{1}'.format(mode, keys));
+            lastKeys.push("{0}\t{1}".format(mode, keys));
             saveLastKeys();
         }
     };
 
-    self.addVIMark = function(mark, url) {
+    self.addVIMark = (mark, url) => {
         url = url || window.location.href;
-        var mo = {};
+        const mo: Record<string, { url: string; scrollLeft: number; scrollTop: number }> = {};
         mo[mark] = {
             url: url,
-            scrollLeft: document.scrollingElement.scrollLeft,
-            scrollTop: document.scrollingElement.scrollTop
+            scrollLeft: document.scrollingElement!.scrollLeft,
+            scrollTop: document.scrollingElement!.scrollTop,
         };
-        RUNTIME('addVIMark', {mark: mo});
+        RUNTIME("addVIMark", { mark: mo });
         showBanner("Mark '{0}' added for: {1}.".format(mark, url));
     };
 
@@ -717,13 +831,15 @@ function createNormal(insert) {
      * @name Normal.jumpVIMark
      *
      */
-    self.jumpVIMark = function(mark) {
+    self.jumpVIMark = (mark) => {
         if (mark === "'") {
-            let scrollNode = document.scrollingElement;
             initScrollIndex();
-            if (scrollNodes.length > 0) {
-                scrollNode = scrollNodes[scrollIndex];
-                if (scrollNode.lastScrollTop !== undefined && scrollNode.lastScrollLeft !== undefined) {
+            if (scrollNodes!.length > 0) {
+                const scrollNode = scrollNodes![scrollIndex] as SKElement;
+                if (
+                    scrollNode.lastScrollTop !== undefined &&
+                    scrollNode.lastScrollLeft !== undefined
+                ) {
                     const lt = scrollNode.scrollTop;
                     const ll = scrollNode.scrollLeft;
                     scrollNode.scrollTop = scrollNode.lastScrollTop;
@@ -733,73 +849,80 @@ function createNormal(insert) {
                 }
             }
         } else {
-            RUNTIME('jumpVIMark', {
-                mark: mark
+            RUNTIME("jumpVIMark", {
+                mark: mark,
             });
         }
     };
 
-    self.moveTab = function(pos) {
-        RUNTIME('moveTab', {
-            position: pos
+    self.moveTab = (pos) => {
+        RUNTIME("moveTab", {
+            position: pos,
         });
     };
 
-    self.captureElement = function(elm) {
-        RUNTIME('getCaptureSize', null, function(response) {
-            var scale = response.width / window.innerWidth;
+    self.captureElement = (elm) => {
+        RUNTIME("getCaptureSize", null, (response) => {
+            const scale = response.width / window.innerWidth;
 
             elm.scrollTop = 0;
             elm.scrollLeft = 0;
-            var lastScrollTop = -1, lastScrollLeft = -1;
+            let lastScrollTop = -1;
+            let lastScrollLeft = -1;
             // hide scrollbars
-            var overflowY = elm.style.overflowY;
+            const overflowY = elm.style.overflowY;
             elm.style.overflowY = "hidden";
-            var overflowX = elm.style.overflowX;
+            const overflowX = elm.style.overflowX;
             elm.style.overflowX = "hidden";
             // hide borders
-            var borderStyle = elm.style.borderStyle;
+            const borderStyle = elm.style.borderStyle;
             elm.style.borderStyle = "none";
-            dispatchSKEvent("front", ['toggleStatus', false]);
+            dispatchSKEvent("front", ["toggleStatus", false]);
 
-            var dx = 0, dy = 0, sx, sy, sw, sh, ww, wh, dh = elm.scrollHeight, dw = elm.scrollWidth;
+            let dx = 0;
+            let dy = 0;
+            let sx: number;
+            let sy: number;
+            let ww: number;
+            let wh: number;
+            const dh = elm.scrollHeight;
+            const dw = elm.scrollWidth;
             if (elm === document.scrollingElement) {
                 ww = window.innerWidth;
                 wh = window.innerHeight;
                 sx = 0;
                 sy = 0;
             } else {
-                var br = elm.getBoundingClientRect();
+                const br = elm.getBoundingClientRect();
                 // visible rectangle
-                var rc = [
+                const rc = [
                     Math.max(br.left, 0),
                     Math.max(br.top, 0),
                     Math.min(br.right, window.innerWidth),
-                    Math.min(br.bottom, window.innerHeight)
+                    Math.min(br.bottom, window.innerHeight),
                 ];
                 ww = rc[2] - rc[0];
                 wh = rc[3] - rc[1];
                 sx = rc[0] * scale;
                 sy = rc[1] * scale;
             }
-            sw = ww * scale;
-            sh = wh * scale;
+            const sw = ww * scale;
+            const sh = wh * scale;
 
-            var canvas = document.createElement( "canvas" );
+            const canvas = document.createElement("canvas");
             canvas.width = dw * scale;
             canvas.height = dh * scale;
-            var ctx = canvas.getContext( "2d" );
+            const ctx = canvas.getContext("2d")!;
 
-            var br = elm.getBoundingClientRect();
-            var img = document.createElement( "img" );
+            const img = document.createElement("img");
 
-            img.onload = function() {
+            img.onload = function () {
                 ctx.drawImage(img, sx, sy, sw, sh, dx, dy, sw, sh);
                 if (lastScrollTop === elm.scrollTop) {
                     if (lastScrollLeft === elm.scrollLeft) {
                         // done
-                        dispatchSKEvent("front", ['toggleStatus', true]);
-                        showPopup("<img src='{0}' />".format(canvas.toDataURL( "image/png" )));
+                        dispatchSKEvent("front", ["toggleStatus", true]);
+                        showPopup("<img src='{0}' />".format(canvas.toDataURL("image/png")));
                         // restore overflow
                         elm.style.overflowY = overflowY;
                         elm.style.overflowX = overflowX;
@@ -817,8 +940,8 @@ function createNormal(insert) {
                             elm.scrollLeft += dw % ww;
                             dx = elm.scrollLeft * scale;
                         }
-                        setTimeout(function() {
-                            RUNTIME('captureVisibleTab', null, function(response) {
+                        setTimeout(() => {
+                            RUNTIME("captureVisibleTab", null, (response) => {
                                 img.src = response.dataUrl;
                             });
                         }, 1000);
@@ -832,8 +955,8 @@ function createNormal(insert) {
                         elm.scrollTop += dh % wh;
                         dy = elm.scrollTop * scale;
                     }
-                    setTimeout(function() {
-                        RUNTIME('captureVisibleTab', null, function(response) {
+                    setTimeout(() => {
+                        RUNTIME("captureVisibleTab", null, (response) => {
                             img.src = response.dataUrl;
                         });
                     }, 1000);
@@ -841,196 +964,201 @@ function createNormal(insert) {
             };
 
             // wait 500 millisecond for keystrokes of Surfingkeys to hide
-            setTimeout(function() {
-                RUNTIME('captureVisibleTab', null, function(response) {
+            setTimeout(() => {
+                RUNTIME("captureVisibleTab", null, (response) => {
                     img.src = response.dataUrl;
                 });
             }, 500);
-
         });
     };
 
     self.mappings.add("yG", {
         annotation: "Capture current full page",
         feature_group: 7,
-        code: function() {
-            self.captureElement(document.scrollingElement);
-        }
+        code: () => {
+            self.captureElement(document.scrollingElement as SKElement);
+        },
     });
     self.mappings.add("yS", {
         annotation: "Capture scrolling element",
         feature_group: 7,
-        code: function() {
-            var scrollNode = document.scrollingElement;
+        code: () => {
+            let scrollNode = document.scrollingElement as SKElement;
             initScrollIndex();
-            if (scrollNodes.length > 0) {
-                scrollNode = scrollNodes[scrollIndex];
+            if (scrollNodes!.length > 0) {
+                scrollNode = scrollNodes![scrollIndex] as SKElement;
             }
             self.captureElement(scrollNode);
-        }
+        },
     });
 
     self.mappings.add("cS", {
         annotation: "Reset scroll target",
         feature_group: 2,
-        code: function() {
+        code: () => {
             scrollNodes = null;
             initScrollIndex();
-            if (scrollNodes.length > 0) {
-                var scrollNode = scrollNodes[scrollIndex];
+            if (scrollNodes!.length > 0) {
+                const scrollNode = scrollNodes![scrollIndex];
                 self.highlightElement(scrollNode);
             }
-        }
+        },
     });
 
-    const bindScrollForHints = (action) => {
-        const f = self.scroll.bind(self, action);
+    type ScrollCode = (() => void) & { isSKScrollInHints?: boolean };
+    const bindScrollForHints = (action: string): ScrollCode => {
+        const f = self.scroll.bind(self, action) as ScrollCode;
         // indicate that the key bound with this function is a key to scroll page and can be used to scroll in Hints mode.
         f.isSKScrollInHints = true;
         return f;
     };
     self.isScrollKeyInHints = (key) => {
-        const bound = self.mappings[key];
-        return bound && bound.meta && bound.meta.code && bound.meta.code.isSKScrollInHints;
+        const bound = (self.mappings as unknown as Record<string, { meta?: TrieMetaWithScroll }>)[
+            key
+        ];
+        return !!(bound && bound.meta && bound.meta.code && bound.meta.code.isSKScrollInHints);
     };
 
     self.mappings.add("e", {
         annotation: "Scroll half page up",
         feature_group: 2,
         repeatIgnore: true,
-        code: self.scroll.bind(self, "pageUp")
+        code: self.scroll.bind(self, "pageUp"),
     });
     self.mappings.add("U", {
         annotation: "Scroll full page up",
         feature_group: 2,
         repeatIgnore: true,
-        code: self.scroll.bind(self, "fullPageUp")
+        code: self.scroll.bind(self, "fullPageUp"),
     });
     self.mappings.add("d", {
         annotation: "Scroll half page down",
         feature_group: 2,
         repeatIgnore: true,
-        code: self.scroll.bind(self, "pageDown")
+        code: self.scroll.bind(self, "pageDown"),
     });
     self.mappings.add("P", {
         annotation: "Scroll full page down",
         feature_group: 2,
         repeatIgnore: true,
-        code: self.scroll.bind(self, "fullPageDown")
+        code: self.scroll.bind(self, "fullPageDown"),
     });
     self.mappings.add("gg", {
         annotation: "Scroll to the top of the page",
         feature_group: 2,
         repeatIgnore: true,
-        code: self.scroll.bind(self, "top")
+        code: self.scroll.bind(self, "top"),
     });
     self.mappings.add("G", {
         annotation: "Scroll to the bottom of the page",
         feature_group: 2,
         repeatIgnore: true,
-        code: bindScrollForHints("bottom")
+        code: bindScrollForHints("bottom"),
     });
     self.mappings.add("j", {
         annotation: "Scroll down",
         feature_group: 2,
         repeatIgnore: true,
-        code: bindScrollForHints("down")
+        code: bindScrollForHints("down"),
     });
     self.mappings.add("k", {
         annotation: "Scroll up",
         feature_group: 2,
         repeatIgnore: true,
-        code: bindScrollForHints("up")
+        code: bindScrollForHints("up"),
     });
     self.mappings.add("h", {
         annotation: "Scroll left",
         feature_group: 2,
         repeatIgnore: true,
-        code: bindScrollForHints("left")
+        code: bindScrollForHints("left"),
     });
     self.mappings.add("l", {
         annotation: "Scroll right",
         feature_group: 2,
         repeatIgnore: true,
-        code: bindScrollForHints("right")
+        code: bindScrollForHints("right"),
     });
     self.mappings.add("0", {
         annotation: "Scroll all the way to the left",
         feature_group: 2,
         repeatIgnore: true,
-        code: bindScrollForHints("leftmost")
+        code: bindScrollForHints("leftmost"),
     });
     self.mappings.add("$", {
         annotation: "Scroll all the way to the right",
         feature_group: 2,
         repeatIgnore: true,
-        code: bindScrollForHints("rightmost")
+        code: bindScrollForHints("rightmost"),
     });
     self.mappings.add("%", {
         annotation: "Scroll to percentage of current page",
         feature_group: 2,
         repeatIgnore: true,
-        code: self.scroll.bind(self, "byRatio")
+        code: self.scroll.bind(self, "byRatio"),
     });
     self.mappings.add("cs", {
         annotation: "Change scroll target",
         feature_group: 2,
         repeatIgnore: true,
-        code: function() {
+        code: () => {
             changeScrollTarget();
-        }
+        },
     });
 
     self.mappings.add("/", {
         annotation: "Find in current page",
         feature_group: 9,
         repeatIgnore: true,
-        code: function() {
-            dispatchSKEvent("front", ['openFinder']);
-        }
+        code: () => {
+            dispatchSKEvent("front", ["openFinder"]);
+        },
     });
 
     self.mappings.add("E", {
         annotation: "Go one tab left",
         feature_group: 3,
         repeatIgnore: true,
-        code: function() {
+        code: () => {
             RUNTIME("previousTab");
-        }
+        },
     });
     self.mappings.add("R", {
         annotation: "Go one tab right",
         feature_group: 3,
         repeatIgnore: true,
-        code: function() {
+        code: () => {
             RUNTIME("nextTab");
-        }
+        },
     });
 
-    function _onMouseUp(event) {
-        if (runtime.conf.mouseSelectToQuery.indexOf(window.origin) !== -1
-            && !isElementClickable(event.target)
-            && !event.target.matches(".cm-matchhighlight")) {
+    function _onMouseUp(event: MouseEvent): void {
+        const target = event.target as Element;
+        if (
+            runtime.conf.mouseSelectToQuery.indexOf(window.origin) !== -1 &&
+            !isElementClickable(target) &&
+            !target.matches(".cm-matchhighlight")
+        ) {
             // perform inline query after 1 ms
             // to avoid calling on selection collapse
             setTimeout(() => {
-                dispatchSKEvent("front", ['querySelectedWord']);
+                dispatchSKEvent("front", ["querySelectedWord"]);
             }, 1);
         }
     }
 
-    var _disabled = null;
-    self.disable = function(onElement) {
+    let _disabled: DisabledMode | null = null;
+    self.disable = (onElement) => {
         if (!_disabled) {
             _disabled = createDisabled(self);
             _disabled.enter(0, true);
         }
-        _disabled.activatedOnElement = onElement;
-        dispatchSKEvent("observer", ['turnOff']);
+        _disabled.activatedOnElement = !!onElement;
+        dispatchSKEvent("observer", ["turnOff"]);
         document.removeEventListener("mouseup", _onMouseUp);
     };
 
-    self.enable = function() {
+    self.enable = () => {
         if (_disabled) {
             _disabled.exit();
             _disabled = null;
@@ -1039,9 +1167,9 @@ function createNormal(insert) {
     };
     self.enable();
 
-    self.onExit = function() {
-        dispatchSKEvent("observer", ['turnOff']);
-        _nodesHasSKScroll.forEach(function(n) {
+    self.onExit = () => {
+        dispatchSKEvent("observer", ["turnOff"]);
+        _nodesHasSKScroll.forEach((n) => {
             delete n.skScrollBy;
             delete n.smoothScrollBy;
         });
@@ -1049,5 +1177,7 @@ function createNormal(insert) {
 
     return self;
 }
+
+type TrieMetaWithScroll = { code?: (() => void) & { isSKScrollInHints?: boolean } };
 
 export default createNormal;

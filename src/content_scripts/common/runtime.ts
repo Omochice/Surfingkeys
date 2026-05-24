@@ -87,7 +87,7 @@ const conf = {
     // local part from settings
     blocklistPattern: undefined as RegExp | undefined,
     lurkingPattern: undefined as RegExp | undefined,
-    disabledOnActiveElementPattern: undefined as RegExp | undefined,
+    disabledOnActiveElementPattern: undefined as string | undefined,
     smartCase: true,
     caseSensitive: false,
     clickablePat: /(https?:\/\/|thunder:\/\/|magnet:)\S+/gi,
