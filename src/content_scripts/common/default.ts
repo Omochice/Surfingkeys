@@ -113,7 +113,7 @@ export default function (
     hints: HintsLike,
     visual: VisualLike,
     front: FrontLike,
-    _browser: unknown,
+    _browser?: unknown,
 ): void {
     const { addSearchAlias, cmap, map, mapkey, imapkey, vmapkey, searchSelectedWith } = api;
 
