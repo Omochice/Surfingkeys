@@ -104,12 +104,82 @@ type MessageHandler = (
 
 const _handlers: Record<string, MessageHandler> = {};
 
-const conf = {
-    lastKeys: [] as string[],
+/**
+ * The live settings bag shared across every content-script module as
+ * {@link runtime.conf}. The object literal below is the default value of each
+ * field; user settings are merged in by {@link applySettings} (content.ts),
+ * which copies only keys that already exist here. Adding a setting therefore
+ * means adding it both to this interface and to the defaults — there is no
+ * index signature on purpose, so an unknown `conf.foo` is a type error rather
+ * than silently `any`.
+ */
+export interface RuntimeConf {
+    /** Keys typed so far in the pending sequence; runtime state, not persisted. */
+    lastKeys: string[];
+    /** Hydrated from the `blocklistPattern` setting; disables Surfingkeys on matching URLs. */
+    blocklistPattern: RegExp | undefined;
+    /** Hydrated from the `lurkingPattern` setting; enables lurking mode on matching URLs. */
+    lurkingPattern: RegExp | undefined;
+    disabledOnActiveElementPattern: string | undefined;
+    smartCase: boolean;
+    caseSensitive: boolean;
+    clickablePat: RegExp;
+    clickableSelector: string;
+    editableSelector: string;
+    cursorAtEndOfInput: boolean;
+    defaultSearchEngine: string;
+    editableBodyCare: boolean;
+    enableAutoFocus: boolean;
+    enableEmojiInsertion: boolean;
+    experiment: boolean;
+    focusFirstCandidate: boolean;
+    focusOnSaved: boolean;
+    hintAlign: string;
+    hintExplicit: boolean;
+    hintShiftNonActive: boolean;
+    historyMUOrder: boolean;
+    language: string | undefined;
+    lastQuery: string;
+    modeAfterYank: string;
+    nextLinkRegex: RegExp;
+    digitForRepeat: boolean;
+    omnibarMaxResults: number;
+    omnibarHistoryCacheSize: number;
+    omnibarPosition: string;
+    omnibarSuggestion: boolean;
+    omnibarSuggestionTimeout: number;
+    omnibarTabsQuery: Record<string, unknown>;
+    /** Patterns matched against the page URL to locate the page-number segment for prev/next link navigation. */
+    pageUrlRegex: (string | RegExp)[];
+    prevLinkRegex: RegExp;
+    repeatThreshold: number;
+    richHintsForKeystroke: number;
+    scrollFallback: boolean;
+    scrollStepSize: number;
+    showModeStatus: boolean;
+    smartPageBoundary: boolean;
+    smoothScroll: boolean;
+    startToShowEmoji: number;
+    stealFocusOnLoad: boolean;
+    tabIndicesSeparator: string;
+    tabsThreshold: number;
+    verticalTabs: boolean;
+    textAnchorPat: RegExp;
+    /** Frame origins for which `getFrameId` skips content-script initialization. */
+    ignoredFrameHosts: string[];
+    scrollFriction: number;
+    /** Caret-mode viewport as `[left, top, width, height]`; `null` until a caret is placed. */
+    caretViewport: number[] | null;
+    /** Window origins where a mouse text selection is turned into a search query. */
+    mouseSelectToQuery: string[];
+}
+
+const conf: RuntimeConf = {
+    lastKeys: [],
     // local part from settings
-    blocklistPattern: undefined as RegExp | undefined,
-    lurkingPattern: undefined as RegExp | undefined,
-    disabledOnActiveElementPattern: undefined as string | undefined,
+    blocklistPattern: undefined,
+    lurkingPattern: undefined,
+    disabledOnActiveElementPattern: undefined,
     smartCase: true,
     caseSensitive: false,
     clickablePat: /(https?:\/\/|thunder:\/\/|magnet:)\S+/gi,
@@ -127,7 +197,7 @@ const conf = {
     hintExplicit: false,
     hintShiftNonActive: false,
     historyMUOrder: true,
-    language: undefined as string | undefined,
+    language: undefined,
     lastQuery: "",
     modeAfterYank: "",
     nextLinkRegex: /(\b(next)\b)|下页|下一页|后页|下頁|下一頁|後頁|>>|»/i,
@@ -137,8 +207,8 @@ const conf = {
     omnibarPosition: "middle",
     omnibarSuggestion: true,
     omnibarSuggestionTimeout: 200,
-    omnibarTabsQuery: {} as Record<string, unknown>,
-    pageUrlRegex: [] as (string | RegExp)[],
+    omnibarTabsQuery: {},
+    pageUrlRegex: [],
     prevLinkRegex: /(\b(prev|previous)\b)|上页|上一页|前页|上頁|上一頁|前頁|<<|«/i,
     repeatThreshold: 9,
     richHintsForKeystroke: 1000,
@@ -155,8 +225,8 @@ const conf = {
     textAnchorPat: /(^[\n\r\s]*\S{3,}|\b\S{4,})/g,
     ignoredFrameHosts: ["https://tpc.googlesyndication.com"],
     scrollFriction: 0,
-    caretViewport: null as number[] | null,
-    mouseSelectToQuery: [] as string[],
+    caretViewport: null,
+    mouseSelectToQuery: [],
 };
 
 const getTopURLPromise = new Promise<string>((resolve) => {
