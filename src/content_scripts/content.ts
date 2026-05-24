@@ -1,4 +1,5 @@
 import { RUNTIME, dispatchSKEvent, runtime } from "./common/runtime.js";
+import type { StoredSettings } from "./common/runtime.js";
 import Mode from "./common/mode";
 import createNormal from "./common/normal.js";
 import startScrollNodeObserver from "./common/observer";
@@ -123,7 +124,7 @@ const userConfPromise = new Promise<typeof runtime.conf>((resolve) => {
     );
 });
 
-function applySettings(api: Api, normal: Normal, rs: any): void {
+function applySettings(api: Api, normal: Normal, rs: StoredSettings): void {
     const conf = runtime.conf as Record<string, any>;
     for (const k in rs) {
         if (Object.prototype.hasOwnProperty.call(runtime.conf, k)) {
@@ -131,7 +132,7 @@ function applySettings(api: Api, normal: Normal, rs: any): void {
         }
     }
     if ("findHistory" in rs) {
-        runtime.conf.lastQuery = rs.findHistory.length ? rs.findHistory[0] : "";
+        runtime.conf.lastQuery = rs.findHistory!.length ? rs.findHistory![0] : "";
     }
     if (!rs.showAdvanced) {
         if (rs.basicMappings) {

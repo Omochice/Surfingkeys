@@ -1,3 +1,5 @@
+import type { StoredSettings } from "./common/runtime.js";
+
 type RuntimeFn = (action: string, args?: unknown, callback?: (resp: any) => void) => void;
 type KeyboardUtilsLike = {
     encodeKeystroke(k: string): string;
@@ -63,7 +65,7 @@ export default function (
     const basicMappingsDiv = document.getElementById("basicMappings") as HTMLElement;
     const advancedSettingDiv = document.getElementById("advancedSetting") as HTMLElement;
     const advancedToggler = document.getElementById("advancedToggler") as HTMLInputElement;
-    function showAdvanced(flag: boolean): void {
+    function showAdvanced(flag?: boolean): void {
         if (flag) {
             basicSettingsDiv.hide();
             advancedSettingDiv.show();
@@ -78,7 +80,7 @@ export default function (
     let localPathSaved = "";
     const localPathInput = document.getElementById("localPath") as HTMLInputElement;
     const sample = (document.getElementById("sample") as HTMLElement).innerHTML;
-    function renderSettings(rs: any): void {
+    function renderSettings(rs: StoredSettings): void {
         if (rs.isMV3) {
             (document.getElementById("advancedTip") as HTMLElement).innerText =
                 "First turn on 'Developer mode' in chrome://extensions/, then turn on 'Allow User Scripts' in Surfingkeys extension details, then toggle the 'Advanced mode' flag here.";
@@ -311,7 +313,7 @@ export default function (
         });
     }
 
-    function renderKeyMappings(rs: any): void {
+    function renderKeyMappings(rs: StoredSettings): void {
         initL10n((locale) => {
             const customization = basicMappings.map((w) => {
                 let newKey = w.origin;

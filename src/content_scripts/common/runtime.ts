@@ -174,6 +174,31 @@ export interface RuntimeConf {
     mouseSelectToQuery: string[];
 }
 
+/**
+ * The persisted settings bag exchanged with the background over the
+ * `getSettings`/`updateSettings`/`settingsUpdated` messages and rendered by the
+ * options page. It is deliberately distinct from {@link RuntimeConf}: this is
+ * the **wire/storage** shape, so regex options arrive as their source strings
+ * (hydrated into RegExp by `applySettings`/`ensureRegex` in content.ts) and it
+ * carries UI/meta fields that are not part of the live config. The index
+ * signature is honest — the background merges arbitrary user-snippet settings
+ * and its own bookkeeping keys — while the named fields are the ones the
+ * content scripts and options page actually read.
+ */
+export interface StoredSettings {
+    showAdvanced?: boolean;
+    isMV3?: boolean;
+    isUserScriptsAvailable?: boolean;
+    localPath?: string;
+    snippets?: string;
+    basicMappings?: Record<string, string>;
+    disabledSearchAliases?: Record<string, string>;
+    findHistory?: string[];
+    error?: string;
+    theme?: string;
+    [key: string]: unknown;
+}
+
 const conf: RuntimeConf = {
     lastKeys: [],
     // local part from settings
