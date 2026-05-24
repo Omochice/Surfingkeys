@@ -1,17 +1,9 @@
 import DOMPurify from "dompurify";
 import KeyboardUtils from "./keyboardUtils";
 import { RUNTIME, dispatchSKEvent, runtime } from "./runtime.js";
+import browser from "./browser";
 import type Trie from "./trie";
 import type { TrieMeta } from "./trie";
-
-// Browser-extension global. The typed BrowserAdapter (task #13) will replace
-// this narrow declaration once cross-browser API access is centralized.
-declare const chrome: {
-    runtime: {
-        getURL(path: string): string;
-        getManifest(): { version: string };
-    };
-};
 
 declare global {
     interface String {
@@ -186,7 +178,7 @@ function getBrowserName(): "Chrome" | "Firefox" {
 }
 
 function isInUIFrame(): boolean {
-    return window !== top && document.location.href.indexOf(chrome.runtime.getURL("/")) === 0;
+    return window !== top && document.location.href.indexOf(browser.runtime.getURL("/")) === 0;
 }
 
 function timeStampString(t: number): string {
@@ -392,7 +384,7 @@ function reportIssue(title: string, description: string): void {
     description =
         "%23%23+Error+details%0A%0A{0}%0A%0ASurfingKeys%3A+{1}%0A%0AChrome%3A+{2}%0A%0AURL%3A+{3}%0A%0A%23%23+Context%0A%0A%2A%2APlease+replace+this+with+a+description+of+how+you+were+using+SurfingKeys.%2A%2A".format(
             encodeURIComponent(description),
-            chrome.runtime.getManifest().version,
+            browser.runtime.getManifest().version,
             encodeURIComponent(navigator.userAgent),
             encodeURIComponent(window.location.href),
         );
@@ -864,7 +856,7 @@ function initL10n(cb: (translate: (str: string) => string) => void): void {
     if (lang === "en-US") {
         cb((str) => str);
     } else {
-        fetch(chrome.runtime.getURL("pages/l10n.json"))
+        fetch(browser.runtime.getURL("pages/l10n.json"))
             .then((res) => res.json())
             .then((l10n) => {
                 if (typeof l10n[lang] === "object") {
@@ -1230,7 +1222,7 @@ function attachFaviconToImgSrc(
 ): void {
     const browserName = getBrowserName();
     if (browserName === "Chrome") {
-        imgEl.src = chrome.runtime.getURL(`/_favicon/?pageUrl=${encodeURIComponent(tab.url)}`);
+        imgEl.src = browser.runtime.getURL(`/_favicon/?pageUrl=${encodeURIComponent(tab.url)}`);
     } else {
         imgEl.src = tab.favIconUrl ?? "";
     }
