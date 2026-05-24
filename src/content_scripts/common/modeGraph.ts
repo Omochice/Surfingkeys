@@ -43,3 +43,25 @@ export type ModeContext = {
     visual: ReturnType<typeof createVisual>;
     front: FrontLike;
 };
+
+/** The modes shared by both sites, before the site-specific front is attached. */
+export type BaseModes = Omit<ModeContext, "front">;
+
+/**
+ * Build the modes shared by content.ts and the iframe — clipboard, insert,
+ * normal (entered onto the mode stack), hints, visual — in the one canonical
+ * order, replacing the wiring that was duplicated across the two entry points.
+ * The caller supplies the site-specific front to complete a {@link ModeContext}:
+ * content wires createFront, the iframe wires its own Front mode.
+ */
+function createModeGraph(): BaseModes {
+    const clipboard = createClipboard();
+    const insert = createInsert();
+    const normal = createNormal(insert);
+    normal.enter();
+    const hints = createHints(insert, normal, clipboard);
+    const visual = createVisual(clipboard, hints);
+    return { clipboard, insert, normal, hints, visual };
+}
+
+export default createModeGraph;

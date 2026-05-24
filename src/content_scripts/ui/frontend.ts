@@ -15,25 +15,15 @@ import {
 import { RUNTIME, runtime } from "../common/runtime.js";
 import KeyboardUtils from "../common/keyboardUtils";
 import Mode from "../common/mode";
-import createClipboard from "../common/clipboard";
-import createInsert from "../common/insert";
-import createNormal from "../common/normal.js";
-import createVisual from "../common/visual.js";
-import createHints from "../common/hints.js";
 import createAPI from "../common/api.js";
 import createDefaultMappings from "../common/default.js";
-import type { ModeContext } from "../common/modeGraph";
+import createModeGraph, { type ModeContext } from "../common/modeGraph";
 import createOmnibar from "./omnibar.js";
 import createCommands from "./command.js";
 
 const Front = (() => {
-    const clipboard = createClipboard();
     Mode.init();
-    const insert = createInsert();
-    const normal = createNormal(insert);
-    normal.enter();
-    const hints = createHints(insert, normal, clipboard);
-    const visual = createVisual(clipboard, hints);
+    const { clipboard, insert, normal, hints, visual } = createModeGraph();
 
     const self: any = new Mode("Front");
     self._actions = {};

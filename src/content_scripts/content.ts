@@ -2,10 +2,6 @@ import { RUNTIME, dispatchSKEvent, runtime } from "./common/runtime.js";
 import Mode from "./common/mode";
 import createNormal from "./common/normal.js";
 import startScrollNodeObserver from "./common/observer";
-import createInsert from "./common/insert";
-import createVisual from "./common/visual.js";
-import createHints from "./common/hints.js";
-import createClipboard from "./common/clipboard";
 import {
     applyUserSettings,
     createElementWithContent,
@@ -22,7 +18,7 @@ import {
 import createFront from "./front.js";
 import createAPI from "./common/api.js";
 import createDefaultMappings from "./common/default.js";
-import type { ModeContext } from "./common/modeGraph";
+import createModeGraph, { type ModeContext } from "./common/modeGraph";
 
 import KeyboardUtils from "./common/keyboardUtils";
 import browser from "./common/browser";
@@ -172,13 +168,11 @@ function applySettings(api: Api, normal: Normal, rs: any): void {
 }
 
 function _initModules(): Modes {
-    const clipboard = createClipboard();
-    const insert = createInsert();
-    const normal = createNormal(insert);
-    normal.enter();
+    const { clipboard, insert, normal, hints, visual } = createModeGraph();
+    // Content owns scroll-node observation; the observer is dormant until an
+    // "observer" event turns it on, so its setup order relative to hints/visual
+    // does not matter.
     startScrollNodeObserver(normal);
-    const hints = createHints(insert, normal, clipboard);
-    const visual = createVisual(clipboard, hints);
     const front = createFront(insert, normal, hints, visual, _browser);
 
     const ctx: ModeContext = { clipboard, insert, normal, hints, visual, front };
