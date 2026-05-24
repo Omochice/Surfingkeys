@@ -202,9 +202,11 @@ class CursorPrompt {
                 setSanitizedContent(this.element, choices);
                 document.body.append(this.element);
                 this.element.firstElementChild!.classList.add("selected");
-                const br = this.isNativeInput
-                    ? this.#getCursorPixelPos(this.parentElement as InputLike)
-                    : locateFocusNode(document.getSelection());
+                const br = (
+                    this.isNativeInput
+                        ? this.#getCursorPixelPos(this.parentElement as InputLike)
+                        : locateFocusNode(document.getSelection())
+                )!;
                 let top = br.top + br.height + 4;
                 this.element.style.borderRadius = "0px 0px 4px 4px";
                 if (window.innerHeight - top < this.element.offsetHeight) {
