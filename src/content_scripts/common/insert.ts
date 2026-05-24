@@ -4,10 +4,7 @@ import Mode from "./mode";
 import KeyboardUtils from "./keyboardUtils";
 import { getRealEdit, isEditable } from "./utils.js";
 import CursorPrompt from "./cursorPrompt";
-
-// Browser-extension global. The typed BrowserAdapter (task #13) will replace
-// this narrow declaration once cross-browser API access is centralized.
-declare const chrome: { runtime: { getURL(path: string): string } };
+import browser from "./browser";
 
 /**
  * Find the offset of the next non-word character from `cur` in `str`, scanning
@@ -218,7 +215,7 @@ function createInsert(): InsertMode {
         },
     });
 
-    const emojiURL = chrome.runtime.getURL("pages/emoji.tsv");
+    const emojiURL = browser.runtime.getURL("pages/emoji.tsv");
     const emojiPrompt = new CursorPrompt(
         (c: string) => {
             const ee = c.split("\t");

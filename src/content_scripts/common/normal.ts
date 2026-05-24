@@ -13,10 +13,7 @@ import {
     showBanner,
     showPopup,
 } from "./utils.js";
-
-// Browser-extension global. The typed BrowserAdapter (task #13) will replace
-// this narrow declaration once cross-browser API access is centralized.
-declare const chrome: { runtime: { getURL(path: string): string } };
+import browser from "./browser";
 
 // Surfingkeys attaches scroll helpers and bookkeeping fields onto scrollable
 // elements; these expandos type those additions.
@@ -360,7 +357,7 @@ function createNormal(insert: InsertLike): NormalMode {
     });
 
     self.toggleBlocklist = () => {
-        if (document.location.href.indexOf(chrome.runtime.getURL("/")) !== 0) {
+        if (document.location.href.indexOf(browser.runtime.getURL("/")) !== 0) {
             RUNTIME(
                 "toggleBlocklist",
                 {
