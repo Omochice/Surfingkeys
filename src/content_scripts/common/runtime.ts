@@ -1,5 +1,9 @@
-// Browser-extension global. The typed BrowserAdapter (task #13) will replace
-// this narrow declaration once cross-browser API access is centralized.
+// This module is the messaging service. It deliberately keeps the raw,
+// callback-based chrome.runtime API rather than the promise-based
+// BrowserAdapter: RUNTIME is used fire-and-forget (no callback) in many places,
+// and the polyfill's promise form would turn every such call's
+// "message port closed" into an unhandled rejection. onMessage stays here too
+// for the same callback contract.
 declare const chrome: {
     runtime: {
         sendMessage(message: unknown, callback?: (response: any) => void): void;
@@ -15,7 +19,25 @@ declare const chrome: {
     };
 };
 
-function dispatchSKEvent(type: string, args?: unknown, target: EventTarget = document): void {
+/**
+ * Custom-event channels dispatched as `surfingkeys:<type>` for content↔frontend
+ * communication. `front`/`api`/`user`/`hints`/`observer` are the registered
+ * {@link initSKFunctionListener} namespaces; the rest are one-off lifecycle
+ * events listened to directly.
+ */
+export type SKEventType =
+    | "front"
+    | "api"
+    | "user"
+    | "hints"
+    | "observer"
+    | "userSettingsLoaded"
+    | "settingsFromSnippetsLoaded"
+    | "iframeBoot"
+    | "ensureFrontEnd"
+    | "defaultSettingsLoaded";
+
+function dispatchSKEvent(type: SKEventType, args?: unknown, target: EventTarget = document): void {
     target.dispatchEvent(new CustomEvent(`surfingkeys:${type}`, { detail: args }));
 }
 
