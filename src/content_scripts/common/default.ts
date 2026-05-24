@@ -1,5 +1,6 @@
 import { RUNTIME, dispatchSKEvent, runtime } from "./runtime.js";
 import type { ModeContext } from "./modeGraph";
+import type { SurfingkeysApi } from "./api.js";
 import KeyboardUtils from "./keyboardUtils";
 import {
     getBrowserName,
@@ -23,44 +24,7 @@ declare const chrome: {
     };
 };
 
-type Jscode = (...args: any[]) => void;
-type MapOptions = { domain?: RegExp; repeatIgnore?: boolean; codeHasParameter?: boolean };
-
-type ApiLike = {
-    addSearchAlias: (...args: any[]) => void;
-    cmap: (newKeystroke: string, oldKeystroke: string) => void;
-    map: (
-        newKeystroke: string,
-        oldKeystroke: string,
-        domain?: RegExp | number,
-        newAnnotation?: string,
-    ) => void;
-    mapkey: (
-        keys: string,
-        annotation: string | string[],
-        jscode: Jscode,
-        options?: MapOptions,
-    ) => void;
-    imapkey: (
-        keys: string,
-        annotation: string | string[],
-        jscode: Jscode,
-        options?: MapOptions,
-    ) => void;
-    vmapkey: (
-        keys: string,
-        annotation: string | string[],
-        jscode: Jscode,
-        options?: MapOptions,
-    ) => void;
-    searchSelectedWith: (
-        se: string,
-        onlyThisSite?: boolean,
-        interactive?: boolean,
-        alias?: string,
-    ) => void;
-};
-export default function (api: ApiLike, ctx: ModeContext): void {
+export default function (api: SurfingkeysApi, ctx: ModeContext): void {
     const { clipboard, normal, hints, visual, front } = ctx;
     const { addSearchAlias, cmap, map, mapkey, imapkey, vmapkey, searchSelectedWith } = api;
 
