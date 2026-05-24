@@ -37,7 +37,11 @@ declare global {
 }
 
 // The injected browser adapter (createFront / plugin hook) is untyped JS.
-type BrowserAdapter = { plugin?: (ctx: { front: unknown }) => void };
+type BrowserAdapter = {
+    plugin?: (ctx: { front: unknown }) => void;
+    getBackFocusFromFrontend?: () => void;
+    focusFrontend?: (ifr: HTMLIFrameElement) => void;
+};
 
 let _browser: BrowserAdapter = {};
 
