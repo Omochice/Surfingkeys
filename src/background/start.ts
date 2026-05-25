@@ -1,6 +1,7 @@
 import { filterByTitleOrUrl } from "../common/utils.js";
 import { createBookmarkHandlers } from "./bookmarks.js";
 import { createHistoryHandlers } from "./history.js";
+import { request } from "./request.js";
 import { createTabHistory } from "./tabHistory.js";
 
 // Browser-extension globals. The typed BrowserAdapter (task #13) will replace
@@ -20,41 +21,6 @@ export type MessageHandler = (
     sender?: any,
     sendResponse?: (result: any) => void,
 ) => any;
-
-function request(
-    url: string,
-    onReady: (content: string) => void,
-    headers?: any,
-    data?: any,
-    onException?: (exp: any) => void,
-): void {
-    headers = headers || {};
-    const CHARTSET_RE = /(?:charset|encoding)\s*=\s*['"]? *([\w-]+)/i;
-
-    fetch(url, {
-        method: data !== undefined ? "POST" : "GET",
-        headers,
-        body: data,
-    })
-        .then((res) => {
-            const cs = res.headers.get("content-type")
-                ? res.headers.get("content-type")!.match(CHARTSET_RE)
-                : [];
-
-            return Promise.all([
-                Promise.resolve(cs && cs.length > 1 ? cs[1] : "utf-8"),
-                res.arrayBuffer(),
-            ]);
-        })
-        .then((res) => {
-            const decoder = new TextDecoder(res[0] as string);
-            const content = decoder.decode(res[1] as ArrayBuffer);
-            onReady(content);
-        })
-        .catch((exp) => {
-            onException && onException(exp);
-        });
-}
 
 function dictFromArray(arry: any[], val: any): Record<string, any> {
     const dict: Record<string, any> = {};
