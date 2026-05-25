@@ -5,6 +5,19 @@ import { filterByTitleOrUrl } from "../common/utils.js";
 // entirely chrome.* glue, so it is treated as an untyped boundary here.
 declare const chrome: any;
 
+/**
+ * A background message handler, dispatched by `message.action`. Returning a
+ * truthy value sends it as the synchronous response; returning falsy while
+ * `message.needResponse` is set defers to an asynchronous `sendResponse`.
+ * Extracted background units export a `Record<string, MessageHandler>` map that
+ * the composition root registers into the dispatch registry.
+ */
+export type MessageHandler = (
+    message: any,
+    sender?: any,
+    sendResponse?: (result: any) => void,
+) => any;
+
 function request(
     url: string,
     onReady: (content: string) => void,
@@ -244,7 +257,7 @@ const Gist = (() => {
 })();
 
 function start(browser: any): void {
-    const self: any = {};
+    const handlers: Record<string, MessageHandler> = {};
 
     const isMV3 = chrome.runtime.getManifest().manifest_version === 3;
 
@@ -482,23 +495,23 @@ function start(browser: any): void {
         }
     });
 
-    self.pendingPorts = [];
+    const pendingPorts: any[] = [];
     function _response(message: any, sendResponse: (result: any) => void, result: any) {
-        const idx = self.pendingPorts.indexOf(message);
+        const idx = pendingPorts.indexOf(message);
         if (idx !== -1) {
-            self.pendingPorts.splice(idx, 1);
+            pendingPorts.splice(idx, 1);
         }
         sendResponse(result);
     }
     function handleMessage(_message: any, _sender: any, _sendResponse: any) {
-        if (Object.prototype.hasOwnProperty.call(self, _message.action)) {
-            const result = self[_message.action](_message, _sender, _sendResponse);
+        if (Object.prototype.hasOwnProperty.call(handlers, _message.action)) {
+            const result = handlers[_message.action](_message, _sender, _sendResponse);
             if (_message.needResponse) {
                 if (result) {
                     _sendResponse(result);
                     _message.needResponse = false;
                 } else {
-                    self.pendingPorts.push(_message);
+                    pendingPorts.push(_message);
                     // An asynchronous response will be sent using sendResponse later.
                 }
                 return _message.needResponse;
@@ -587,7 +600,7 @@ function start(browser: any): void {
         }
         return "enabled";
     }
-    self.toggleBlocklist = (message: any, sender: any, sendResponse: any) => {
+    handlers.toggleBlocklist = (message: any, sender: any, sendResponse: any) => {
         loadSettings("blocklist", (data: any) => {
             let origin = ".*";
             const senderOrigin = sender.origin || new URL(getSenderUrl(sender)).origin;
@@ -617,7 +630,7 @@ function start(browser: any): void {
             });
         });
     };
-    self.toggleMouseQuery = (message: any, sender: any, _sendResponse: any) => {
+    handlers.toggleMouseQuery = (message: any, sender: any, _sendResponse: any) => {
         loadSettings("mouseSelectToQuery", (data: any) => {
             if (sender.tab && sender.tab.url.indexOf(chrome.runtime.getURL("/")) !== 0) {
                 const mouseSelectToQuery = data.mouseSelectToQuery || [];
@@ -631,7 +644,7 @@ function start(browser: any): void {
             }
         });
     };
-    self.getState = (message: any, sender: any, sendResponse: any) => {
+    handlers.getState = (message: any, sender: any, sendResponse: any) => {
         loadSettings(["blocklist"], (data: any) => {
             if (sender.tab) {
                 _response(message, sendResponse, {
@@ -646,13 +659,13 @@ function start(browser: any): void {
         });
     };
 
-    self.addVIMark = (message: any, _sender: any, _sendResponse: any) => {
+    handlers.addVIMark = (message: any, _sender: any, _sendResponse: any) => {
         loadSettings("marks", (data: any) => {
             extendObject(data.marks, message.mark);
             _updateAndPostSettings({ marks: data.marks });
         });
     };
-    self.jumpVIMark = (message: any, sender: any, sendResponse: any) => {
+    handlers.jumpVIMark = (message: any, sender: any, sendResponse: any) => {
         loadSettings("marks", (data: any) => {
             const marks = data.marks;
             if (Object.prototype.hasOwnProperty.call(marks, message.mark)) {
@@ -667,7 +680,7 @@ function start(browser: any): void {
                             tabbed: true,
                             active: true,
                         };
-                        self.openLink(markInfo, sender, sendResponse);
+                        handlers.openLink(markInfo, sender, sendResponse);
                     } else {
                         if (markInfo.scrollLeft || markInfo.scrollTop) {
                             tabMessages[tabs[0].id] = {
@@ -715,7 +728,7 @@ function start(browser: any): void {
         );
     }
 
-    self.resetSettings = (message: any, _sender: any, sendResponse: any) => {
+    handlers.resetSettings = (message: any, _sender: any, sendResponse: any) => {
         chrome.storage.local.clear();
         chrome.storage.sync.clear();
         loadSettings(null, (data: any) => {
@@ -725,7 +738,7 @@ function start(browser: any): void {
             _broadcastSettings(data);
         });
     };
-    self.loadSettingsFromUrl = (message: any, _sender: any, sendResponse: any) => {
+    handlers.loadSettingsFromUrl = (message: any, _sender: any, sendResponse: any) => {
         _loadSettingsFromUrl(message.url, (status: any) => {
             _response(message, sendResponse, status);
         });
@@ -736,7 +749,7 @@ function start(browser: any): void {
         });
         return filterByTitleOrUrl(tabs, query, false);
     }
-    self.getRecentlyClosed = (message: any, _sender: any, sendResponse: any) => {
+    handlers.getRecentlyClosed = (message: any, _sender: any, sendResponse: any) => {
         chrome.sessions.getRecentlyClosed({}, (sessions: any[]) => {
             let tabs: any[] = [];
             for (let i = 0; i < sessions.length; i++) {
@@ -753,7 +766,7 @@ function start(browser: any): void {
             });
         });
     };
-    self.getTopSites = (message: any, _sender: any, sendResponse: any) => {
+    handlers.getTopSites = (message: any, _sender: any, sendResponse: any) => {
         if (chrome.topSites) {
             chrome.topSites.get((urls: any[]) => {
                 urls = _filterByTitleOrUrl(urls, message.query);
@@ -783,7 +796,7 @@ function start(browser: any): void {
             cb(items);
         });
     }
-    self.getAllURLs = (message: any, _sender: any, sendResponse: any) => {
+    handlers.getAllURLs = (message: any, _sender: any, sendResponse: any) => {
         chrome.bookmarks.search(message.query || {}, (bmItems: any[]) => {
             let urls = bmItems;
             const requestCount = message.maxResults || 100;
@@ -807,7 +820,7 @@ function start(browser: any): void {
             }
         });
     };
-    self.getTabs = (message: any, sender: any, sendResponse: any) => {
+    handlers.getTabs = (message: any, sender: any, sendResponse: any) => {
         const tab = sender.tab;
         const queryInfo = message.queryInfo || {};
         chrome.tabs.query(queryInfo, (tabs: any[]) => {
@@ -842,14 +855,14 @@ function start(browser: any): void {
             });
         });
     };
-    self.togglePinTab = (_message: any, _sender: any, _sendResponse: any) => {
+    handlers.togglePinTab = (_message: any, _sender: any, _sendResponse: any) => {
         getActiveTab((tab: any) => {
             return chrome.tabs.update(tab.id, {
                 pinned: !tab.pinned,
             });
         });
     };
-    self.closeTabByIds = (message: any, _sender: any, _sendResponse: any) => {
+    handlers.closeTabByIds = (message: any, _sender: any, _sendResponse: any) => {
         chrome.tabs.remove(message.tabIds);
     };
     function focusTab(windowId: number, tabId: number) {
@@ -865,7 +878,7 @@ function start(browser: any): void {
             },
         );
     }
-    self.focusTab = (message: any, sender: any, _sendResponse: any) => {
+    handlers.focusTab = (message: any, sender: any, _sendResponse: any) => {
         if (message.windowId !== undefined && sender.tab.windowId !== message.windowId) {
             focusTab(message.windowId, message.tabId);
         } else {
@@ -874,7 +887,7 @@ function start(browser: any): void {
             });
         }
     };
-    self.focusTabByIndex = (message: any, _sender: any, _sendResponse: any) => {
+    handlers.focusTabByIndex = (message: any, _sender: any, _sendResponse: any) => {
         const queryInfo = message.queryInfo || { currentWindow: true };
         chrome.tabs.query(queryInfo, (tabs: any[]) => {
             if (message.repeats > 0 && message.repeats <= tabs.length) {
@@ -884,7 +897,7 @@ function start(browser: any): void {
             }
         });
     };
-    self.goToLastTab = (_message: any, _sender: any, _sendResponse: any) => {
+    handlers.goToLastTab = (_message: any, _sender: any, _sendResponse: any) => {
         if (tabHistory.length > 1) {
             const lastTab = tabHistory[tabHistory.length - 2];
             chrome.tabs.update(lastTab, {
@@ -892,7 +905,7 @@ function start(browser: any): void {
             });
         }
     };
-    self.historyTab = (message: any, _sender?: any, _sendResponse?: any) => {
+    handlers.historyTab = (message: any, _sender?: any, _sendResponse?: any) => {
         if (tabHistory.length > 0) {
             historyTabAction = true;
             if (Object.prototype.hasOwnProperty.call(message, "index")) {
@@ -951,10 +964,10 @@ function start(browser: any): void {
             });
         }
     }
-    self.nextTab = (message: any, sender: any, _sendResponse: any) => {
+    handlers.nextTab = (message: any, sender: any, _sendResponse: any) => {
         _nextTab(sender.tab, message.repeats);
     };
-    self.previousTab = (message: any, sender: any, _sendResponse: any) => {
+    handlers.previousTab = (message: any, sender: any, _sendResponse: any) => {
         _nextTab(sender.tab, -message.repeats);
     };
     function _roundRepeatTabs(tab: any, repeats: number, operation: (tabIds: any[]) => void) {
@@ -978,7 +991,7 @@ function start(browser: any): void {
             });
         }
     }
-    self.reloadTab = (message: any, sender: any, _sendResponse: any) => {
+    handlers.reloadTab = (message: any, sender: any, _sendResponse: any) => {
         _roundRepeatTabs(sender.tab, message.repeats, (tabIds) => {
             tabIds.forEach((tabId) => {
                 chrome.tabs.reload(tabId, {
@@ -987,13 +1000,13 @@ function start(browser: any): void {
             });
         });
     };
-    self.closeTab = (message: any, sender: any, _sendResponse: any) => {
+    handlers.closeTab = (message: any, sender: any, _sendResponse: any) => {
         _roundRepeatTabs(sender.tab, message.repeats, (tabIds) => {
             chrome.tabs.remove(tabIds, () => {
                 if (conf.focusAfterClosed === "left") {
                     _nextTab(sender.tab, -1);
                 } else if (conf.focusAfterClosed === "last") {
-                    self.historyTab({ backward: true });
+                    handlers.historyTab({ backward: true });
                 }
             });
         });
@@ -1010,21 +1023,21 @@ function start(browser: any): void {
         });
     }
 
-    self.closeTabLeft = (message: any, sender: any, _senderResponse: any) => {
+    handlers.closeTabLeft = (message: any, sender: any, _senderResponse: any) => {
         _closeTab(sender, -message.repeats);
     };
-    self.closeTabRight = (message: any, sender: any, _senderResponse: any) => {
+    handlers.closeTabRight = (message: any, sender: any, _senderResponse: any) => {
         _closeTab(sender, message.repeats);
     };
-    self.closeTabsToLeft = (_message: any, sender: any, _senderResponse: any) => {
+    handlers.closeTabsToLeft = (_message: any, sender: any, _senderResponse: any) => {
         _closeTab(sender, -sender.tab.index);
     };
-    self.closeTabsToRight = (_message: any, sender: any, _senderResponse: any) => {
+    handlers.closeTabsToRight = (_message: any, sender: any, _senderResponse: any) => {
         chrome.tabs.query({ currentWindow: true }, (tabs: any[]) => {
             _closeTab(sender, tabs.length - sender.tab.index);
         });
     };
-    self.tabOnly = (_message: any, sender: any, _sendResponse: any) => {
+    handlers.tabOnly = (_message: any, sender: any, _sendResponse: any) => {
         chrome.tabs.query({ currentWindow: true }, (tabs: any[]) => {
             const ids = tabs
                 .filter((t) => {
@@ -1037,23 +1050,23 @@ function start(browser: any): void {
         });
     };
 
-    self.closeAudibleTab = (_message: any, _sender: any, _sendResponse: any) => {
+    handlers.closeAudibleTab = (_message: any, _sender: any, _sendResponse: any) => {
         chrome.tabs.query({ audible: true }, (tabs: any[]) => {
             if (tabs) {
                 chrome.tabs.remove(tabs[0].id);
             }
         });
     };
-    self.muteTab = (_message: any, sender: any, _sendResponse: any) => {
+    handlers.muteTab = (_message: any, sender: any, _sendResponse: any) => {
         const tab = sender.tab;
         chrome.tabs.update(tab.id, {
             muted: !tab.mutedInfo.muted,
         });
     };
-    self.openLast = (_message: any, _sender: any, _sendResponse: any) => {
+    handlers.openLast = (_message: any, _sender: any, _sendResponse: any) => {
         chrome.sessions.restore();
     };
-    self.duplicateTab = (message: any, sender: any, _sendResponse: any) => {
+    handlers.duplicateTab = (message: any, sender: any, _sendResponse: any) => {
         chrome.tabs.duplicate(sender.tab.id, () => {
             if (message.active === false) {
                 chrome.tabs.update(sender.tab.id, { active: true });
@@ -1061,7 +1074,7 @@ function start(browser: any): void {
         });
     };
     let previousWindowChoice = -1;
-    self.getWindows = (message: any, _sender: any, sendResponse: any) => {
+    handlers.getWindows = (message: any, _sender: any, sendResponse: any) => {
         chrome.tabs.query({ currentWindow: false }, (tabs: any[]) => {
             const windows: Record<string, any> = {};
             tabs.forEach((t) => {
@@ -1080,7 +1093,7 @@ function start(browser: any): void {
             });
         });
     };
-    self.moveToWindow = (message: any, sender: any, _sendResponse: any) => {
+    handlers.moveToWindow = (message: any, sender: any, _sendResponse: any) => {
         if (message.windowId === -1) {
             chrome.windows.create({ tabId: sender.tab.id });
         } else {
@@ -1090,7 +1103,7 @@ function start(browser: any): void {
         }
         previousWindowChoice = message.windowId;
     };
-    self.gatherWindows = (_message: any, sender: any, _sendResponse: any) => {
+    handlers.gatherWindows = (_message: any, sender: any, _sendResponse: any) => {
         const windowId = sender.tab.windowId;
         chrome.tabs.query({ currentWindow: false }, (tabs: any[]) => {
             tabs.forEach((tab) => {
@@ -1098,13 +1111,13 @@ function start(browser: any): void {
             });
         });
     };
-    self.gatherTabs = (message: any, sender: any, _sendResponse: any) => {
+    handlers.gatherTabs = (message: any, sender: any, _sendResponse: any) => {
         const windowId = sender.tab.windowId;
         message.tabs.forEach((tab: any) => {
             chrome.tabs.move(tab.id, { windowId, index: -1 });
         });
     };
-    self.getBookmarkFolders = (message: any, _sender: any, sendResponse: any) => {
+    handlers.getBookmarkFolders = (message: any, _sender: any, sendResponse: any) => {
         chrome.bookmarks.getTree((tree: any[]) => {
             bookmarkFolders = [];
             getFolders(tree[0], "");
@@ -1113,7 +1126,7 @@ function start(browser: any): void {
             });
         });
     };
-    self.createBookmark = (message: any, _sender: any, sendResponse: any) => {
+    handlers.createBookmark = (message: any, _sender: any, sendResponse: any) => {
         removeBookmark(message.page.url, () => {
             createBookmark(message.page, (ret) => {
                 _response(message, sendResponse, {
@@ -1134,7 +1147,7 @@ function start(browser: any): void {
             return title.indexOf(query) !== -1 || (url && url.indexOf(query) !== -1);
         });
     }
-    self.getBookmarks = (message: any, _sender: any, sendResponse: any) => {
+    handlers.getBookmarks = (message: any, _sender: any, sendResponse: any) => {
         if (message.parentId) {
             chrome.bookmarks.getSubTree(message.parentId, (tree: any[]) => {
                 let bookmarks = tree[0].children;
@@ -1169,7 +1182,7 @@ function start(browser: any): void {
             }
         }
     };
-    self.getHistory = (message: any, _sender: any, sendResponse: any) => {
+    handlers.getHistory = (message: any, _sender: any, sendResponse: any) => {
         _getHistory(
             message.query || "",
             message.maxResults || 100,
@@ -1181,7 +1194,7 @@ function start(browser: any): void {
             message.sortByMostUsed,
         );
     };
-    self.addHistories = (message: any, _sender: any, _sendResponse: any) => {
+    handlers.addHistories = (message: any, _sender: any, _sendResponse: any) => {
         message.history.forEach((h: string) => {
             chrome.history.addUrl({ url: h });
         });
@@ -1238,7 +1251,7 @@ function start(browser: any): void {
         );
     }
 
-    self.openLink = (message: any, sender: any, _sendResponse: any) => {
+    handlers.openLink = (message: any, sender: any, _sendResponse: any) => {
         const url = normalizeURL(message.url);
         if (url.startsWith("javascript:")) {
             sendTabMessage(sender.tab.id, 0, {
@@ -1278,9 +1291,9 @@ function start(browser: any): void {
             }
         }
     };
-    self.viewSource = (message: any, sender: any, sendResponse: any) => {
+    handlers.viewSource = (message: any, sender: any, sendResponse: any) => {
         message.url = "view-source:" + sender.tab.url;
-        self.openLink(message, sender, sendResponse);
+        handlers.openLink(message, sender, sendResponse);
     };
     function registerUserScript(snippets: any, callback?: () => void) {
         if (!isUserScriptsAvailable()) {
@@ -1359,7 +1372,7 @@ function start(browser: any): void {
             callback && callback();
         }
     }
-    self.getSettings = (message: any, _sender: any, sendResponse: any) => {
+    handlers.getSettings = (message: any, _sender: any, sendResponse: any) => {
         let pf = loadSettings;
         if (message.key === "RAW") {
             pf = browser.loadRawSettings;
@@ -1385,7 +1398,7 @@ function start(browser: any): void {
         }
         return false;
     }
-    self.updateSettings = (message: any, _sender: any, sendResponse: any) => {
+    handlers.updateSettings = (message: any, _sender: any, sendResponse: any) => {
         const error = "";
         if (message.scope === "snippets") {
             // For settings from snippets, don't broadcast the update
@@ -1419,7 +1432,7 @@ function start(browser: any): void {
         }
         return { error };
     };
-    self.updateInputHistory = (message: any, _sender: any, sendResponse: any) => {
+    handlers.updateInputHistory = (message: any, _sender: any, sendResponse: any) => {
         let key: string | undefined = undefined;
         let value: any;
         for (const k in message) {
@@ -1451,7 +1464,7 @@ function start(browser: any): void {
             });
         }
     };
-    self.setSurfingkeysIcon = (message: any, sender: any, _sendResponse: any) => {
+    handlers.setSurfingkeysIcon = (message: any, sender: any, _sendResponse: any) => {
         let icon = "icons/48.png";
         if (message.status === "disabled") {
             icon = "icons/48-x.png";
@@ -1464,7 +1477,7 @@ function start(browser: any): void {
             tabId: sender.tab ? sender.tab.id : undefined,
         });
     };
-    self.request = (message: any, _sender: any, sendResponse: any) => {
+    handlers.request = (message: any, _sender: any, sendResponse: any) => {
         request(
             message.url,
             (res) => {
@@ -1481,7 +1494,7 @@ function start(browser: any): void {
             },
         );
     };
-    self.requestImage = (message: any, _sender: any, sendResponse: any) => {
+    handlers.requestImage = (message: any, _sender: any, sendResponse: any) => {
         fetch(message.url, {
             method: "GET",
         })
@@ -1511,7 +1524,7 @@ function start(browser: any): void {
                 });
             });
     };
-    self.nextFrame = (message: any, sender: any, _sendResponse: any) => {
+    handlers.nextFrame = (message: any, sender: any, _sendResponse: any) => {
         const tid = sender.tab.id;
         chrome.scripting.executeScript(
             {
@@ -1550,7 +1563,7 @@ function start(browser: any): void {
             },
         );
     };
-    self.moveTab = (message: any, sender: any, _sendResponse: any) => {
+    handlers.moveTab = (message: any, sender: any, _sendResponse: any) => {
         chrome.tabs.query(
             {
                 windowId: sender.tab.windowId,
@@ -1575,10 +1588,10 @@ function start(browser: any): void {
             },
         );
     }
-    self.quit = (_message: any, _sender: any, _sendResponse: any) => {
+    handlers.quit = (_message: any, _sender: any, _sendResponse: any) => {
         _quit();
     };
-    self.createSession = (message: any, _sender: any, _sendResponse: any) => {
+    handlers.createSession = (message: any, _sender: any, _sendResponse: any) => {
         loadSettings("sessions", (data: any) => {
             chrome.tabs.query({}, (tabs: any[]) => {
                 const tabGroup: Record<string, any[]> = {};
@@ -1609,7 +1622,7 @@ function start(browser: any): void {
             });
         });
     };
-    self.openSession = (message: any, _sender: any, _sendResponse: any) => {
+    handlers.openSession = (message: any, _sender: any, _sendResponse: any) => {
         loadSettings("sessions", (data: any) => {
             if (Object.prototype.hasOwnProperty.call(data.sessions, message.name)) {
                 const urls = data.sessions[message.name]["tabs"];
@@ -1648,7 +1661,7 @@ function start(browser: any): void {
             }
         });
     };
-    self.deleteSession = (message: any, _sender: any, _sendResponse: any) => {
+    handlers.deleteSession = (message: any, _sender: any, _sendResponse: any) => {
         loadSettings("sessions", (data: any) => {
             delete data.sessions[message.name];
             _updateAndPostSettings({
@@ -1656,7 +1669,7 @@ function start(browser: any): void {
             });
         });
     };
-    self.closeDownloadsShelf = (message: any, _sender: any, _sendResponse: any) => {
+    handlers.closeDownloadsShelf = (message: any, _sender: any, _sendResponse: any) => {
         if (message.clearHistory) {
             chrome.downloads.erase({ urlRegex: ".*" });
         } else {
@@ -1664,21 +1677,21 @@ function start(browser: any): void {
             chrome.downloads.setShelfEnabled(true);
         }
     };
-    self.getDownloads = (message: any, _sender: any, sendResponse: any) => {
+    handlers.getDownloads = (message: any, _sender: any, sendResponse: any) => {
         chrome.downloads.search(message.query, (items: any[]) => {
             _response(message, sendResponse, {
                 downloads: items,
             });
         });
     };
-    self.download = (message: any, _sender: any, _sendResponse: any) => {
+    handlers.download = (message: any, _sender: any, _sendResponse: any) => {
         chrome.downloads.download({
             url: message.url,
             filename: message.filename,
             saveAs: message.saveAs,
         });
     };
-    self.tabURLAccessed = (message: any, sender: any, _sendResponse: any) => {
+    handlers.tabURLAccessed = (message: any, sender: any, _sendResponse: any) => {
         if (sender.tab) {
             const tabId = sender.tab.id;
             _setScrollPos_bg(tabId);
@@ -1694,7 +1707,7 @@ function start(browser: any): void {
             return {};
         }
     };
-    self.getTabURLs = (_message: any, sender: any, _sendResponse: any) => {
+    handlers.getTabURLs = (_message: any, sender: any, _sendResponse: any) => {
         const tabURL = tabURLs[sender.tab.id] || {};
         const urls = Object.keys(tabURL).map((u) => {
             return {
@@ -1706,13 +1719,13 @@ function start(browser: any): void {
             urls: urls,
         };
     };
-    self.getTopURL = (_message: any, sender: any, _sendResponse: any) => {
+    handlers.getTopURL = (_message: any, sender: any, _sendResponse: any) => {
         return {
             url: sender.tab ? sender.tab.url : "",
         };
     };
 
-    self.setZoom = (message: any, sender: any, _sendResponse: any) => {
+    handlers.setZoom = (message: any, sender: any, _sendResponse: any) => {
         const tabId = sender.tab.id;
         const zoomFactor = message.zoomFactor * message.repeats;
         if (zoomFactor == 0) {
@@ -1753,7 +1766,7 @@ function start(browser: any): void {
             });
         }
     }
-    self.removeURL = (message: any, _sender: any, sendResponse: any) => {
+    handlers.removeURL = (message: any, _sender: any, sendResponse: any) => {
         let removed = 0;
         let totalToRemoved = message.uid.length;
         let uid = message.uid;
@@ -1773,7 +1786,7 @@ function start(browser: any): void {
             _removeURL(u, _done);
         });
     };
-    self.localData = (message: any, _sender: any, sendResponse: any) => {
+    handlers.localData = (message: any, _sender: any, sendResponse: any) => {
         if (message.data.constructor === Object) {
             chrome.storage.local.set(message.data, () => {});
             // broadcast the change also, such as lastKeys
@@ -1788,14 +1801,14 @@ function start(browser: any): void {
             });
         }
     };
-    self.captureVisibleTab = (message: any, _sender: any, sendResponse: any) => {
+    handlers.captureVisibleTab = (message: any, _sender: any, sendResponse: any) => {
         chrome.tabs.captureVisibleTab(null, { format: "png" }, (dataUrl: string) => {
             _response(message, sendResponse, {
                 dataUrl: dataUrl,
             });
         });
     };
-    self.getCaptureSize = (message: any, _sender: any, sendResponse: any) => {
+    handlers.getCaptureSize = (message: any, _sender: any, sendResponse: any) => {
         const img = document.createElement("img");
         img.onload = () => {
             _response(message, sendResponse, {
@@ -1807,7 +1820,7 @@ function start(browser: any): void {
             img.src = dataUrl;
         });
     };
-    self.deleteHistoryOlderThan = (message: any, _sender: any, _sendResponse: any) => {
+    handlers.deleteHistoryOlderThan = (message: any, _sender: any, _sendResponse: any) => {
         const days = message.days || 0;
         const hours = message.hours || 0;
         chrome.history.deleteRange(
@@ -1831,10 +1844,10 @@ function start(browser: any): void {
             },
         );
     }
-    self.removeBookmark = (_message: any, sender: any, _sendResponse: any) => {
+    handlers.removeBookmark = (_message: any, sender: any, _sendResponse: any) => {
         removeBookmark(sender.tab.url);
     };
-    self.getBookmark = (message: any, sender: any, sendResponse: any) => {
+    handlers.getBookmark = (message: any, sender: any, sendResponse: any) => {
         chrome.bookmarks.search(
             {
                 url: sender.tab.url,
@@ -1847,45 +1860,45 @@ function start(browser: any): void {
         );
     };
 
-    self.initGist = (message: any, _sender: any, sendResponse: any) => {
+    handlers.initGist = (message: any, _sender: any, sendResponse: any) => {
         return Gist.initGist(message.token, (gist: string) => {
             _response(message, sendResponse, {
                 gist: gist,
             });
         });
     };
-    self.readComment = (message: any, _sender: any, sendResponse: any) => {
+    handlers.readComment = (message: any, _sender: any, sendResponse: any) => {
         Gist.readComment(message.index, (resp: any) => {
             _response(message, sendResponse, resp);
         });
     };
-    self.editComment = (message: any, _sender: any, sendResponse: any) => {
+    handlers.editComment = (message: any, _sender: any, sendResponse: any) => {
         Gist.editComment(message.index, message.content, (resp: any) => {
             _response(message, sendResponse, { gistResp: resp });
         });
     };
 
     let _queueURLs: any[] = [];
-    self.queueURLs = (message: any, _sender: any, _sendResponse: any) => {
+    handlers.queueURLs = (message: any, _sender: any, _sendResponse: any) => {
         _queueURLs = _queueURLs.concat(message.urls);
     };
-    self.getQueueURLs = (_message: any, _sender: any, _sendResponse: any) => {
+    handlers.getQueueURLs = (_message: any, _sender: any, _sendResponse: any) => {
         return {
             queueURLs: _queueURLs,
         };
     };
-    self.clearQueueURLs = (_message: any, _sender: any, _sendResponse: any) => {
+    handlers.clearQueueURLs = (_message: any, _sender: any, _sendResponse: any) => {
         _queueURLs = [];
     };
 
-    self.openIncognito = (message: any, _sender: any, _sendResponse: any) => {
+    handlers.openIncognito = (message: any, _sender: any, _sendResponse: any) => {
         chrome.windows.create({ url: message.url, incognito: true });
     };
 
-    self.writeClipboard = (message: any, _sender: any, _sendResponse: any) => {
+    handlers.writeClipboard = (message: any, _sender: any, _sendResponse: any) => {
         navigator.clipboard.writeText(message.text);
     };
-    self.getContainerName = browser._getContainerName(self, _response);
+    handlers.getContainerName = browser._getContainerName(handlers, _response);
     chrome.runtime.setUninstallURL(
         "http://brookhong.github.io/2018/01/30/why-did-you-uninstall-surfingkeys.html",
     );
