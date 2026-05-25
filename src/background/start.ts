@@ -1,5 +1,6 @@
 import { filterByTitleOrUrl } from "../common/utils.js";
 import { createBookmarkHandlers } from "./bookmarks.js";
+import { createHistoryHandlers } from "./history.js";
 
 // Browser-extension globals. The typed BrowserAdapter (task #13) will replace
 // these once cross-browser API access is centralized; background is almost
@@ -493,6 +494,7 @@ function start(browser: any): void {
     }
 
     Object.assign(handlers, createBookmarkHandlers(_response));
+    Object.assign(handlers, createHistoryHandlers(_response, browser, _filterByTitleOrUrl));
 
     function _updateSettings(diffSettings: any, afterSet?: () => void) {
         diffSettings.savedAt = new Date().getTime();
@@ -709,77 +711,6 @@ function start(browser: any): void {
         });
         return filterByTitleOrUrl(tabs, query, false);
     }
-    handlers.getRecentlyClosed = (message: any, _sender: any, sendResponse: any) => {
-        chrome.sessions.getRecentlyClosed({}, (sessions: any[]) => {
-            let tabs: any[] = [];
-            for (let i = 0; i < sessions.length; i++) {
-                const s = sessions[i];
-                if (Object.prototype.hasOwnProperty.call(s, "window")) {
-                    tabs = tabs.concat(s.window.tabs);
-                } else if (Object.prototype.hasOwnProperty.call(s, "tab")) {
-                    tabs.push(s.tab);
-                }
-            }
-            tabs = _filterByTitleOrUrl(tabs, message.query);
-            _response(message, sendResponse, {
-                urls: tabs,
-            });
-        });
-    };
-    handlers.getTopSites = (message: any, _sender: any, sendResponse: any) => {
-        if (chrome.topSites) {
-            chrome.topSites.get((urls: any[]) => {
-                urls = _filterByTitleOrUrl(urls, message.query);
-                _response(message, sendResponse, {
-                    urls: urls,
-                });
-            });
-        } else {
-            _response(message, sendResponse, {
-                urls: [],
-            });
-        }
-    };
-
-    function _getHistory(
-        text: string,
-        maxResults: number,
-        cb: (items: any[]) => void,
-        sortByMostUsed?: boolean,
-    ) {
-        browser.getLatestHistoryItem(text, maxResults, (items: any[]) => {
-            if (sortByMostUsed) {
-                items = items.sort((a, b) => {
-                    return b.visitCount - a.visitCount;
-                });
-            }
-            cb(items);
-        });
-    }
-    handlers.getAllURLs = (message: any, _sender: any, sendResponse: any) => {
-        chrome.bookmarks.search(message.query || {}, (bmItems: any[]) => {
-            let urls = bmItems;
-            const requestCount = message.maxResults || 100;
-            const maxResults = requestCount - urls.length;
-            if (maxResults > 0) {
-                _getHistory(
-                    message.query || "",
-                    maxResults,
-                    (historyItems) => {
-                        urls = urls.concat(historyItems);
-                        _response(message, sendResponse, {
-                            urls: urls,
-                        });
-                    },
-                    true,
-                );
-            } else {
-                _response(message, sendResponse, {
-                    urls: urls.slice(0, requestCount),
-                });
-            }
-        });
-    };
     handlers.getTabs = (message: any, sender: any, sendResponse: any) => {
         const tab = sender.tab;
         const queryInfo = message.queryInfo || {};
@@ -1075,23 +1006,6 @@ function start(browser: any): void {
         const windowId = sender.tab.windowId;
         message.tabs.forEach((tab: any) => {
             chrome.tabs.move(tab.id, { windowId, index: -1 });
-        });
-    };
-    handlers.getHistory = (message: any, _sender: any, sendResponse: any) => {
-        _getHistory(
-            message.query || "",
-            message.maxResults || 100,
-            (tree) => {
-                _response(message, sendResponse, {
-                    history: tree,
-                });
-            },
-            message.sortByMostUsed,
-        );
-    };
-    handlers.addHistories = (message: any, _sender: any, _sendResponse: any) => {
-        message.history.forEach((h: string) => {
-            chrome.history.addUrl({ url: h });
         });
     };
     function normalizeURL(url: string) {
@@ -1714,17 +1628,6 @@ function start(browser: any): void {
         chrome.tabs.captureVisibleTab(null, { format: "png" }, (dataUrl: string) => {
             img.src = dataUrl;
         });
-    };
-    handlers.deleteHistoryOlderThan = (message: any, _sender: any, _sendResponse: any) => {
-        const days = message.days || 0;
-        const hours = message.hours || 0;
-        chrome.history.deleteRange(
-            {
-                startTime: 0,
-                endTime: new Date().getTime() - (days * 86400 + hours * 3600) * 1000,
-            },
-            () => {},
-        );
     };
     handlers.initGist = (message: any, _sender: any, sendResponse: any) => {
         return Gist.initGist(message.token, (gist: string) => {
