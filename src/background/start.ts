@@ -1,6 +1,7 @@
 import { filterByTitleOrUrl } from "../common/utils.js";
 import { createBookmarkHandlers } from "./bookmarks.js";
 import { createHistoryHandlers } from "./history.js";
+import { createTabHistory } from "./tabHistory.js";
 
 // Browser-extension globals. The typed BrowserAdapter (task #13) will replace
 // these once cross-browser API access is centralized; background is almost
@@ -263,10 +264,8 @@ function start(browser: any): void {
 
     const isMV3 = chrome.runtime.getManifest().manifest_version === 3;
 
-    let tabHistory: any[] = [];
-    let tabHistoryIndex = 0;
+    const tabHistory = createTabHistory();
     let chromelikeNewTabPosition = 0;
-    let historyTabAction = false;
 
     // data by tab id
     const tabActivated: Record<string, any> = {};
@@ -322,9 +321,7 @@ function start(browser: any): void {
         delete tabActivated[tabId];
         delete tabMessages[tabId];
         delete tabURLs[tabId];
-        tabHistory = tabHistory.filter((e) => {
-            return e !== tabId;
-        });
+        tabHistory.remove(tabId);
         if (_queueURLs.length) {
             chrome.tabs.create({
                 active: false,
@@ -395,19 +392,9 @@ function start(browser: any): void {
         _updateTabIndices();
     });
     chrome.tabs.onActivated.addListener((activeInfo: any) => {
-        if (!historyTabAction && activeInfo.tabId != tabHistory[tabHistory.length - 1]) {
-            if (tabHistory.length > 10) {
-                tabHistory.shift();
-            }
-            if (tabHistoryIndex != tabHistory.length - 1) {
-                tabHistory.splice(tabHistoryIndex + 1, tabHistory.length - 1);
-            }
-            tabHistory.push(activeInfo.tabId);
-            tabHistoryIndex = tabHistory.length - 1;
-        }
+        tabHistory.record(activeInfo.tabId);
         tabActivated[activeInfo.tabId] = new Date().getTime();
         _tabActivated(activeInfo.tabId);
-        historyTabAction = false;
         chromelikeNewTabPosition = 0;
 
         _updateTabIndices();
@@ -789,27 +776,16 @@ function start(browser: any): void {
         });
     };
     handlers.goToLastTab = (_message: any, _sender: any, _sendResponse: any) => {
-        if (tabHistory.length > 1) {
-            const lastTab = tabHistory[tabHistory.length - 2];
+        const lastTab = tabHistory.previousTab();
+        if (lastTab !== undefined) {
             chrome.tabs.update(lastTab, {
                 active: true,
             });
         }
     };
     handlers.historyTab = (message: any, _sender?: any, _sendResponse?: any) => {
-        if (tabHistory.length > 0) {
-            historyTabAction = true;
-            if (Object.prototype.hasOwnProperty.call(message, "index")) {
-                tabHistoryIndex = (parseInt(message.index) + tabHistory.length) % tabHistory.length;
-            } else {
-                tabHistoryIndex += message.backward ? -1 : 1;
-                if (tabHistoryIndex < 0) {
-                    tabHistoryIndex = 0;
-                } else if (tabHistoryIndex >= tabHistory.length) {
-                    tabHistoryIndex = tabHistory.length - 1;
-                }
-            }
-            const tabId = tabHistory[tabHistoryIndex];
+        const tabId = tabHistory.navigate(message);
+        if (tabId !== undefined) {
             chrome.tabs.update(tabId, {
                 active: true,
             });
