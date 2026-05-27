@@ -13,7 +13,6 @@ import {
     safeDecodeURI,
     safeDecodeURIComponent,
     scrollIntoViewIfNeeded,
-    setSanitizedContent,
     showBanner,
     toggleQuote,
     timeStampString,
@@ -24,6 +23,7 @@ import { render } from "solid-js/web";
 import { ResultList } from "./components/ResultList";
 import type { ResultListItem } from "./components/ResultList";
 import { ResultPage } from "./components/ResultPage";
+import { Prompt } from "./components/Prompt";
 
 // `Normal` is referenced by a couple of omnibar mappings but is not defined in
 // this module's scope in the original code; declared here so those paths keep
@@ -77,6 +77,8 @@ function createOmnibar(front: any, clipboard: any) {
     const [results, setResults] = createSignal<OmnibarResult[]>([]);
     const [focusedIndex, setFocusedIndex] = createSignal(-1);
     const [resultPage, setResultPage] = createSignal("");
+    const [prompt, setPrompt] = createSignal("");
+    self.setPrompt = setPrompt;
     const focusedResult = (): OmnibarResult | undefined => {
         const i = focusedIndex();
         return i >= 0 ? results()[i] : undefined;
@@ -280,7 +282,7 @@ function createOmnibar(front: any, clipboard: any) {
             Object.assign(searchEngine, searchEngine.aliases[alias]);
             setResults([]);
             setFocusedIndex(-1);
-            setSanitizedContent(self.promptSpan, handler.prompt);
+            setPrompt(handler.prompt);
             setResultPage("");
             _items = null;
             self.collapsingPoint = val;
@@ -303,7 +305,7 @@ function createOmnibar(front: any, clipboard: any) {
         ) {
             handler = lastHandler;
             lastHandler = null;
-            setSanitizedContent(self.promptSpan, handler.prompt);
+            setPrompt(handler.prompt);
             if (val.length) {
                 self.input.value = val.substr(0, val.length - 1);
             }
@@ -337,10 +339,19 @@ function createOmnibar(front: any, clipboard: any) {
         }
     }
 
-    self.promptSpan = ui.querySelector("#sk_omnibarSearchArea>span.prompt");
+    const promptSpan = ui.querySelector("#sk_omnibarSearchArea>span.prompt");
     const resultPageSpan = ui.querySelector("#sk_omnibarSearchArea>span.resultPage");
     self.resultsDiv = ui.querySelector("#sk_omnibarSearchResult");
 
+    render(
+        () =>
+            Prompt({
+                get html() {
+                    return prompt();
+                },
+            }),
+        promptSpan,
+    );
     render(
         () =>
             ResultPage({
@@ -645,7 +656,7 @@ function createOmnibar(front: any, clipboard: any) {
         self.resultsDiv.className = "";
         handler.onOpen && handler.onOpen(args.extra);
         lastHandler = handler;
-        setSanitizedContent(self.promptSpan, handler.prompt);
+        setPrompt(handler.prompt);
         setResultPage("");
         ui.scrollTop = 0;
     };
@@ -926,7 +937,7 @@ function OpenBookmarks(omnibar: any): any {
             RUNTIME("getBookmarks", null, self.onResponse);
         }
         self.prompt = fl.prompt;
-        setSanitizedContent(omnibar.promptSpan, self.prompt);
+        omnibar.setPrompt(self.prompt);
         lastFocused = fl.focused;
     }
 
@@ -962,7 +973,7 @@ function OpenBookmarks(omnibar: any): any {
                 focused: omnibar.focusedIndex(),
             });
             self.prompt = fi.data.folder_name + separator;
-            setSanitizedContent(omnibar.promptSpan, self.prompt);
+            omnibar.setPrompt(self.prompt);
             omnibar.input.value = "";
             currentFolderId = folderId;
             lastFocused = 0;
@@ -1007,7 +1018,7 @@ function OpenBookmarks(omnibar: any): any {
         if (event.keyCode === KeyboardUtils.keyCodes.comma) {
             folderOnly = !folderOnly;
             self.prompt = folderOnly ? `bookmark folder${separator}` : `bookmark${separator}`;
-            setSanitizedContent(omnibar.promptSpan, self.prompt);
+            omnibar.setPrompt(self.prompt);
             RUNTIME(
                 "getBookmarks",
                 { parentId: currentFolderId, query: omnibar.input.value },
@@ -1077,7 +1088,7 @@ function AddBookmark(omnibar: any): any {
             RUNTIME("getBookmark", null, (resp: any) => {
                 if (resp.bookmarks.length) {
                     const b = resp.bookmarks[0];
-                    setSanitizedContent(omnibar.promptSpan, `edit bookmark${separatorHtml}`);
+                    omnibar.setPrompt(`edit bookmark${separatorHtml}`);
                     const idx = omnibar
                         .results()
                         .findIndex((r: any) => r.data.folder === String(b.parentId));
