@@ -20,6 +20,9 @@ import createDefaultMappings from "../common/default.js";
 import createModeGraph, { type ModeContext } from "../common/modeGraph";
 import createOmnibar from "./omnibar.js";
 import createCommands from "./command.js";
+import { createSignal } from "solid-js";
+import { render } from "solid-js/web";
+import { StatusBar as StatusBarView } from "./components/StatusBar";
 
 const Front = (() => {
     Mode.init();
@@ -774,39 +777,35 @@ const StatusBar = (() => {
     let timerHide: ReturnType<typeof setTimeout> | null = null;
     const ui = Front.statusBar;
 
-    // 4 spans
-    // mode: 0
-    // search: 1
-    // searchResult: 2
-    // proxy: 3
+    // mode: 0, search: 1, searchResult: 2, proxy: 3
+    const [cells, setCells] = createSignal<string[]>(["", "", "", ""]);
+    // frontend.ts is plain TS (no JSX), so the component is invoked through a
+    // getter prop that keeps `cells` reactive across the postMessage boundary.
+    render(
+        () =>
+            StatusBarView({
+                get cells() {
+                    return cells();
+                },
+            }),
+        ui,
+    );
+
     self.show = (contents: any[], duration?: number) => {
         if (timerHide) {
             clearTimeout(timerHide);
             timerHide = null;
         }
-        const span = ui.querySelectorAll("span");
+        // An undefined entry leaves that cell untouched; a shorter array leaves
+        // the trailing cells (e.g. find clears mode+search but keeps results).
+        const next = cells().slice();
         for (let i = 0; i < contents.length; i++) {
             if (contents[i] !== undefined) {
-                setSanitizedContent(span[i], contents[i]);
+                next[i] = contents[i];
             }
         }
-        let lastSpan = -1;
-        for (let i = 0; i < span.length; i++) {
-            if (span[i].innerHTML.length) {
-                lastSpan = i;
-                span[i].style.padding = "0px 8px";
-                span[i].style.borderRight = "1px solid #999";
-            } else {
-                span[i].style.padding = "";
-                span[i].style.borderRight = "";
-            }
-        }
-        if (lastSpan === -1) {
-            ui.style.display = "none";
-        } else {
-            span[lastSpan].style.borderRight = "";
-            ui.style.display = "block";
-        }
+        setCells(next);
+        ui.style.display = next.some((c) => c) ? "block" : "none";
         Front.flush();
         if (duration) {
             timerHide = setTimeout(() => {
