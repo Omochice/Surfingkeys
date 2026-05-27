@@ -84,6 +84,7 @@ export default defineConfig({
         const manifest: Record<string, any> = {
             name: "Surfingkeys",
             short_name: "Surfingkeys",
+            author: "brook hong",
             description:
                 "Rich shortcuts to click links/switch tabs/scroll, capture pages, use your browser like vim for productivity.",
             icons: {
