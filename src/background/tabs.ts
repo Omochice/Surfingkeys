@@ -558,7 +558,7 @@ export function createTabs(deps: TabsDeps): TabsUnit {
                 if (message.tab.tabbed) {
                     if (
                         (sender.frameId !== 0 &&
-                            chrome.runtime.getURL("pages/frontend.html") === sender.url) ||
+                            chrome.runtime.getURL("frontend.html") === sender.url) ||
                         !sender.tab
                     ) {
                         // if current call was made from Omnibar, the sender.tab may be stale,

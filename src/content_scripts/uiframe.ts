@@ -15,7 +15,7 @@ function createUiHost(adapter: BrowserLike, onload: (uiHost: HTMLElement) => voi
     uiHost.style.display = "block";
     uiHost.style.opacity = "1";
     uiHost.style.colorScheme = "light";
-    const frontEndURL = browser.runtime.getURL("pages/frontend.html");
+    const frontEndURL = browser.runtime.getURL("frontend.html");
     const ifr = document.createElement("iframe");
     ifr.setAttribute("allowtransparency", "true");
     ifr.setAttribute("frameborder", "0");

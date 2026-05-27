@@ -43,6 +43,10 @@ export default defineConfig({
     },
     manifest: ({ browser, mode }) => {
         const permissions = [...basePermissions];
+        // Resources the content script / injected pages fetch by extension URL:
+        // the sandboxed iframe page and the emoji/l10n data. Chrome adds the
+        // built-in favicon endpoint.
+        const webResources = ["frontend.html", "pages/emoji.tsv", "pages/l10n.json"];
         const manifest: Record<string, any> = {
             name: "Surfingkeys",
             short_name: "Surfingkeys",
@@ -65,12 +69,14 @@ export default defineConfig({
             },
             host_permissions: ["<all_urls>"],
             permissions,
+            web_accessible_resources: [{ resources: webResources, matches: ["<all_urls>"] }],
         };
 
         if (browser === "firefox") {
             permissions.push("cookies", "contextualIdentities");
         } else {
             permissions.push("downloads.shelf", "favicon", "userScripts");
+            webResources.push("_favicon/*");
             manifest.incognito = "split";
             if (mode === "development") {
                 manifest.key = devKey;
