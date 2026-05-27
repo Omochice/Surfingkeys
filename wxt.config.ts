@@ -36,10 +36,17 @@ export default defineConfig({
         // content.css ships as a single shared stylesheet (public/content.css,
         // copied to the root), injected by the content script and referenced by
         // the frontend iframe — mirror the old webpack manifest's css entry.
-        "build:manifestGenerated": (_wxt, manifest) => {
+        "build:manifestGenerated": (wxt, manifest) => {
             const cs = manifest.content_scripts?.[0];
             if (cs) {
                 cs.css = [...(cs.css ?? []), "content.css"];
+            }
+            // The old Chrome manifest opened the options page in a full tab
+            // (options_page); Firefox kept it embedded in about:addons. WXT
+            // generates options_ui with open_in_tab:false for both, so restore
+            // Chrome's tab behaviour while leaving Firefox embedded.
+            if (manifest.options_ui) {
+                manifest.options_ui.open_in_tab = wxt.config.browser === "chrome";
             }
         },
         // The chrome-only user-scripts api (src/user_scripts/index.ts) is loaded
