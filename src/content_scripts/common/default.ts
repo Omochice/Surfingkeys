@@ -741,7 +741,7 @@ export default function (api: SurfingkeysApi, ctx: ModeContext): void {
         RUNTIME("closeAudibleTab");
     });
     mapkey(";e", "#11Edit Settings", () => {
-        tabOpenLink("/pages/options.html");
+        tabOpenLink("/options.html");
     });
     addSearchAlias(
         "g",

@@ -5,15 +5,9 @@ import createNormal from "./common/normal.js";
 import startScrollNodeObserver from "./common/observer";
 import {
     applyUserSettings,
-    createElementWithContent,
     generateQuickGuid,
-    getBrowserName,
     getRealEdit,
-    htmlEncode,
-    initL10n,
     isInUIFrame,
-    reportIssue,
-    setSanitizedContent,
     showBanner,
 } from "./common/utils.js";
 import createFront from "./front.js";
@@ -21,7 +15,6 @@ import createAPI from "./common/api.js";
 import createDefaultMappings from "./common/default.js";
 import createModeGraph, { type ModeContext } from "./common/modeGraph";
 
-import KeyboardUtils from "./common/keyboardUtils";
 import browser from "./common/browser";
 
 declare global {
@@ -262,28 +255,7 @@ function start(adapter?: BrowserAdapter): void {
     _browser = adapter || {};
     if (window === top) {
         new Promise<Modes>((r) => {
-            if (window.location.href === browser.runtime.getURL("/pages/options.html")) {
-                const optionsPath = "./pages/options.js";
-                import(/* webpackIgnore: true */ /* @vite-ignore */ optionsPath).then(
-                    (optionsLib) => {
-                        optionsLib.default(
-                            RUNTIME,
-                            KeyboardUtils,
-                            Mode,
-                            createElementWithContent,
-                            getBrowserName,
-                            htmlEncode,
-                            initL10n,
-                            reportIssue,
-                            setSanitizedContent,
-                            showBanner,
-                        );
-                        r(_initModules());
-                    },
-                );
-            } else {
-                r(_initModules());
-            }
+            r(_initModules());
         }).then((modes) => {
             _initContent(modes);
             runtime.on("titleChanged", () => {

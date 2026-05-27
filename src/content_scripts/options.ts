@@ -1,6 +1,10 @@
 import type { StoredSettings } from "./common/runtime.js";
 
-type RuntimeFn = (action: string, args?: unknown, callback?: (resp: any) => void) => void;
+type RuntimeFn = (
+    action: string,
+    args?: Record<string, unknown> | null,
+    callback?: (resp: any) => void,
+) => void;
 type KeyboardUtilsLike = {
     encodeKeystroke(k: string): string;
     decodeKeystroke(k: string): string;
