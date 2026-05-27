@@ -27,6 +27,7 @@ import { Keystroke as KeystrokeView } from "./components/Keystroke";
 import { Popup as PopupView } from "./components/Popup";
 import { Tabs as TabsView } from "./components/Tabs";
 import { Bubble as BubbleView } from "./components/Bubble";
+import { Usage as UsageView } from "./components/Usage";
 
 const Front = (() => {
     Mode.init();
@@ -353,7 +354,10 @@ const Front = (() => {
         }
     }
 
-    function buildUsage(metas: any[], cb: (usage: string) => void) {
+    function buildUsage(
+        metas: any[],
+        cb: (result: { groups: string[]; moreHelp: string }) => void,
+    ) {
         const feature_groups = [
             "Help", // 0
             "Mouse Click", // 1
@@ -376,12 +380,10 @@ const Front = (() => {
         ];
 
         initL10n((locale) => {
-            let help_groups: string[][] | string = feature_groups.map(() => {
-                return [] as string[];
-            });
+            const help_groups: string[][] = feature_groups.map(() => []);
             const lh = Mode.specialKeys["<Alt-s>"].length;
             if (lh > 0) {
-                (help_groups as string[][])[0].push(
+                help_groups[0].push(
                     "<div><span class=kbd-span><kbd>{0}</kbd></span><span class=annotation>{1}</span></div>".format(
                         htmlEncode(Mode.specialKeys["<Alt-s>"][lh - 1]),
                         locale("Toggle SurfingKeys on current site"),
@@ -394,31 +396,45 @@ const Front = (() => {
                 const w = KeyboardUtils.decodeKeystroke(meta.word);
                 const annotation = localizeAnnotation(locale, meta.annotation);
                 const item = `<div><span class=kbd-span><kbd>${htmlEncode(w)}</kbd></span><span class=annotation>${annotation}</span></div>`;
-                (help_groups as string[][])[meta.feature_group].push(item);
+                help_groups[meta.feature_group].push(item);
             });
-            help_groups = (help_groups as string[][])
-                .map((g, i) => {
-                    if (g.length) {
-                        return "<div><div class=feature_name><span>{0}</span></div>{1}</div>".format(
-                            locale(feature_groups[i]),
-                            g.join(""),
-                        );
-                    } else {
-                        return "";
-                    }
-                })
-                .join("");
-
-            help_groups += `<p style='float:right; width:100%; text-align:right'><a href='https://github.com/brookhong/surfingkeys' target='_blank' style='color:#0095dd'>${locale("More help")}</a></p>`;
-            cb(help_groups);
+            // Each non-empty group becomes one <div> child of #sk_usage (the
+            // <Usage> component wraps the string below in that div); the footer
+            // link is rendered by the component, so only the localized text is
+            // returned here.
+            const groups = help_groups
+                .map((g, i) =>
+                    g.length
+                        ? "<div class=feature_name><span>{0}</span></div>{1}".format(
+                              locale(feature_groups[i]),
+                              g.join(""),
+                          )
+                        : "",
+                )
+                .filter((s) => s.length);
+            cb({ groups, moreHelp: locale("More help") });
         });
     }
 
+    const [usage, setUsage] = createSignal<{ groups: string[]; moreHelp: string }>({
+        groups: [],
+        moreHelp: "",
+    });
+    render(
+        () =>
+            UsageView({
+                get groups() {
+                    return usage().groups;
+                },
+                get moreHelp() {
+                    return usage().moreHelp;
+                },
+            }),
+        _usage,
+    );
     _actions["showUsage"] = (message: any) => {
         showElement(_usage, () => {
-            buildUsage(message.metas, (usage) => {
-                setSanitizedContent(_usage, usage);
-            });
+            buildUsage(message.metas, setUsage);
         });
     };
     _actions["applyUserSettings"] = (message: any) => {
@@ -458,11 +474,16 @@ const Front = (() => {
     _actions["getUsage"] = (message: any) => {
         // send response in callback from buildUsage
         delete message.ack;
-        buildUsage(message.metas, (usage) => {
+        buildUsage(message.metas, ({ groups, moreHelp }) => {
+            // Content gets the help as one HTML string; reassemble the per-group
+            // <div> wrappers and the footer link (kept in sync with <Usage>).
+            const usageHtml =
+                groups.map((g) => `<div>${g}</div>`).join("") +
+                `<p style='float:right; width:100%; text-align:right'><a href='https://github.com/brookhong/surfingkeys' target='_blank' style='color:#0095dd'>${moreHelp}</a></p>`;
             top!.postMessage(
                 {
                     surfingkeys_uihost_data: {
-                        data: usage,
+                        data: usageHtml,
                         toContent: true,
                         id: message.id,
                     },
