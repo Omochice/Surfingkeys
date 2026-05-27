@@ -19,6 +19,10 @@ import {
     timeStampString,
 } from "../common/utils.js";
 import { RUNTIME, runtime } from "../common/runtime.js";
+import { createEffect, createSignal } from "solid-js";
+import { render } from "solid-js/web";
+import { ResultList } from "./components/ResultList";
+import type { ResultListItem } from "./components/ResultList";
 
 // `Normal` is referenced by a couple of omnibar mappings but is not defined in
 // this module's scope in the original code; declared here so those paths keep
@@ -27,6 +31,26 @@ declare const Normal: any;
 
 const separator = "➤";
 const separatorHtml = `<span class='separator'>${separator}</span>`;
+
+/**
+ * A harvested omnibar row: the fields ResultList renders, plus the data the
+ * handlers and key bindings read back from the store instead of reaching into
+ * the DOM (the legacy code stored these as expandos on each <li>).
+ */
+interface OmnibarResult extends ResultListItem {
+    data: {
+        uid?: string;
+        url?: string;
+        copy?: string;
+        query?: string;
+        windowId?: number;
+        folderId?: string;
+        folder_name?: string;
+        cmd?: any;
+        folder?: string;
+        text: string;
+    };
+}
 
 function createOmnibar(front: any, clipboard: any) {
     const self: any = new Mode("Omnibar");
@@ -46,6 +70,21 @@ function createOmnibar(front: any, clipboard: any) {
     self.mappings = new Trie();
     self.map_node = self.mappings;
 
+    // The result list is a reactive store driven by a Solid <ResultList>; the
+    // focused row is an index rather than a `.focused` DOM class, and the
+    // per-row data the handlers read lives on the store item, not on the <li>.
+    const [results, setResults] = createSignal<OmnibarResult[]>([]);
+    const [focusedIndex, setFocusedIndex] = createSignal(-1);
+    const focusedResult = (): OmnibarResult | undefined => {
+        const i = focusedIndex();
+        return i >= 0 ? results()[i] : undefined;
+    };
+    // Exposed so the per-type handlers can read the focused row from the store
+    // instead of querying the DOM.
+    self.results = results;
+    self.focusedIndex = focusedIndex;
+    self.focusedResult = focusedResult;
+
     function getPosition() {
         let p = runtime.conf.omnibarPosition;
         if (handler && handler.omnibarPosition) {
@@ -59,26 +98,23 @@ function createOmnibar(front: any, clipboard: any) {
         annotation: "Delete focused item from bookmark or history",
         feature_group: 8,
         code: function () {
-            const fi = self.resultsDiv.querySelector("li.focused");
-            if (fi && fi.uid) {
-                RUNTIME("removeURL", { uid: fi.uid }, (ret: any) => {
-                    if (ret.response === "Done") {
-                        const newFI =
-                            getPosition() !== "bottom"
-                                ? fi.nextElementSibling
-                                : fi.previousElementSibling;
-                        fi.remove();
-                        if (newFI) {
-                            self.focusItem(newFI);
-                        } else {
-                            savedFocused =
-                                getPosition() !== "bottom"
-                                    ? self.resultsDiv.querySelectorAll(
-                                          "#sk_omnibarSearchResult>ul>li",
-                                      ).length
-                                    : 0;
-                            self.input.dispatchEvent(new Event("input", { bubbles: true }));
-                        }
+            const fi = focusedResult();
+            const idx = focusedIndex();
+            if (fi && fi.data.uid) {
+                RUNTIME("removeURL", { uid: fi.data.uid }, (ret: any) => {
+                    if (ret.response !== "Done") {
+                        return;
+                    }
+                    const remaining = results().slice();
+                    remaining.splice(idx, 1);
+                    setResults(remaining);
+                    const bottom = getPosition() === "bottom";
+                    const newIdx = bottom ? idx - 1 : idx;
+                    if (newIdx >= 0 && newIdx < remaining.length) {
+                        self.focusItem(newIdx);
+                    } else {
+                        savedFocused = bottom ? 0 : remaining.length;
+                        self.input.dispatchEvent(new Event("input", { bubbles: true }));
                     }
                 });
             }
@@ -146,12 +182,12 @@ function createOmnibar(front: any, clipboard: any) {
             // hide Omnibar.input, so that we could use clipboard_holder to make copy
             self.input.style.display = "none";
 
-            const fi = self.resultsDiv.querySelector("li.focused");
+            const fi = focusedResult();
             let text;
-            if (fi && fi.copy) {
-                text = fi.copy;
-            } else if (fi && fi.url) {
-                text = fi.url;
+            if (fi && fi.data.copy) {
+                text = fi.data.copy;
+            } else if (fi && fi.data.url) {
+                text = fi.data.url;
             } else if (_page) {
                 text = _page
                     .map((p: any) => {
@@ -169,15 +205,9 @@ function createOmnibar(front: any, clipboard: any) {
         annotation: "Delete all listed items from bookmark or history",
         feature_group: 8,
         code: function () {
-            const uids = Array.from(
-                self.resultsDiv.querySelectorAll("#sk_omnibarSearchResult>ul>li"),
-            )
-                .map((li: any) => {
-                    return li.uid;
-                })
-                .filter((u: any) => {
-                    return u;
-                });
+            const uids = results()
+                .map((r) => r.data.uid)
+                .filter((u) => u);
             if (uids.length) {
                 RUNTIME("removeURL", { uid: uids }, (ret: any) => {
                     if (ret.response === "Done") {
@@ -213,9 +243,9 @@ function createOmnibar(front: any, clipboard: any) {
         annotation: "Create vim-like mark for selected item",
         feature_group: 8,
         code: function (mark: string) {
-            const fi = self.resultsDiv.querySelector("li.focused");
+            const fi = focusedResult();
             if (fi) {
-                Normal.addVIMark(mark, fi.url);
+                Normal.addVIMark(mark, fi.data.url);
             }
         },
     });
@@ -246,7 +276,8 @@ function createOmnibar(front: any, clipboard: any) {
             lastHandler = handler;
             handler = searchEngine;
             Object.assign(searchEngine, searchEngine.aliases[alias]);
-            setSanitizedContent(self.resultsDiv, "");
+            setResults([]);
+            setFocusedIndex(-1);
             setSanitizedContent(self.promptSpan, handler.prompt);
             setSanitizedContent(resultPageSpan, "");
             _items = null;
@@ -280,37 +311,25 @@ function createOmnibar(front: any, clipboard: any) {
         return eaten;
     };
 
-    self.focusItem = (fi: any) => {
-        if (typeof fi === "string") {
-            fi = self.resultsDiv.querySelector(fi);
-        }
-        if (fi) {
-            fi.classList.add("focused");
-            const fiRect = fi.getBoundingClientRect();
-            const resultsRect = self.resultsDiv.getBoundingClientRect();
-            if (fiRect.top < resultsRect.top || fiRect.bottom > resultsRect.bottom) {
-                const alignToTop = fiRect.top < resultsRect.top;
-                fi.scrollIntoView(alignToTop);
-            }
+    self.focusItem = (index: number) => {
+        if (index >= 0 && index < results().length) {
+            setFocusedIndex(index);
         }
     };
 
     function rotateResult(backward: boolean) {
-        const items = Array.from(self.resultsDiv.querySelectorAll("#sk_omnibarSearchResult>ul>li"));
-        const total = items.length;
+        const total = results().length;
         if (total > 0) {
-            const fi = self.resultsDiv.querySelector("li.focused");
-            if (fi) {
-                fi.classList.remove("focused");
-            }
-            let lastFocused = items.indexOf(fi);
+            let lastFocused = focusedIndex();
             lastFocused = lastFocused === -1 ? total : lastFocused;
             const toFocus =
                 (backward ? lastFocused + total : lastFocused + total + 2) % (total + 1);
             if (toFocus < total) {
-                self.focusItem(items[toFocus]);
+                setFocusedIndex(toFocus);
                 handler.onTabKey && handler.onTabKey();
             } else {
+                // the slot past the last item returns focus to the typed input
+                setFocusedIndex(-1);
                 self.input.value = lastInput;
             }
         }
@@ -319,6 +338,46 @@ function createOmnibar(front: any, clipboard: any) {
     self.promptSpan = ui.querySelector("#sk_omnibarSearchArea>span.prompt");
     const resultPageSpan = ui.querySelector("#sk_omnibarSearchArea>span.resultPage");
     self.resultsDiv = ui.querySelector("#sk_omnibarSearchResult");
+
+    function onResultSelect(index: number) {
+        const d = results()[index]?.data;
+        if (!d) {
+            return;
+        }
+        if (d.url) {
+            RUNTIME("openLink", { tab: { tabbed: true, active: true }, url: d.url });
+        } else {
+            self.input.value = d.query;
+            self.input.focus();
+        }
+    }
+    render(
+        () =>
+            ResultList({
+                get items() {
+                    return results();
+                },
+                get focusedIndex() {
+                    return focusedIndex();
+                },
+                onSelect: onResultSelect,
+            }),
+        self.resultsDiv,
+    );
+    // Scroll the focused row into view once Solid has applied the focused class.
+    createEffect(() => {
+        if (focusedIndex() < 0) {
+            return;
+        }
+        const fi = self.resultsDiv.querySelector("li.focused") as HTMLElement | null;
+        if (fi) {
+            const fiRect = fi.getBoundingClientRect();
+            const resultsRect = self.resultsDiv.getBoundingClientRect();
+            if (fiRect.top < resultsRect.top || fiRect.bottom > resultsRect.bottom) {
+                fi.scrollIntoView(fiRect.top < resultsRect.top);
+            }
+        }
+    });
 
     function _onIput(this: any) {
         if (lastInput !== self.input.value) {
@@ -500,8 +559,7 @@ function createOmnibar(front: any, clipboard: any) {
         _showFolder = showFolder;
         _listResultPage();
         if (savedFocused !== -1) {
-            const list = self.resultsDiv.querySelectorAll("#sk_omnibarSearchResult>ul>li");
-            self.focusItem(list[savedFocused]);
+            self.focusItem(savedFocused);
             savedFocused = -1;
         }
     };
@@ -591,7 +649,8 @@ function createOmnibar(front: any, clipboard: any) {
         lastInput = "";
         self.input.value = "";
         self.input.placeholder = "";
-        setSanitizedContent(self.resultsDiv, "");
+        setResults([]);
+        setFocusedIndex(-1);
         lastHandler = null;
         handler.onClose && handler.onClose();
         self.exit();
@@ -614,10 +673,10 @@ function createOmnibar(front: any, clipboard: any) {
     };
 
     self.openFocused = function (this: any) {
-        let fi = self.resultsDiv.querySelector("li.focused");
+        const fi = focusedResult();
         let url;
         if (fi) {
-            url = fi.url;
+            url = fi.data.url;
         } else {
             url = self.input.value;
             if (!self.isUrl(url)) {
@@ -625,17 +684,17 @@ function createOmnibar(front: any, clipboard: any) {
             }
         }
         let type = "";
-        let uid;
-        if (fi && fi.uid) {
-            uid = fi.uid;
+        let uid = "";
+        if (fi && fi.data.uid) {
+            uid = fi.data.uid;
             type = uid[0];
             uid = uid.substr(1);
         }
         if (type === "T") {
-            uid = uid.split(":");
+            const parts = uid.split(":");
             RUNTIME("focusTab", {
-                windowId: parseInt(uid[0]),
-                tabId: parseInt(uid[1]),
+                windowId: parseInt(parts[0]),
+                tabId: parseInt(parts[1]),
             });
         } else if (url && url.length) {
             RUNTIME("openLink", {
@@ -650,42 +709,54 @@ function createOmnibar(front: any, clipboard: any) {
     };
 
     self.listResults = (items: any, renderItem: (b: any) => any) => {
-        setSanitizedContent(self.resultsDiv, "");
         if (!items || items.length === 0) {
+            setResults([]);
+            setFocusedIndex(-1);
             return;
         }
         if (getPosition() === "bottom") {
             items.reverse();
         }
-        const ul = document.createElement("ul");
+        // The per-handler renderItem still builds a detached <li>; harvest its
+        // display HTML and the expando data the handlers read, then let
+        // <ResultList> render the rows reactively from the store.
+        const built: OmnibarResult[] = [];
         items.forEach((b: any) => {
             const li: any = renderItem(b);
             if (li) {
-                ul.append(li);
-                li.onclick = () => {
-                    if (li.url) {
-                        RUNTIME("openLink", {
-                            tab: {
-                                tabbed: true,
-                                active: true,
-                            },
-                            url: li.url,
-                        });
-                    } else {
-                        self.input.value = li.query;
-                        self.input.focus();
-                    }
-                };
+                const img = li.querySelector ? li.querySelector("img.icon") : null;
+                built.push({
+                    html: li.innerHTML,
+                    className: li.className || undefined,
+                    faviconSrc: img ? (img.getAttribute("src") ?? undefined) : undefined,
+                    data: {
+                        uid: li.uid,
+                        url: li.url,
+                        copy: li.copy,
+                        query: li.query,
+                        windowId: li.windowId,
+                        folderId: li.folderId,
+                        folder_name: li.folder_name,
+                        cmd: li.cmd,
+                        folder: li.getAttribute
+                            ? (li.getAttribute("folder") ?? undefined)
+                            : undefined,
+                        text: li.textContent ?? "",
+                    },
+                });
             }
         });
-        self.resultsDiv.append(ul);
-        items = self.resultsDiv.querySelectorAll("#sk_omnibarSearchResult>ul>li");
+        setResults(built);
         if (runtime.conf.focusFirstCandidate || handler.focusFirstCandidate) {
-            const fi = getPosition() === "bottom" ? items.length - 1 : 0;
-            items[fi].classList.add("focused");
+            setFocusedIndex(getPosition() === "bottom" ? built.length - 1 : 0);
+        } else {
+            setFocusedIndex(-1);
         }
-        if (getPosition() === "bottom" && items.length > 0) {
-            scrollIntoViewIfNeeded(items[items.length - 1]);
+        if (getPosition() === "bottom" && built.length > 0) {
+            const lis = self.resultsDiv.querySelectorAll("#sk_omnibarSearchResult>ul>li");
+            if (lis.length) {
+                scrollIntoViewIfNeeded(lis[lis.length - 1]);
+            }
         }
     };
 
@@ -698,7 +769,10 @@ function createOmnibar(front: any, clipboard: any) {
     };
 
     self.html = (content: string) => {
-        setSanitizedContent(self.resultsDiv, content);
+        // Show a single raw-HTML row through the store so the Solid mount that
+        // owns resultsDiv is not clobbered by a direct innerHTML write.
+        setResults([{ html: content, data: { text: "" } }]);
+        setFocusedIndex(-1);
     };
 
     self.addHandler = (name: string, hdl: any) => {
@@ -845,12 +919,9 @@ function OpenBookmarks(omnibar: any): any {
     }
 
     self.onEnter = function (this: any) {
-        const items = Array.from(
-            omnibar.resultsDiv.querySelectorAll("#sk_omnibarSearchResult>ul>li"),
-        );
         let ret = false;
-        const fi = omnibar.resultsDiv.querySelector("li.focused");
-        const folderId = fi.folderId;
+        const fi = omnibar.focusedResult();
+        const folderId = fi?.data.folderId;
         if (folderId && !this.activeTab) {
             RUNTIME("getBookmarks", { parentId: folderId }, (response: any) => {
                 const subItems = response.bookmarks;
@@ -869,16 +940,16 @@ function OpenBookmarks(omnibar: any): any {
             self.inFolder.push({
                 prompt: self.prompt,
                 folderId: currentFolderId,
-                focused: items.indexOf(fi),
+                focused: omnibar.focusedIndex(),
             });
             localStorage.setItem("surfingkeys.lastOpenBookmark", JSON.stringify(self.inFolder));
         } else if (folderId) {
             self.inFolder.push({
                 prompt: self.prompt,
                 folderId: currentFolderId,
-                focused: items.indexOf(fi),
+                focused: omnibar.focusedIndex(),
             });
-            self.prompt = fi.folder_name + separator;
+            self.prompt = fi.data.folder_name + separator;
             setSanitizedContent(omnibar.promptSpan, self.prompt);
             omnibar.input.value = "";
             currentFolderId = folderId;
@@ -890,7 +961,7 @@ function OpenBookmarks(omnibar: any): any {
                 self.inFolder.push({
                     prompt: self.prompt,
                     folderId: currentFolderId,
-                    focused: items.indexOf(fi),
+                    focused: omnibar.focusedIndex(),
                 });
                 localStorage.setItem("surfingkeys.lastOpenBookmark", JSON.stringify(self.inFolder));
             }
@@ -939,10 +1010,10 @@ function OpenBookmarks(omnibar: any): any {
             onFolderUp();
             eaten = true;
         } else if (event.ctrlKey && event.shiftKey && KeyboardUtils.isWordChar(event)) {
-            const fi = omnibar.resultsDiv.querySelector("li.focused");
+            const fi = omnibar.focusedResult();
             if (fi) {
                 const mark_char = String.fromCharCode(event.keyCode);
-                Normal.addVIMark(mark_char, fi.url);
+                Normal.addVIMark(mark_char, fi.data.url);
                 eaten = true;
             }
         }
@@ -969,9 +1040,8 @@ function OpenBookmarks(omnibar: any): any {
         }
         omnibar.listURLs(items, true);
 
-        if (!omnibar.resultsDiv.querySelector("li.focused")) {
-            const list = omnibar.resultsDiv.querySelectorAll("#sk_omnibarSearchResult>ul>li");
-            omnibar.focusItem(list[lastFocused]);
+        if (omnibar.focusedIndex() < 0) {
+            omnibar.focusItem(lastFocused);
         }
     };
 
@@ -996,8 +1066,12 @@ function AddBookmark(omnibar: any): any {
                 if (resp.bookmarks.length) {
                     const b = resp.bookmarks[0];
                     setSanitizedContent(omnibar.promptSpan, `edit bookmark${separatorHtml}`);
-                    omnibar.resultsDiv.querySelector("li.focused").classList.remove("focused");
-                    omnibar.focusItem(`li[folder="${b.parentId}"]`);
+                    const idx = omnibar
+                        .results()
+                        .findIndex((r: any) => r.data.folder === String(b.parentId));
+                    if (idx >= 0) {
+                        omnibar.focusItem(idx);
+                    }
                 }
 
                 //restore the last used bookmark folder input
@@ -1017,17 +1091,19 @@ function AddBookmark(omnibar: any): any {
     };
 
     self.onTabKey = () => {
-        const fi = omnibar.resultsDiv.querySelector("li.focused");
-        omnibar.input.value = fi.innerHTML.substr(2);
+        const fi = omnibar.focusedResult();
+        if (fi) {
+            omnibar.input.value = fi.data.text.substr(2);
+        }
     };
 
     self.onEnter = () => {
         self.page.path = [];
-        const fi = omnibar.resultsDiv.querySelector("li.focused");
+        const fi = omnibar.focusedResult();
         let folderName: string | undefined;
         if (fi) {
-            self.page.folder = fi.getAttribute("folder");
-            folderName = fi.innerHTML.substr(2);
+            self.page.folder = fi.data.folder;
+            folderName = fi.data.text.substr(2);
         } else {
             let path = omnibar.input.value;
             path = path.split("/");
@@ -1205,11 +1281,11 @@ function CloseTabs(omnibar: any): any {
         });
     };
     self.onEnter = () => {
-        const items = omnibar.resultsDiv.querySelectorAll("#sk_omnibarSearchResult>ul>li");
         const tabIds: number[] = [];
-        items.forEach((li: any) => {
-            if (li.uid && li.uid[0] === "T") {
-                const parts = li.uid.substr(1).split(":");
+        omnibar.results().forEach((r: any) => {
+            const uid = r.data.uid;
+            if (uid && uid[0] === "T") {
+                const parts = uid.substr(1).split(":");
                 tabIds.push(parseInt(parts[1]));
             }
         });
@@ -1234,10 +1310,10 @@ function OpenWindows(omnibar: any, front: any): any {
         });
     };
     self.onEnter = () => {
-        const fi = omnibar.resultsDiv.querySelector("li.focused");
+        const fi = omnibar.focusedResult();
         let windowId = -1;
-        if (fi && fi.windowId !== undefined) {
-            windowId = fi.windowId;
+        if (fi && fi.data.windowId !== undefined) {
+            windowId = fi.data.windowId;
         }
         RUNTIME("moveToWindow", { windowId });
         return true;
@@ -1370,18 +1446,21 @@ function SearchEngine(omnibar: any, front: any): any {
         self.suggestionURL = undefined;
     };
     self.onTabKey = () => {
-        const fi = omnibar.resultsDiv.querySelector("li.focused");
-        if (fi && fi.query) {
-            omnibar.input.value = fi.query;
+        const fi = omnibar.focusedResult();
+        if (fi && fi.data.query) {
+            omnibar.input.value = fi.data.query;
         }
     };
     self.onEnter = function (this: any) {
-        const fi = omnibar.resultsDiv.querySelector("li.focused");
+        const fi = omnibar.focusedResult();
         let url;
         if (fi) {
             url =
-                fi.url ||
-                constructSearchURL(self.url, encodeURIComponent(fi.query || omnibar.input.value));
+                fi.data.url ||
+                constructSearchURL(
+                    self.url,
+                    encodeURIComponent(fi.data.query || omnibar.input.value),
+                );
         } else {
             url = constructSearchURL(self.url, encodeURIComponent(omnibar.input.value));
         }
@@ -1540,7 +1619,10 @@ function Commands(omnibar: any, front: any): any {
     };
 
     self.onTabKey = () => {
-        omnibar.input.value = omnibar.resultsDiv.querySelector("li.focused").cmd;
+        const fi = omnibar.focusedResult();
+        if (fi) {
+            omnibar.input.value = fi.data.cmd;
+        }
     };
 
     self.onEnter = () => {
@@ -1644,7 +1726,10 @@ function OmniQuery(omnibar: any, front: any): any {
     };
 
     self.onTabKey = () => {
-        omnibar.input.value = omnibar.resultsDiv.querySelector("li.focused").innerText;
+        const fi = omnibar.focusedResult();
+        if (fi) {
+            omnibar.input.value = fi.data.text;
+        }
     };
 
     self.onEnter = () => {
