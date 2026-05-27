@@ -23,6 +23,7 @@ import createCommands from "./command.js";
 import { createSignal } from "solid-js";
 import { render } from "solid-js/web";
 import { StatusBar as StatusBarView } from "./components/StatusBar";
+import { Banner as BannerView } from "./components/Banner";
 
 const Front = (() => {
     Mode.init();
@@ -495,15 +496,27 @@ const Front = (() => {
         Find.open();
     };
 
+    const [bannerText, setBannerText] = createSignal("");
+    render(
+        () =>
+            BannerView({
+                get text() {
+                    return bannerText();
+                },
+            }),
+        _banner,
+    );
+
     function showBanner(content: string, linger_time?: number) {
+        setBannerText(content);
         _banner.style.cssText = "";
         _banner.style.display = "";
         _banner.style.top = "0px";
-        setSanitizedContent(_banner, htmlEncode(content));
         self.flush();
 
         const timems = linger_time || 1600;
         setTimeout(() => {
+            setBannerText("");
             _banner.style.cssText = "";
             _banner.style.display = "none";
             self.flush();
