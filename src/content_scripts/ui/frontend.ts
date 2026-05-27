@@ -1,6 +1,5 @@
 import {
     attachFaviconToImgSrc,
-    createElementWithContent,
     generateQuickGuid,
     getAnnotations,
     getWordUnderCursor,
@@ -26,6 +25,7 @@ import { StatusBar as StatusBarView } from "./components/StatusBar";
 import { Banner as BannerView } from "./components/Banner";
 import { Keystroke as KeystrokeView } from "./components/Keystroke";
 import { Popup as PopupView } from "./components/Popup";
+import { Tabs as TabsView } from "./components/Tabs";
 
 const Front = (() => {
     Mode.init();
@@ -259,49 +259,46 @@ const Front = (() => {
         self.flush();
     }
 
-    function renderTabTitles(container: HTMLElement, tabs: any[]) {
-        tabs.forEach((t) => {
-            const tab = createElementWithContent(
-                "div",
-                `<div class=sk_tab_wrap><div class=sk_tab_icon><img/></div><div class=sk_tab_title>${htmlEncode(t.title)}</div></div>`,
-                { class: "sk_tab" },
-            );
-            if (t.active) {
-                tab.classList.add("active");
-            }
-            attachFaviconToImgSrc(t, tab.querySelector("img")!);
-            container.append(tab);
-        });
-    }
-    function renderTabs(container: any, tabs: any[]) {
-        setSanitizedContent(container, "");
-        const hintLabels = hints.genLabels(tabs.length - 1);
-        const unitWidth = window.innerWidth / tabs.length - 2;
+    const [tabsState, setTabsState] = createSignal<{
+        tabs: any[];
+        hintLabels: string[];
+        vertical: boolean;
+        unitWidth: number;
+    }>({ tabs: [], hintLabels: [], vertical: false, unitWidth: 0 });
+    render(
+        () =>
+            TabsView({
+                get tabs() {
+                    return tabsState().tabs;
+                },
+                get hintLabels() {
+                    return tabsState().hintLabels;
+                },
+                get vertical() {
+                    return tabsState().vertical;
+                },
+                get unitWidth() {
+                    return tabsState().unitWidth;
+                },
+                attachFavicon: attachFaviconToImgSrc,
+            }),
+        _tabs,
+    );
+
+    function renderTabs(tabs: any[]) {
         const verticalTabs = runtime.conf.verticalTabs;
-        container.className = verticalTabs ? "vertical" : "horizontal";
-        renderTabTitles(container, tabs);
-        if (verticalTabs) {
-            container.querySelectorAll("div.sk_tab").forEach((tab: HTMLElement) => {
-                tab.append(createElementWithContent("div", "🚀", { class: "tab_rocket" }));
-            });
-        } else {
-            container.querySelectorAll("div.sk_tab").forEach((tab: any) => {
-                tab.querySelector("div.sk_tab_title").style.width = unitWidth - 24 + "px";
-                tab.style.width = unitWidth + "px";
-            });
-        }
-        const tabsNeedHint = tabs.filter((t) => !t.active);
-        container.querySelectorAll("div.sk_tab:not(.active)").forEach((tab: any, i: number) => {
-            const tabHint: any = createElementWithContent("div", hintLabels[i], {
-                class: "sk_tab_hint",
-            });
-            const tabData = tabsNeedHint[i];
-            tabHint.label = hintLabels[i];
-            tabHint.link = { id: tabData.id, windowId: tabData.windowId };
-            tab.prepend(tabHint);
+        // The container class drives the layout; the per-tab styling lives in the
+        // component. The inline fallback below depends on the rendered height, so
+        // it relies on Solid rendering synchronously when the signal is set.
+        _tabs.className = verticalTabs ? "vertical" : "horizontal";
+        setTabsState({
+            tabs,
+            hintLabels: hints.genLabels(tabs.length - 1),
+            vertical: verticalTabs,
+            unitWidth: window.innerWidth / tabs.length - 2,
         });
-        if (container.getBoundingClientRect().height > self.topSize[1]) {
-            container.className = "inline";
+        if (_tabs.getBoundingClientRect().height > self.topSize[1]) {
+            _tabs.className = "inline";
         }
     }
     _actions["chooseTab"] = () => {
@@ -321,7 +318,7 @@ const Front = (() => {
                     showElement(
                         _tabs,
                         () => {
-                            renderTabs(_tabs, response.tabs);
+                            renderTabs(response.tabs);
                         },
                         (matched) => {
                             RUNTIME("focusTab", {
