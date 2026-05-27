@@ -23,6 +23,7 @@ import { createEffect, createSignal } from "solid-js";
 import { render } from "solid-js/web";
 import { ResultList } from "./components/ResultList";
 import type { ResultListItem } from "./components/ResultList";
+import { ResultPage } from "./components/ResultPage";
 
 // `Normal` is referenced by a couple of omnibar mappings but is not defined in
 // this module's scope in the original code; declared here so those paths keep
@@ -75,6 +76,7 @@ function createOmnibar(front: any, clipboard: any) {
     // per-row data the handlers read lives on the store item, not on the <li>.
     const [results, setResults] = createSignal<OmnibarResult[]>([]);
     const [focusedIndex, setFocusedIndex] = createSignal(-1);
+    const [resultPage, setResultPage] = createSignal("");
     const focusedResult = (): OmnibarResult | undefined => {
         const i = focusedIndex();
         return i >= 0 ? results()[i] : undefined;
@@ -279,7 +281,7 @@ function createOmnibar(front: any, clipboard: any) {
             setResults([]);
             setFocusedIndex(-1);
             setSanitizedContent(self.promptSpan, handler.prompt);
-            setSanitizedContent(resultPageSpan, "");
+            setResultPage("");
             _items = null;
             self.collapsingPoint = val;
             self.input.value = val;
@@ -338,6 +340,16 @@ function createOmnibar(front: any, clipboard: any) {
     self.promptSpan = ui.querySelector("#sk_omnibarSearchArea>span.prompt");
     const resultPageSpan = ui.querySelector("#sk_omnibarSearchArea>span.resultPage");
     self.resultsDiv = ui.querySelector("#sk_omnibarSearchResult");
+
+    render(
+        () =>
+            ResultPage({
+                get text() {
+                    return resultPage();
+                },
+            }),
+        resultPageSpan,
+    );
 
     function onResultSelect(index: number) {
         const d = results()[index]?.data;
@@ -575,7 +587,7 @@ function createOmnibar(front: any, clipboard: any) {
         if (total === runtime.conf.omnibarHistoryCacheSize) {
             total = total + "+";
         }
-        setSanitizedContent(resultPageSpan, `${si + 1} - ${ei} / ${total}`);
+        setResultPage(`${si + 1} - ${ei} / ${total}`);
         _page = _items.slice(si, ei);
         const query = self.input.value.trim();
         let rxp: RegExp | null = null;
@@ -634,7 +646,7 @@ function createOmnibar(front: any, clipboard: any) {
         handler.onOpen && handler.onOpen(args.extra);
         lastHandler = handler;
         setSanitizedContent(self.promptSpan, handler.prompt);
-        setSanitizedContent(resultPageSpan, "");
+        setResultPage("");
         ui.scrollTop = 0;
     };
 
