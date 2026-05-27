@@ -25,6 +25,7 @@ import { render } from "solid-js/web";
 import { StatusBar as StatusBarView } from "./components/StatusBar";
 import { Banner as BannerView } from "./components/Banner";
 import { Keystroke as KeystrokeView } from "./components/Keystroke";
+import { Popup as PopupView } from "./components/Popup";
 
 const Front = (() => {
     Mode.init();
@@ -465,8 +466,19 @@ const Front = (() => {
 
     self.showUsage = self.hidePopup;
 
+    const [popupHtml, setPopupHtml] = createSignal("");
+    render(
+        () =>
+            PopupView({
+                get html() {
+                    return popupHtml();
+                },
+            }),
+        _popup,
+    );
+
     function showPopup(content: string) {
-        setSanitizedContent(_popup, content);
+        setPopupHtml(content);
         showElement(_popup);
     }
 
@@ -479,8 +491,9 @@ const Front = (() => {
             _popup,
             () => {
                 const hintLabels = hints.genLabels(2);
-                setSanitizedContent(
-                    _popup,
+                // setPopupHtml renders synchronously, so the tab-hint nodes exist
+                // for the expando query below, matching the legacy ordering.
+                setPopupHtml(
                     `<div>${message.question}</div><div><div class=sk_tab_hint>${hintLabels[0]}</div><span class=sk_tab_group_title>Ok</span><div class=sk_tab_hint>${hintLabels[1]}</div><span class=sk_tab_group_title>Cancel</span></div>`,
                 );
                 const tabHints: any = _popup.querySelectorAll("div.sk_tab_hint");
