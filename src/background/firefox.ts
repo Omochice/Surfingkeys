@@ -1,5 +1,4 @@
 import { extendObject, getSubSettings } from "./settings.js";
-import { start } from "./start.js";
 
 // Browser-extension globals. The typed BrowserAdapter (task #13) will replace
 // these once cross-browser API access is centralized; background is almost
@@ -56,11 +55,12 @@ function getLatestHistoryItem(text: string, maxResults: number, cb: (items: any[
     );
 }
 
-start({
+/** Firefox-specific background glue, composed by the WXT background entrypoint. */
+export const firefoxSpecifics = {
     name: "Firefox",
     detectTabTitleChange: true,
     getLatestHistoryItem,
     loadRawSettings,
     _setNewTabUrl,
     _getContainerName,
-});
+};

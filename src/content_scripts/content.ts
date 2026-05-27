@@ -264,21 +264,23 @@ function start(adapter?: BrowserAdapter): void {
         new Promise<Modes>((r) => {
             if (window.location.href === browser.runtime.getURL("/pages/options.html")) {
                 const optionsPath = "./pages/options.js";
-                import(/* webpackIgnore: true */ optionsPath).then((optionsLib) => {
-                    optionsLib.default(
-                        RUNTIME,
-                        KeyboardUtils,
-                        Mode,
-                        createElementWithContent,
-                        getBrowserName,
-                        htmlEncode,
-                        initL10n,
-                        reportIssue,
-                        setSanitizedContent,
-                        showBanner,
-                    );
-                    r(_initModules());
-                });
+                import(/* webpackIgnore: true */ /* @vite-ignore */ optionsPath).then(
+                    (optionsLib) => {
+                        optionsLib.default(
+                            RUNTIME,
+                            KeyboardUtils,
+                            Mode,
+                            createElementWithContent,
+                            getBrowserName,
+                            htmlEncode,
+                            initL10n,
+                            reportIssue,
+                            setSanitizedContent,
+                            showBanner,
+                        );
+                        r(_initModules());
+                    },
+                );
             } else {
                 r(_initModules());
             }

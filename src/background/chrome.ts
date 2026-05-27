@@ -1,6 +1,5 @@
 import { filterByTitleOrUrl } from "../common/utils.js";
 import { _save, extendObject, getSubSettings } from "./settings.js";
-import { start } from "./start.js";
 
 // Browser-extension globals. The typed BrowserAdapter (task #13) will replace
 // these once cross-browser API access is centralized; background is almost
@@ -76,11 +75,12 @@ function getLatestHistoryItem(
     impl(new Date().getTime(), maxResults, cb);
 }
 
-start({
+/** Chrome-specific background glue, composed by the WXT background entrypoint. */
+export const chromeSpecifics = {
     name: "Chrome",
     detectTabTitleChange: true,
     getLatestHistoryItem,
     loadRawSettings,
     _setNewTabUrl,
     _getContainerName,
-});
+};
