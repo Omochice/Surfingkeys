@@ -9,7 +9,7 @@
   },
   "scripts": {
     "clean": "rm -rf dist/*",
-    "build:doc": "documentation build src/content_scripts/common/api.js src/content_scripts/common/normal.js src/content_scripts/common/clipboard.js src/content_scripts/common/hints.js src/content_scripts/common/visual.js src/content_scripts/front.js src/user_scripts/index.js -f md -o docs/api.md",
+    "build:doc": "documentation build src/content_scripts/common/api.ts src/content_scripts/common/normal.ts src/content_scripts/common/clipboard.ts src/content_scripts/common/hints.ts src/content_scripts/common/visual.ts src/content_scripts/front.ts src/user_scripts/index.ts -f md -o docs/api.md",
     "build:dev": "webpack --mode=development --config ./config/webpack.config.js",
     "build:prod": "webpack --mode=production --config ./config/webpack.config.js",
     "build": "npm-run-all clean test build:doc build:prod",
