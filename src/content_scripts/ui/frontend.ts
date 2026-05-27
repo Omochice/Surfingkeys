@@ -26,6 +26,7 @@ import { Banner as BannerView } from "./components/Banner";
 import { Keystroke as KeystrokeView } from "./components/Keystroke";
 import { Popup as PopupView } from "./components/Popup";
 import { Tabs as TabsView } from "./components/Tabs";
+import { Bubble as BubbleView } from "./components/Bubble";
 
 const Front = (() => {
     Mode.init();
@@ -196,6 +197,16 @@ const Front = (() => {
     const sk_bubble_content: any = _bubble.querySelector("div.sk_bubble_content");
     const sk_bubble_arrow = _bubble.querySelector("div.sk_arrow") as HTMLElement;
     const sk_bubbleClassList = sk_bubble_content.classList;
+    const [bubbleHtml, setBubbleHtml] = createSignal("");
+    render(
+        () =>
+            BubbleView({
+                get html() {
+                    return bubbleHtml();
+                },
+            }),
+        sk_bubble_content,
+    );
     function clearScrollerIndicator() {
         sk_bubbleClassList.remove("sk_scroller_indicator_top");
         sk_bubbleClassList.remove("sk_scroller_indicator_middle");
@@ -557,7 +568,7 @@ const Front = (() => {
         // set position to (0, 0) to leave enough space for content.
         _bubble.style.top = "0px";
         _bubble.style.left = "0px";
-        setSanitizedContent(sk_bubble_content, message.content);
+        setBubbleHtml(message.content);
         sk_bubble_content.style.maxWidth = pos.winWidth - 32 + "px";
         sk_bubble_content.scrollTop = 0;
         clearScrollerIndicator();
