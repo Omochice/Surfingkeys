@@ -7,6 +7,8 @@ export interface ResultListItem {
     html: string;
     /** Extra class on the row, e.g. "window". */
     className?: string;
+    /** Favicon URL applied to the row's `<img class=icon>` after render. */
+    faviconSrc?: string;
 }
 
 export interface ResultListProps {
@@ -33,6 +35,7 @@ export const ResultList: Component<ResultListProps> = (props) => {
                         <ResultItem
                             html={item.html}
                             className={item.className}
+                            faviconSrc={item.faviconSrc}
                             focused={i() === props.focusedIndex}
                             onSelect={() => props.onSelect(i())}
                         />

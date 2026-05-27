@@ -44,6 +44,22 @@ describe("ResultItem", () => {
         expect(onSelect).toHaveBeenCalledTimes(1);
     });
 
+    it("sets the favicon src on the row's img after render", () => {
+        const { container } = render(() => (
+            <ResultItem
+                html='<img class="icon"/><div class="title">tab</div>'
+                faviconSrc="chrome-extension://abc/_favicon/?pageUrl=https%3A%2F%2Fexample.com"
+                focused={false}
+                onSelect={() => {}}
+            />
+        ));
+        const img = container.querySelector<HTMLImageElement>("img.icon")!;
+
+        expect(img.getAttribute("src")).toBe(
+            "chrome-extension://abc/_favicon/?pageUrl=https%3A%2F%2Fexample.com",
+        );
+    });
+
     it("sanitizes the injected HTML", () => {
         const { container } = render(() => (
             <ResultItem
