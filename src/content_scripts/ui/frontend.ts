@@ -24,6 +24,7 @@ import { createSignal } from "solid-js";
 import { render } from "solid-js/web";
 import { StatusBar as StatusBarView } from "./components/StatusBar";
 import { Banner as BannerView } from "./components/Banner";
+import { Keystroke as KeystrokeView } from "./components/Keystroke";
 
 const Front = (() => {
     Mode.init();
@@ -213,6 +214,20 @@ const Front = (() => {
         }
     };
     const keystroke: any = document.getElementById("sk_keystroke");
+    const [keystrokeHtml, setKeystrokeHtml] = createSignal("");
+    const [keystrokeRich, setKeystrokeRich] = createSignal(false);
+    render(
+        () =>
+            KeystrokeView({
+                get html() {
+                    return keystrokeHtml();
+                },
+                get rich() {
+                    return keystrokeRich();
+                },
+            }),
+        keystroke,
+    );
 
     self.startInputGuard = () => {};
     _actions["hidePopup"] = () => {
@@ -621,8 +636,8 @@ const Front = (() => {
 
     _actions["hideKeystroke"] = () => {
         if (keystroke.style.display !== "none") {
-            keystroke.classList.remove("expandRichHints");
-            setSanitizedContent(keystroke, "");
+            setKeystrokeRich(false);
+            setKeystrokeHtml("");
             keystroke.style.display = "none";
             self.flush();
         }
@@ -647,23 +662,22 @@ const Front = (() => {
                 })
                 .join("");
             if (words.length > 0 && _pendingHint) {
-                setSanitizedContent(keystroke, words);
-                keystroke.classList.add("expandRichHints");
+                setKeystrokeHtml(words);
+                setKeystrokeRich(true);
                 self.flush();
             }
         });
     }
     _actions["showKeystroke"] = (message: any) => {
-        if (keystroke.style.display !== "none" && keystroke.classList.contains("expandRichHints")) {
+        if (keystroke.style.display !== "none" && keystrokeRich()) {
             showRichHints(message.keyHints);
         } else {
             clearPendingHint();
             keystroke.style.display = "";
             self.flush();
             const keys =
-                keystroke.innerHTML +
-                htmlEncode(KeyboardUtils.decodeKeystroke(message.keyHints.key));
-            setSanitizedContent(keystroke, keys);
+                keystrokeHtml() + htmlEncode(KeyboardUtils.decodeKeystroke(message.keyHints.key));
+            setKeystrokeHtml(keys);
 
             if (
                 runtime.conf.richHintsForKeystroke > 0 &&
