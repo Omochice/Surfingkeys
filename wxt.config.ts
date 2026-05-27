@@ -1,4 +1,6 @@
+import { resolve } from "node:path";
 import { defineConfig } from "wxt";
+import { build as viteBuild } from "vite";
 
 // Permissions shared by both browsers (the base manifest's `permissions`).
 const basePermissions = [
@@ -40,12 +42,37 @@ export default defineConfig({
                 cs.css = [...(cs.css ?? []), "content.css"];
             }
         },
+        // The chrome-only user-scripts api (src/user_scripts/index.ts) is loaded
+        // by injected user-script code via `import('./api.js')` expecting a
+        // default export — a library module, not a WXT define*() entrypoint
+        // (WXT auto-runs an unlisted script's main()). Bundle it ourselves with
+        // Vite (which resolves the codebase's .js specifiers to .ts) into the
+        // build root as a single ESM file, after WXT has emitted its output.
+        "build:done": async (wxt) => {
+            if (wxt.config.browser !== "chrome") return;
+            await viteBuild({
+                configFile: false,
+                logLevel: "warn",
+                mode: wxt.config.mode,
+                build: {
+                    outDir: wxt.config.outDir,
+                    emptyOutDir: false,
+                    minify: wxt.config.mode === "production",
+                    lib: {
+                        entry: resolve(wxt.config.root, "src/user_scripts/index.ts"),
+                        formats: ["es"],
+                        fileName: () => "api.js",
+                    },
+                },
+            });
+        },
     },
     manifest: ({ browser, mode }) => {
         const permissions = [...basePermissions];
         // Resources the content script / injected pages fetch by extension URL:
         // the sandboxed iframe page and the emoji/l10n data. Chrome adds the
-        // built-in favicon endpoint.
+        // built-in favicon endpoint and the user-scripts api bundle (emitted by
+        // the build:done hook above).
         const webResources = ["frontend.html", "pages/emoji.tsv", "pages/l10n.json"];
         const manifest: Record<string, any> = {
             name: "Surfingkeys",
@@ -76,7 +103,7 @@ export default defineConfig({
             permissions.push("cookies", "contextualIdentities");
         } else {
             permissions.push("downloads.shelf", "favicon", "userScripts");
-            webResources.push("_favicon/*");
+            webResources.push("_favicon/*", "api.js");
             manifest.incognito = "split";
             if (mode === "development") {
                 manifest.key = devKey;
