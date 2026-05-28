@@ -58,5 +58,12 @@
         "vite-plugin-solid": "2.11.12",
         "vitest": "4.1.7",
         "wxt": "0.20.26"
+    },
+    "devEngines": {
+        "packageManager": {
+            "name": "pnpm",
+            "version": "11.0.4",
+            "onFail": "download"
+        }
     }
 }

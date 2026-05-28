@@ -1,0 +1,5 @@
+allowBuilds:
+  esbuild: true
+  spawn-sync: false
+executionEnv:
+  nodeVersion: 24.14.1
