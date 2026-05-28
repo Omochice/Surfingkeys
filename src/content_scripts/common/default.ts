@@ -858,9 +858,6 @@ export default function (api: SurfingkeysApi, ctx: ModeContext): void {
     mapkey("ge", "#12Open Chrome Extensions", () => {
       tabOpenLink("chrome://extensions/");
     });
-    mapkey("gn", "#12Open Chrome net-internals", () => {
-      tabOpenLink("chrome://net-internals/#proxy");
-    });
     mapkey(";i", "#12Open Chrome Inspect", () => {
       tabOpenLink("chrome://inspect/#devices");
     });
