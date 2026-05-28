@@ -845,8 +845,8 @@ const StatusBar = (() => {
   let timerHide: ReturnType<typeof setTimeout> | null = null;
   const ui = Front.statusBar;
 
-  // mode: 0, search: 1, searchResult: 2, proxy: 3
-  const [cells, setCells] = createSignal<string[]>(["", "", "", ""]);
+  // mode: 0, search: 1, searchResult: 2
+  const [cells, setCells] = createSignal<string[]>(["", "", ""]);
   // frontend.ts is plain TS (no JSX), so the component is invoked through a
   // getter prop that keeps `cells` reactive across the postMessage boundary.
   render(

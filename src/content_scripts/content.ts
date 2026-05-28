@@ -92,7 +92,7 @@ function applyRuntimeConf(normal: Normal): void {
       let state = resp.state;
       if (state === "disabled") {
         normal.disable();
-        dispatchSKEvent("front", ["showStatus", [undefined, undefined, undefined, ""]]);
+        dispatchSKEvent("front", ["showStatus", [undefined, undefined, ""]]);
       } else if (state === "lurking") {
         state = normal.startLurk();
       } else {
@@ -104,7 +104,7 @@ function applyRuntimeConf(normal: Normal): void {
         RUNTIME("setSurfingkeysIcon", {
           status: state,
         });
-        dispatchSKEvent("front", ["showStatus", [undefined, undefined, undefined, ""]]);
+        dispatchSKEvent("front", ["showStatus", [undefined, undefined, ""]]);
       }
     },
   );

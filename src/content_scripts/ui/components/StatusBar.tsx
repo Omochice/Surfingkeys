@@ -4,8 +4,8 @@ import type { Component } from "solid-js";
 
 export interface StatusBarProps {
   /**
-   * Raw HTML for each status cell (mode, search, search result, proxy). Empty cells render no
-   * padding or border so they collapse; the caller hides the whole bar when every cell is empty.
+   * Raw HTML for each status cell (mode, search, search result). Empty cells render no padding or
+   * border so they collapse; the caller hides the whole bar when every cell is empty.
    */
   cells: string[];
 }
