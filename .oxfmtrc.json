@@ -2,5 +2,9 @@
     "$schema": "./node_modules/oxfmt/configuration_schema.json",
     "tabWidth": 4,
     "semi": true,
-    "ignorePatterns": []
+    "ignorePatterns": [
+        "firefox_pac.js",
+        "src/content_scripts/gist.js",
+        "src/content_scripts/common/debug_utils.js"
+    ]
 }
