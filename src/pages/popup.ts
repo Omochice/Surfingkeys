@@ -30,8 +30,8 @@ function RUNTIME(
   callback?: (response: any) => void,
 ) {
   const a: Record<string, unknown> = args || {};
-  a.action = action;
-  a.needResponse = callback !== undefined;
+  a["action"] = action;
+  a["needResponse"] = callback !== undefined;
   chrome.runtime.sendMessage(a, callback);
 }
 
