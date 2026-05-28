@@ -2,18 +2,17 @@
   "compilerOptions": {
     "target": "esnext",
     "module": "esnext",
-    "types": ["node", "offscreencanvas"],
+    "types": ["offscreencanvas"],
     "allowJs": true,
     "strict": true,
-    "moduleResolution": "node",
+    "moduleResolution": "bundler",
     "sourceMap": true,
     "declaration": false,
     "skipLibCheck": true,
     "allowSyntheticDefaultImports": true,
     "isolatedModules": true,
     "jsx": "preserve",
-    "jsxImportSource": "solid-js",
-    "baseUrl": "."
+    "jsxImportSource": "solid-js"
   },
-  "include": ["src", "@types"]
+  "include": ["src"]
 }

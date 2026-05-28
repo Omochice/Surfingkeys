@@ -1,6 +1,7 @@
 node_modules/
 dist/
 .wxt/
+.pnpm-store/
 coverage/
 .DS_Store
 .vscode/
