@@ -49,6 +49,7 @@
   },
   "devDependencies": {
     "@solidjs/testing-library": "0.8.10",
+    "@tsconfig/strictest": "^2.0.8",
     "@types/lodash": "^4.14.172",
     "@types/offscreencanvas": "^2019.6.4",
     "@types/webextension-polyfill": "0.12.5",
