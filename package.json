@@ -18,7 +18,7 @@
     },
     "main": "background.js",
     "scripts": {
-        "clean": "rm -rf dist/*",
+        "clean": "rimraf dist",
         "build:doc": "documentation build src/content_scripts/common/api.ts src/content_scripts/common/normal.ts src/content_scripts/common/clipboard.ts src/content_scripts/common/hints.ts src/content_scripts/common/visual.ts src/content_scripts/front.ts src/user_scripts/index.ts -f md -o docs/api.md",
         "dev": "wxt",
         "dev:firefox": "wxt -b firefox",
@@ -54,6 +54,7 @@
         "npm-run-all2": "^9.0.1",
         "oxfmt": "0.51.0",
         "oxlint": "1.66.0",
+        "rimraf": "^6.1.3",
         "typescript": "^4.5.4",
         "vite-plugin-solid": "2.11.12",
         "vitest": "4.1.7",
