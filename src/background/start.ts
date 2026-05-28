@@ -240,7 +240,7 @@ function start(browser: any): void {
   Object.assign(handlers, createBookmarkHandlers(_response));
   Object.assign(handlers, createHistoryHandlers(_response, browser, tabs.filterByTitleOrUrl));
 
-  handlers.setSurfingkeysIcon = (message: any, sender: any, _sendResponse: any) => {
+  handlers["setSurfingkeysIcon"] = (message: any, sender: any, _sendResponse: any) => {
     let icon = "icons/48.png";
     if (message.status === "disabled") {
       icon = "icons/48-x.png";
@@ -253,7 +253,7 @@ function start(browser: any): void {
       tabId: sender.tab ? sender.tab.id : undefined,
     });
   };
-  handlers.request = (message: any, _sender: any, sendResponse: any) => {
+  handlers["request"] = (message: any, _sender: any, sendResponse: any) => {
     request(
       message.url,
       (res) => {
@@ -270,7 +270,7 @@ function start(browser: any): void {
       },
     );
   };
-  handlers.requestImage = (message: any, _sender: any, sendResponse: any) => {
+  handlers["requestImage"] = (message: any, _sender: any, sendResponse: any) => {
     fetch(message.url, {
       method: "GET",
     })
@@ -312,10 +312,10 @@ function start(browser: any): void {
       },
     );
   }
-  handlers.quit = (_message: any, _sender: any, _sendResponse: any) => {
+  handlers["quit"] = (_message: any, _sender: any, _sendResponse: any) => {
     _quit();
   };
-  handlers.closeDownloadsShelf = (message: any, _sender: any, _sendResponse: any) => {
+  handlers["closeDownloadsShelf"] = (message: any, _sender: any, _sendResponse: any) => {
     if (message.clearHistory) {
       chrome.downloads.erase({ urlRegex: ".*" });
     } else {
@@ -323,14 +323,14 @@ function start(browser: any): void {
       chrome.downloads.setShelfEnabled(true);
     }
   };
-  handlers.getDownloads = (message: any, _sender: any, sendResponse: any) => {
+  handlers["getDownloads"] = (message: any, _sender: any, sendResponse: any) => {
     chrome.downloads.search(message.query, (items: any[]) => {
       _response(message, sendResponse, {
         downloads: items,
       });
     });
   };
-  handlers.download = (message: any, _sender: any, _sendResponse: any) => {
+  handlers["download"] = (message: any, _sender: any, _sendResponse: any) => {
     chrome.downloads.download({
       url: message.url,
       filename: message.filename,
@@ -364,7 +364,7 @@ function start(browser: any): void {
       });
     }
   }
-  handlers.removeURL = (message: any, _sender: any, sendResponse: any) => {
+  handlers["removeURL"] = (message: any, _sender: any, sendResponse: any) => {
     let removed = 0;
     let totalToRemoved = message.uid.length;
     let uid = message.uid;
@@ -384,7 +384,7 @@ function start(browser: any): void {
       _removeURL(u, _done);
     });
   };
-  handlers.localData = (message: any, _sender: any, sendResponse: any) => {
+  handlers["localData"] = (message: any, _sender: any, sendResponse: any) => {
     if (message.data.constructor === Object) {
       chrome.storage.local.set(message.data, () => {});
       // broadcast the change also, such as lastKeys
@@ -399,14 +399,14 @@ function start(browser: any): void {
       });
     }
   };
-  handlers.captureVisibleTab = (message: any, _sender: any, sendResponse: any) => {
+  handlers["captureVisibleTab"] = (message: any, _sender: any, sendResponse: any) => {
     chrome.tabs.captureVisibleTab(null, { format: "png" }, (dataUrl: string) => {
       _response(message, sendResponse, {
         dataUrl: dataUrl,
       });
     });
   };
-  handlers.getCaptureSize = (message: any, _sender: any, sendResponse: any) => {
+  handlers["getCaptureSize"] = (message: any, _sender: any, sendResponse: any) => {
     const img = document.createElement("img");
     img.onload = () => {
       _response(message, sendResponse, {
@@ -418,32 +418,32 @@ function start(browser: any): void {
       img.src = dataUrl;
     });
   };
-  handlers.initGist = (message: any, _sender: any, sendResponse: any) => {
+  handlers["initGist"] = (message: any, _sender: any, sendResponse: any) => {
     return Gist.initGist(message.token, (gist: string) => {
       _response(message, sendResponse, {
         gist: gist,
       });
     });
   };
-  handlers.readComment = (message: any, _sender: any, sendResponse: any) => {
+  handlers["readComment"] = (message: any, _sender: any, sendResponse: any) => {
     Gist.readComment(message.index, (resp: any) => {
       _response(message, sendResponse, resp);
     });
   };
-  handlers.editComment = (message: any, _sender: any, sendResponse: any) => {
+  handlers["editComment"] = (message: any, _sender: any, sendResponse: any) => {
     Gist.editComment(message.index, message.content, (resp: any) => {
       _response(message, sendResponse, { gistResp: resp });
     });
   };
 
-  handlers.openIncognito = (message: any, _sender: any, _sendResponse: any) => {
+  handlers["openIncognito"] = (message: any, _sender: any, _sendResponse: any) => {
     chrome.windows.create({ url: message.url, incognito: true });
   };
 
-  handlers.writeClipboard = (message: any, _sender: any, _sendResponse: any) => {
+  handlers["writeClipboard"] = (message: any, _sender: any, _sendResponse: any) => {
     navigator.clipboard.writeText(message.text);
   };
-  handlers.getContainerName = browser._getContainerName(handlers, _response);
+  handlers["getContainerName"] = browser._getContainerName(handlers, _response);
   chrome.runtime.setUninstallURL(
     "http://brookhong.github.io/2018/01/30/why-did-you-uninstall-surfingkeys.html",
   );

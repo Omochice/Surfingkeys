@@ -401,7 +401,7 @@ export function createSettings(deps: SettingsDeps): SettingsUnit {
                 tabbed: true,
                 active: true,
               };
-              handlers.openLink(markInfo, sender, sendResponse);
+              handlers["openLink"](markInfo, sender, sendResponse);
             } else {
               if (markInfo.scrollLeft || markInfo.scrollTop) {
                 tabMessages[tabs[0].id] = {

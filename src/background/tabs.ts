@@ -202,7 +202,7 @@ export function createTabs(deps: TabsDeps): TabsUnit {
   });
 
   function _updateTabIndices() {
-    if (conf.showTabIndices) {
+    if (conf["showTabIndices"]) {
       chrome.tabs.query({ currentWindow: true }, (tabs: any[]) => {
         tabs.forEach((tab) => {
           sendTabMessage(tab.id, 0, {
@@ -308,7 +308,7 @@ export function createTabs(deps: TabsDeps): TabsUnit {
   function openUrlInNewTab(currentTab: any, url: string, message: any) {
     let newTabPosition;
     if (currentTab) {
-      switch (conf.newTabPosition) {
+      switch (conf["newTabPosition"]) {
         case "left":
           newTabPosition = currentTab.index;
           break;
@@ -351,7 +351,7 @@ export function createTabs(deps: TabsDeps): TabsUnit {
       const queryInfo = message.queryInfo || {};
       chrome.tabs.query(queryInfo, (tabs: any[]) => {
         tabs = _filterByTitleOrUrl(tabs, message.filter);
-        if (tabs.length > message.tabsThreshold && conf.tabsMRUOrder) {
+        if (tabs.length > message.tabsThreshold && conf["tabsMRUOrder"]) {
           // only remove current tab when tabsMRUOrder is enabled.
           tabs = tabs.filter((b) => {
             return b.id !== tab.id;
@@ -444,10 +444,10 @@ export function createTabs(deps: TabsDeps): TabsUnit {
     closeTab: (message: any, sender: any, _sendResponse: any) => {
       _roundRepeatTabs(sender.tab, message.repeats, (tabIds) => {
         chrome.tabs.remove(tabIds, () => {
-          if (conf.focusAfterClosed === "left") {
+          if (conf["focusAfterClosed"] === "left") {
             _nextTab(sender.tab, -1);
-          } else if (conf.focusAfterClosed === "last") {
-            handlers.historyTab({ backward: true });
+          } else if (conf["focusAfterClosed"] === "last") {
+            handlers["historyTab"]({ backward: true });
           }
         });
       });
@@ -585,7 +585,7 @@ export function createTabs(deps: TabsDeps): TabsUnit {
     },
     viewSource: (message: any, sender: any, sendResponse: any) => {
       message.url = "view-source:" + sender.tab.url;
-      handlers.openLink(message, sender, sendResponse);
+      handlers["openLink"](message, sender, sendResponse);
     },
     nextFrame: (message: any, sender: any, _sendResponse: any) => {
       const tid = sender.tab.id;
@@ -649,7 +649,7 @@ export function createTabs(deps: TabsDeps): TabsUnit {
         tabURLs[tabId][message.url] = message.title;
         return {
           active: sender.tab.active,
-          index: conf.showTabIndices ? sender.tab.index + 1 : 0,
+          index: conf["showTabIndices"] ? sender.tab.index + 1 : 0,
         };
       } else {
         return {};
