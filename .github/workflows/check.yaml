@@ -41,9 +41,7 @@ jobs:
           node-version: 24.14.1
           cache: pnpm
       - run: pnpm ci
-      - run: pnpm run lint
-      - run: pnpm run fmt:check
-      - run: pnpm exec tsc --noEmit
+      - run: pnpm run check
 
   build:
     runs-on: ubuntu-latest
