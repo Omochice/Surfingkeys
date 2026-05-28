@@ -73,6 +73,7 @@ const Gist = (() => {
         _gist = gist;
         onGistReady && onGistReady(_gist);
       });
+      return undefined;
     }
   };
 
@@ -191,8 +192,11 @@ function start(browser: any): void {
     sendResponse(result);
   }
   function handleMessage(_message: any, _sender: any, _sendResponse: any) {
-    if (Object.prototype.hasOwnProperty.call(handlers, _message.action)) {
-      const result = handlers[_message.action](_message, _sender, _sendResponse);
+    const handler = Object.prototype.hasOwnProperty.call(handlers, _message.action)
+      ? handlers[_message.action]
+      : undefined;
+    if (handler) {
+      const result = handler(_message, _sender, _sendResponse);
       if (_message.needResponse) {
         if (result) {
           _sendResponse(result);
@@ -206,6 +210,7 @@ function start(browser: any): void {
     } else {
       console.log("[unexpected runtime message] " + JSON.stringify(_message));
     }
+    return undefined;
   }
   chrome.runtime.onMessage.addListener(handleMessage);
   if (isMV3) {

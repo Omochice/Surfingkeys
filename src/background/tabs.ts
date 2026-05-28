@@ -447,7 +447,10 @@ export function createTabs(deps: TabsDeps): TabsUnit {
           if (conf["focusAfterClosed"] === "left") {
             _nextTab(sender.tab, -1);
           } else if (conf["focusAfterClosed"] === "last") {
-            handlers["historyTab"]({ backward: true });
+            const historyTab = handlers["historyTab"];
+            if (historyTab) {
+              historyTab({ backward: true });
+            }
           }
         });
       });
@@ -585,7 +588,10 @@ export function createTabs(deps: TabsDeps): TabsUnit {
     },
     viewSource: (message: any, sender: any, sendResponse: any) => {
       message.url = "view-source:" + sender.tab.url;
-      handlers["openLink"](message, sender, sendResponse);
+      const openLink = handlers["openLink"];
+      if (openLink) {
+        openLink(message, sender, sendResponse);
+      }
     },
     nextFrame: (message: any, sender: any, _sendResponse: any) => {
       const tid = sender.tab.id;

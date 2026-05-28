@@ -401,7 +401,10 @@ export function createSettings(deps: SettingsDeps): SettingsUnit {
                 tabbed: true,
                 active: true,
               };
-              handlers["openLink"](markInfo, sender, sendResponse);
+              const openLink = handlers["openLink"];
+              if (openLink) {
+                openLink(markInfo, sender, sendResponse);
+              }
             } else {
               if (markInfo.scrollLeft || markInfo.scrollTop) {
                 tabMessages[tabs[0].id] = {
@@ -528,15 +531,17 @@ export function createSettings(deps: SettingsDeps): SettingsUnit {
               if (!Object.prototype.hasOwnProperty.call(tabGroup, tab.windowId)) {
                 tabGroup[tab.windowId] = [];
               }
-              if (tab.url !== newTabUrl) {
-                tabGroup[tab.windowId].push(tab.url);
+              const group = tabGroup[tab.windowId];
+              if (group && tab.url !== newTabUrl) {
+                group.push(tab.url);
               }
             }
           });
           const tabg = [];
           for (const k in tabGroup) {
-            if (tabGroup[k].length) {
-              tabg.push(tabGroup[k]);
+            const group = tabGroup[k];
+            if (group && group.length) {
+              tabg.push(group);
             }
           }
           data.sessions[message.name] = {};
