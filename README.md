@@ -47,7 +47,6 @@ Surfingkeys is doing its best to make full use of keyboard for web browsing, but
 | PDF viewer                                      | Y                          | N                  | N                 |
 | Sync across devices                             | Y                          | N                  | Y                 |
 | Tab Groups                                      | Y                          | Y                  | N                 |
-| Proxy                                           | Y                          | N                  | N                 |
 | Markdown preview                                | Y                          | Y                  | N                 |
 
 ### TABLE OF CONTENTS
@@ -66,7 +65,6 @@ Surfingkeys is doing its best to make full use of keyboard for web browsing, but
 - [Session management](#session-management)
 - [Repeats action by pressing number before mapkey](#repeats-action-by-pressing-number-before-mapkey)
 - [Hotkey to toggle Surfingkeys](#hotkey-to-toggle-surfingkeys)
-- [Proxy settings](#proxy-settings)
 - [VIM editor and Emacs editor](#vim-editor-and-emacs-editor)
 - [Dot to repeat previous action](#dot-to-repeat-previous-action)
 - [Markdown preview](#markdown-preview)
@@ -366,9 +364,7 @@ So to group your tabs into windows, you can use `W` to move one tab to a specifi
 
 ```javascript
 // create shortcuts for the command with different parameters
-api.map(";pa", ":setProxyMode always");
-api.map(";pb", ":setProxyMode byhost");
-api.map(";pd", ":setProxyMode direct");
+api.map(";th", ":timeStamp 1700000000");
 ```
 
 Besides commands, you can also run javascript code.
@@ -454,48 +450,6 @@ When Surfingkeys is turned off on some site by `Alt-s`, the status will be persi
 `Alt-s` once more will remove it from settings.blocklist. The data settings are not always presented in snippets, you could use `yj` to dump all settings into clipboard, then paste it in your text editor to check out.
 
 Another way to disable Surfingkeys is to use `settings.blocklistPattern`, please refer to [regex for disabling](https://github.com/brookhong/Surfingkeys/issues/63).
-
-## Proxy settings
-
-SwitchySharp is a great extension to switch proxy, but my use case with it is very simple,
-
-1. create a profile using PAC script.
-1. maintain site list in the PAC script, use proxy if the site being accessed is in the list.
-1. whenever I come into a site blocked by something, I add it to the list in PAC script.
-1. click the SwitchySharp icon to reload the profile.
-1. casually I click the SwitchySharp icon to switch profile between `direct` and `pac_script`.
-
-To avoid manually editing PAC script and reloading/switching profile by clicking SwitchySharp icon, I replaced SwitchySharp by integrating proxy settings into Surfingkeys, and provides related commands and shortcuts.
-
-- setProxy, to set proxy, some examples:
-
-  ```text
-  setProxy 192.168.1.100:8080
-  setProxy 127.0.0.1:1080 SOCKS5
-  ```
-
-- setProxyMode, to set proxy mode, there are five modes: direct, byhost, bypass, always, system and clear.
-
-  ```text
-  direct      Chrome will connect to all sites directly.
-  byhost      Chrome will only connect to sites added in settings through related proxy. You could add multiple pairs of `proxy` and `hosts`, for hosts matched with `hosts` `proxy` will be used.
-  bypass      Chrome will connect to all sites through proxy, with specified hosts excluded.
-  always      Chrome will connect to all sites through proxy.
-  system      Use proxy configuration taken from the operating system.
-  clear       Surfingkeys will not take control of proxy settings, this is the default mode.
-  ```
-
-- `cp`, toggle proxy for current site.
-
-- `;pa`, shortcut for `:setProxyMode always`
-
-- `;pb`, shortcut for `:setProxyMode byhost`
-
-- `;pc`, shortcut for `:setProxyMode clear`
-
-- `;pd`, shortcut for `:setProxyMode direct`
-
-- `;ps`, shortcut for `:setProxyMode system`
 
 ## VIM editor and Emacs editor
 
@@ -609,7 +563,6 @@ Some functionalities are also available when you're using original pdf viewer, b
 | key                                     | default value                                 | explanation                                                                                                                                                                                                                                                                                                                                                                                          |
 | :-------------------------------------- | :-------------------------------------------- | :--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | settings.showModeStatus                 | false                                         | Whether always to show mode status.                                                                                                                                                                                                                                                                                                                                                                  |
-| settings.showProxyInStatusBar           | false                                         | Whether to show proxy info in status bar.                                                                                                                                                                                                                                                                                                                                                            |
 | settings.richHintsForKeystroke          | 500                                           | Timeout(ms) to show rich hints for keystroke, 0 will disable rich hints.                                                                                                                                                                                                                                                                                                                             |
 | settings.useLocalMarkdownAPI            | true                                          | Whether to use [chjj/marked](https://github.com/chjj/marked) to parse markdown, otherwise use github markdown API.                                                                                                                                                                                                                                                                                   |
 | settings.focusOnSaved                   | true                                          | Whether to focus text input after quitting from vim editor.                                                                                                                                                                                                                                                                                                                                          |
