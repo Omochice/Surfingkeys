@@ -894,8 +894,8 @@ function createVisual(clipboard: ClipboardLike, hints: HintsLike): VisualMode {
   self.style = (element, style) => {
     _style[element] = style;
 
-    cursor.setAttribute("style", _style.cursor || "");
-    mark_template.setAttribute("style", _style.marks || "");
+    cursor.setAttribute("style", _style["cursor"] || "");
+    mark_template.setAttribute("style", _style["marks"] || "");
   };
   return self;
 }

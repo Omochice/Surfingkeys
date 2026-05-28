@@ -520,7 +520,7 @@ function createNormal(insert: InsertLike): NormalMode {
       scrollNodes.forEach((n) => {
         n.removeEventListener("mousedown", scrollableMousedownHandler);
         n.addEventListener("mousedown", scrollableMousedownHandler);
-        n.dataset.hint_scrollable = "true";
+        n.dataset["hint_scrollable"] = "true";
       });
       scrollIndex = 0;
     }

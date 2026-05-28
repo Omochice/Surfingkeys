@@ -1111,7 +1111,7 @@ NodeList.prototype.hide = function () {
 };
 
 function httpRequest(args: Record<string, unknown>, onSuccess: (response: any) => void): void {
-  args.method = "get";
+  args["method"] = "get";
   RUNTIME("request", args, onSuccess);
 }
 

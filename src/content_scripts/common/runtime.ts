@@ -72,15 +72,15 @@ const RUNTIME = function (
     "focusTabByIndex",
   ];
   const a: Record<string, unknown> = args || {};
-  a.action = action;
+  a["action"] = action;
   if (actionsRepeatBackground.indexOf(action) !== -1) {
     // if the action can only be repeated in background, pass repeats to background with args,
     // and set RUNTIME.repeats 1, so that it won't be repeated in foreground's _handleMapKey
-    a.repeats = RUNTIME.repeats;
+    a["repeats"] = RUNTIME.repeats;
     RUNTIME.repeats = 1;
   }
   try {
-    a.needResponse = callback !== undefined;
+    a["needResponse"] = callback !== undefined;
     chrome.runtime.sendMessage(a, callback);
   } catch (e) {
     dispatchSKEvent("front", ["showPopup", "[runtime exception] " + e]);

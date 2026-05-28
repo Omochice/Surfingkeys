@@ -319,16 +319,16 @@ div.hint-scrollable {
       if (Mode.isSpecialKeyOf("<Esc>", event.sk_keyName ?? "")) {
         elm.blur();
         hide();
-      } else if (event.keyCode === KeyboardUtils.keyCodes.tab) {
+      } else if (event.keyCode === KeyboardUtils.keyCodes["tab"]) {
         ai.classList.remove("activeInput");
         _lastCreateAttrs.activeInput =
-          (_lastCreateAttrs.activeInput! + (keyEvent.shiftKey ? -1 : 1)) % masks.length;
+          (_lastCreateAttrs.activeInput! + (keyEvent["shiftKey"] ? -1 : 1)) % masks.length;
         ai = masks[_lastCreateAttrs.activeInput] as unknown as HintElement;
         ai.classList.add("activeInput");
 
         elm = ai.link;
         elm.focus();
-      } else if (event.keyCode !== KeyboardUtils.keyCodes.shiftKey) {
+      } else if (event.keyCode !== KeyboardUtils.keyCodes["shiftKey"]) {
         event.sk_stopPropagation = false;
         hide();
         insert.enter(elm);
@@ -339,12 +339,12 @@ div.hint-scrollable {
     const hints = holder.querySelectorAll("div");
     if (Mode.isSpecialKeyOf("<Esc>", event.sk_keyName ?? "")) {
       hide();
-    } else if (event.keyCode === KeyboardUtils.keyCodes.space) {
+    } else if (event.keyCode === KeyboardUtils.keyCodes["space"]) {
       holder.style.display = "none";
-    } else if (event.keyCode === KeyboardUtils.keyCodes.shiftKey) {
+    } else if (event.keyCode === KeyboardUtils.keyCodes["shiftKey"]) {
       flip();
     } else if (hints.length > 0) {
-      if (event.keyCode === KeyboardUtils.keyCodes.backspace) {
+      if (event.keyCode === KeyboardUtils.keyCodes["backspace"]) {
         if (prefix.length > 0) {
           prefix = prefix.substr(0, prefix.length - 1);
           handleHint(event);
@@ -383,7 +383,7 @@ div.hint-scrollable {
     }
   });
   self.addEventListener("keyup", (event) => {
-    if (event.keyCode === KeyboardUtils.keyCodes.space) {
+    if (event.keyCode === KeyboardUtils.keyCodes["space"]) {
       holder.style.display = "";
     }
   });
@@ -807,7 +807,7 @@ div.hint-scrollable {
         left = window.pageXOffset + window.innerWidth - 32;
       }
       const link = createElementWithContent("div", hintLabels[i]) as HintElement;
-      if (elm.dataset.hint_scrollable) {
+      if (elm.dataset["hint_scrollable"]) {
         link.classList.add("hint-scrollable");
       }
       let lTop = Math.max(r.top + window.pageYOffset - bof.top, 0);
@@ -851,7 +851,7 @@ div.hint-scrollable {
     for (const attr in attrs) {
       behaviours[attr] = attrs[attr];
     }
-    self.statusLine = (attrs && attrs.statusLine) || "Hints to click";
+    self.statusLine = (attrs && attrs["statusLine"]) || "Hints to click";
 
     const filtered = filterInvisibleElements(elements as HTMLElement[]);
     if (filtered.length > 0) {
@@ -902,7 +902,7 @@ div.hint-scrollable {
     for (const attr in attrs) {
       behaviours[attr] = attrs[attr];
     }
-    self.statusLine = (attrs && attrs.statusLine) || "Hints to select text";
+    self.statusLine = (attrs && attrs["statusLine"]) || "Hints to select text";
 
     const visible = getVisibleElements((e, v) => {
       const aa = e.childNodes;
