@@ -1693,7 +1693,7 @@ function Commands(omnibar: any, front: any): any {
     const cmd_code: any = {
       code: jscode,
     };
-    const ag = parseAnnotation({ annotation: annotation, feature_group: 14 });
+    const ag = parseAnnotation({ annotation: annotation, feature_group: 13 });
     cmd_code.feature_group = ag.feature_group;
     cmd_code.annotation = ag.annotation;
     items[cmd] = cmd_code;

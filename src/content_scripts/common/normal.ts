@@ -107,12 +107,12 @@ function createLurk(normal: NormalMode): LurkMode {
   self.map_node = self.mappings;
   self.mappings.add(KeyboardUtils.encodeKeystroke("<Alt-i>"), {
     annotation: "Enter normal mode",
-    feature_group: 16,
+    feature_group: 15,
     code: enterNormal,
   });
   self.mappings.add("p", {
     annotation: "Enter ephemeral normal mode to temporarily enable SurfingKeys",
-    feature_group: 16,
+    feature_group: 15,
     code: () => {
       enterNormal();
       setTimeout(() => {

@@ -39,7 +39,7 @@ export default function (api: SurfingkeysApi, ctx: ModeContext): void {
   mapkey("Q", "#8Open omnibar for word translation", () => {
     front.openOmniquery({ query: getWordUnderCursor(), style: "opacity: 0.8;" });
   });
-  imapkey("<Ctrl-'>", "#15Toggle quotes in an input element", toggleQuote);
+  imapkey("<Ctrl-'>", "#14Toggle quotes in an input element", toggleQuote);
 
   mapkey(
     ";ql",
@@ -946,22 +946,22 @@ export default function (api: SurfingkeysApi, ctx: ModeContext): void {
   mapkey(";j", "#12Close Downloads Shelf", () => {
     RUNTIME("closeDownloadsShelf", { clearHistory: true });
   });
-  mapkey(";dh", "#14Delete history older than 30 days", () => {
+  mapkey(";dh", "#13Delete history older than 30 days", () => {
     RUNTIME("deleteHistoryOlderThan", {
       days: 30,
     });
   });
-  mapkey(";yh", "#14Yank histories", () => {
+  mapkey(";yh", "#13Yank histories", () => {
     RUNTIME("getHistory", {}, (response) => {
       clipboard.write(response.history.map((h: any) => h.url).join("\n"));
     });
   });
-  mapkey(";ph", "#14Put histories from clipboard", () => {
+  mapkey(";ph", "#13Put histories from clipboard", () => {
     clipboard.read((response) => {
       RUNTIME("addHistories", { history: response.data.split("\n") });
     });
   });
-  mapkey(";db", "#14Remove bookmark for current page", () => {
+  mapkey(";db", "#13Remove bookmark for current page", () => {
     RUNTIME("removeBookmark");
   });
 }

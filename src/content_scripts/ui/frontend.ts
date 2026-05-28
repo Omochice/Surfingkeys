@@ -363,11 +363,10 @@ const Front = (() => {
       "vim-like marks", // 10
       "Settings", // 11
       "Chrome URLs", // 12
-      "Proxy", // 13
-      "Misc", // 14
-      "Insert Mode", // 15
-      "Lurk Mode", // 16
-      "Regional Hints Mode", // 17
+      "Misc", // 13
+      "Insert Mode", // 14
+      "Lurk Mode", // 15
+      "Regional Hints Mode", // 16
     ];
 
     initL10n((locale) => {

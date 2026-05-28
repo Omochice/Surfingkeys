@@ -142,7 +142,7 @@ kbd {
 
   self.mappings.add(KeyboardUtils.encodeKeystroke("<Esc>"), {
     annotation: "Exit regional hints mode",
-    feature_group: 17,
+    feature_group: 16,
     code: () => {
       self.exit();
     },
@@ -150,7 +150,7 @@ kbd {
 
   self.mappings.add("ct", {
     annotation: "copy text from target element",
-    feature_group: 17,
+    feature_group: 16,
     code: () => {
       clipboard.write(overlay!.link.innerText);
     },
@@ -158,7 +158,7 @@ kbd {
 
   self.mappings.add("ch", {
     annotation: "copy html from target element",
-    feature_group: 17,
+    feature_group: 16,
     code: () => {
       clipboard.write(overlay!.link.innerHTML);
     },
@@ -166,7 +166,7 @@ kbd {
 
   self.mappings.add("d", {
     annotation: "delete target element",
-    feature_group: 17,
+    feature_group: 16,
     code: () => {
       overlay!.link.remove();
       self.exit();
