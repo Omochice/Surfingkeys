@@ -107,18 +107,26 @@ initSKFunctionListener(
   {
     callUserFunction: (keys: string, para: any) => {
       if (Object.prototype.hasOwnProperty.call(userDefinedFunctions, keys)) {
-        userDefinedFunctions[keys](para);
+        const fn = userDefinedFunctions[keys];
+        if (fn) {
+          fn(para);
+        }
       }
     },
     executeUserCommand: (name: string, args: any[]) => {
       if (Object.prototype.hasOwnProperty.call(userDefinedCommands, name)) {
-        userDefinedCommands[name](...args);
+        const cmd = userDefinedCommands[name];
+        if (cmd) {
+          cmd(...args);
+        }
       }
     },
     getSearchSuggestions: async (url: string, response: any, request: any, callbackId: string) => {
       if (Object.prototype.hasOwnProperty.call(functionsToListSuggestions, url)) {
+        const fn = functionsToListSuggestions[url];
+        if (!fn) return;
         try {
-          const ret = await functionsToListSuggestions[url](response, request);
+          const ret = await fn(response, request);
           dispatchSKEvent("front", [callbackId, ret]);
         } catch (e) {
           console.error("Search suggestion callback error:", e);
