@@ -57,8 +57,9 @@ function startScrollNodeObserver(normal: {
           }
         });
 
-        if (possibleModalElements.length) {
-          normal.addScrollableElement(possibleModalElements[0]);
+        const firstModal = possibleModalElements[0];
+        if (firstModal) {
+          normal.addScrollableElement(firstModal);
         }
       }, 200);
     }

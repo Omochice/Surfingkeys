@@ -421,10 +421,10 @@ div.hint-scrollable {
       }
 
       const mouseEventModifiers: {
-        ctrlKey?: boolean;
-        altKey?: boolean;
-        shiftKey?: boolean;
-        metaKey?: boolean;
+        ctrlKey?: boolean | undefined;
+        altKey?: boolean | undefined;
+        shiftKey?: boolean | undefined;
+        metaKey?: boolean | undefined;
       } = { shiftKey: shiftKey || active };
       if (shiftKey && runtime.conf.hintShiftNonActive) {
         tabbed = true;
@@ -564,8 +564,9 @@ div.hint-scrollable {
     }
     const hintLabels = self.genLabels(hints.length);
     hints.forEach((e, i) => {
-      e.label = hintLabels[i];
-      setSanitizedContent(e, hintLabels[i]);
+      const label = hintLabels[i] ?? "";
+      e.label = label;
+      setSanitizedContent(e, label);
     });
   }
 
@@ -589,7 +590,8 @@ div.hint-scrollable {
 
   function flip(): void {
     const hints = holder.querySelectorAll("div") as unknown as NodeListOf<HintElement>;
-    if (hints[0].style.zIndex == hints[0].zIndex) {
+    const firstHint = hints[0];
+    if (firstHint && firstHint.style.zIndex == firstHint.zIndex) {
       hints.forEach((hint, i) => {
         const z = parseInt(hint.style.zIndex);
         hint.style.zIndex = String(hints.length - i + 2147483000 - z);
@@ -614,14 +616,24 @@ div.hint-scrollable {
   }
 
   function walkPageUrl(step: number): boolean {
-    for (let i = 0; i < runtime.conf.pageUrlRegex.length; i++) {
-      const numbers = window.location.href.match(runtime.conf.pageUrlRegex[i]);
-      if (numbers && numbers.length === 4) {
-        const cp = parseInt(numbers[2]);
-        if (cp < 0xffffffff) {
-          window.location.href = numbers[1] + (cp + step) + numbers[3];
-          return true;
-        }
+    for (const re of runtime.conf.pageUrlRegex) {
+      if (re === undefined) {
+        continue;
+      }
+      const numbers = window.location.href.match(re);
+      if (!numbers || numbers.length !== 4) {
+        continue;
+      }
+      const prefix = numbers[1];
+      const middle = numbers[2];
+      const suffix = numbers[3];
+      if (prefix === undefined || middle === undefined || suffix === undefined) {
+        continue;
+      }
+      const cp = parseInt(middle);
+      if (cp < 0xffffffff) {
+        window.location.href = prefix + (cp + step) + suffix;
+        return true;
       }
     }
     return false;
@@ -728,8 +740,11 @@ div.hint-scrollable {
     let offset = 0;
     while (hints.length - offset < total || offset == 0) {
       const p = hints[offset++];
-      for (let i = 0; i < chars.length; i++) {
-        hints.push(p + chars[i]);
+      if (p === undefined) {
+        break;
+      }
+      for (const ch of chars) {
+        hints.push(p + ch);
       }
     }
     hints = hints.slice(offset, offset + total);
@@ -806,7 +821,7 @@ div.hint-scrollable {
       } else if (left + 32 > window.pageXOffset + window.innerWidth) {
         left = window.pageXOffset + window.innerWidth - 32;
       }
-      const link = createElementWithContent("div", hintLabels[i]) as HintElement;
+      const link = createElementWithContent("div", hintLabels[i] ?? "") as HintElement;
       if (elm.dataset["hint_scrollable"]) {
         link.classList.add("hint-scrollable");
       }
@@ -823,7 +838,7 @@ div.hint-scrollable {
         link.style.background = getColor(i);
       }
       link.zIndex = link.style.zIndex;
-      link.label = hintLabels[i];
+      link.label = hintLabels[i] ?? "";
       link.link = elm;
 
       lastTop = lTop;
@@ -834,14 +849,17 @@ div.hint-scrollable {
       holder.appendChild(link);
     });
     const hints = holder.querySelectorAll("div");
-    let bcr = getRealRect(hints[0]);
-    for (let i = 1; i < hints.length; i++) {
-      const h = hints[i] as HTMLElement;
-      const tcr = getRealRect(h);
-      if (tcr.top === bcr.top && Math.abs(tcr.left - bcr.left) < bcr.width) {
-        h.style.top = h.offsetTop + h.offsetHeight + "px";
+    const firstHint = hints[0];
+    if (firstHint !== undefined) {
+      let bcr = getRealRect(firstHint);
+      for (let i = 1; i < hints.length; i++) {
+        const h = hints[i] as HTMLElement;
+        const tcr = getRealRect(h);
+        if (tcr.top === bcr.top && Math.abs(tcr.left - bcr.left) < bcr.width) {
+          h.style.top = h.offsetTop + h.offsetHeight + "px";
+        }
+        bcr = getRealRect(h);
       }
-      bcr = getRealRect(h);
     }
     hintsHost.shadowRoot!.appendChild(holder);
   }
@@ -907,7 +925,8 @@ div.hint-scrollable {
     const visible = getVisibleElements((e, v) => {
       const aa = e.childNodes;
       for (let i = 0, len = aa.length; i < len; i++) {
-        if (aa[i].nodeType == Node.TEXT_NODE && (aa[i] as Text).data.length > 0) {
+        const node = aa[i];
+        if (node && node.nodeType == Node.TEXT_NODE && (node as Text).data.length > 0) {
           v.push(e);
           break;
         }
@@ -917,8 +936,9 @@ div.hint-scrollable {
       const aa = e.childNodes;
       const bb: Text[] = [];
       for (let i = 0, len = aa.length; i < len; i++) {
-        if (aa[i].nodeType == Node.TEXT_NODE && (aa[i] as Text).data.trim().length > 1) {
-          bb.push(aa[i] as Text);
+        const node = aa[i];
+        if (node && node.nodeType == Node.TEXT_NODE && (node as Text).data.trim().length > 1) {
+          bb.push(node as Text);
         }
       }
       return bb;
@@ -931,8 +951,7 @@ div.hint-scrollable {
       });
     } else {
       positions = [];
-      for (let i = 0, length = textNodes.length; i < length; i++) {
-        const e = textNodes[i];
+      for (const e of textNodes) {
         let match;
         while ((match = rxp.exec(e.data)) != null) {
           positions.push([e, match.index, match[0]]);
@@ -943,16 +962,21 @@ div.hint-scrollable {
     const elements = positions
       .map((e) => {
         const pos = getTextNodePos(e[0], e[1]);
-        let caretViewport = [0, 0, window.innerHeight, window.innerWidth];
+        let caretViewport: number[] = [0, 0, window.innerHeight, window.innerWidth];
         if (runtime.conf.caretViewport && runtime.conf.caretViewport.length === 4) {
           caretViewport = runtime.conf.caretViewport;
         }
+        const [topMin, leftMin, topMax, leftMax] = caretViewport;
         if (
+          topMin === undefined ||
+          leftMin === undefined ||
+          topMax === undefined ||
+          leftMax === undefined ||
           e[0].data.trim().length === 0 ||
-          pos.top < caretViewport[0] ||
-          pos.left < caretViewport[1] ||
-          pos.top > caretViewport[2] ||
-          pos.left > caretViewport[3]
+          pos.top < topMin ||
+          pos.left < leftMin ||
+          pos.top > topMax ||
+          pos.left > leftMax
         ) {
           return null;
         } else {
@@ -979,8 +1003,9 @@ div.hint-scrollable {
       _initHolder("text");
       const hintLabels = self.genLabels(elements.length);
       elements.forEach((e, i) => {
-        e.label = hintLabels[i];
-        setSanitizedContent(e, hintLabels[i]);
+        const label = hintLabels[i] ?? "";
+        e.label = label;
+        setSanitizedContent(e, label);
         holder.append(e);
       });
 
@@ -1058,9 +1083,12 @@ div.hint-scrollable {
       normal.passFocus(true);
       ai.link.focus();
     } else if (elements.length === 1) {
-      normal.passFocus(true);
-      elements[0].focus();
-      insert.enter(elements[0]);
+      const onlyElement = elements[0];
+      if (onlyElement) {
+        normal.passFocus(true);
+        onlyElement.focus();
+        insert.enter(onlyElement);
+      }
     }
   };
 

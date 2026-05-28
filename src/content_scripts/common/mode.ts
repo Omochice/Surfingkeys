@@ -68,12 +68,16 @@ function onAfterHandler(_mode: Mode, event: StackEvent): void {
 }
 
 function handleStack(eventName: string, event: StackEvent, cb?: (mode: Mode) => void): void {
-  for (let i = 0; i < mode_stack.length && !event.sk_stopPropagation; i++) {
-    const m = mode_stack[i];
+  for (const m of mode_stack) {
+    if (event.sk_stopPropagation) {
+      break;
+    }
     if (!event.sk_suppressed && Object.prototype.hasOwnProperty.call(m.eventListeners, eventName)) {
       const handler = m.eventListeners[eventName];
-      handler(event);
-      onAfterHandler(m, event);
+      if (handler) {
+        handler(event);
+        onAfterHandler(m, event);
+      }
     }
     if (m.name === "Disabled") {
       break;
@@ -97,8 +101,8 @@ export default class Mode {
   priority: number | undefined;
 
   // Assigned by concrete modes (Normal/Insert/Visual/Hints) after construction.
-  mappings?: Trie;
-  map_node?: Trie;
+  mappings?: Trie | undefined;
+  map_node?: Trie | undefined;
   repeats?: string;
   pendingMap?: ((key: string) => void) | null;
   isTrustedEvent?: boolean;
@@ -183,7 +187,8 @@ export default class Mode {
   };
 
   static isSpecialKeyOf(specialKey: string, keyToCheck: string): boolean {
-    return -1 !== Mode.specialKeys[specialKey].indexOf(KeyboardUtils.decodeKeystroke(keyToCheck));
+    const keys = Mode.specialKeys[specialKey];
+    return keys !== undefined && keys.indexOf(KeyboardUtils.decodeKeystroke(keyToCheck)) !== -1;
   }
 
   static suppressKeyUp(keyCode: number): void {
@@ -258,6 +263,9 @@ export default class Mode {
   static showStatus(): void {
     if (document.hasFocus() && mode_stack.length) {
       const cm = mode_stack[0];
+      if (cm === undefined) {
+        return;
+      }
       let sl = cm.statusLine || (runtime.conf.showModeStatus ? cm.name : "");
       if (sl !== "" && window !== top && !isInUIFrame()) {
         const pathname = window.location.pathname.split("/");

@@ -159,8 +159,9 @@ export default class KeyboardUtils {
     if (event.keyCode in KeyboardUtils.modifierKeys) {
       return "";
     }
-    if (Object.prototype.hasOwnProperty.call(KeyboardUtils.keyNames, event.keyCode)) {
-      character = KeyboardUtils.keyNames[event.keyCode];
+    const namedKey = KeyboardUtils.keyNames[event.keyCode];
+    if (namedKey !== undefined) {
+      character = namedKey;
     } else {
       character = event.key || "";
       if (["Shift", "Meta", "Alt", "Ctrl"].indexOf(character) !== -1) {
@@ -173,11 +174,11 @@ export default class KeyboardUtils {
             character = event.keyIdentifier;
           } else {
             let keyIdentifier = event.keyIdentifier;
+            const corrected = KeyboardUtils.keyIdentifierCorrectionMap[keyIdentifier];
             if (
               (KeyboardUtils.platform === "Windows" || KeyboardUtils.platform === "Linux") &&
-              KeyboardUtils.keyIdentifierCorrectionMap[keyIdentifier]
+              corrected
             ) {
-              const corrected = KeyboardUtils.keyIdentifierCorrectionMap[keyIdentifier];
               keyIdentifier = event.shiftKey ? corrected[1] : corrected[0];
             }
             const unicodeKeyInHex = "0x" + keyIdentifier.substring(2);
@@ -192,12 +193,12 @@ export default class KeyboardUtils {
         if (event.keyCode < 127) {
           character = String.fromCharCode(event.keyCode);
           character = event.shiftKey ? character : character.toLowerCase();
-        } else if (
-          event.code !== undefined &&
-          Object.prototype.hasOwnProperty.call(KeyboardUtils.keyCodesMac, event.code)
-        ) {
-          // Alt-/ or Alt-?
-          character = KeyboardUtils.keyCodesMac[event.code][event.shiftKey ? 1 : 0];
+        } else if (event.code !== undefined) {
+          const macCodes = KeyboardUtils.keyCodesMac[event.code];
+          if (macCodes) {
+            // Alt-/ or Alt-?
+            character = macCodes[event.shiftKey ? 1 : 0];
+          }
         }
       } else if (character === "Unidentified") {
         // for IME on
@@ -235,8 +236,12 @@ export default class KeyboardUtils {
     let ret = "";
     let lastIndex = 0;
     while ((mtches = ekp.exec(s)) !== null) {
+      const captured = mtches[1];
+      if (captured === undefined) {
+        continue;
+      }
       ret += s.substr(lastIndex, mtches.index - lastIndex);
-      ret += encodeOne(mtches[0], mtches[1]);
+      ret += encodeOne(mtches[0], captured);
       lastIndex = ekp.lastIndex;
     }
     ret += s.substr(lastIndex);
@@ -245,8 +250,8 @@ export default class KeyboardUtils {
 
   static decodeKeystroke(s: string): string {
     let ret = "";
-    for (let i = 0; i < s.length; i++) {
-      let r = s[i].charCodeAt(0);
+    for (const ch of s) {
+      let r = ch.charCodeAt(0);
       if (r > 8192) {
         r = r - 8192;
         const flag = r >> 12;
@@ -259,7 +264,7 @@ export default class KeyboardUtils {
         if (mod & 1) decoded = "Ctrl-" + decoded;
         ret += "<" + decoded + ">";
       } else {
-        ret += s[i];
+        ret += ch;
       }
     }
     return ret;

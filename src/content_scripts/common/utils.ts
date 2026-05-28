@@ -136,7 +136,7 @@ const colors = [
   "#6B8E23", // Olive Drab
 ];
 function getColor(i: number): string {
-  return colors[i];
+  return colors[i] as string;
 }
 
 function isEmptyObject(obj: object): boolean {
@@ -300,11 +300,17 @@ function initSKFunctionListener(
       }
 
       if (Object.prototype.hasOwnProperty.call(callbacks, fk)) {
-        callbacks[fk](...args);
+        const cb = callbacks[fk];
+        if (cb) {
+          cb(...args);
+        }
         delete callbacks[fk];
       }
       if (Object.prototype.hasOwnProperty.call(interfaces, fk)) {
-        interfaces[fk](...args);
+        const iface = interfaces[fk];
+        if (iface) {
+          iface(...args);
+        }
       }
     },
     opts,
@@ -316,7 +322,12 @@ function initSKFunctionListener(
 function dispatchMouseEvent(
   element: Element,
   events: string[],
-  modifiers: { ctrlKey?: boolean; altKey?: boolean; shiftKey?: boolean; metaKey?: boolean },
+  modifiers: {
+    ctrlKey?: boolean | undefined;
+    altKey?: boolean | undefined;
+    shiftKey?: boolean | undefined;
+    metaKey?: boolean | undefined;
+  },
 ): void {
   events.forEach((eventName) => {
     const event = new MouseEvent(eventName, {
@@ -324,10 +335,10 @@ function dispatchMouseEvent(
       cancelable: true,
       composed: true,
       view: window,
-      ctrlKey: modifiers.ctrlKey,
-      altKey: modifiers.altKey,
-      shiftKey: modifiers.shiftKey,
-      metaKey: modifiers.metaKey,
+      ...(modifiers.ctrlKey !== undefined && { ctrlKey: modifiers.ctrlKey }),
+      ...(modifiers.altKey !== undefined && { altKey: modifiers.altKey }),
+      ...(modifiers.shiftKey !== undefined && { shiftKey: modifiers.shiftKey }),
+      ...(modifiers.metaKey !== undefined && { metaKey: modifiers.metaKey }),
     });
     element.dispatchEvent(event);
   });
@@ -442,11 +453,17 @@ function getVisibleElements(
   const visibleElements: HTMLElement[] = [];
   for (let i = 0; i < all.length; i++) {
     const e = all[i];
+    if (e === undefined) {
+      continue;
+    }
     // include elements in a shadowRoot.
     if (e.shadowRoot) {
       const cc = e.shadowRoot.querySelectorAll("*");
       for (let j = 0; j < cc.length; j++) {
-        all.push(cc[j]);
+        const child = cc[j];
+        if (child !== undefined) {
+          all.push(child);
+        }
       }
     }
     const rect = e.getBoundingClientRect();
@@ -558,6 +575,9 @@ function filterAncestors(elements: Element[]): Element[] {
     } else {
       for (let j = 0; j < result.length; j++) {
         const r = result[j];
+        if (r === undefined) {
+          continue;
+        }
         if (r.contains(e)) {
           if (r.tagName !== "A" || !(r as HTMLAnchorElement).href) {
             result[j] = e;
@@ -581,10 +601,10 @@ function filterAncestors(elements: Element[]): Element[] {
 function getRealRect(elm: Element): DOMRect {
   if (elm.childElementCount === 0) {
     const r = elm.getClientRects();
-    if (r.length === 3) {
+    if (r.length === 3 && r[1] !== undefined) {
       // for a clipped A tag
       return r[1];
-    } else if (r.length === 2) {
+    } else if (r.length === 2 && r[0] !== undefined) {
       // for a wrapped A tag
       return r[0];
     } else {
@@ -791,26 +811,27 @@ function getNearestWord(text: string, offset: number): [number, number] {
   } else if (offset >= text.length) {
     offset = text.length - 1;
   }
+  const at = (idx: number): string => text[idx] ?? "";
   let found = true;
-  if (nonWord.test(text[offset])) {
+  if (nonWord.test(at(offset))) {
     let delta = 0;
     found = false;
     while (!found && (offset > delta || offset + delta < text.length)) {
       delta++;
       found =
-        (offset - delta >= 0 && !nonWord.test(text[offset - delta])) ||
-        (offset + delta < text.length && !nonWord.test(text[offset + delta]));
+        (offset - delta >= 0 && !nonWord.test(at(offset - delta))) ||
+        (offset + delta < text.length && !nonWord.test(at(offset + delta)));
     }
     offset =
-      offset - delta >= 0 && !nonWord.test(text[offset - delta]) ? offset - delta : offset + delta;
+      offset - delta >= 0 && !nonWord.test(at(offset - delta)) ? offset - delta : offset + delta;
   }
   if (found) {
     let start = offset,
       end = offset;
-    while (start >= 0 && !nonWord.test(text[start])) {
+    while (start >= 0 && !nonWord.test(at(start))) {
       start--;
     }
-    while (end < text.length && !nonWord.test(text[end])) {
+    while (end < text.length && !nonWord.test(at(end))) {
       end++;
     }
     ret = [start + 1, end - start - 1];
@@ -887,13 +908,22 @@ function parseAnnotation(ag: { annotation: string | string[]; feature_group?: nu
     an = [an as string];
   }
   const arr = an as string[];
-  const annotations = arr[0].match(/^#(\d+)(.*)/);
+  const first = arr[0];
+  if (first === undefined) {
+    return ag;
+  }
+  const annotations = first.match(/^#(\d+)(.*)/);
   if (annotations !== null) {
-    ag.feature_group = parseInt(annotations[1]);
-    arr[0] = annotations[2];
+    const featureGroup = annotations[1];
+    const rest = annotations[2];
+    if (featureGroup !== undefined && rest !== undefined) {
+      ag.feature_group = parseInt(featureGroup);
+      arr[0] = rest;
+    }
   }
   // first element must not be ""
-  ag.annotation = arr[0].length === 0 ? "" : arr;
+  const head = arr[0] ?? "";
+  ag.annotation = head.length === 0 ? "" : arr;
   return ag;
 }
 
@@ -1041,7 +1071,10 @@ function createElementWithContent(
 
   if (attributes) {
     for (const attr in attributes) {
-      elm.setAttribute(attr, attributes[attr]);
+      const val = attributes[attr];
+      if (val !== undefined) {
+        elm.setAttribute(attr, val);
+      }
     }
   }
 
@@ -1073,7 +1106,11 @@ HTMLElement.prototype.hide = function () {
 
 HTMLElement.prototype.removeAttributes = function () {
   while (this.attributes.length > 0) {
-    this.removeAttribute(this.attributes[0].name);
+    const first = this.attributes[0];
+    if (first === undefined) {
+      break;
+    }
+    this.removeAttribute(first.name);
   }
 };
 HTMLElement.prototype.containsWithShadow = function (e) {
@@ -1178,7 +1215,7 @@ function refreshHints(
       }
     }
   } else {
-    if (hints.length === 1) {
+    if (hints.length === 1 && hints[0] !== undefined) {
       result.matched = hints[0].link;
     } else {
       for (const hint of hints) {

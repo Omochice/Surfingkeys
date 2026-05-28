@@ -215,15 +215,24 @@ export default function (api: SurfingkeysApi, ctx: ModeContext): void {
       // ['se']
       // ['f', 'Hints\tBA']
       const lastKeys = runtime.conf.lastKeys;
-      normal.feedkeys(lastKeys[0]);
+      const firstKey = lastKeys[0];
+      if (firstKey !== undefined) {
+        normal.feedkeys(firstKey);
+      }
       const modeKeys = lastKeys.slice(1);
       for (let i = 0; i < modeKeys.length; i++) {
-        const modeKey = modeKeys[i].split("\t");
+        const entry = modeKeys[i];
+        if (entry === undefined) {
+          continue;
+        }
+        const modeKey = entry.split("\t");
         if (modeKey[0] === "Hints") {
           const closureWrapper = () => {
             const hintKeys = modeKey[1];
             return () => {
-              hints.feedkeys(hintKeys);
+              if (hintKeys !== undefined) {
+                hints.feedkeys(hintKeys);
+              }
             };
           };
           setTimeout(closureWrapper(), 120 + i * 100);

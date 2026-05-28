@@ -448,12 +448,11 @@ function createNormal(insert: InsertLike): NormalMode {
       const clientHeight =
         elm === document.scrollingElement ? window.innerHeight : elm.clientHeight;
       const clientWidth = elm === document.scrollingElement ? window.innerWidth : elm.clientWidth;
-      const range =
-        prop === "scrollTop"
-          ? [0, elm.scrollHeight - clientHeight]
-          : [0, elm.scrollWidth - clientWidth];
-      const boundary = increasing ? range[1] : range[0];
-      if (value >= range[0] && value <= range[1]) {
+      const rangeMin = 0;
+      const rangeMax =
+        prop === "scrollTop" ? elm.scrollHeight - clientHeight : elm.scrollWidth - clientWidth;
+      const boundary = increasing ? rangeMax : rangeMin;
+      if (value >= rangeMin && value <= rangeMax) {
         elm[prop] = value;
         return false;
       } else {
@@ -532,7 +531,8 @@ function createNormal(insert: InsertLike): NormalMode {
     if (!n.contains(target)) return;
     let index = scrollNodes!.lastIndexOf(target);
     for (let i = scrollNodes!.length - 1; i >= 0 && index === -1; i--) {
-      if (scrollNodes![i] !== document.body && scrollNodes![i].contains(target)) {
+      const sn = scrollNodes![i];
+      if (sn !== undefined && sn !== document.body && sn.contains(target)) {
         index = i;
       }
     }
@@ -571,9 +571,11 @@ function createNormal(insert: InsertLike): NormalMode {
     if (scrollNodes.length > 0) {
       scrollIndex = (scrollIndex + 1) % scrollNodes.length;
       const sn = scrollNodes[scrollIndex];
-      scrollIntoViewIfNeeded(sn);
-      if (!silent) {
-        self.highlightElement(sn);
+      if (sn !== undefined) {
+        scrollIntoViewIfNeeded(sn);
+        if (!silent) {
+          self.highlightElement(sn);
+        }
       }
     }
   }
@@ -669,7 +671,7 @@ function createNormal(insert: InsertLike): NormalMode {
     if (!scrollNode.skScrollBy) {
       initScroll(scrollNode);
     }
-    const size =
+    const size: [number, number] =
       scrollNode === document.scrollingElement
         ? [window.innerWidth, window.innerHeight]
         : [scrollNode.offsetWidth, scrollNode.offsetHeight];
@@ -737,9 +739,10 @@ function createNormal(insert: InsertLike): NormalMode {
   };
 
   self.addScrollableElement = (elm) => {
+    const current = scrollNodes?.[scrollIndex];
     if (
       !scrollNodes ||
-      (!elm.contains(scrollNodes[scrollIndex]) && scrollNodes.indexOf(elm) === -1)
+      ((current === undefined || !elm.contains(current)) && scrollNodes.indexOf(elm) === -1)
     ) {
       initScrollIndex();
       scrollNodes!.push(elm);
@@ -762,8 +765,8 @@ function createNormal(insert: InsertLike): NormalMode {
   self.feedkeys = (keys) => {
     setTimeout(() => {
       const evt = new Event("keydown");
-      for (let i = 0; i < keys.length; i++) {
-        evt.sk_keyName = keys[i];
+      for (const ch of keys) {
+        evt.sk_keyName = ch;
         Mode.handleMapKey.call(self, evt);
       }
     }, 1);
@@ -871,7 +874,7 @@ function createNormal(insert: InsertLike): NormalMode {
       } else {
         const br = elm.getBoundingClientRect();
         // visible rectangle
-        const rc = [
+        const rc: [number, number, number, number] = [
           Math.max(br.left, 0),
           Math.max(br.top, 0),
           Math.min(br.right, window.innerWidth),
@@ -976,7 +979,9 @@ function createNormal(insert: InsertLike): NormalMode {
       initScrollIndex();
       if (scrollNodes!.length > 0) {
         const scrollNode = scrollNodes![scrollIndex];
-        self.highlightElement(scrollNode);
+        if (scrollNode !== undefined) {
+          self.highlightElement(scrollNode);
+        }
       }
     },
   });

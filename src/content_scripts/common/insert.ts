@@ -20,9 +20,11 @@ export function nextNonWord(str: string, dir: number, cur: number): number {
     } else if (cur >= str.length) {
       cur = str.length;
       break;
-    } else if (nonWord.test(str[cur])) {
-      break;
     } else {
+      const ch = str[cur];
+      if (ch === undefined || nonWord.test(ch)) {
+        break;
+      }
       cur = cur + dir;
     }
   }
@@ -227,7 +229,11 @@ function createInsert(): InsertMode {
   const emojiPrompt = new CursorPrompt(
     (c: string) => {
       const ee = c.split("\t");
-      const parsedUnicodeEmoji = String.fromCodePoint(...ee[0].split(",").map(Number));
+      const codepoints = ee[0];
+      if (codepoints === undefined) {
+        return "";
+      }
+      const parsedUnicodeEmoji = String.fromCodePoint(...codepoints.split(",").map(Number));
       return `<div><span>${parsedUnicodeEmoji}</span>${ee[1]}</div>`;
     },
     (elm: Element) => (elm.firstElementChild as HTMLElement).innerText,

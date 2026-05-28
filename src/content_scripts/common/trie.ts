@@ -32,8 +32,11 @@ export default class Trie {
   /** Walk `word` character by character; returns the reached node or `undefined`. */
   find(word: string): Trie | undefined {
     let node: Trie | undefined = this;
-    for (let i = 0; i < word.length && node !== undefined; i++) {
-      node = node.children.get(word[i]);
+    for (const c of word) {
+      if (node === undefined) {
+        break;
+      }
+      node = node.children.get(c);
     }
     return node;
   }
@@ -59,16 +62,25 @@ export default class Trie {
   remove(word: string): Trie | undefined {
     const ancestors: Trie[] = [];
     let node: Trie | undefined = this;
-    for (let i = 0; i < word.length && node !== undefined; i++) {
+    for (const c of word) {
+      if (node === undefined) {
+        break;
+      }
       ancestors.push(node);
-      node = node.children.get(word[i]);
+      node = node.children.get(c);
     }
     if (node !== undefined) {
       let i = ancestors.length - 1;
       let parent = ancestors[i];
+      if (parent === undefined) {
+        return node;
+      }
       parent.children.delete(node.stem!);
       while (parent !== this && parent.children.size === 0 && parent.meta === undefined) {
         const grandparent = ancestors[--i];
+        if (grandparent === undefined) {
+          break;
+        }
         grandparent.children.delete(parent.stem!);
         parent = grandparent;
       }

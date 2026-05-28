@@ -28,7 +28,7 @@ class CursorPrompt {
   parentElement!: HTMLElement;
   isNativeInput = false;
   matchStart = -1;
-  activator = "";
+  activator: string | undefined = "";
   data?: string[];
   #suppressKeyup = false;
 
@@ -114,7 +114,10 @@ class CursorPrompt {
     const si = this.element.querySelector("div.selected")!;
     const ci = (items.indexOf(si) + (backward ? -1 : 1)) % items.length;
     si.classList.remove("selected");
-    items[ci].classList.add("selected");
+    const next = items[ci];
+    if (next) {
+      next.classList.add("selected");
+    }
     this.#suppressKeyup = true;
   }
 

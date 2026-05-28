@@ -104,6 +104,9 @@ function createVisual(clipboard: ClipboardLike, hints: HintsLike): VisualMode {
   self.addEventListener("scroll", () => {
     matches.forEach((m) => {
       const r = getTextRect(m[0], m[1])[0];
+      if (r === undefined) {
+        return;
+      }
       m[2].forEach((mi) => {
         mi.style.left = document.scrollingElement!.scrollLeft + r.left + "px";
         mi.style.top = document.scrollingElement!.scrollTop + r.top + "px";
@@ -141,8 +144,9 @@ function createVisual(clipboard: ClipboardLike, hints: HintsLike): VisualMode {
     if (runtime.conf.lastQuery) {
       self.visualUpdate(runtime.conf.lastQuery);
     }
-    if (matches[currentOccurrence]) {
-      select(matches[currentOccurrence]);
+    const cur = matches[currentOccurrence];
+    if (cur) {
+      select(cur);
     }
   });
   let selectionMark_: HTMLElement[] | null = null;
@@ -438,16 +442,20 @@ function createVisual(clipboard: ClipboardLike, hints: HintsLike): VisualMode {
       while (p && p !== document.body) {
         p = p.parentElement;
         const textNodes = getTextNodes(p!, /./) as Node[];
-        const lastNode = textNodes[textNodes.length - 1] as Text;
+        const firstNode = textNodes[0];
+        const lastNode = textNodes[textNodes.length - 1] as Text | undefined;
+        if (firstNode === undefined || lastNode === undefined) {
+          continue;
+        }
         const range = selection.getRangeAt(0);
         if (
-          range.comparePoint(textNodes[0], 0) === -1 ||
+          range.comparePoint(firstNode, 0) === -1 ||
           range.comparePoint(lastNode, lastNode.length) === 1
         ) {
           self.hideCursor();
           state = 2;
           _onStateChange();
-          selection.setBaseAndExtent(textNodes[0], 0, lastNode, lastNode.length);
+          selection.setBaseAndExtent(firstNode, 0, lastNode, lastNode.length);
           self.showCursor();
           break;
         }
@@ -646,7 +654,12 @@ function createVisual(clipboard: ClipboardLike, hints: HintsLike): VisualMode {
     if (matches.length) {
       currentOccurrence = 0;
       for (let i = 0; i < matches.length; i++) {
-        const br = matches[i][2][0].getBoundingClientRect();
+        const m = matches[i];
+        const firstElement = m && m[2][0];
+        if (!firstElement) {
+          continue;
+        }
+        const br = firstElement.getBoundingClientRect();
         if (br.top > 0) {
           currentOccurrence = i;
           break;
@@ -681,8 +694,11 @@ function createVisual(clipboard: ClipboardLike, hints: HintsLike): VisualMode {
   };
 
   function _onStateChange(): void {
-    self.mappings.add("y", _yankFunctions[state]);
-    self.statusLine = self.name + " - " + status[state];
+    const yankFn = _yankFunctions[state];
+    if (yankFn !== undefined) {
+      self.mappings.add("y", yankFn);
+    }
+    self.statusLine = self.name + " - " + (status[state] ?? "");
     Mode.showStatus();
   }
   function _incState(): void {
@@ -753,7 +769,10 @@ function createVisual(clipboard: ClipboardLike, hints: HintsLike): VisualMode {
       currentOccurrence =
         (backward ? matches.length + currentOccurrence - 1 : currentOccurrence + 1) %
         matches.length;
-      select(matches[currentOccurrence]);
+      const next = matches[currentOccurrence];
+      if (next) {
+        select(next);
+      }
       dispatchSKEvent("front", [
         "showStatus",
         [undefined, undefined, currentOccurrence + 1 + " / " + matches.length],
@@ -772,8 +791,8 @@ function createVisual(clipboard: ClipboardLike, hints: HintsLike): VisualMode {
   self.feedkeys = (keys) => {
     setTimeout(() => {
       const evt = new Event("keydown");
-      for (let i = 0; i < keys.length; i++) {
-        evt.sk_keyName = keys[i];
+      for (const ch of keys) {
+        evt.sk_keyName = ch;
         Mode.handleMapKey.call(self, evt);
       }
     }, 1);
@@ -849,7 +868,10 @@ function createVisual(clipboard: ClipboardLike, hints: HintsLike): VisualMode {
     highlight(new RegExp(query, runtime.getCaseSensitive(query) ? "" : "i"));
     if (matches.length) {
       self.enter();
-      select(matches[currentOccurrence]);
+      const cur = matches[currentOccurrence];
+      if (cur) {
+        select(cur);
+      }
     } else {
       dispatchSKEvent("front", [
         "showStatus",
@@ -869,8 +891,12 @@ function createVisual(clipboard: ClipboardLike, hints: HintsLike): VisualMode {
     elements = filterAncestors(elements) as HTMLElement[];
 
     let sentence = "";
+    const firstElement = elements[0];
+    if (firstElement === undefined) {
+      return sentence;
+    }
     actionWithSelectionPreserved((sel) => {
-      sel!.setPosition(elements[0], 0);
+      sel!.setPosition(firstElement, 0);
       if (win.find(query, false, false, true, true)) {
         _selectUnit("s");
         sentence = selection.toString();

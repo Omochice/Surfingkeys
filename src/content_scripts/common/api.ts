@@ -44,7 +44,9 @@ function createAPI(ctx: ModeContext) {
     }
     if (ag) {
       ag = parseAnnotation(ag);
-      keybound.feature_group = ag.feature_group;
+      if (ag.feature_group !== undefined) {
+        keybound.feature_group = ag.feature_group;
+      }
       keybound.annotation = ag.annotation;
     }
 
@@ -205,11 +207,12 @@ function createAPI(ctx: ModeContext) {
         );
         normal.mappings.add(KeyboardUtils.encodeKeystroke(new_keystroke), keybound);
       } else {
+        const specialKey = Mode.specialKeys[old_keystroke];
         if (
           !mapInMode(normal, new_keystroke, old_keystroke, new_annotation) &&
-          old_keystroke in Mode.specialKeys
+          specialKey !== undefined
         ) {
-          Mode.specialKeys[old_keystroke].push(new_keystroke);
+          specialKey.push(new_keystroke);
           dispatchSKEvent("front", ["addMapkey", "Mode", new_keystroke, old_keystroke]);
         } else {
           LOG("warn", `${old_keystroke} not found in normal mode.`);
@@ -235,9 +238,13 @@ function createAPI(ctx: ModeContext) {
         normal.mappings.remove(KeyboardUtils.encodeKeystroke(keystroke));
       } else {
         for (const k in Mode.specialKeys) {
-          const idx = Mode.specialKeys[k].indexOf(keystroke);
+          const keys = Mode.specialKeys[k];
+          if (keys === undefined) {
+            continue;
+          }
+          const idx = keys.indexOf(keystroke);
           if (idx !== -1) {
-            Mode.specialKeys[k].splice(idx, 1);
+            keys.splice(idx, 1);
           }
         }
       }
@@ -260,8 +267,8 @@ function createAPI(ctx: ModeContext) {
       modes.forEach((mode) => {
         const _mappings = new Trie();
         keystrokes = keystrokes || [];
-        for (let i = 0, il = keystrokes.length; i < il; i++) {
-          const ks = KeyboardUtils.encodeKeystroke(keystrokes[i]);
+        for (const keystroke of keystrokes) {
+          const ks = KeyboardUtils.encodeKeystroke(keystroke);
           const node = mode.mappings.find(ks);
           if (node) {
             _mappings.add(ks, node.meta!);
