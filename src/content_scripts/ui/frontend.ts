@@ -83,7 +83,7 @@ const Front = (() => {
       if (tabHints.length > 0) {
         const key = event.sk_keyName ?? "";
         const characters = hints.getCharacters().toLowerCase();
-        if (event.keyCode === KeyboardUtils.keyCodes.backspace) {
+        if (event.keyCode === KeyboardUtils.keyCodes["backspace"]) {
           if (pressedHintKeys.length > 0) {
             pressedHintKeys = pressedHintKeys.substr(0, pressedHintKeys.length - 1);
             refreshHints(tabHints, pressedHintKeys);
@@ -937,7 +937,7 @@ const Find = (() => {
         Front.visualCommand({
           action: "visualClear",
         });
-      } else if (event.keyCode === KeyboardUtils.keyCodes.enter) {
+      } else if (event.keyCode === KeyboardUtils.keyCodes["enter"]) {
         query = input.value;
         if (query!.length && query !== ".") {
           if (event.ctrlKey) {
@@ -951,13 +951,13 @@ const Find = (() => {
           });
         }
       } else if (
-        event.keyCode === KeyboardUtils.keyCodes.upArrow ||
-        event.keyCode === KeyboardUtils.keyCodes.downArrow
+        event.keyCode === KeyboardUtils.keyCodes["upArrow"] ||
+        event.keyCode === KeyboardUtils.keyCodes["downArrow"]
       ) {
         if (findHistory.length) {
           [input.value, historyInc] = rotateInput(
             findHistory,
-            event.keyCode === KeyboardUtils.keyCodes.downArrow,
+            event.keyCode === KeyboardUtils.keyCodes["downArrow"],
             historyInc,
             userInput,
           );

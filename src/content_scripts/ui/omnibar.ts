@@ -445,16 +445,16 @@ function createOmnibar(front: any, clipboard: any) {
     if (Mode.isSpecialKeyOf("<Esc>", evt.sk_keyName)) {
       front.hidePopup();
       evt.preventDefault();
-    } else if (evt.keyCode === KeyboardUtils.keyCodes.enter) {
+    } else if (evt.keyCode === KeyboardUtils.keyCodes["enter"]) {
       handler.activeTab = !evt.ctrlKey;
       handler.tabbed = self.tabbed ^ evt.shiftKey;
       handler.onEnter() && front.hidePopup();
-    } else if (evt.keyCode === KeyboardUtils.keyCodes.space) {
+    } else if (evt.keyCode === KeyboardUtils.keyCodes["space"]) {
       const cursor = self.input.selectionStart;
       const textBeforeCursor = self.input.value.substring(0, cursor);
       const newQuery = self.input.value.substring(cursor);
       self.expandAlias(textBeforeCursor, newQuery) && evt.preventDefault();
-    } else if (evt.keyCode === KeyboardUtils.keyCodes.backspace) {
+    } else if (evt.keyCode === KeyboardUtils.keyCodes["backspace"]) {
       self.collapseAlias() && evt.preventDefault();
     }
   }
@@ -1018,7 +1018,7 @@ function OpenBookmarks(omnibar: any): any {
 
   self.onKeydown = function (event: any) {
     let eaten = false;
-    if (event.keyCode === KeyboardUtils.keyCodes.comma) {
+    if (event.keyCode === KeyboardUtils.keyCodes["comma"]) {
       folderOnly = !folderOnly;
       self.prompt = folderOnly ? `bookmark folder${separator}` : `bookmark${separator}`;
       omnibar.setPrompt(self.prompt);
@@ -1029,7 +1029,7 @@ function OpenBookmarks(omnibar: any): any {
       );
       eaten = true;
     } else if (
-      event.keyCode === KeyboardUtils.keyCodes.backspace &&
+      event.keyCode === KeyboardUtils.keyCodes["backspace"] &&
       self.inFolder.length &&
       !omnibar.input.value.length
     ) {
