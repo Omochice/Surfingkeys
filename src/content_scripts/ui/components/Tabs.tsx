@@ -33,12 +33,14 @@ type HintElement = HTMLDivElement & { label?: string; link?: { id: number; windo
  */
 export const Tabs: Component<TabsProps> = (props) => {
   const hintLabelFor = (index: number): string | undefined => {
-    if (props.tabs[index].active) {
+    const target = props.tabs[index];
+    if (target === undefined || target.active) {
       return undefined;
     }
     let nth = 0;
     for (let i = 0; i < index; i++) {
-      if (!props.tabs[i].active) {
+      const t = props.tabs[i];
+      if (t !== undefined && !t.active) {
         nth++;
       }
     }

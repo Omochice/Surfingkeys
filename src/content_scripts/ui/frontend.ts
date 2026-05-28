@@ -372,14 +372,19 @@ const Front = (() => {
 
     initL10n((locale) => {
       const help_groups: string[][] = feature_groups.map(() => []);
-      const lh = Mode.specialKeys["<Alt-s>"].length;
-      if (lh > 0) {
-        help_groups[0].push(
-          "<div><span class=kbd-span><kbd>{0}</kbd></span><span class=annotation>{1}</span></div>".format(
-            htmlEncode(Mode.specialKeys["<Alt-s>"][lh - 1]),
-            locale("Toggle SurfingKeys on current site"),
-          ),
-        );
+      const altSKeys = Mode.specialKeys["<Alt-s>"];
+      const lh = altSKeys?.length ?? 0;
+      const firstGroup = help_groups[0];
+      if (lh > 0 && altSKeys !== undefined && firstGroup !== undefined) {
+        const last = altSKeys[lh - 1];
+        if (last !== undefined) {
+          firstGroup.push(
+            "<div><span class=kbd-span><kbd>{0}</kbd></span><span class=annotation>{1}</span></div>".format(
+              htmlEncode(last),
+              locale("Toggle SurfingKeys on current site"),
+            ),
+          );
+        }
       }
 
       metas = metas.concat(getAnnotations(omnibar.mappings));
@@ -387,7 +392,11 @@ const Front = (() => {
         const w = KeyboardUtils.decodeKeystroke(meta.word);
         const annotation = localizeAnnotation(locale, meta.annotation);
         const item = `<div><span class=kbd-span><kbd>${htmlEncode(w)}</kbd></span><span class=annotation>${annotation}</span></div>`;
-        help_groups[meta.feature_group].push(item);
+        const group =
+          meta.feature_group !== undefined ? help_groups[meta.feature_group] : undefined;
+        if (group !== undefined) {
+          group.push(item);
+        }
       });
       // Each non-empty group becomes one <div> child of #sk_usage (the
       // <Usage> component wraps the string below in that div); the footer
@@ -397,7 +406,7 @@ const Front = (() => {
         .map((g, i) =>
           g.length
             ? "<div class=feature_name><span>{0}</span></div>{1}".format(
-                locale(feature_groups[i]),
+                locale(feature_groups[i] ?? ""),
                 g.join(""),
               )
             : "",
@@ -446,10 +455,14 @@ const Front = (() => {
     hints.setCharacters(message.characters);
   };
   _actions["addMapkey"] = (message: any) => {
-    if (message.old_keystroke in Mode.specialKeys) {
-      Mode.specialKeys[message.old_keystroke].push(message.new_keystroke);
+    const specialKey = Mode.specialKeys[message.old_keystroke];
+    if (specialKey !== undefined) {
+      specialKey.push(message.new_keystroke);
     } else if (Object.prototype.hasOwnProperty.call(modes, message.mode)) {
-      mapInMode(modes[message.mode], message.new_keystroke, message.old_keystroke);
+      const mode = modes[message.mode];
+      if (mode !== undefined) {
+        mapInMode(mode, message.new_keystroke, message.old_keystroke);
+      }
     }
   };
   _actions["addCommand"] = (message: any) => {
@@ -587,7 +600,7 @@ const Front = (() => {
     _bubble.style.display = "";
     const w = _bubble.offsetWidth;
     let h = _bubble.offsetHeight;
-    const left = [pos.left - 11 - w / 2, w / 2];
+    const left: [number, number] = [pos.left - 11 - w / 2, w / 2];
     if (left[0] < pos.winX) {
       left[1] += left[0] - pos.winX;
       left[0] = pos.winX;
@@ -741,8 +754,8 @@ const Front = (() => {
       if (_message === undefined) {
         return;
       }
-      if (_callbacks[_message.id]) {
-        const f = _callbacks[_message.id];
+      const f = _callbacks[_message.id];
+      if (f) {
         // returns true to make callback stay for coming response.
         if (!f(_message)) {
           delete _callbacks[_message.id];
@@ -751,7 +764,8 @@ const Front = (() => {
         _message.action &&
         Object.prototype.hasOwnProperty.call(_actions, _message.action)
       ) {
-        const ret = _actions[_message.action](_message);
+        const action = _actions[_message.action];
+        const ret = action ? action(_message) : undefined;
         if (_message.ack) {
           top!.postMessage(
             {

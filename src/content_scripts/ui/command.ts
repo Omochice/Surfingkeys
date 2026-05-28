@@ -14,14 +14,18 @@ type OmnibarLike = {
 
 export default (normal: NormalLike, command: CommandFn, omnibar: OmnibarLike): void => {
   command("feedkeys", "feed mapkeys", (args) => {
-    normal.feedkeys(args[0]);
+    normal.feedkeys(args[0] ?? "");
   });
   command("quit", "#5quit chrome", () => {
     RUNTIME("quit");
   });
   command("clearHistory", "clearHistory <find|cmd|...>", (args) => {
+    const key = args[0];
+    if (key === undefined) {
+      return;
+    }
     const update: Record<string, unknown[]> = {};
-    update[args[0]] = [];
+    update[key] = [];
     RUNTIME("updateInputHistory", update);
   });
   command("listSession", "list session", () => {
@@ -64,7 +68,7 @@ export default (normal: NormalLike, command: CommandFn, omnibar: OmnibarLike): v
     RUNTIME("clearQueueURLs");
   });
   command("timeStamp", "print time stamp in human readable format", (args) => {
-    const dt = new Date(parseInt(args[0]));
+    const dt = new Date(parseInt(args[0] ?? ""));
     omnibar.listWords([dt.toString()]);
   });
 };

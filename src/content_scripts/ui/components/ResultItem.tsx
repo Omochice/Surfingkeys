@@ -6,7 +6,7 @@ export interface ResultItemProps {
   /** Inner HTML of the row (icon, title, url, …); sanitized at injection. */
   html: string;
   /** Extra class on the <li>, e.g. "window" for the window chooser rows. */
-  className?: string;
+  className?: string | undefined;
   /** Whether this row is the focused candidate. */
   focused: boolean;
   /** Invoked when the row is clicked. */
@@ -16,7 +16,7 @@ export interface ResultItemProps {
    * purpose: Chrome's `chrome-extension://…/_favicon` URLs would otherwise be stripped, exactly as
    * the legacy code set the src imperatively after sanitizing the row content.
    */
-  faviconSrc?: string;
+  faviconSrc?: string | undefined;
 }
 
 /**

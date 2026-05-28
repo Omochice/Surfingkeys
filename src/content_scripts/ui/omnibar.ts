@@ -719,14 +719,14 @@ function createOmnibar(front: any, clipboard: any) {
     let uid = "";
     if (fi && fi.data.uid) {
       uid = fi.data.uid;
-      type = uid[0];
+      type = uid[0] ?? "";
       uid = uid.substr(1);
     }
     if (type === "T") {
       const parts = uid.split(":");
       RUNTIME("focusTab", {
-        windowId: parseInt(parts[0]),
-        tabId: parseInt(parts[1]),
+        windowId: parseInt(parts[0] ?? ""),
+        tabId: parseInt(parts[1] ?? ""),
       });
     } else if (url && url.length) {
       RUNTIME("openLink", {
