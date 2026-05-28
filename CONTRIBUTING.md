@@ -31,9 +31,12 @@ Please use below template to report issue, or you could click menu item from Sur
 ## Load Extension
 
 To load the extension:
+
 1. Build using npm.
-2. Open the browser's extension page. 
-  - For Chrome, this can be accessed through "chrome://extensions".
+2. Open the browser's extension page.
+
+- For Chrome, this can be accessed through "chrome://extensions".
+
 3. Disable the Surfingkeys extension that was installed from the Google Chrome Store.
 4. Enable "Developer mode" then click "Load unpacked."
 5. For versions prior to v1.x, navigate to `<pathToSurfingkeys>/dist/Chrome-extensions`

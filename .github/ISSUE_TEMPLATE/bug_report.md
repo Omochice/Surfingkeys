@@ -1,19 +1,18 @@
 ---
 name: Bug report
 about: Create a report to help us improve
-title: ''
-labels: ''
-assignees: ''
-
+title: ""
+labels: ""
+assignees: ""
 ---
 
 ## Prelude
-* Could you find answer in below documents?
 
+- Could you find answer in below documents?
     1. [FAQ](https://github.com/brookhong/Surfingkeys/wiki/FAQ) / [常见问题](https://github.com/brookhong/Surfingkeys/wiki/%E5%B8%B8%E8%A7%81%E9%97%AE%E9%A2%98)
     1. [README](https://github.com/brookhong/Surfingkeys/blob/master/README.md) / [读我](https://github.com/brookhong/Surfingkeys/blob/master/README_CN.md)
 
-* Have you searched your problem in [issues](https://github.com/brookhong/Surfingkeys/issues)?
+- Have you searched your problem in [issues](https://github.com/brookhong/Surfingkeys/issues)?
 
 ## Error details
 

@@ -1,62 +1,62 @@
 {
-  "name": "Surfingkeys",
-  "version": "1.18.0",
-  "description": "Map your keys for web surfing, expand your browser with javascript and keyboard.",
-  "main": "background.js",
-  "directories": {
-    "doc": "docs",
-    "test": "tests"
-  },
-  "scripts": {
-    "clean": "rm -rf dist/*",
-    "build:doc": "documentation build src/content_scripts/common/api.ts src/content_scripts/common/normal.ts src/content_scripts/common/clipboard.ts src/content_scripts/common/hints.ts src/content_scripts/common/visual.ts src/content_scripts/front.ts src/user_scripts/index.ts -f md -o docs/api.md",
-    "dev": "wxt",
-    "dev:firefox": "wxt -b firefox",
-    "build:dev": "wxt build --mode development",
-    "build:dev:firefox": "wxt build --mode development -b firefox",
-    "build:prod": "wxt build",
-    "build:prod:firefox": "wxt build -b firefox",
-    "build": "npm-run-all clean test build:doc build:prod",
-    "zip": "wxt zip",
-    "zip:firefox": "wxt zip -b firefox",
-    "postinstall": "wxt prepare",
-    "test": "vitest run",
-    "test:watch": "vitest",
-    "lint": "oxlint",
-    "lint:fix": "oxlint --fix",
-    "fmt": "oxfmt",
-    "fmt:check": "oxfmt --check"
-  },
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/brookhong/Surfingkeys.git"
-  },
-  "author": "brook hong",
-  "license": "MIT",
-  "bugs": {
-    "url": "https://github.com/brookhong/Surfingkeys/issues"
-  },
-  "homepage": "https://github.com/brookhong/Surfingkeys#readme",
-  "devDependencies": {
-    "@solidjs/testing-library": "0.8.10",
-    "@types/lodash": "^4.14.172",
-    "@types/offscreencanvas": "^2019.6.4",
-    "@types/webextension-polyfill": "0.12.5",
-    "@wxt-dev/module-solid": "1.1.4",
-    "documentation": "^14.0.3",
-    "jsdom": "29.1.1",
-    "npm-run-all": "^4.1.5",
-    "oxfmt": "0.51.0",
-    "oxlint": "1.66.0",
-    "typescript": "^4.5.4",
-    "vite-plugin-solid": "2.11.12",
-    "vitest": "4.1.7",
-    "wxt": "0.20.26"
-  },
-  "dependencies": {
-    "dompurify": "^3.2.4",
-    "lodash": "^4.17.21",
-    "solid-js": "1.9.13",
-    "webextension-polyfill": "0.12.0"
-  }
+    "name": "Surfingkeys",
+    "version": "1.18.0",
+    "description": "Map your keys for web surfing, expand your browser with javascript and keyboard.",
+    "homepage": "https://github.com/brookhong/Surfingkeys#readme",
+    "bugs": {
+        "url": "https://github.com/brookhong/Surfingkeys/issues"
+    },
+    "license": "MIT",
+    "author": "brook hong",
+    "repository": {
+        "type": "git",
+        "url": "git+https://github.com/brookhong/Surfingkeys.git"
+    },
+    "directories": {
+        "doc": "docs",
+        "test": "tests"
+    },
+    "main": "background.js",
+    "scripts": {
+        "clean": "rm -rf dist/*",
+        "build:doc": "documentation build src/content_scripts/common/api.ts src/content_scripts/common/normal.ts src/content_scripts/common/clipboard.ts src/content_scripts/common/hints.ts src/content_scripts/common/visual.ts src/content_scripts/front.ts src/user_scripts/index.ts -f md -o docs/api.md",
+        "dev": "wxt",
+        "dev:firefox": "wxt -b firefox",
+        "build:dev": "wxt build --mode development",
+        "build:dev:firefox": "wxt build --mode development -b firefox",
+        "build:prod": "wxt build",
+        "build:prod:firefox": "wxt build -b firefox",
+        "build": "npm-run-all clean test build:doc build:prod",
+        "zip": "wxt zip",
+        "zip:firefox": "wxt zip -b firefox",
+        "postinstall": "wxt prepare",
+        "test": "vitest run",
+        "test:watch": "vitest",
+        "lint": "oxlint",
+        "lint:fix": "oxlint --fix",
+        "fmt": "oxfmt",
+        "fmt:check": "oxfmt --check"
+    },
+    "dependencies": {
+        "dompurify": "^3.2.4",
+        "lodash": "^4.17.21",
+        "solid-js": "1.9.13",
+        "webextension-polyfill": "0.12.0"
+    },
+    "devDependencies": {
+        "@solidjs/testing-library": "0.8.10",
+        "@types/lodash": "^4.14.172",
+        "@types/offscreencanvas": "^2019.6.4",
+        "@types/webextension-polyfill": "0.12.5",
+        "@wxt-dev/module-solid": "1.1.4",
+        "documentation": "^14.0.3",
+        "jsdom": "29.1.1",
+        "npm-run-all": "^4.1.5",
+        "oxfmt": "0.51.0",
+        "oxlint": "1.66.0",
+        "typescript": "^4.5.4",
+        "vite-plugin-solid": "2.11.12",
+        "vitest": "4.1.7",
+        "wxt": "0.20.26"
+    }
 }

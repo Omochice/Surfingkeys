@@ -1,6 +1,5 @@
 # Surfingkeys -- 用javascript和键盘扩展你的chrome
 
-
 [![Node CI](https://github.com/brookhong/Surfingkeys/workflows/Node%20CI/badge.svg?branch=master)](https://github.com/brookhong/Surfingkeys/actions?query=workflow%3A%22Node+CI%22+branch%3Amaster)
 
 Surfingkeys和现有的一些插件一样，让你尽可能的通过键盘来使用Chrome/Firefox浏览器，比如跳转网页，上下左右滚屏。但不只是给vim用户使用，Surfingkeys的基本特性是让你自己写一段Javascript脚本，然后通过`mapkey`映射到某些按键。之后当你按了那几个键以后，对应的Javascript脚本就会被执行。
@@ -12,86 +11,88 @@ Surfingkeys的配置全部写在一段javascript中，很容易添加自己的�
     });
 
 Surfingkeys从0.9.15开始支持火狐（需要57以上的版本），但目前下面的功能在火狐下不工作：
-* 同步不同设备间的设置
-* 代理设置
-* Markdown预览
+
+- 同步不同设备间的设置
+- 代理设置
+- Markdown预览
 
 Surfingkeys尽量让用户使用键盘进行网页浏览，但有些限制是Google Chrome本身的，如果想要更彻底的体验请试试[Brook的Chromium浏览器](https://brookhong.github.io/2021/04/18/brook-build-of-chromium-cn.html)。
 
 ## 安装
 
-* [Surfingkeys - Chrome Web Store](https://chrome.google.com/webstore/detail/surfingkeys/gfbliohnnapiefjpjlpjnehglfpaknnc)
-* [Surfingkeys – Get this Extension for 🦊 Firefox](https://addons.mozilla.org/en-US/firefox/addon/surfingkeys_ff/)
-* [Surfingkeys - Microsoft Edge Addons](https://microsoftedge.microsoft.com/addons/detail/kgnghhfkloifoabeaobjkgagcecbnppg)
-* [Surfingkeys on the Mac App Store](https://apps.apple.com/us/app/surfingkeys/id1609752330)
+- [Surfingkeys - Chrome Web Store](https://chrome.google.com/webstore/detail/surfingkeys/gfbliohnnapiefjpjlpjnehglfpaknnc)
+- [Surfingkeys – Get this Extension for 🦊 Firefox](https://addons.mozilla.org/en-US/firefox/addon/surfingkeys_ff/)
+- [Surfingkeys - Microsoft Edge Addons](https://microsoftedge.microsoft.com/addons/detail/kgnghhfkloifoabeaobjkgagcecbnppg)
+- [Surfingkeys on the Mac App Store](https://apps.apple.com/us/app/surfingkeys/id1609752330)
 
 ### 目录
 
-* [功能特性](#功能特性)
-* [快速上手](#快速上手)
-* [打开连接](#打开连接)
-* [Surfingkeys支持的模式](#surfingkeys支持的模式)
-* [搜索栏](#搜索栏)
-* [搜索选中文本](#搜索选中文本)
-* [类vim标示](#类vim标示)
-* [切换标签页](#切换标签页)
-* [窗口管理](#窗口管理)
-* [命令](#命令)
-* [顺滑滚动](#顺滑滚动)
-* [会话管理](#会话管理)
-* [前缀数字可多次重复相应操作](#前缀数字可多次重复相应操作)
-* [开关热键](#开关热键)
-* [代理设置](#代理设置)
-* [VIM编辑器或者Emacs编辑器](#vim编辑器或者emacs编辑器)
-* [点命令重复前一个操作](#点命令重复前一个操作)
-* [Markdown预览](#markdown预览)
-* [截屏](#截屏)
-* [PDF阅读器](#pdf阅读器)
-* [配置参考](#配置参考)
-* [编译](#编译)
-* [License](#license)
+- [功能特性](#功能特性)
+- [快速上手](#快速上手)
+- [打开连接](#打开连接)
+- [Surfingkeys支持的模式](#surfingkeys支持的模式)
+- [搜索栏](#搜索栏)
+- [搜索选中文本](#搜索选中文本)
+- [类vim标示](#类vim标示)
+- [切换标签页](#切换标签页)
+- [窗口管理](#窗口管理)
+- [命令](#命令)
+- [顺滑滚动](#顺滑滚动)
+- [会话管理](#会话管理)
+- [前缀数字可多次重复相应操作](#前缀数字可多次重复相应操作)
+- [开关热键](#开关热键)
+- [代理设置](#代理设置)
+- [VIM编辑器或者Emacs编辑器](#vim编辑器或者emacs编辑器)
+- [点命令重复前一个操作](#点命令重复前一个操作)
+- [Markdown预览](#markdown预览)
+- [截屏](#截屏)
+- [PDF阅读器](#pdf阅读器)
+- [配置参考](#配置参考)
+- [编译](#编译)
+- [License](#license)
 
 ## 功能特性
-* 所有配置都用javascript描述，易于修改添加自己的按键。
-* 一个大号光标，这样visual mode不会太痛苦。
-* 搜索选中文本，在normal mode和visual mode都好用。
-* 自动生成帮助信息。
-* 在visual mode下，按`*` 可以搜索当前单词。
-* 滚动操作（像`e` `d`上下翻页之类）可以在顶层页面工作，也可以在一个支持滚动的DIV中使用。
-* 在一个有多个frame的页面中，`w`可以切换frame。
-* 会话管理。
-* 一个多功能书签地址栏
-* 前缀数字可多次重复相应操作
-* 使用VIM编辑页面上各种输入框
-* 点命令重复前一个操作
-* `;pm`预览markdown
-* 插入模式下的表情下拉选项
-* 按键实时提示
-* 所有按键对PDF适用
-* Regional Hints mode
-* 大语言模型对话
+
+- 所有配置都用javascript描述，易于修改添加自己的按键。
+- 一个大号光标，这样visual mode不会太痛苦。
+- 搜索选中文本，在normal mode和visual mode都好用。
+- 自动生成帮助信息。
+- 在visual mode下，按`*` 可以搜索当前单词。
+- 滚动操作（像`e` `d`上下翻页之类）可以在顶层页面工作，也可以在一个支持滚动的DIV中使用。
+- 在一个有多个frame的页面中，`w`可以切换frame。
+- 会话管理。
+- 一个多功能书签地址栏
+- 前缀数字可多次重复相应操作
+- 使用VIM编辑页面上各种输入框
+- 点命令重复前一个操作
+- `;pm`预览markdown
+- 插入模式下的表情下拉选项
+- 按键实时提示
+- 所有按键对PDF适用
+- Regional Hints mode
+- 大语言模型对话
 
 ## 快速上手
 
-* [Chrome插件安装地址](https://chrome.google.com/webstore/detail/surfingkeys/gfbliohnnapiefjpjlpjnehglfpaknnc)
-* [Firefox插件安装地址](https://addons.mozilla.org/en-US/firefox/addon/surfingkeys_ff/)
+- [Chrome插件安装地址](https://chrome.google.com/webstore/detail/surfingkeys/gfbliohnnapiefjpjlpjnehglfpaknnc)
+- [Firefox插件安装地址](https://addons.mozilla.org/en-US/firefox/addon/surfingkeys_ff/)
 
 安装本插件以后，打开你要访问的站点。先按`?`或者`u`看看帮助信息，按`Esc`可以关掉帮助信息。
 
 试试帮助信息里的那些按键，比如，`e`向上翻页，`d`向下翻页，`;e`打开设置。
 
-* `?` 显示帮助
-![help](https://cloud.githubusercontent.com/assets/288207/16181995/1417ca44-36d4-11e6-96c9-9e84b33f0916.png)
-* `t` 搜索收藏夹和访问历史
-![urls](https://cloud.githubusercontent.com/assets/288207/16182031/58e15ec4-36d4-11e6-9cc5-ff35970df25f.png)
-* `/` 在当前页查找
-![find](https://cloud.githubusercontent.com/assets/288207/16182044/65f4713c-36d4-11e6-9e21-6b61a858f080.png)
-* `f` 拨号打开链接
-![follow](https://cloud.githubusercontent.com/assets/288207/16182118/18d27678-36d5-11e6-9759-d8b5ff49930c.png)
-* `v` 切换文本选择模式
-![visual](https://cloud.githubusercontent.com/assets/288207/16182120/1cc536da-36d5-11e6-9e08-293cdb8fbcd2.png)
-* `T` 切换标签页
-![tabs](https://cloud.githubusercontent.com/assets/288207/10328839/f0143ffe-6ceb-11e5-8eee-962db94b2c22.png)
+- `?` 显示帮助
+  ![help](https://cloud.githubusercontent.com/assets/288207/16181995/1417ca44-36d4-11e6-96c9-9e84b33f0916.png)
+- `t` 搜索收藏夹和访问历史
+  ![urls](https://cloud.githubusercontent.com/assets/288207/16182031/58e15ec4-36d4-11e6-9cc5-ff35970df25f.png)
+- `/` 在当前页查找
+  ![find](https://cloud.githubusercontent.com/assets/288207/16182044/65f4713c-36d4-11e6-9e21-6b61a858f080.png)
+- `f` 拨号打开链接
+  ![follow](https://cloud.githubusercontent.com/assets/288207/16182118/18d27678-36d5-11e6-9759-d8b5ff49930c.png)
+- `v` 切换文本选择模式
+  ![visual](https://cloud.githubusercontent.com/assets/288207/16182120/1cc536da-36d5-11e6-9e08-293cdb8fbcd2.png)
+- `T` 切换标签页
+  ![tabs](https://cloud.githubusercontent.com/assets/288207/10328839/f0143ffe-6ceb-11e5-8eee-962db94b2c22.png)
 
 ## Surfingkeys支持的模式
 
@@ -118,13 +119,14 @@ Surfingkeys有三种模式：normal，visual和insert。
 
 ![search_selected](https://cloud.githubusercontent.com/assets/288207/17644215/759f1e70-61b3-11e6-8bf8-0bdff7d0c933.gif)
 
-* `zz` 让光标位于窗口中间行。
-* `f` 往前查找下一个字符。
-* `F` 往后查找下一个字符。
-* `;` 重复最后的`f`/`F`操作。
-* `,` 反向重复最后的`f`/`F`操作。
+- `zz` 让光标位于窗口中间行。
+- `f` 往前查找下一个字符。
+- `F` 往后查找下一个字符。
+- `;` 重复最后的`f`/`F`操作。
+- `,` 反向重复最后的`f`/`F`操作。
 
 ### Hints mode
+
 按`f`键进入Hints mode可以打开链接，也有其它行为不同的组合，比如`cf`可以连续打开链接，`af`指定在新标签页打开。
 
 默认的拨号键有`asdfgqwertzxcvb`，如果按了一个非拨号键，会自动退出拨号。下面的设置可以改成右手习惯：
@@ -141,11 +143,11 @@ Surfingkeys有三种模式：normal，visual和insert。
 
 按`L`键选择一个大块元素进入Regional Hints mode，目前自带的操作有
 
-* `Esc` 退出Regional Hints mode
-* `ct` 复制该大块元素的文本
-* `ch` 复制该大块元素的HTML
-* `d` 删除该大块元素
-* `l` 与大语言模型讨论选中文本
+- `Esc` 退出Regional Hints mode
+- `ct` 复制该大块元素的文本
+- `ch` 复制该大块元素的HTML
+- `d` 删除该大块元素
+- `l` 与大语言模型讨论选中文本
 
 [Demo on YouTube](https://www.youtube.com/watch?v=pFPOzAZDO38)
 
@@ -154,21 +156,20 @@ Surfingkeys有三种模式：normal，visual和insert。
 当输入焦点定位到各类输入框时（无论你是通过`i`或`f`选择定位还是鼠标点击定位的），就进入该模式。
 通过函数`imapkey`添加的所有按键都只在这种模式下有用。
 
-* `Ctrl - i` 打开vim编辑器。
-* `Ctrl - '` 把输入框里的内容用双引号引起来或去除双引号，方便在搜索引擎页面上搜索时使用。
-* `Ctrl-e`移动光标到行尾。
-* `Ctrl-a` 移动光标到行首， 在Windows下用`Ctrl-f`避免和全选冲突。
-* `Ctrl-u` 删除光标前所有输入。
-* `Alt-b` 移动光标到后一个词。
-* `Alt-f` 移动光标到前一个词。
-* `Alt-w` 往后删除一个词。
-* `Alt-d` 往前删除一个词。
+- `Ctrl - i` 打开vim编辑器。
+- `Ctrl - '` 把输入框里的内容用双引号引起来或去除双引号，方便在搜索引擎页面上搜索时使用。
+- `Ctrl-e`移动光标到行尾。
+- `Ctrl-a` 移动光标到行首， 在Windows下用`Ctrl-f`避免和全选冲突。
+- `Ctrl-u` 删除光标前所有输入。
+- `Alt-b` 移动光标到后一个词。
+- `Alt-f` 移动光标到前一个词。
+- `Alt-w` 往后删除一个词。
+- `Alt-d` 往前删除一个词。
 
 `imap` 和 `iunmap`：
 
     api.imap(',,', "<Esc>");        // 按两次逗号退出当前输入框。
     api.imap(';;', "<Ctrl-'>");     // 按两次分号切换双引号。
-
 
 #### 表情下拉选项
 
@@ -201,6 +202,7 @@ Surfingkeys有三种模式：normal，visual和insert。
     api.mapkey('p', '#0enter ephemeral PassThrough mode to temporarily suppress SurfingKeys', function() {
         api.Normal.passThrough(1500);
     });
+
 ### Lurk mode
 
 用户可以指定在哪些页面Surfingkeys默认进入Lurk模式，直到通过`Alt-i`或者`p`（短暂的）唤醒，
@@ -215,28 +217,29 @@ Surfingkeys有三种模式：normal，visual和insert。
 
 任务栏里的Surfingkeys图标会反应当前状态：
 
-* 灰色 -- 禁用
-* 半灰半彩 -- 潜伏
-* 彩色 -- 启用
+- 灰色 -- 禁用
+- 半灰半彩 -- 潜伏
+- 彩色 -- 启用
 
 ## 搜索栏
 
 一些需要用户输入的功能通过搜索栏提供，比如
 
-* 用`t`打开网页（从收藏夹或访问历史）
-* 用`b`打开收藏夹
-* 用`og`/`ob`等打开搜索引擎
-* 用`:`打开命令模式
+- 用`t`打开网页（从收藏夹或访问历史）
+- 用`b`打开收藏夹
+- 用`og`/`ob`等打开搜索引擎
+- 用`:`打开命令模式
 
 ### 搜索栏按键
-* `Enter` 打开选中项并关闭搜索栏。
-* `Ctrl-Enter` 打开选中项，但不关闭搜索栏，你可以继续选中打开。
-* `Shift-Enter` 在当前标签页打开选中项并关闭搜索栏。如果你希望默认就在当前标签页打开，可以使用`go`。
-* `Tab` 在结果列表中向下切换。
-* `Shift-Tab` 在结果列表中向上切换。
-* `Ctrl-.` 显示下一页搜索结果
-* `Ctrl-,` 显示上一页搜索结果
-* `Ctrl-c` 复制当前列出的结果
+
+- `Enter` 打开选中项并关闭搜索栏。
+- `Ctrl-Enter` 打开选中项，但不关闭搜索栏，你可以继续选中打开。
+- `Shift-Enter` 在当前标签页打开选中项并关闭搜索栏。如果你希望默认就在当前标签页打开，可以使用`go`。
+- `Tab` 在结果列表中向下切换。
+- `Shift-Tab` 在结果列表中向上切换。
+- `Ctrl-.` 显示下一页搜索结果
+- `Ctrl-,` 显示上一页搜索结果
+- `Ctrl-c` 复制当前列出的结果
 
 用`t`打开搜索栏时，
 
@@ -254,6 +257,7 @@ Surfingkeys有三种模式：normal，visual和insert。
     api.cmap('<Ctrl-p>', '<Shift-Tab>');
 
 ### 添加书签
+
 `ab`可以把当前页加入书签。按`ab`后，搜索栏会弹出来让你选择放到哪个目录。如果你希望放到一个新建目录下面，可以输入新的目录名，**并以`/`结尾**，比如我选中了`/Bookmarks Bar/tool/`，然后在后面输入`abc/`，会把当前页加到`/Bookmarks Bar/tool/abc/`这个目录里。如果`abc`后面没有`/`，`abc`会被当作新建书签的标题保存。
 
 ## 搜索选中文本
@@ -341,9 +345,9 @@ search_leader_key(`s`)加上大写的别名(`G`)会打开搜索框让你可以�
 
 用Surfingkeys在Chrome里保存会话相当于保存所有标签页的地址，打开会话则相当于在不同的标签页中打开所有保存其中的网页地址，所以会话基本上就是一个网页地址列表，每个会话有自己的名字。
 
-* `ZZ`会保存所有当前标签页到一个名为`LAST`的会话，然后退出。
-* `ZR`恢复名为`LAST`的会话。
-* `ZQ`就只退出，不保存当前会话。
+- `ZZ`会保存所有当前标签页到一个名为`LAST`的会话，然后退出。
+- `ZR`恢复名为`LAST`的会话。
+- `ZQ`就只退出，不保存当前会话。
 
 你可以在命令模式下创建／管理多个不同名称的会话。按`:`打开命令窗口，然后输入:
 
@@ -365,13 +369,13 @@ search_leader_key(`s`)加上大写的别名(`G`)会打开搜索框让你可以�
 
 如果需要重复多次某个操作，可以在按该映射键之前按下相应的数字，比如`3d`，就会往下滚3页。这种方法同样适用于标签操作，比如，你现在在第一个标签页，你想切换到第四个标签页，
 
-* 按`3R`就可以
-* `3E`会切回到第一个标签页
+- 按`3R`就可以
+- `3E`会切回到第一个标签页
 
 另一个例子是移动标签页，假设你现在开着23个标签页，你在第12个，
 
-* `11<<` 就把当前标签页移到第一个
-* `10>>` 则会把它移到最后一个
+- `11<<` 就把当前标签页移到第一个
+- `10>>` 则会把它移到最后一个
 
 通常情况，你不需要去数多少个标签页，如果你只是想移动到开头或者结尾的话，你按一个足够大的数字就可以，比如`99<<`。
 
@@ -403,51 +407,49 @@ SwitchySharp是个很好的代理管理插件，但我的用法很简单，
 
 其中需要手工编辑PAC脚本，鼠标点击SwitchySharp图片切换重载配置，因此我把代理设置的功能集成进来，并提供相关的命令和快捷键。
 
-* setProxy, 设置代理，示例如下：
+- setProxy, 设置代理，示例如下：
 
-  ```
-  setProxy 192.168.1.100:8080
-  setProxy 127.0.0.1:1080 SOCKS5
-  ```
+    ```
+    setProxy 192.168.1.100:8080
+    setProxy 127.0.0.1:1080 SOCKS5
+    ```
 
-* setProxyMode, 设置代理模式，有五种模式：direct, byhost, bypass, always, system 和 clear。
+- setProxyMode, 设置代理模式，有五种模式：direct, byhost, bypass, always, system 和 clear。
 
-  ```
-  direct      Chrome不使用代理访问任何网站。
-  byhost      Chrome只在访问你添加过的网站时使用代理。你可以添加多条映射，让不同的网站使用不同的代理。
-  bypass      Chrome使用代理访问所有网站，除了添加过的网站。
-  always      Chrome使用代理访问所有网站。
-  system      Chrome使用操作系统设置的代理。
-  clear       Surfingkeys不管代理，有其他插件管理，也就是禁用Surfingkeys的代理管理功能, 这是默认模式。
-  ```
+    ```
+    direct      Chrome不使用代理访问任何网站。
+    byhost      Chrome只在访问你添加过的网站时使用代理。你可以添加多条映射，让不同的网站使用不同的代理。
+    bypass      Chrome使用代理访问所有网站，除了添加过的网站。
+    always      Chrome使用代理访问所有网站。
+    system      Chrome使用操作系统设置的代理。
+    clear       Surfingkeys不管代理，有其他插件管理，也就是禁用Surfingkeys的代理管理功能, 这是默认模式。
+    ```
 
-* `cp`, 切换当前站点的代理设置，即是否使用代理访问当前站点。
+- `cp`, 切换当前站点的代理设置，即是否使用代理访问当前站点。
 
-* `;pa`, `:setProxyMode always`快捷键。
+- `;pa`, `:setProxyMode always`快捷键。
 
-* `;pb`, `:setProxyMode byhost`快捷键。
+- `;pb`, `:setProxyMode byhost`快捷键。
 
-* `;pc`, `:setProxyMode clear`快捷键。
+- `;pc`, `:setProxyMode clear`快捷键。
 
-* `;pd`, `:setProxyMode direct`快捷键。
+- `;pd`, `:setProxyMode direct`快捷键。
 
-* `;ps`, `:setProxyMode system`快捷键。
-
+- `;ps`, `:setProxyMode system`快捷键。
 
 ## VIM编辑器或者Emacs编辑器
 
 Surfingkeys集成了ACE里的VIM编辑器，用于：
 
-* 编辑网页上的各类文本输入框。
-* 编辑URL并在新标签页打开
-* 编辑设置
+- 编辑网页上的各类文本输入框。
+- 编辑URL并在新标签页打开
+- 编辑设置
 
 你可以加上如下设置来使用Emacs按键：
 
     settings.aceKeybindings = "emacs";
 
 使用Emacs按键时，用`C-x C-s`来保存你的输入。
-
 
 ### 编辑网页上的各类文本输入框
 
@@ -515,13 +517,14 @@ Surfingkeys默认使用[这个markdown分析器](https://github.com/chjj/marked)
 
 如果你需要截屏，下面这些按键用得上，尤其是当你想截长屏／或页面中某个可以滚动的DIV时。
 
-* `yg` 截当前页的屏。
-* `yG` 滚动截完整页。
-* `yS` 截当前滚动对象的屏。
+- `yg` 截当前页的屏。
+- `yG` 滚动截完整页。
+- `yS` 截当前滚动对象的屏。
 
 按完以上任一快捷键之后，会弹出你所截取的图片，然后你可以用鼠标（😢）右键单击图片来保存或者复制。
 
 ## PDF阅读器
+
 为了支持PDF文件，Surfingkeys集成了来自[pdf.js](https://github.com/mozilla/pdf.js)的PDF阅读器。当你用Chrome打开一个PDF文件时，这个PDF阅读器就会打开，这样所有Surfingkeys的按键都可以用了。
 
 如果希望使用Chrome默认的PDF阅读器打开，可以按`;s`切换。
@@ -532,57 +535,57 @@ Surfingkeys默认使用[这个markdown分析器](https://github.com/chjj/marked)
 
 ### 属性设置列表
 
-| 属性 | 默认值 | 解释 |
-|:---------------|:-----|:-----|
-| settings.showModeStatus | false | 是否在状态栏显示当前模式。 |
-| settings.showProxyInStatusBar | false | 是否在状态栏显示代理信息。 |
-| settings.richHintsForKeystroke | 500 | 超过指定毫秒数后显示按键提示，如果指定值等于0会禁用按键提示。 |
-| settings.useLocalMarkdownAPI |  true | 是否使用[chjj/marked](https://github.com/chjj/marked)解析markdown，否则使用github API。 |
-| settings.focusOnSaved | true | 是否在退出内嵌VIM编辑器后把光标定位到输入框。 |
-| settings.omnibarMaxResults | 10 | 搜索栏下面每页显示多少条结果。 |
-| settings.omnibarHistoryCacheSize | 100 | 从浏览历史记录中返回查询结果的最大条数. |
-| settings.omnibarPosition | "middle" | 定义搜索框位置。 ["middle", "bottom"] |
-| settings.omnibarSuggestionTimeout | 200 | 设置触发搜索引擎提示的超时，当按键过去设定毫秒后才发起搜索引擎提示的请求，这样避免每次按键就触发请求。|
-| settings.focusFirstCandidate | false | 是否在搜索栏下面自动选择第一个匹配的结果。 |
-| settings.tabsThreshold | 100 | 当打开标签页的数量超过设定值时，使用搜索栏来查找标签页。 |
-| settings.verticalTabs | true | 是否纵向排列标签选择栏。 |
-| settings.clickableSelector | "" | 自定义CSS selector用于f键选择无法检测到的可点击元素，例如"\*.jfk-button, \*.goog-flat-menu-button"。 |
-| settings.clickablePat | /(https?&#124;thunder&#124;magnet):\/\/\S+/ig | 用于检测文字中可点击链接的正则表达式，你可以按`O`打开检测到的链接。|
-| settings.editableSelector | div.CodeMirror-scroll,div.ace_content | 额外CSS selector以自定义可编辑元素。|
-| settings.smoothScroll | true | 是否启用顺滑滚动。 |
-| settings.modeAfterYank | "" | 在可视模式下，在复制文本之后，回到哪种模式，["", "Caret", "Normal"]，默认是""，指保持当前模式。 |
-| settings.scrollStepSize | 70 | `j`/`k`滚动时每一步的大小。 |
-| settings.scrollFriction | 0 | 在滚动一步之后，开始连续滚动所需要的力。数字大，表示需要更大的力来启动连续滚动，这样在开始连续滚动时会有一个抖动，但也能保证第一步的滚动幅度是精确的。 |
-| settings.nextLinkRegex | /((>>&#124;next)+)/i | 匹配下一页链接的正则表达式。 |
-| settings.prevLinkRegex | /((<<&#124;prev(ious)?)+)/i| 匹配上一页链接的正则表达式。 |
-| settings.hintAlign | "center" | 拨号键与它对应的目标如何对齐。["left", "center", "right"] |
-| settings.defaultSearchEngine | "g" | 搜索栏里的默认搜索引擎。 |
-| settings.blocklistPattern | undefined | 如果当前访问的网站匹配设定的正则表达式，则禁用Surfingkeys。 |
-| settings.focusAfterClosed | "right" | 关掉当前标签页后，切换到哪一侧的标签页。["left", "right"] |
-| settings.repeatThreshold | 9 | 操作可重复最多次数。 |
-| settings.tabsMRUOrder | true | 查找打开标签页时，是否按最近访问顺序列出所有标签页。 |
-| settings.historyMUOrder | true | 查找访问记录时，是否按最常访问顺序列出所有访问记录。 |
-| settings.newTabPosition | 'default' | 在哪个位置创建新标签页。["left", "right", "first", "default"] |
-| settings.interceptedErrors | [] | 指明Surfingkeys为哪些错误显示错误页，这样在这些错误页你依然可以使用Surfingkeys。例如，["*"]为所有错误显示错误页，["net::ERR_NAME_NOT_RESOLVED"]只为ERR_NAME_NOT_RESOLVED显示错误页。更多错误请参考[net_error_list.h](https://github.com/adobe/chromium/blob/master/net/base/net_error_list.h)。  |
-| settings.enableEmojiInsertion | false | 是否打开插入模式下的表情下拉选项 |
-| settings.startToShowEmoji | 2 | 在冒号后输入多少个字符才显示表情下拉选项。 |
-| settings.language | undefined | 帮助中使用何种语言，目前只支持中英文，设为"zh-CN"显示中文帮助。 |
-| settings.stealFocusOnLoad | true | 是否阻止光标定位到输入框，默认为true，这样我们可以在页面加载结束之后直接使用Surfingkeys提供的各类按键，否则需要按Esc退出输入框。 |
-| settings.enableAutoFocus | true | 是否允许光标自动定位到动态显示的输入框里。这个设置和`stealFocusOnLoad`不同，那个只是在页面加载完成后跳出输入框。比如，有一个页面上有个隐藏的输入框，它只在用户点击某个链接后显示出来。如果你不想这个刚显示出来的输入框自动获得焦点，就可以把这个设置设为false。 |
-| settings.theme | undefined | 修改Surfingkeys界面风格。 |
-| settings.caseSensitive | false | 网页/搜索框内搜索是否大小写敏感。 |
-| settings.smartCase | true | 当搜索关键字里含有大写字符时，是否自动设为大小写敏感。 |
-| settings.cursorAtEndOfInput | true | 是否在进入输入框时把光标放在结尾，为false时，光标将放在上次离开输入框时的位置。 |
-| settings.digitForRepeat | true | 是否把数字输入当作重复次数，为false时，数字可作为普通按键。 |
-| settings.editableBodyCare | true | 当焦点定位到一个可编辑的元素时，Insert模式会自动激活，所以如果某个window/iframe里的document.body本身就是可编辑的（例如docs.google.com），Insert模式会一直处于激活状态，这样所有Normal模式下的按键都不可用了。当`editableBodyCare`为`true`时，Insert模式在这种情况下不会自动激活。|
-| settings.ignoredFrameHosts | ["https://tpc.googlesyndication.com"] | 当用`w`切换frame时，你可以用这个设置来过滤掉某些frame，比如那些做广告的frame。|
-| settings.aceKeybindings | "vim" | 改为"emacs"可以在ACE编辑器里使用Emacs按键。 |
-| settings.caretViewport | null | 按`[top, left, bottom, right]`格式设置，可以限制按`v`进入可视模式时的选择范围。比如`[window.innerHeight / 2 - 10, 0, window.innerHeight / 2 + 10, window.innerWidth]`会使Surfingkeys只会为显示在窗口中间的文字生成拨号盘字符。|
-| settings.mouseSelectToQuery | [] | 所有启用鼠标选择查询功能的网站列表。 |
-| settings.autoSpeakOnInlineQuery | false | 是否在使用inline query时自动发声。 |
-| settings.showTabIndices | false | 是否在标签页标题上显示当前标签页的编号。 |
-| settings.tabIndicesSeparator | "\|" | 标签页编号与标签页原始标题之间的分隔符。 |
-| settings.disabledOnActiveElementPattern | undefined | 当活动元素匹配这个设置时自动停用Surfingkeys，当活动元素变了继续启用，一个比较有用的场景是可以通过这个设置允许用户在一个大的下拉列表中通过按键快速定位选项，比如 `settings.disabledOnActiveElementPattern = "ul.select-dropdown-options";` |
+| 属性                                    | 默认值                                        | 解释                                                                                                                                                                                                                                                                                            |
+| :-------------------------------------- | :-------------------------------------------- | :---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| settings.showModeStatus                 | false                                         | 是否在状态栏显示当前模式。                                                                                                                                                                                                                                                                      |
+| settings.showProxyInStatusBar           | false                                         | 是否在状态栏显示代理信息。                                                                                                                                                                                                                                                                      |
+| settings.richHintsForKeystroke          | 500                                           | 超过指定毫秒数后显示按键提示，如果指定值等于0会禁用按键提示。                                                                                                                                                                                                                                   |
+| settings.useLocalMarkdownAPI            | true                                          | 是否使用[chjj/marked](https://github.com/chjj/marked)解析markdown，否则使用github API。                                                                                                                                                                                                         |
+| settings.focusOnSaved                   | true                                          | 是否在退出内嵌VIM编辑器后把光标定位到输入框。                                                                                                                                                                                                                                                   |
+| settings.omnibarMaxResults              | 10                                            | 搜索栏下面每页显示多少条结果。                                                                                                                                                                                                                                                                  |
+| settings.omnibarHistoryCacheSize        | 100                                           | 从浏览历史记录中返回查询结果的最大条数.                                                                                                                                                                                                                                                         |
+| settings.omnibarPosition                | "middle"                                      | 定义搜索框位置。 ["middle", "bottom"]                                                                                                                                                                                                                                                           |
+| settings.omnibarSuggestionTimeout       | 200                                           | 设置触发搜索引擎提示的超时，当按键过去设定毫秒后才发起搜索引擎提示的请求，这样避免每次按键就触发请求。                                                                                                                                                                                          |
+| settings.focusFirstCandidate            | false                                         | 是否在搜索栏下面自动选择第一个匹配的结果。                                                                                                                                                                                                                                                      |
+| settings.tabsThreshold                  | 100                                           | 当打开标签页的数量超过设定值时，使用搜索栏来查找标签页。                                                                                                                                                                                                                                        |
+| settings.verticalTabs                   | true                                          | 是否纵向排列标签选择栏。                                                                                                                                                                                                                                                                        |
+| settings.clickableSelector              | ""                                            | 自定义CSS selector用于f键选择无法检测到的可点击元素，例如"\*.jfk-button, \*.goog-flat-menu-button"。                                                                                                                                                                                            |
+| settings.clickablePat                   | /(https?&#124;thunder&#124;magnet):\/\/\S+/ig | 用于检测文字中可点击链接的正则表达式，你可以按`O`打开检测到的链接。                                                                                                                                                                                                                             |
+| settings.editableSelector               | div.CodeMirror-scroll,div.ace_content         | 额外CSS selector以自定义可编辑元素。                                                                                                                                                                                                                                                            |
+| settings.smoothScroll                   | true                                          | 是否启用顺滑滚动。                                                                                                                                                                                                                                                                              |
+| settings.modeAfterYank                  | ""                                            | 在可视模式下，在复制文本之后，回到哪种模式，["", "Caret", "Normal"]，默认是""，指保持当前模式。                                                                                                                                                                                                 |
+| settings.scrollStepSize                 | 70                                            | `j`/`k`滚动时每一步的大小。                                                                                                                                                                                                                                                                     |
+| settings.scrollFriction                 | 0                                             | 在滚动一步之后，开始连续滚动所需要的力。数字大，表示需要更大的力来启动连续滚动，这样在开始连续滚动时会有一个抖动，但也能保证第一步的滚动幅度是精确的。                                                                                                                                          |
+| settings.nextLinkRegex                  | /((>>&#124;next)+)/i                          | 匹配下一页链接的正则表达式。                                                                                                                                                                                                                                                                    |
+| settings.prevLinkRegex                  | /((<<&#124;prev(ious)?)+)/i                   | 匹配上一页链接的正则表达式。                                                                                                                                                                                                                                                                    |
+| settings.hintAlign                      | "center"                                      | 拨号键与它对应的目标如何对齐。["left", "center", "right"]                                                                                                                                                                                                                                       |
+| settings.defaultSearchEngine            | "g"                                           | 搜索栏里的默认搜索引擎。                                                                                                                                                                                                                                                                        |
+| settings.blocklistPattern               | undefined                                     | 如果当前访问的网站匹配设定的正则表达式，则禁用Surfingkeys。                                                                                                                                                                                                                                     |
+| settings.focusAfterClosed               | "right"                                       | 关掉当前标签页后，切换到哪一侧的标签页。["left", "right"]                                                                                                                                                                                                                                       |
+| settings.repeatThreshold                | 9                                             | 操作可重复最多次数。                                                                                                                                                                                                                                                                            |
+| settings.tabsMRUOrder                   | true                                          | 查找打开标签页时，是否按最近访问顺序列出所有标签页。                                                                                                                                                                                                                                            |
+| settings.historyMUOrder                 | true                                          | 查找访问记录时，是否按最常访问顺序列出所有访问记录。                                                                                                                                                                                                                                            |
+| settings.newTabPosition                 | 'default'                                     | 在哪个位置创建新标签页。["left", "right", "first", "default"]                                                                                                                                                                                                                                   |
+| settings.interceptedErrors              | []                                            | 指明Surfingkeys为哪些错误显示错误页，这样在这些错误页你依然可以使用Surfingkeys。例如，["*"]为所有错误显示错误页，["net::ERR_NAME_NOT_RESOLVED"]只为ERR_NAME_NOT_RESOLVED显示错误页。更多错误请参考[net_error_list.h](https://github.com/adobe/chromium/blob/master/net/base/net_error_list.h)。 |
+| settings.enableEmojiInsertion           | false                                         | 是否打开插入模式下的表情下拉选项                                                                                                                                                                                                                                                                |
+| settings.startToShowEmoji               | 2                                             | 在冒号后输入多少个字符才显示表情下拉选项。                                                                                                                                                                                                                                                      |
+| settings.language                       | undefined                                     | 帮助中使用何种语言，目前只支持中英文，设为"zh-CN"显示中文帮助。                                                                                                                                                                                                                                 |
+| settings.stealFocusOnLoad               | true                                          | 是否阻止光标定位到输入框，默认为true，这样我们可以在页面加载结束之后直接使用Surfingkeys提供的各类按键，否则需要按Esc退出输入框。                                                                                                                                                                |
+| settings.enableAutoFocus                | true                                          | 是否允许光标自动定位到动态显示的输入框里。这个设置和`stealFocusOnLoad`不同，那个只是在页面加载完成后跳出输入框。比如，有一个页面上有个隐藏的输入框，它只在用户点击某个链接后显示出来。如果你不想这个刚显示出来的输入框自动获得焦点，就可以把这个设置设为false。                                 |
+| settings.theme                          | undefined                                     | 修改Surfingkeys界面风格。                                                                                                                                                                                                                                                                       |
+| settings.caseSensitive                  | false                                         | 网页/搜索框内搜索是否大小写敏感。                                                                                                                                                                                                                                                               |
+| settings.smartCase                      | true                                          | 当搜索关键字里含有大写字符时，是否自动设为大小写敏感。                                                                                                                                                                                                                                          |
+| settings.cursorAtEndOfInput             | true                                          | 是否在进入输入框时把光标放在结尾，为false时，光标将放在上次离开输入框时的位置。                                                                                                                                                                                                                 |
+| settings.digitForRepeat                 | true                                          | 是否把数字输入当作重复次数，为false时，数字可作为普通按键。                                                                                                                                                                                                                                     |
+| settings.editableBodyCare               | true                                          | 当焦点定位到一个可编辑的元素时，Insert模式会自动激活，所以如果某个window/iframe里的document.body本身就是可编辑的（例如docs.google.com），Insert模式会一直处于激活状态，这样所有Normal模式下的按键都不可用了。当`editableBodyCare`为`true`时，Insert模式在这种情况下不会自动激活。               |
+| settings.ignoredFrameHosts              | ["https://tpc.googlesyndication.com"]         | 当用`w`切换frame时，你可以用这个设置来过滤掉某些frame，比如那些做广告的frame。                                                                                                                                                                                                                  |
+| settings.aceKeybindings                 | "vim"                                         | 改为"emacs"可以在ACE编辑器里使用Emacs按键。                                                                                                                                                                                                                                                     |
+| settings.caretViewport                  | null                                          | 按`[top, left, bottom, right]`格式设置，可以限制按`v`进入可视模式时的选择范围。比如`[window.innerHeight / 2 - 10, 0, window.innerHeight / 2 + 10, window.innerWidth]`会使Surfingkeys只会为显示在窗口中间的文字生成拨号盘字符。                                                                  |
+| settings.mouseSelectToQuery             | []                                            | 所有启用鼠标选择查询功能的网站列表。                                                                                                                                                                                                                                                            |
+| settings.autoSpeakOnInlineQuery         | false                                         | 是否在使用inline query时自动发声。                                                                                                                                                                                                                                                              |
+| settings.showTabIndices                 | false                                         | 是否在标签页标题上显示当前标签页的编号。                                                                                                                                                                                                                                                        |
+| settings.tabIndicesSeparator            | "\|"                                          | 标签页编号与标签页原始标题之间的分隔符。                                                                                                                                                                                                                                                        |
+| settings.disabledOnActiveElementPattern | undefined                                     | 当活动元素匹配这个设置时自动停用Surfingkeys，当活动元素变了继续启用，一个比较有用的场景是可以通过这个设置允许用户在一个大的下拉列表中通过按键快速定位选项，比如 `settings.disabledOnActiveElementPattern = "ul.select-dropdown-options";`                                                       |
 
 ### settings.theme示例，修改状态栏字体
 
@@ -593,13 +596,14 @@ Surfingkeys默认使用[这个markdown分析器](https://github.com/chjj/marked)
     }`;
 
 ## 大语言模型对话
+
 目前集成了比较常用的几个大语言模型，可用`A`调出对话窗口，
 
-* Ollama
-* Bedrock
-* DeepSeek
-* Gemini
-* 自定义模型(例如：SiliconFlow 和 OpenRouter, 其他和OpenAI API兼容的服务应该也可以)
+- Ollama
+- Bedrock
+- DeepSeek
+- Gemini
+- 自定义模型(例如：SiliconFlow 和 OpenRouter, 其他和OpenAI API兼容的服务应该也可以)
 
 使用之前，必须设置相应的密钥或者API key，比如
 
@@ -666,15 +670,16 @@ Mac下同时允许在Chrome和Firefox里使用
 
 ## Credits
 
-* ~~[jQuery](https://github.com/jquery/jquery)~~, removed for less memory usage and better performance.
-* ~~[TRIE](https://github.com/mikedeboer/trie)~~, finally replaced by my own simple implementation for less memory usage and better performance.
-* [ACE vim editor](https://github.com/ajaxorg/ace), for vim editor.
-* [markdown parser](https://github.com/chjj/marked), for markdown parser.
-* [pdf.js](https://github.com/mozilla/pdf.js), for pdf viewer.
-* [vimium](https://github.com/philc/vimium), for the days without this extension.
-* [cVim](https://github.com/1995eaton/chromium-vim), for the days without this extension.
+- ~~[jQuery](https://github.com/jquery/jquery)~~, removed for less memory usage and better performance.
+- ~~[TRIE](https://github.com/mikedeboer/trie)~~, finally replaced by my own simple implementation for less memory usage and better performance.
+- [ACE vim editor](https://github.com/ajaxorg/ace), for vim editor.
+- [markdown parser](https://github.com/chjj/marked), for markdown parser.
+- [pdf.js](https://github.com/mozilla/pdf.js), for pdf viewer.
+- [vimium](https://github.com/philc/vimium), for the days without this extension.
+- [cVim](https://github.com/1995eaton/chromium-vim), for the days without this extension.
 
 ## 捐赠
+
 Support me with [paypal](https://www.paypal.me/brookhong), or
 
 ![donation](https://raw.githubusercontent.com/brookhong/Surfingkeys/master/src/pages/donation.png)

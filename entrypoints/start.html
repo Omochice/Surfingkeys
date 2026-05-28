@@ -1,14 +1,14 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
     <head>
-        <meta charset="UTF-8">
+        <meta charset="UTF-8" />
         <title>New Tab</title>
-        <link rel="stylesheet" href="/content.css">
-        <link rel="stylesheet" href="../src/pages/start.css">
+        <link rel="stylesheet" href="/content.css" />
+        <link rel="stylesheet" href="../src/pages/start.css" />
     </head>
     <body>
         <div id="content">
-            <div id="screen1" style="display: none;">
+            <div id="screen1" style="display: none">
                 <div id="quickIntro">
                     <h2>Get started with Surfingkeys.</h2>
                     <ul>
@@ -27,8 +27,14 @@
                         <li><code>;e</code> to edit Settings.</li>
                         <li><code>?</code> to find more shortcuts.</li>
                     </ul>
-                    <h2><a href="https://github.com/brookhong/Surfingkeys/wiki/FAQ">FAQ from Surfingkeys wiki</a></h2>
-                    <h2 id="show-full-list-of-surfingkeys"><a href="#">Show full list of Surfingkeys</a></h2>
+                    <h2>
+                        <a href="https://github.com/brookhong/Surfingkeys/wiki/FAQ"
+                            >FAQ from Surfingkeys wiki</a
+                        >
+                    </h2>
+                    <h2 id="show-full-list-of-surfingkeys">
+                        <a href="#">Show full list of Surfingkeys</a>
+                    </h2>
                 </div>
                 <div id="topSites">
                     <h2>Top Sites</h2>
@@ -36,10 +42,9 @@
                 </div>
                 <div id="randomTip"></div>
             </div>
-            <div id="screen2" style="display: none;">
-                <p id="back"><a href='#'>🔙</a></p>
-                <div id="sk_usage">
-                </div>
+            <div id="screen2" style="display: none">
+                <p id="back"><a href="#">🔙</a></p>
+                <div id="sk_usage"></div>
             </div>
         </div>
         <script type="module" src="../src/content_scripts/startPage.ts"></script>

@@ -4,19 +4,19 @@ Frontend command is to call functions provided by SurfingKeys' frontend, such as
 
 ## window types
 
-* top
+- top
 
     The top content window, for most page without frames, the top window is the only content window.
 
-* content
+- content
 
     The content windows including top window and content windows for kinds of frames.
 
-* background
+- background
 
     The background window
 
-* frontend
+- frontend
 
     The frontend UI of SurfingKeys, created in a shadowRoot by top window.
 
@@ -39,7 +39,6 @@ Frontend command is to call functions provided by SurfingKeys' frontend, such as
             background->>content: 6. response
 
         end
-
 
 ## to be improved
 

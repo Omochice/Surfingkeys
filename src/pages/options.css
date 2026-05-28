@@ -14,7 +14,7 @@ textarea {
 #save_container {
     float: right;
 }
-#save_container>a {
+#save_container > a {
     padding-right: 8px;
     border-right: 1px solid #000;
 }
@@ -22,8 +22,14 @@ textarea {
     cursor: pointer;
     padding: 0px 2px;
     text-decoration: underline;
-    background: -webkit-gradient(linear, left top, left bottom, color-stop(0%,#FFF785), color-stop(100%,#FFC542));
-    border: solid 1px #C38A22;
+    background: -webkit-gradient(
+        linear,
+        left top,
+        left bottom,
+        color-stop(0%, #fff785),
+        color-stop(100%, #ffc542)
+    );
+    border: solid 1px #c38a22;
     border-radius: 2px;
 }
 .info {
@@ -43,11 +49,12 @@ div.aphost {
     width: 200px;
     color: blue;
 }
-div.aphost>span.remove {
+div.aphost > span.remove {
     cursor: pointer;
 }
 
-#searchAliases>div, #basicMappings>div {
+#searchAliases > div,
+#basicMappings > div {
     display: inline-block;
     padding: 1px 20px;
     border-left: 1px solid #ccc;
@@ -71,7 +78,12 @@ kbd {
     white-space: nowrap;
     display: inline-block;
     padding: 3px 5px;
-    font: 11px Consolas, "Liberation Mono", Menlo, Courier, monospace;
+    font:
+        11px Consolas,
+        "Liberation Mono",
+        Menlo,
+        Courier,
+        monospace;
     line-height: 10px;
     vertical-align: middle;
     border: solid 1px #ccc;
@@ -110,7 +122,13 @@ div.pressedKey kbd {
     cursor: pointer;
 }
 span.highlight {
-    background: -webkit-gradient(linear, left top, left bottom, color-stop(0%,#FFF785), color-stop(100%,#FFC542));
+    background: -webkit-gradient(
+        linear,
+        left top,
+        left bottom,
+        color-stop(0%, #fff785),
+        color-stop(100%, #ffc542)
+    );
 }
 #localPath {
     width: 520px;
@@ -120,7 +138,8 @@ span.highlight {
         margin: 0px 8px;
         width: initial;
     }
-    .proxyPair input, #localPath {
+    .proxyPair input,
+    #localPath {
         width: initial;
     }
 }
