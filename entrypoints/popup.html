@@ -1,35 +1,54 @@
 <html>
-    <head>
-        <meta charset="UTF-8" />
-        <style>
-            body {
-                width: 320px;
-            }
-            a {
-                font-size: 14px;
-                display: block;
-                color: #000;
-                text-decoration: none;
-                vertical-align: middle;
-                padding: 0.3rem;
-            }
-            a:hover {
-                background-color: #333;
-                color: #eee;
-            }
+  <head>
+    <meta charset="UTF-8" />
+    <style>
+      body {
+        width: 320px;
+      }
+      a {
+        font-size: 14px;
+        display: block;
+        color: #000;
+        text-decoration: none;
+        vertical-align: middle;
+        padding: 0.3rem;
+      }
+      a:hover {
+        background-color: #333;
+        color: #eee;
+      }
 
-            @-moz-document url-prefix() {
-                .disabledOnFirefox {
-                    display: none;
-                }
-            }
-        </style>
-    </head>
-    <body>
-        <a id="disableAll" href="#">Disable Surfingkeys</a>
-        <a href="/options.html" target="_blank">Settings</a>
-        <a href="/start.html" target="_blank">Help</a>
-        <a id="reportIssue" href="#">Report issue</a>
-        <script type="module" src="../src/pages/popup.ts"></script>
-    </body>
+      @-moz-document url-prefix() {
+        .disabledOnFirefox {
+          display: none;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <a
+      id="disableAll"
+      href="#"
+      >Disable Surfingkeys</a
+    >
+    <a
+      href="/options.html"
+      target="_blank"
+      >Settings</a
+    >
+    <a
+      href="/start.html"
+      target="_blank"
+      >Help</a
+    >
+    <a
+      id="reportIssue"
+      href="#"
+      >Report issue</a
+    >
+    <script
+      type="module"
+      src="../src/pages/popup.ts"
+    ></script>
+  </body>
 </html>

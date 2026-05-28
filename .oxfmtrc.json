@@ -1,10 +1,14 @@
 {
-    "$schema": "https://raw.githubusercontent.com/oxc-project/oxc/refs/tags/oxfmt_v0.51.0/npm/oxfmt/configuration_schema.json",
-    "tabWidth": 4,
-    "semi": true,
-    "ignorePatterns": [
-        "firefox_pac.js",
-        "src/content_scripts/gist.js",
-        "src/content_scripts/common/debug_utils.js"
-    ]
+  "$schema": "https://raw.githubusercontent.com/oxc-project/oxc/refs/tags/oxfmt_v0.51.0/npm/oxfmt/configuration_schema.json",
+  "tabWidth": 2,
+  "singleAttributePerLine": true,
+  "sortPackageJson": true,
+  "sortImports": true,
+  "jsdoc": true,
+  "semi": true,
+  "ignorePatterns": [
+    "firefox_pac.js",
+    "src/content_scripts/gist.js",
+    "src/content_scripts/common/debug_utils.js"
+  ]
 }
