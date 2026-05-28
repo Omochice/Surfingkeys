@@ -83,3 +83,19 @@ describe("Mode.handleMapKey", () => {
     expect(mode.map_node).toBe(mode.mappings);
   });
 });
+
+describe("Mode.isSpecialKeyOf", () => {
+  it("matches a registered special key", () => {
+    expect(Mode.isSpecialKeyOf("<Esc>", KeyboardUtils.encodeKeystroke("<Esc>"))).toBe(true);
+  });
+
+  it("returns false for an unregistered special key bucket", () => {
+    expect(Mode.isSpecialKeyOf("<DoesNotExist>", KeyboardUtils.encodeKeystroke("<Esc>"))).toBe(
+      false,
+    );
+  });
+
+  it("returns false when the key does not belong to the special-key set", () => {
+    expect(Mode.isSpecialKeyOf("<Esc>", KeyboardUtils.encodeKeystroke("a"))).toBe(false);
+  });
+});
