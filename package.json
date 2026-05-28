@@ -6,36 +6,37 @@
   "bugs": {
     "url": "https://github.com/brookhong/Surfingkeys/issues"
   },
-  "license": "MIT",
-  "author": "brook hong",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/brookhong/Surfingkeys.git"
   },
+  "license": "MIT",
+  "author": "brook hong",
+  "main": "background.js",
   "directories": {
     "doc": "docs",
     "test": "test"
   },
-  "main": "background.js",
   "scripts": {
-    "clean": "rimraf dist",
-    "build:doc": "documentation build src/content_scripts/common/api.ts src/content_scripts/common/normal.ts src/content_scripts/common/clipboard.ts src/content_scripts/common/hints.ts src/content_scripts/common/visual.ts src/content_scripts/front.ts src/user_scripts/index.ts -f md -o docs/api.md",
-    "dev": "wxt",
-    "dev:firefox": "wxt -b firefox",
+    "build": "npm-run-all2 clean test build:doc build:prod",
     "build:dev": "wxt build --mode development",
     "build:dev:firefox": "wxt build --mode development -b firefox",
+    "build:doc": "documentation build src/content_scripts/common/api.ts src/content_scripts/common/normal.ts src/content_scripts/common/clipboard.ts src/content_scripts/common/hints.ts src/content_scripts/common/visual.ts src/content_scripts/front.ts src/user_scripts/index.ts -f md -o docs/api.md",
     "build:prod": "wxt build",
     "build:prod:firefox": "wxt build -b firefox",
-    "build": "npm-run-all2 clean test build:doc build:prod",
-    "zip": "wxt zip",
-    "zip:firefox": "wxt zip -b firefox",
+    "clean": "rimraf dist",
+    "dev": "wxt",
+    "dev:firefox": "wxt -b firefox",
+    "fmt": "npm-run-all2 fmt:*",
+    "fmt:oxfmt": "oxfmt",
+    "fmt:package": "sort-package-json",
     "postinstall": "wxt prepare",
-    "test": "vitest run",
-    "test:watch": "vitest",
     "lint": "oxlint",
     "lint:fix": "oxlint --fix",
-    "fmt": "oxfmt",
-    "fmt:check": "oxfmt --check"
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "zip": "wxt zip",
+    "zip:firefox": "wxt zip -b firefox"
   },
   "dependencies": {
     "dompurify": "^3.2.4",
@@ -55,6 +56,7 @@
     "oxfmt": "0.51.0",
     "oxlint": "1.66.0",
     "rimraf": "^6.1.3",
+    "sort-package-json": "^3.6.1",
     "typescript": "^4.5.4",
     "vite-plugin-solid": "2.11.12",
     "vitest": "4.1.7",
