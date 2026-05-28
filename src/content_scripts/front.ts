@@ -540,7 +540,7 @@ function createFront(
         height: 0,
         width: 100,
       },
-      (pos: any, queryResult: any) => {
+      (_pos: any, queryResult: any) => {
         if (queryResult.constructor.name !== "Array") {
           queryResult = [queryResult];
         }
@@ -666,8 +666,8 @@ function createFront(
       } else if (_message.action === "frontendDestroyed") {
         frontendPromise = undefined;
       } else if (_active) {
-        if (_callbacks[_message.id]) {
-          const f = _callbacks[_message.id];
+        const f = _callbacks[_message.id];
+        if (f) {
           // returns true to make callback stay for coming response.
           if (!f(_message)) {
             delete _callbacks[_message.id];
@@ -676,7 +676,8 @@ function createFront(
           _message.action &&
           Object.prototype.hasOwnProperty.call(_actions, _message.action)
         ) {
-          let ret = _actions[_message.action](_message);
+          const action = _actions[_message.action];
+          let ret = action ? action(_message) : undefined;
           if (_message.ack && ret) {
             if (!ret.then) {
               ret = Promise.resolve(ret);
@@ -694,10 +695,16 @@ function createFront(
           }
         }
       } else if (_message.action === "activated") {
-        _actions["activated"](_message);
+        const activated = _actions["activated"];
+        if (activated) {
+          activated(_message);
+        }
       } else if (_message.type === "DictoriumViewReady") {
         // make inline query also work on dictorium frame continuously
-        _actions["activated"](_message);
+        const activated = _actions["activated"];
+        if (activated) {
+          activated(_message);
+        }
       }
       if (!event.data.dictorium_data) {
         event.stopImmediatePropagation();

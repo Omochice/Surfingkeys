@@ -280,17 +280,28 @@ export default function (
     }).then((aliases) => {
       const allAliases: Record<string, { prompt: string; checked: string }> = {};
       for (const key in aliases) {
-        let prompt = aliases[key].prompt;
+        const alias = aliases[key];
+        if (alias === undefined) {
+          continue;
+        }
+        let prompt = alias.prompt;
         if (!prompt.startsWith("<img src=")) {
           prompt = prompt.replace(/<span class='separator'>.*/, "");
         }
         allAliases[key] = { prompt, checked: "checked" };
       }
       for (const key in disabledSearchAliases) {
-        allAliases[key] = { prompt: disabledSearchAliases[key], checked: "" };
+        const prompt = disabledSearchAliases[key];
+        if (prompt !== undefined) {
+          allAliases[key] = { prompt, checked: "" };
+        }
       }
       for (const key in allAliases) {
-        const { prompt, checked } = allAliases[key];
+        const entry = allAliases[key];
+        if (entry === undefined) {
+          continue;
+        }
+        const { prompt, checked } = entry;
         const elm = createElementWithContent(
           "div",
           `<div class='remove'><input type="checkbox" ${checked} /></div><span class='prompt'>${prompt}</span>`,
@@ -373,13 +384,13 @@ export default function (
         keyPickerDiv.hide();
         self.exit();
         setSanitizedContent(_elm, _key !== "" ? htmlEncode(_key) : "🚫");
-        _elm.dataset.custom = _key;
+        _elm.dataset["custom"] = _key;
         const realDefMap: Record<string, string> = {};
         Array.from(basicMappingsDiv.querySelectorAll("kbd")).forEach((m) => {
           const el = m as HTMLElement;
-          const n = el.dataset.custom;
-          if (el.dataset.origin !== n) {
-            realDefMap[el.dataset.origin!] = n!;
+          const n = el.dataset["custom"];
+          if (el.dataset["origin"] !== n) {
+            realDefMap[el.dataset["origin"]!] = n!;
           }
         });
         RUNTIME("updateSettings", {

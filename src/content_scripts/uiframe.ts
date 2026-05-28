@@ -77,7 +77,10 @@ function createUiHost(adapter: BrowserLike, onload: (uiHost: HTMLElement) => voi
         }
       }
     } else if (_message.action && Object.prototype.hasOwnProperty.call(_actions, _message.action)) {
-      _actions[_message.action](_message);
+      const action = _actions[_message.action];
+      if (action) {
+        action(_message);
+      }
     } else if (_message.toContent) {
       // forward message to content
       if (activeContent) {

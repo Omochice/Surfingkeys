@@ -45,6 +45,9 @@ function applyBasicMappings(api: Api, normal: Normal, mappings: Record<string, s
   const originMappings: Record<string, any> = {};
   for (const originKey in mappings) {
     const newKey = mappings[originKey];
+    if (newKey === undefined) {
+      continue;
+    }
     // current new key is one original key that will be overrode later
     // we need save it some where first, since current map will lose it,
     // such as the `a` in above example.
@@ -57,7 +60,10 @@ function applyBasicMappings(api: Api, normal: Normal, mappings: Record<string, s
     if (newKey === "") {
       normal.mappings.remove(originKey);
     } else if (Object.prototype.hasOwnProperty.call(originMappings, originKey)) {
-      normal.mappings.add(newKey, originMappings[originKey]);
+      const meta = originMappings[originKey];
+      if (meta !== undefined) {
+        normal.mappings.add(newKey, meta);
+      }
     } else {
       api.map(newKey, originKey);
     }
@@ -122,7 +128,7 @@ function applySettings(api: Api, normal: Normal, rs: StoredSettings): void {
     }
   }
   if ("findHistory" in rs) {
-    runtime.conf.lastQuery = rs.findHistory!.length ? rs.findHistory![0] : "";
+    runtime.conf.lastQuery = rs.findHistory!.length ? (rs.findHistory![0] ?? "") : "";
   }
   if (!rs.showAdvanced) {
     if (rs.basicMappings) {
