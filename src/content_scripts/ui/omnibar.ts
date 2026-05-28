@@ -18,12 +18,13 @@ import {
     timeStampString,
 } from "../common/utils.js";
 import { RUNTIME, runtime } from "../common/runtime.js";
-import { createEffect, createSignal } from "solid-js";
+import { createEffect, createRoot, createSignal } from "solid-js";
 import { render } from "solid-js/web";
 import { ResultList } from "./components/ResultList";
 import type { ResultListItem } from "./components/ResultList";
 import { ResultPage } from "./components/ResultPage";
 import { Prompt } from "./components/Prompt";
+import { SearchInput } from "./components/SearchInput";
 
 // `Normal` is referenced by a couple of omnibar mappings but is not defined in
 // this module's scope in the original code; declared here so those paths keep
@@ -79,6 +80,11 @@ function createOmnibar(front: any, clipboard: any) {
     const [resultPage, setResultPage] = createSignal("");
     const [prompt, setPrompt] = createSignal("");
     self.setPrompt = setPrompt;
+    const [query, setQuery] = createSignal("");
+    const [inputVisible, setInputVisible] = createSignal(true);
+    const [placeholder, setPlaceholder] = createSignal("");
+    self.setQuery = setQuery;
+    self.setPlaceholder = setPlaceholder;
     const focusedResult = (): OmnibarResult | undefined => {
         const i = focusedIndex();
         return i >= 0 ? results()[i] : undefined;
@@ -118,7 +124,7 @@ function createOmnibar(front: any, clipboard: any) {
                         self.focusItem(newIdx);
                     } else {
                         savedFocused = bottom ? 0 : remaining.length;
-                        self.input.dispatchEvent(new Event("input", { bubbles: true }));
+                        self.triggerInput();
                     }
                 });
             }
@@ -184,7 +190,7 @@ function createOmnibar(front: any, clipboard: any) {
         feature_group: 8,
         code: function () {
             // hide Omnibar.input, so that we could use clipboard_holder to make copy
-            self.input.style.display = "none";
+            setInputVisible(false);
 
             const fi = focusedResult();
             let text;
@@ -201,7 +207,7 @@ function createOmnibar(front: any, clipboard: any) {
             }
             clipboard.write(text);
 
-            self.input.style.display = "";
+            setInputVisible(true);
         },
     });
 
@@ -263,11 +269,7 @@ function createOmnibar(front: any, clipboard: any) {
     const ui: any = document.getElementById("sk_omnibar");
 
     self.triggerInput = () => {
-        const event = new Event("input", {
-            bubbles: true,
-            cancelable: true,
-        });
-        self.input.dispatchEvent(event);
+        _onIput.call(self.input);
     };
 
     self.expandAlias = (alias: string, val: string) => {
@@ -286,7 +288,7 @@ function createOmnibar(front: any, clipboard: any) {
             setResultPage("");
             _items = null;
             self.collapsingPoint = val;
-            self.input.value = val;
+            setQuery(val);
             if (val.length) {
                 self.triggerInput();
             }
@@ -307,7 +309,7 @@ function createOmnibar(front: any, clipboard: any) {
             lastHandler = null;
             setPrompt(handler.prompt);
             if (val.length) {
-                self.input.value = val.substr(0, val.length - 1);
+                setQuery(val.substr(0, val.length - 1));
             }
             self.triggerInput();
             eaten = true;
@@ -334,7 +336,7 @@ function createOmnibar(front: any, clipboard: any) {
             } else {
                 // the slot past the last item returns focus to the typed input
                 setFocusedIndex(-1);
-                self.input.value = lastInput;
+                setQuery(lastInput);
             }
         }
     }
@@ -362,6 +364,36 @@ function createOmnibar(front: any, clipboard: any) {
         resultPageSpan,
     );
 
+    // The search input is created via createRoot so the rendered <input> element
+    // can be inserted at the exact position the layout (the `#sk_omnibarSearchArea>input`
+    // CSS selector) requires: between span.prompt and span.resultPage. The ref
+    // exposes the DOM node as self.input so the controller's imperative ops
+    // (focus, selectionStart, setSelectionRange, dispatchEvent) keep working.
+    createRoot(() => {
+        const inputEl = SearchInput({
+            get value() {
+                return query();
+            },
+            get visible() {
+                return inputVisible();
+            },
+            get placeholder() {
+                return placeholder();
+            },
+            onInput: (val: string) => {
+                setQuery(val);
+                _onIput.call(self.input);
+            },
+            onKeyDown: (evt: KeyboardEvent) => {
+                _onKeyDown(evt);
+            },
+            ref: (el: HTMLInputElement) => {
+                self.input = el;
+            },
+        }) as HTMLInputElement;
+        ui.querySelector("#sk_omnibarSearchArea")!.insertBefore(inputEl, resultPageSpan);
+    });
+
     function onResultSelect(index: number) {
         const d = results()[index]?.data;
         if (!d) {
@@ -370,7 +402,7 @@ function createOmnibar(front: any, clipboard: any) {
         if (d.url) {
             RUNTIME("openLink", { tab: { tabbed: true, active: true }, url: d.url });
         } else {
-            self.input.value = d.query;
+            setQuery(d.query ?? "");
             self.input.focus();
         }
     }
@@ -427,21 +459,6 @@ function createOmnibar(front: any, clipboard: any) {
         } else if (evt.keyCode === KeyboardUtils.keyCodes.backspace) {
             self.collapseAlias() && evt.preventDefault();
         }
-    }
-    function _createInput() {
-        const _input: any = document.createElement("input");
-        _input.oninput = _onIput;
-        _input.onkeydown = _onKeyDown;
-        _input.addEventListener("compositionstart", () => {
-            _input.oninput = null;
-            _input.onkeydown = null;
-        });
-        _input.addEventListener("compositionend", () => {
-            _input.oninput = _onIput;
-            _input.onkeydown = _onKeyDown;
-            _onIput.call(_input);
-        });
-        return _input;
     }
 
     self.mappings.add(KeyboardUtils.encodeKeystroke("<Tab>"), {
@@ -629,12 +646,6 @@ function createOmnibar(front: any, clipboard: any) {
     let _savedAargs: any;
     ui.onShow = (args: any) => {
         handler = handlers[args.type];
-        if (!self.input) {
-            self.input = _createInput();
-            document
-                .querySelector("#sk_omnibarSearchArea")!
-                .insertBefore(self.input, resultPageSpan);
-        }
         _savedAargs = args;
         ui.classList.remove("sk_omnibar_middle");
         ui.classList.remove("sk_omnibar_bottom");
@@ -651,7 +662,7 @@ function createOmnibar(front: any, clipboard: any) {
         self.input.focus();
         self.enter();
         if (args.pref) {
-            self.input.value = args.pref;
+            setQuery(args.pref);
         }
         self.resultsDiv.className = "";
         handler.onOpen && handler.onOpen(args.extra);
@@ -670,8 +681,8 @@ function createOmnibar(front: any, clipboard: any) {
         bookmarkFolders = null;
 
         lastInput = "";
-        self.input.value = "";
-        self.input.placeholder = "";
+        setQuery("");
+        setPlaceholder("");
         setResults([]);
         setFocusedIndex(-1);
         lastHandler = null;
@@ -974,7 +985,7 @@ function OpenBookmarks(omnibar: any): any {
             });
             self.prompt = fi.data.folder_name + separator;
             omnibar.setPrompt(self.prompt);
-            omnibar.input.value = "";
+            omnibar.setQuery("");
             currentFolderId = folderId;
             lastFocused = 0;
             RUNTIME("getBookmarks", { parentId: currentFolderId }, self.onResponse);
@@ -1100,7 +1111,7 @@ function AddBookmark(omnibar: any): any {
                 //restore the last used bookmark folder input
                 const lastBookmarkFolder = localStorage.getItem("surfingkeys.lastAddedBookmark");
                 if (lastBookmarkFolder) {
-                    omnibar.input.value = lastBookmarkFolder;
+                    omnibar.setQuery(lastBookmarkFolder);
 
                     //make the input selected, so if user don't want to use it,
                     //just input to overwrite the previous value
@@ -1116,7 +1127,7 @@ function AddBookmark(omnibar: any): any {
     self.onTabKey = () => {
         const fi = omnibar.focusedResult();
         if (fi) {
-            omnibar.input.value = fi.data.text.substr(2);
+            omnibar.setQuery(fi.data.text.substr(2));
         }
     };
 
@@ -1192,7 +1203,7 @@ function OpenURLs(prompt: string, omnibar: any, queryFn: () => Promise<any>): an
     };
     self.onOpen = (arg: any) => {
         if (arg) {
-            omnibar.input.value = arg;
+            omnibar.setQuery(arg);
         }
         sequenceNumber = 0;
         queryAndList();
@@ -1342,7 +1353,7 @@ function OpenWindows(omnibar: any, front: any): any {
         return true;
     };
     self.onOpen = () => {
-        omnibar.input.placeholder = "Press enter without focusing an item to move to a new window.";
+        omnibar.setPlaceholder("Press enter without focusing an item to move to a new window.");
         self.getResults();
         self.onInput();
     };
@@ -1471,7 +1482,7 @@ function SearchEngine(omnibar: any, front: any): any {
     self.onTabKey = () => {
         const fi = omnibar.focusedResult();
         if (fi && fi.data.query) {
-            omnibar.input.value = fi.data.query;
+            omnibar.setQuery(fi.data.query);
         }
     };
     self.onEnter = function (this: any) {
@@ -1644,7 +1655,7 @@ function Commands(omnibar: any, front: any): any {
     self.onTabKey = () => {
         const fi = omnibar.focusedResult();
         if (fi) {
-            omnibar.input.value = fi.data.cmd;
+            omnibar.setQuery(fi.data.cmd);
         }
     };
 
@@ -1654,7 +1665,7 @@ function Commands(omnibar: any, front: any): any {
         if (cmdline.length) {
             RUNTIME("updateInputHistory", { cmd: cmdline });
             execute(cmdline);
-            omnibar.input.value = "";
+            omnibar.setQuery("");
         }
         return ret;
     };
@@ -1719,7 +1730,7 @@ function OmniQuery(omnibar: any, front: any): any {
     let _words: string[];
     self.onOpen = (arg: any) => {
         if (arg && (document as any).dictEnabled === undefined) {
-            omnibar.input.value = arg;
+            omnibar.setQuery(arg);
             front.contentCommand({
                 action: "omnibar_query_entered",
                 query: arg,
@@ -1751,7 +1762,7 @@ function OmniQuery(omnibar: any, front: any): any {
     self.onTabKey = () => {
         const fi = omnibar.focusedResult();
         if (fi) {
-            omnibar.input.value = fi.data.text;
+            omnibar.setQuery(fi.data.text);
         }
     };
 
