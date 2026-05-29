@@ -254,7 +254,7 @@ importers:
         specifier: 29.1.1
         version: 29.1.1
       knip:
-        specifier: ^6.14.2
+        specifier: 6.14.2
         version: 6.14.2
       npm-run-all2:
         specifier: ^9.0.1
