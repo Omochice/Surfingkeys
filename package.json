@@ -13,14 +13,12 @@
   "license": "MIT",
   "author": "brook hong",
   "directories": {
-    "doc": "docs",
     "test": "test"
   },
   "scripts": {
-    "build": "npm-run-all2 clean test build:doc build:prod",
+    "build": "npm-run-all2 clean test build:prod",
     "build:dev": "wxt build --mode development",
     "build:dev:firefox": "wxt build --mode development -b firefox",
-    "build:doc": "documentation build src/content_scripts/common/api.ts src/content_scripts/common/normal.ts src/content_scripts/common/clipboard.ts src/content_scripts/common/hints.ts src/content_scripts/common/visual.ts src/content_scripts/front.ts src/user_scripts/index.ts -f md -o docs/api.md",
     "build:prod": "wxt build",
     "build:prod:firefox": "wxt build -b firefox",
     "check": "npm-run-all2 check:*",
@@ -54,7 +52,6 @@
     "@types/offscreencanvas": "^2019.6.4",
     "@types/webextension-polyfill": "0.12.5",
     "@wxt-dev/module-solid": "1.1.4",
-    "documentation": "^14.0.3",
     "jsdom": "29.1.1",
     "knip": "6.14.2",
     "npm-run-all2": "^9.0.1",
