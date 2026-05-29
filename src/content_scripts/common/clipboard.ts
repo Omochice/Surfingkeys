@@ -6,10 +6,10 @@ import {
   showBanner,
 } from "./utils.js";
 
-interface Clipboard {
+type Clipboard = {
   read(onReady: (response: { data: string }) => void): void;
   write(text: string): void;
-}
+};
 
 function createClipboard(): Clipboard {
   const self = {} as Clipboard;

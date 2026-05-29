@@ -4,12 +4,12 @@ import KeyboardUtils from "../src/content_scripts/common/keyboardUtils";
 import Mode from "../src/content_scripts/common/mode.js";
 import Trie from "../src/content_scripts/common/trie";
 
-interface FakeKeyEvent {
+type FakeKeyEvent = {
   sk_keyName: string;
   isTrusted: boolean;
   sk_stopPropagation?: boolean;
   sk_suppressed?: boolean;
-}
+};
 
 function makeMode() {
   const mode = new Mode("Test");

@@ -1,10 +1,10 @@
 import DOMPurify from "dompurify";
 import type { Component } from "solid-js";
 
-export interface PopupProps {
+export type PopupProps = {
   /** Raw HTML content shown in the popup; sanitized at the injection point. */
   html: string;
-}
+};
 
 /**
  * Popup panel in the frontend iframe, used for showPopup content and the Ok/Cancel dialog. The

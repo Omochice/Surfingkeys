@@ -2,13 +2,13 @@ import DOMPurify from "dompurify";
 import { Index } from "solid-js";
 import type { Component } from "solid-js";
 
-export interface StatusBarProps {
+export type StatusBarProps = {
   /**
    * Raw HTML for each status cell (mode, search, search result). Empty cells render no padding or
    * border so they collapse; the caller hides the whole bar when every cell is empty.
    */
   cells: string[];
-}
+};
 
 /**
  * Status line shown in the frontend iframe. A reactive Solid replacement for the imperative

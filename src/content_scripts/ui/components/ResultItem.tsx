@@ -2,7 +2,7 @@ import DOMPurify from "dompurify";
 import { onMount } from "solid-js";
 import type { Component } from "solid-js";
 
-export interface ResultItemProps {
+export type ResultItemProps = {
   /** Inner HTML of the row (icon, title, url, …); sanitized at injection. */
   html: string;
   /** Extra class on the <li>, e.g. "window" for the window chooser rows. */
@@ -17,7 +17,7 @@ export interface ResultItemProps {
    * the legacy code set the src imperatively after sanitizing the row content.
    */
   faviconSrc?: string | undefined;
-}
+};
 
 /**
  * A single omnibar result row. The legacy omnibar built each <li> imperatively with

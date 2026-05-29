@@ -74,7 +74,7 @@ export function _save(storage: any, data: any, cb?: () => void): void {
  * `tabMessages`, `setScrollPos`, the shared `handlers` registry, `newTabUrl` and `quit` for the
  * marks/session actions that drive tab navigation.
  */
-export interface SettingsDeps {
+export type SettingsDeps = {
   _response: Respond;
   conf: Record<string, any>;
   browser: any;
@@ -84,19 +84,19 @@ export interface SettingsDeps {
   handlers: Record<string, MessageHandler>;
   newTabUrl: string;
   quit: () => void;
-}
+};
 
 /**
  * What the composition root needs back from the settings subsystem: the handler map to register,
  * plus the three infra functions still called by misc handlers that stay in start.ts (`removeURL`'s
  * mark-deletion branch and `localData`).
  */
-export interface SettingsUnit {
+export type SettingsUnit = {
   handlers: Record<string, MessageHandler>;
   loadSettings: (keys: any, cb: (set: any) => void) => void;
   updateAndPostSettings: (diffSettings: any, afterSet?: () => void) => void;
   broadcastSettings: (data: any) => void;
-}
+};
 
 /**
  * Settings subsystem: load/save/sync of settings, the blocklist/mouse-query state toggles, the

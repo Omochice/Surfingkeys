@@ -1,10 +1,10 @@
 import DOMPurify from "dompurify";
 import type { Component } from "solid-js";
 
-export interface PromptProps {
+export type PromptProps = {
   /** Prompt label HTML (handler name, separator span, search-engine icon); sanitized at injection. */
   html: string;
-}
+};
 
 /**
  * The omnibar prompt label (#sk_omnibarSearchArea > span.prompt). The legacy code set it via

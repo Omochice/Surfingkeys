@@ -6,33 +6,6 @@ import { RUNTIME, dispatchSKEvent, runtime } from "./runtime.js";
 import type Trie from "./trie";
 import type { TrieMeta } from "./trie";
 
-declare global {
-  interface String {
-    /** Positional substitution: "{0}/{1}".format(a, b). */
-    format(...args: unknown[]): string;
-    reverse(): string;
-  }
-  interface RegExp {
-    toJSON(): { source: string; flags: string };
-  }
-  interface DOMRect {
-    /** Hit test of (x, y) with tolerances ex/ey on each axis. */
-    has(x: number, y: number, ex: number, ey: number): boolean;
-  }
-  interface HTMLElement {
-    one(evt: string, handler: (this: HTMLElement) => void): void;
-    show(): void;
-    hide(): void;
-    removeAttributes(): void;
-    containsWithShadow(e: Node): boolean;
-  }
-  interface NodeList {
-    remove(): void;
-    show(): void;
-    hide(): void;
-  }
-}
-
 const colors = [
   "#4169E1", // Royal Blue
   "#E74C3C", // Bright Red

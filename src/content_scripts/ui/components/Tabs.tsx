@@ -1,16 +1,16 @@
 import { For, Show } from "solid-js";
 import type { Component } from "solid-js";
 
-export interface TabsTab {
+export type TabsTab = {
   id: number;
   windowId: number;
   title: string;
   active: boolean;
   url: string;
   favIconUrl?: string;
-}
+};
 
-export interface TabsProps {
+export type TabsProps = {
   tabs: TabsTab[];
   /** Hint labels for the non-active tabs, in document order. */
   hintLabels: string[];
@@ -20,7 +20,7 @@ export interface TabsProps {
   unitWidth: number;
   /** Attaches the tab's favicon to its <img>; injected because it is async and extension-bound. */
   attachFavicon: (tab: TabsTab, img: HTMLImageElement) => void;
-}
+};
 
 type HintElement = HTMLDivElement & { label?: string; link?: { id: number; windowId: number } };
 

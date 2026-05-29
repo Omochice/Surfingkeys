@@ -3,22 +3,22 @@ import type { Component } from "solid-js";
 
 import { ResultItem } from "./ResultItem";
 
-export interface ResultListItem {
+export type ResultListItem = {
   /** Inner HTML of the row. */
   html: string;
   /** Extra class on the row, e.g. "window". */
   className?: string;
   /** Favicon URL applied to the row's `<img class=icon>` after render. */
   faviconSrc?: string;
-}
+};
 
-export interface ResultListProps {
+export type ResultListProps = {
   items: ResultListItem[];
   /** Index of the focused row, or -1 when none is focused. */
   focusedIndex: number;
   /** Invoked with the row index when a row is clicked. */
   onSelect: (index: number) => void;
-}
+};
 
 /**
  * The omnibar result list (#sk_omnibarSearchResult). Renders a <ul> of ResultItem rows from a
