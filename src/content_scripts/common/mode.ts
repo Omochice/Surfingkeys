@@ -4,14 +4,6 @@ import type Trie from "./trie";
 import type { TrieMeta } from "./trie";
 import { listElements, isInUIFrame, reportIssue } from "./utils.js";
 
-declare global {
-  interface Event {
-    sk_keyName?: string;
-    sk_stopPropagation?: boolean;
-    sk_suppressed?: boolean;
-  }
-}
-
 type StackEvent = Event & { keyCode?: number };
 
 let mode_stack: Mode[] = [];

@@ -16,13 +16,6 @@ import {
 } from "./common/utils.js";
 import createFront from "./front.js";
 
-declare global {
-  interface Window {
-    frameId?: string;
-    getFrameId(): string | undefined;
-  }
-}
-
 // The injected browser adapter (createFront / plugin hook) is untyped JS.
 type BrowserAdapter = {
   plugin?: (ctx: { front: unknown }) => void;
