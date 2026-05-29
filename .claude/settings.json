@@ -1,0 +1,16 @@
+{
+  "includeCoAuthoredBy": true,
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Edit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "pnpm run fmt"
+          }
+        ]
+      }
+    ]
+  }
+}
