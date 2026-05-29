@@ -13,7 +13,6 @@
   "license": "MIT",
   "author": "brook hong",
   "directories": {
-    "doc": "docs",
     "test": "test"
   },
   "scripts": {
