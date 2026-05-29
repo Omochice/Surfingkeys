@@ -12,7 +12,6 @@
   },
   "license": "MIT",
   "author": "brook hong",
-  "main": "background.js",
   "directories": {
     "doc": "docs",
     "test": "test"
