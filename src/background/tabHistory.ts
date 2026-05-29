@@ -8,7 +8,7 @@
  * Owns no chrome state and performs no I/O; the background listeners feed it activations/removals
  * and act on the tab id it returns.
  */
-export interface TabHistory {
+export type TabHistory = {
   /** Record an external tab activation (from `chrome.tabs.onActivated`). */
   record(tabId: number): void;
   /** Drop a closed tab (from `chrome.tabs.onRemoved`). */
@@ -21,7 +21,7 @@ export interface TabHistory {
    * is empty.
    */
   navigate(message: { index?: any; backward?: boolean }): number | undefined;
-}
+};
 
 export function createTabHistory(): TabHistory {
   let tabHistory: number[] = [];

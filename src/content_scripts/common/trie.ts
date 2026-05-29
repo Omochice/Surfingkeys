@@ -2,14 +2,14 @@
  * Metadata bound to a complete keystroke sequence in the {@link Trie}. `word` is filled in by
  * {@link Trie.add}, so callers omit it.
  */
-export interface TrieMeta {
+export type TrieMeta = {
   word: string;
   annotation?: string | string[];
   feature_group?: number;
   code?: (...args: string[]) => void;
   repeatIgnore?: boolean;
   stopPropagation?: ((key: string) => boolean) | boolean;
-}
+};
 
 /**
  * A prefix tree mapping keystroke sequences to their metadata, used for key binding lookup.

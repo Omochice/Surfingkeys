@@ -1,10 +1,10 @@
 import DOMPurify from "dompurify";
 import type { Component } from "solid-js";
 
-export interface BubbleProps {
+export type BubbleProps = {
   /** Raw HTML shown in the bubble; sanitized at injection. */
   html: string;
-}
+};
 
 /**
  * Content of the mouse-selection bubble (#sk_bubble's .sk_bubble_content). The legacy code set the

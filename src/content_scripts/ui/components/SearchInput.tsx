@@ -1,6 +1,6 @@
 import type { Component } from "solid-js";
 
-export interface SearchInputProps {
+export type SearchInputProps = {
   /** Bound text value; controlled. */
   value: string;
   /** When false, the element renders with `display: none`. */
@@ -23,7 +23,7 @@ export interface SearchInputProps {
    * focus/selectionStart/setSelectionRange.
    */
   ref?: (el: HTMLInputElement) => void;
-}
+};
 
 /**
  * The omnibar search `<input>` (`#sk_omnibarSearchArea` input). The value is controlled through a

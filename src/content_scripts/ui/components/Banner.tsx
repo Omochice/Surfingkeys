@@ -1,10 +1,10 @@
 import { Show } from "solid-js";
 import type { Component } from "solid-js";
 
-export interface BannerProps {
+export type BannerProps = {
   /** Message text; shown verbatim and hidden while empty. */
   text: string;
-}
+};
 
 /**
  * Transient banner shown at the top of the frontend iframe. The legacy code html-encoded the

@@ -36,11 +36,11 @@ function dispatchSKEvent(type: SKEventType, args?: unknown, target: EventTarget 
   target.dispatchEvent(new CustomEvent(`surfingkeys:${type}`, { detail: args }));
 }
 
-interface RuntimeFn {
+type RuntimeFn = {
   (action: string, args?: Record<string, unknown> | null, callback?: (response: any) => void): void;
   /** Pending repeat count shared with the mode system; set per key action. */
   repeats: number;
-}
+};
 
 /**
  * Call background `action` with `args`, the `callback` will be executed with response from
@@ -102,7 +102,7 @@ const _handlers: Record<string, MessageHandler> = {};
  * setting therefore means adding it both to this interface and to the defaults — there is no index
  * signature on purpose, so an unknown `conf.foo` is a type error rather than silently `any`.
  */
-interface RuntimeConf {
+type RuntimeConf = {
   /** Keys typed so far in the pending sequence; runtime state, not persisted. */
   lastKeys: string[];
   /** Hydrated from the `blocklistPattern` setting; disables Surfingkeys on matching URLs. */
@@ -164,7 +164,7 @@ interface RuntimeConf {
   caretViewport: number[] | null;
   /** Window origins where a mouse text selection is turned into a search query. */
   mouseSelectToQuery: string[];
-}
+};
 
 /**
  * The persisted settings bag exchanged with the background over the
@@ -176,7 +176,7 @@ interface RuntimeConf {
  * bookkeeping keys — while the named fields are the ones the content scripts and options page
  * actually read.
  */
-export interface StoredSettings {
+export type StoredSettings = {
   showAdvanced?: boolean;
   isMV3?: boolean;
   isUserScriptsAvailable?: boolean;
@@ -188,7 +188,7 @@ export interface StoredSettings {
   error?: string;
   theme?: string;
   [key: string]: unknown;
-}
+};
 
 const conf: RuntimeConf = {
   lastKeys: [],

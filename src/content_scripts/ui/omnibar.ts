@@ -40,7 +40,7 @@ const separatorHtml = `<span class='separator'>${separator}</span>`;
  * bindings read back from the store instead of reaching into the DOM (the legacy code stored these
  * as expandos on each <li>).
  */
-interface OmnibarResult extends ResultListItem {
+type OmnibarResult = {
   data: {
     uid?: string;
     url?: string;
@@ -53,7 +53,7 @@ interface OmnibarResult extends ResultListItem {
     folder?: string;
     text: string;
   };
-}
+} & ResultListItem;
 
 function createOmnibar(front: any, clipboard: any) {
   const self: any = new Mode("Omnibar");

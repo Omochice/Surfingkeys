@@ -1,7 +1,7 @@
 import DOMPurify from "dompurify";
 import type { Component } from "solid-js";
 
-export interface KeystrokeProps {
+export type KeystrokeProps = {
   /**
    * Raw HTML for the keystroke hint: the accumulated decoded keys while a chord is being typed, or
    * the annotated candidate list once rich hints expand. Sanitized at the injection point as the
@@ -10,7 +10,7 @@ export interface KeystrokeProps {
   html: string;
   /** Whether the expanded rich-hint layout (annotations) is active. */
   rich: boolean;
-}
+};
 
 /**
  * Keystroke hint shown at the bottom-right of the frontend iframe. The legacy code set

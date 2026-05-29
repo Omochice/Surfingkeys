@@ -2,7 +2,7 @@ import DOMPurify from "dompurify";
 import { For } from "solid-js";
 import type { Component } from "solid-js";
 
-export interface UsageProps {
+export type UsageProps = {
   /**
    * Inner HTML of each non-empty feature group (its feature-name header plus the mapping rows).
    * Each becomes a direct `<div>` child of #sk_usage so the `#sk_usage>div` column layout keeps
@@ -11,7 +11,7 @@ export interface UsageProps {
   groups: string[];
   /** Localized "More help" link text. */
   moreHelp: string;
-}
+};
 
 /**
  * The usage/help panel (#sk_usage), shown for `?`. The legacy code built one big HTML string and

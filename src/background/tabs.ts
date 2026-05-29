@@ -34,26 +34,26 @@ export function _roundBase(base: number, repeats: number, length: number) {
  * mutable `conf` (written by settings, read here), the per-browser glue, and the shared `handlers`
  * registry for the two intra-tab cross-calls (viewSource → openLink, closeTab → historyTab).
  */
-export interface TabsDeps {
+export type TabsDeps = {
   _response: Respond;
   conf: Record<string, any>;
   browser: any;
   handlers: Record<string, MessageHandler>;
-}
+};
 
 /**
  * What the composition root needs back from the tab core: the handler map to register, plus the
  * primitives other units depend on — `sendTabMessage` and `tabMessages`/`setScrollPos`/`newTabUrl`
  * injected into settings, and `filterByTitleOrUrl` injected into the history unit.
  */
-export interface TabsUnit {
+export type TabsUnit = {
   handlers: Record<string, MessageHandler>;
   sendTabMessage: (tabId: number, frameId: number, message: any) => void;
   filterByTitleOrUrl: (tabs: any[], query: string) => any[];
   tabMessages: Record<string, any>;
   setScrollPos: (tabId: number) => void;
   newTabUrl: string;
-}
+};
 
 /**
  * Tab and window core: the MRU/index/url bookkeeping maps and the tab lifecycle listeners, the

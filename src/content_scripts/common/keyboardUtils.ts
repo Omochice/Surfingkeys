@@ -1,4 +1,4 @@
-interface KeyEventLike {
+type KeyEventLike = {
   keyCode: number;
   key?: string;
   code?: string;
@@ -8,7 +8,7 @@ interface KeyEventLike {
   ctrlKey?: boolean;
   /** Legacy, non-standard; only present on very old Chrome. */
   keyIdentifier?: string;
-}
+};
 
 const specialKeys = [
   "Esc",
