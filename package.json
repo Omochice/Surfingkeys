@@ -12,7 +12,6 @@
   },
   "license": "MIT",
   "author": "brook hong",
-  "main": "background.js",
   "directories": {
     "doc": "docs",
     "test": "test"
@@ -25,6 +24,7 @@
     "build:prod": "wxt build",
     "build:prod:firefox": "wxt build -b firefox",
     "check": "npm-run-all2 check:*",
+    "check:knip": "knip",
     "check:oxfmt": "oxfmt --check",
     "check:oxlint": "oxlint",
     "check:package": "sort-package-json --check",
@@ -56,6 +56,7 @@
     "@wxt-dev/module-solid": "1.1.4",
     "documentation": "^14.0.3",
     "jsdom": "29.1.1",
+    "knip": "6.14.2",
     "npm-run-all2": "^9.0.1",
     "oxfmt": "0.51.0",
     "oxlint": "1.66.0",

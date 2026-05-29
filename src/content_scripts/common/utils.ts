@@ -268,10 +268,6 @@ function showPopup(msg: string): void {
   dispatchSKEvent("front", ["showPopup", msg]);
 }
 
-function openOmnibar(args: unknown): void {
-  dispatchSKEvent("front", ["openOmnibar", args]);
-}
-
 function initSKFunctionListener(
   name: string,
   interfaces: Record<string, (...args: any[]) => void>,
@@ -1037,12 +1033,6 @@ function tabOpenLink(str: string | string[] | NodeList, simultaneousness?: numbe
 }
 ////////////////////////////////////////////////////////////////////////////////
 
-function getElements(selectorString: string): HTMLElement[] {
-  return listElements<HTMLElement>(document.body, NodeFilter.SHOW_ELEMENT, (n) => {
-    return !!(n.offsetHeight && n.offsetWidth && n.matches(selectorString));
-  });
-}
-
 function filterInvisibleElements(nodes: HTMLElement[]): HTMLElement[] {
   return nodes.filter((n) => {
     return (
@@ -1259,18 +1249,6 @@ function attachFaviconToImgSrc(
   }
 }
 
-async function hashString(str: string, algorithm = "SHA-256"): Promise<string> {
-  const encoder = new TextEncoder();
-  const data = encoder.encode(str);
-  const hashBuffer = await crypto.subtle.digest(algorithm, data);
-
-  // Convert to hex string
-  const hashArray = Array.from(new Uint8Array(hashBuffer));
-  const hashHex = hashArray.map((b) => b.toString(16).padStart(2, "0")).join("");
-
-  return hashHex;
-}
-
 export {
   actionWithSelectionPreserved,
   applyUserSettings,
@@ -1278,7 +1256,6 @@ export {
   constructSearchURL,
   createElementWithContent,
   dispatchMouseEvent,
-  dispatchSKEvent,
   filterAncestors,
   filterInvisibleElements,
   filterOverlapElements,
@@ -1290,7 +1267,6 @@ export {
   getColor,
   getCssSelectorsOfEditable,
   getDocumentOrigin,
-  getElements,
   getLargeElements,
   getRealEdit,
   getRealRect,
@@ -1299,7 +1275,6 @@ export {
   getTextRect,
   getVisibleElements,
   getWordUnderCursor,
-  hashString,
   htmlEncode,
   httpRequest,
   initL10n,
@@ -1312,7 +1287,6 @@ export {
   listElements,
   locateFocusNode,
   mapInMode,
-  openOmnibar,
   parseAnnotation,
   refreshHints,
   reportIssue,

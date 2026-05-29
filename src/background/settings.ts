@@ -10,15 +10,6 @@ declare const chrome: any;
  */
 type Respond = (message: any, sendResponse: (result: any) => void, result: any) => void;
 
-/** Builds a `{ key: value }` dictionary from an array of keys, all set to `val`. */
-export function dictFromArray(arry: any[], val: any): Record<string, any> {
-  const dict: Record<string, any> = {};
-  arry.forEach((h) => {
-    dict[h] = val;
-  });
-  return dict;
-}
-
 /** Shallow-merges every own enumerable property of `ss` onto `target` in place. */
 export function extendObject(target: any, ss: any): void {
   for (const k in ss) {

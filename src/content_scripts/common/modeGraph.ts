@@ -10,7 +10,7 @@ import createVisual from "./visual";
  * Front mode — and both are dynamic (`any`) objects, so it is described structurally here as the
  * union of the methods those two consumers actually call.
  */
-export type FrontLike = {
+type FrontLike = {
   executeCommand(cmd: string): void;
   addSearchAlias?: (...args: any[]) => void;
   removeSearchAlias(alias: string): void;
@@ -44,7 +44,7 @@ export type ModeContext = {
 };
 
 /** The modes shared by both sites, before the site-specific front is attached. */
-export type BaseModes = Omit<ModeContext, "front">;
+type BaseModes = Omit<ModeContext, "front">;
 
 /**
  * Build the modes shared by content.ts and the iframe — clipboard, insert, normal (entered onto the
