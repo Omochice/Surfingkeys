@@ -20,7 +20,7 @@ declare const chrome: {
  * `front`/`api`/`user`/`hints`/`observer` are the registered {@link initSKFunctionListener}
  * namespaces; the rest are one-off lifecycle events listened to directly.
  */
-export type SKEventType =
+type SKEventType =
   | "front"
   | "api"
   | "user"
@@ -102,7 +102,7 @@ const _handlers: Record<string, MessageHandler> = {};
  * setting therefore means adding it both to this interface and to the defaults — there is no index
  * signature on purpose, so an unknown `conf.foo` is a type error rather than silently `any`.
  */
-export interface RuntimeConf {
+interface RuntimeConf {
   /** Keys typed so far in the pending sequence; runtime state, not persisted. */
   lastKeys: string[];
   /** Hydrated from the `blocklistPattern` setting; disables Surfingkeys on matching URLs. */
