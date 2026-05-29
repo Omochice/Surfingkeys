@@ -1,5 +1,6 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 
+import { expectDefined } from "../../test/helpers";
 import type { SettingsDeps } from "./settings";
 import { _save, createSettings, getSubSettings } from "./settings";
 
@@ -99,8 +100,10 @@ describe("createSettings — getState", () => {
       browser: { loadRawSettings: (_keys: any, cb: any) => cb({ blocklist }) },
     });
     const sender = { tab: { id: 1 }, url: senderUrl, frameId: 0 };
-    unit.handlers["getState"]!(message, sender, vi.fn());
-    return _response.mock.calls[_response.mock.calls.length - 1]![2].state;
+    const getState = unit.handlers["getState"];
+    expectDefined(getState);
+    getState(message, sender, vi.fn());
+    return _response.mock.calls.at(-1)?.[2].state;
   }
 
   it("is disabled when the catch-all blocklist entry is set", () => {
@@ -134,7 +137,9 @@ describe("createSettings — updateSettings", () => {
     const conf: Record<string, any> = { tabsMRUOrder: true };
     const { unit } = makeUnit({ conf, sendTabMessage });
 
-    const result = unit.handlers["updateSettings"]!(
+    const updateSettings = unit.handlers["updateSettings"];
+    expectDefined(updateSettings);
+    const result = updateSettings(
       { scope: "snippets", settings: { tabsMRUOrder: false, unknownKey: 9 } },
       {},
       vi.fn(),
@@ -156,7 +161,9 @@ describe("createSettings — updateSettings", () => {
     };
     const { unit } = makeUnit({ sendTabMessage });
 
-    unit.handlers["updateSettings"]!({ settings: { foo: 1 } }, {}, vi.fn());
+    const updateSettings = unit.handlers["updateSettings"];
+    expectDefined(updateSettings);
+    updateSettings({ settings: { foo: 1 } }, {}, vi.fn());
 
     expect(sendTabMessage.mock.calls.map((c) => [c[0], c[1]])).toEqual([
       [11, -1],

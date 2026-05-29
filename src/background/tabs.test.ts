@@ -1,5 +1,6 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 
+import { expectDefined } from "../../test/helpers";
 import { _fixTo, _roundBase, createTabs } from "./tabs";
 
 type AnyChrome = { tabs?: any; windows?: any; commands?: any };
@@ -66,19 +67,25 @@ describe("createTabs — tab navigation index math", () => {
 
   it("previousTab from the first tab wraps to the last", () => {
     const { unit, update } = tabUnitOver([{ id: 1 }, { id: 2 }, { id: 3 }]);
-    unit.handlers["previousTab"]!({ repeats: 1 }, { tab: { index: 0, windowId: 5 } }, vi.fn());
+    const previousTab = unit.handlers["previousTab"];
+    expectDefined(previousTab);
+    previousTab({ repeats: 1 }, { tab: { index: 0, windowId: 5 } }, vi.fn());
     expect(update).toHaveBeenCalledWith(3, { active: true });
   });
 
   it("nextTab from the last tab wraps to the first", () => {
     const { unit, update } = tabUnitOver([{ id: 1 }, { id: 2 }, { id: 3 }]);
-    unit.handlers["nextTab"]!({ repeats: 1 }, { tab: { index: 2, windowId: 5 } }, vi.fn());
+    const nextTab = unit.handlers["nextTab"];
+    expectDefined(nextTab);
+    nextTab({ repeats: 1 }, { tab: { index: 2, windowId: 5 } }, vi.fn());
     expect(update).toHaveBeenCalledWith(1, { active: true });
   });
 
   it("nextTab steps forward without wrapping inside the range", () => {
     const { unit, update } = tabUnitOver([{ id: 1 }, { id: 2 }, { id: 3 }]);
-    unit.handlers["nextTab"]!({ repeats: 1 }, { tab: { index: 0, windowId: 5 } }, vi.fn());
+    const nextTab = unit.handlers["nextTab"];
+    expectDefined(nextTab);
+    nextTab({ repeats: 1 }, { tab: { index: 0, windowId: 5 } }, vi.fn());
     expect(update).toHaveBeenCalledWith(2, { active: true });
   });
 });

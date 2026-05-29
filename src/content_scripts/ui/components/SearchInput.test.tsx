@@ -2,6 +2,7 @@ import { render } from "@solidjs/testing-library";
 import { createSignal } from "solid-js";
 import { describe, expect, it, vi } from "vitest";
 
+import { expectDefined } from "../../../../test/helpers";
 import { SearchInput } from "./SearchInput";
 
 const noop = () => {};
@@ -109,7 +110,9 @@ describe("SearchInput", () => {
     keydown(input, "Enter", false);
 
     expect(onKeyDown).toHaveBeenCalledTimes(1);
-    expect(onKeyDown.mock.calls[0]![0].key).toBe("Enter");
+    const firstCall = onKeyDown.mock.calls[0];
+    expectDefined(firstCall);
+    expect(firstCall[0].key).toBe("Enter");
   });
 
   it("suppresses onKeyDown while event.isComposing is true", () => {

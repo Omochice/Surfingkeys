@@ -1,5 +1,6 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 
+import { expectDefined } from "../../test/helpers";
 import { createHistoryHandlers } from "./history";
 
 type AnyChrome = { history?: any; topSites?: any; sessions?: any; bookmarks?: any };
@@ -13,7 +14,7 @@ afterEach(() => {
 });
 
 function lastResult(respond: ReturnType<typeof vi.fn>): any {
-  return respond.mock.calls[respond.mock.calls.length - 1]![2];
+  return respond.mock.calls.at(-1)?.[2];
 }
 
 /** A browser stub whose history search returns a fixed list. */
@@ -37,11 +38,11 @@ describe("createHistoryHandlers", () => {
         ]),
     };
     const respond = vi.fn();
-    createHistoryHandlers(respond, browserWith([]), identityFilter)["getRecentlyClosed"]!(
-      { query: "" },
-      {},
-      vi.fn(),
-    );
+    const getRecentlyClosed = createHistoryHandlers(respond, browserWith([]), identityFilter)[
+      "getRecentlyClosed"
+    ];
+    expectDefined(getRecentlyClosed);
+    getRecentlyClosed({ query: "" }, {}, vi.fn());
 
     expect(lastResult(respond).urls.map((t: any) => t.url)).toEqual([
       "https://a",
@@ -52,11 +53,11 @@ describe("createHistoryHandlers", () => {
 
   it("getTopSites responds with an empty list when chrome.topSites is unavailable", () => {
     const respond = vi.fn();
-    createHistoryHandlers(respond, browserWith([]), identityFilter)["getTopSites"]!(
-      { query: "" },
-      {},
-      vi.fn(),
-    );
+    const getTopSites = createHistoryHandlers(respond, browserWith([]), identityFilter)[
+      "getTopSites"
+    ];
+    expectDefined(getTopSites);
+    getTopSites({ query: "" }, {}, vi.fn());
 
     expect(lastResult(respond)).toEqual({ urls: [] });
   });
@@ -67,11 +68,9 @@ describe("createHistoryHandlers", () => {
       { url: "https://low", visitCount: 1 },
       { url: "https://high", visitCount: 9 },
     ]);
-    createHistoryHandlers(respond, browser, identityFilter)["getHistory"]!(
-      { sortByMostUsed: true },
-      {},
-      vi.fn(),
-    );
+    const getHistory = createHistoryHandlers(respond, browser, identityFilter)["getHistory"];
+    expectDefined(getHistory);
+    getHistory({ sortByMostUsed: true }, {}, vi.fn());
 
     expect(lastResult(respond).history.map((h: any) => h.url)).toEqual([
       "https://high",
@@ -85,11 +84,9 @@ describe("createHistoryHandlers", () => {
     };
     const respond = vi.fn();
     const browser = browserWith([{ url: "https://h1" }, { url: "https://h2" }]);
-    createHistoryHandlers(respond, browser, identityFilter)["getAllURLs"]!(
-      { maxResults: 3 },
-      {},
-      vi.fn(),
-    );
+    const getAllURLs = createHistoryHandlers(respond, browser, identityFilter)["getAllURLs"];
+    expectDefined(getAllURLs);
+    getAllURLs({ maxResults: 3 }, {}, vi.fn());
 
     expect(lastResult(respond).urls.map((u: any) => u.url)).toEqual([
       "https://bm",
@@ -104,11 +101,11 @@ describe("createHistoryHandlers", () => {
         cb([{ url: "https://1" }, { url: "https://2" }, { url: "https://3" }]),
     };
     const respond = vi.fn();
-    createHistoryHandlers(respond, browserWith([]), identityFilter)["getAllURLs"]!(
-      { maxResults: 2 },
-      {},
-      vi.fn(),
-    );
+    const getAllURLs = createHistoryHandlers(respond, browserWith([]), identityFilter)[
+      "getAllURLs"
+    ];
+    expectDefined(getAllURLs);
+    getAllURLs({ maxResults: 2 }, {}, vi.fn());
 
     expect(lastResult(respond).urls).toHaveLength(2);
   });
@@ -116,11 +113,11 @@ describe("createHistoryHandlers", () => {
   it("addHistories forwards each url to chrome.history.addUrl", () => {
     const addUrl = vi.fn();
     g.chrome.history = { addUrl };
-    createHistoryHandlers(vi.fn(), browserWith([]), identityFilter)["addHistories"]!(
-      { history: ["https://a", "https://b"] },
-      {},
-      vi.fn(),
-    );
+    const addHistories = createHistoryHandlers(vi.fn(), browserWith([]), identityFilter)[
+      "addHistories"
+    ];
+    expectDefined(addHistories);
+    addHistories({ history: ["https://a", "https://b"] }, {}, vi.fn());
 
     expect(addUrl.mock.calls.map((c) => c[0])).toEqual([
       { url: "https://a" },
