@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import KeyboardUtils from "../src/content_scripts/common/keyboardUtils";
+import KeyboardUtils from "./keyboardUtils";
 
 describe("KeyboardUtils.encodeKeystroke / decodeKeystroke", () => {
   const samples = [

@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import browser from "../src/content_scripts/common/browser";
+import browser from "./browser";
 
 // The BrowserAdapter wraps the WebExtension API (the chrome stub from setup.ts
 // under jsdom). These pin the synchronous surface the content scripts rely on.

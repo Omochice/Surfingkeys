@@ -2,7 +2,7 @@ import { render } from "@solidjs/testing-library";
 import { createSignal } from "solid-js";
 import { describe, expect, it } from "vitest";
 
-import { ResultPage } from "../src/content_scripts/ui/components/ResultPage";
+import { ResultPage } from "./ResultPage";
 
 describe("ResultPage", () => {
   it("shows the pagination text and updates reactively", () => {

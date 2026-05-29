@@ -1,8 +1,8 @@
 import { beforeEach, describe, expect, it } from "vitest";
 
-import KeyboardUtils from "../src/content_scripts/common/keyboardUtils";
-import Mode from "../src/content_scripts/common/mode.js";
-import Trie from "../src/content_scripts/common/trie";
+import KeyboardUtils from "./keyboardUtils";
+import Mode from "./mode.js";
+import Trie from "./trie";
 
 type FakeKeyEvent = {
   sk_keyName: string;

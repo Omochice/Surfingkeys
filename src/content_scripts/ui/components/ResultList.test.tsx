@@ -2,8 +2,8 @@ import { fireEvent, render } from "@solidjs/testing-library";
 import { createSignal } from "solid-js";
 import { describe, expect, it, vi } from "vitest";
 
-import { ResultList } from "../src/content_scripts/ui/components/ResultList";
-import type { ResultListItem } from "../src/content_scripts/ui/components/ResultList";
+import { ResultList } from "./ResultList";
+import type { ResultListItem } from "./ResultList";
 
 const items: ResultListItem[] = [
   { html: "<div>one</div>" },

@@ -1,7 +1,7 @@
 import { render } from "@solidjs/testing-library";
 import { describe, expect, it } from "vitest";
 
-import { Usage } from "../src/content_scripts/ui/components/Usage";
+import { Usage } from "./Usage";
 
 const groups = [
   '<div class="feature_name"><span>Tabs</span></div>' +

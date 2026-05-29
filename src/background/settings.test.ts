@@ -1,12 +1,12 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-import type { SettingsDeps } from "../src/background/settings";
-import { _save, createSettings, getSubSettings } from "../src/background/settings";
+import type { SettingsDeps } from "./settings";
+import { _save, createSettings, getSubSettings } from "./settings";
 
 // `_save` reaches the network through the request module on its local-storage
 // path; mock the module so that path is observable without a real fetch.
 const { mockRequest } = vi.hoisted(() => ({ mockRequest: vi.fn() }));
-vi.mock("../src/background/request.js", () => ({ request: mockRequest }));
+vi.mock("./request.js", () => ({ request: mockRequest }));
 
 type AnyChrome = { runtime?: any; storage?: any; tabs?: any };
 const g = globalThis as unknown as { chrome: AnyChrome };

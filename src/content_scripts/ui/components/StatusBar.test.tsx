@@ -2,7 +2,7 @@ import { render } from "@solidjs/testing-library";
 import { createSignal } from "solid-js";
 import { describe, expect, it } from "vitest";
 
-import { StatusBar } from "../src/content_scripts/ui/components/StatusBar";
+import { StatusBar } from "./StatusBar";
 
 describe("StatusBar", () => {
   it("renders one span per cell and updates content reactively", () => {

@@ -2,7 +2,7 @@ import { render } from "@solidjs/testing-library";
 import { createSignal } from "solid-js";
 import { describe, expect, it } from "vitest";
 
-import { Prompt } from "../src/content_scripts/ui/components/Prompt";
+import { Prompt } from "./Prompt";
 
 describe("Prompt", () => {
   it("injects sanitized HTML and renders the separator markup, updating reactively", () => {

@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-import { _fixTo, _roundBase, createTabs } from "../src/background/tabs";
+import { _fixTo, _roundBase, createTabs } from "./tabs";
 
 type AnyChrome = { tabs?: any; windows?: any; commands?: any };
 const g = globalThis as unknown as { chrome: AnyChrome };

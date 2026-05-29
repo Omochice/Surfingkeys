@@ -2,7 +2,7 @@ import { fireEvent, render } from "@solidjs/testing-library";
 import { createSignal } from "solid-js";
 import { describe, expect, it, vi } from "vitest";
 
-import { ResultItem } from "../src/content_scripts/ui/components/ResultItem";
+import { ResultItem } from "./ResultItem";
 
 describe("ResultItem", () => {
   it("injects the row HTML and reflects the focused prop reactively", () => {

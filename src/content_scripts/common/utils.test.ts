@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { getColor, parseAnnotation } from "../src/content_scripts/common/utils";
+import { getColor, parseAnnotation } from "./utils";
 
 describe("getColor", () => {
   it("returns a CSS color string for valid indices", () => {

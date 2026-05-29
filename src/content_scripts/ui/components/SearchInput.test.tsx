@@ -2,7 +2,7 @@ import { render } from "@solidjs/testing-library";
 import { createSignal } from "solid-js";
 import { describe, expect, it, vi } from "vitest";
 
-import { SearchInput } from "../src/content_scripts/ui/components/SearchInput";
+import { SearchInput } from "./SearchInput";
 
 const noop = () => {};
 

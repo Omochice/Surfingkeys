@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-import { createBookmarkHandlers } from "../src/background/bookmarks";
+import { createBookmarkHandlers } from "./bookmarks";
 
 type AnyChrome = { bookmarks?: any };
 const g = globalThis as unknown as { chrome: AnyChrome };

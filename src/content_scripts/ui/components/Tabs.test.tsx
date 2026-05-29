@@ -1,8 +1,8 @@
 import { render } from "@solidjs/testing-library";
 import { describe, expect, it } from "vitest";
 
-import { Tabs } from "../src/content_scripts/ui/components/Tabs";
-import type { TabsTab } from "../src/content_scripts/ui/components/Tabs";
+import { Tabs } from "./Tabs";
+import type { TabsTab } from "./Tabs";
 
 const tabs: TabsTab[] = [
   { id: 1, windowId: 7, title: "First", active: false, url: "https://a.example" },

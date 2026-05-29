@@ -2,7 +2,7 @@ import { render } from "@solidjs/testing-library";
 import { createSignal } from "solid-js";
 import { describe, expect, it } from "vitest";
 
-import { Keystroke } from "../src/content_scripts/ui/components/Keystroke";
+import { Keystroke } from "./Keystroke";
 
 describe("Keystroke", () => {
   it("injects the accumulated keys and updates as the chord grows", () => {

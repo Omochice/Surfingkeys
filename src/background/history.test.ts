@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-import { createHistoryHandlers } from "../src/background/history";
+import { createHistoryHandlers } from "./history";
 
 type AnyChrome = { history?: any; topSites?: any; sessions?: any; bookmarks?: any };
 const g = globalThis as unknown as { chrome: AnyChrome };

@@ -2,7 +2,7 @@ import { render } from "@solidjs/testing-library";
 import { createSignal } from "solid-js";
 import { describe, expect, it } from "vitest";
 
-import { Bubble } from "../src/content_scripts/ui/components/Bubble";
+import { Bubble } from "./Bubble";
 
 describe("Bubble", () => {
   it("injects sanitized HTML and updates reactively", () => {

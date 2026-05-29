@@ -2,7 +2,7 @@ import { render } from "@solidjs/testing-library";
 import { createSignal } from "solid-js";
 import { describe, expect, it } from "vitest";
 
-import { Banner } from "../src/content_scripts/ui/components/Banner";
+import { Banner } from "./Banner";
 
 describe("Banner", () => {
   it("shows the message text and updates reactively", () => {
