@@ -1,0 +1,17 @@
+{
+  "$schema": "https://unpkg.com/knip@6/schema.json",
+  "entry": [
+    "src/content_scripts/ui/frontend.ts",
+    "src/content_scripts/optionsPage.ts",
+    "src/content_scripts/startPage.ts",
+    "src/pages/popup.ts",
+    "src/content_scripts/common/api.ts",
+    "src/content_scripts/common/normal.ts",
+    "src/content_scripts/common/clipboard.ts",
+    "src/content_scripts/common/hints.ts",
+    "src/content_scripts/common/visual.ts",
+    "src/content_scripts/front.ts",
+    "src/user_scripts/index.ts"
+  ],
+  "project": ["src/**/*.{ts,tsx,js}", "entrypoints/**/*.{ts,tsx,html}", "test/**/*.{ts,tsx,js}"]
+}
