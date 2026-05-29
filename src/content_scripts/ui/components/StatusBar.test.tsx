@@ -11,10 +11,10 @@ describe("StatusBar", () => {
     const spans = container.querySelectorAll("span");
 
     expect(spans.length).toBe(4);
-    expect(spans[0].innerHTML).toBe("Normal");
+    expect(spans[0]!.innerHTML).toBe("Normal");
 
     setCells(["Insert", "", "", ""]);
-    expect(spans[0].innerHTML).toBe("Insert");
+    expect(spans[0]!.innerHTML).toBe("Insert");
   });
 
   it("pads and divides every non-empty cell except the last", () => {
@@ -22,14 +22,14 @@ describe("StatusBar", () => {
     const { container } = render(() => <StatusBar cells={cells()} />);
     const spans = container.querySelectorAll("span");
 
-    expect(spans[0].style.padding).toBe("0px 8px");
+    expect((spans[0]! as HTMLElement).style.padding).toBe("0px 8px");
     // jsdom normalizes the #999 divider color to its rgb() form
-    expect(spans[0].style.borderRight).toBe("1px solid rgb(153, 153, 153)");
+    expect((spans[0]! as HTMLElement).style.borderRight).toBe("1px solid rgb(153, 153, 153)");
     // last non-empty cell carries no trailing divider
-    expect(spans[1].style.borderRight).toBe("");
+    expect((spans[1]! as HTMLElement).style.borderRight).toBe("");
     // empty cells collapse: no padding, no divider
-    expect(spans[2].style.padding).toBe("");
-    expect(spans[2].style.borderRight).toBe("");
+    expect((spans[2]! as HTMLElement).style.padding).toBe("");
+    expect((spans[2]! as HTMLElement).style.borderRight).toBe("");
   });
 
   it("injects the search cell's HTML so the find input is reachable", () => {

@@ -24,12 +24,12 @@ describe("ResultList", () => {
     const li = container.querySelectorAll("ul>li");
 
     expect(li.length).toBe(3);
-    expect(li[0].classList.contains("focused")).toBe(true);
-    expect(li[2].classList.contains("window")).toBe(true);
+    expect(li[0]!.classList.contains("focused")).toBe(true);
+    expect(li[2]!.classList.contains("window")).toBe(true);
 
     setFocused(2);
-    expect(li[0].classList.contains("focused")).toBe(false);
-    expect(li[2].classList.contains("focused")).toBe(true);
+    expect(li[0]!.classList.contains("focused")).toBe(false);
+    expect(li[2]!.classList.contains("focused")).toBe(true);
   });
 
   it("reports the clicked row index", () => {
@@ -41,7 +41,7 @@ describe("ResultList", () => {
         onSelect={onSelect}
       />
     ));
-    fireEvent.click(container.querySelectorAll("ul>li")[1]);
+    fireEvent.click(container.querySelectorAll("ul>li")[1]!);
 
     expect(onSelect).toHaveBeenCalledWith(1);
   });

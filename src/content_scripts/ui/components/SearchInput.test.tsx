@@ -109,7 +109,7 @@ describe("SearchInput", () => {
     keydown(input, "Enter", false);
 
     expect(onKeyDown).toHaveBeenCalledTimes(1);
-    expect(onKeyDown.mock.calls[0][0].key).toBe("Enter");
+    expect(onKeyDown.mock.calls[0]![0].key).toBe("Enter");
   });
 
   it("suppresses onKeyDown while event.isComposing is true", () => {

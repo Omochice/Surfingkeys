@@ -99,8 +99,8 @@ describe("createSettings — getState", () => {
       browser: { loadRawSettings: (_keys: any, cb: any) => cb({ blocklist }) },
     });
     const sender = { tab: { id: 1 }, url: senderUrl, frameId: 0 };
-    unit.handlers.getState!(message, sender, vi.fn());
-    return _response.mock.calls[_response.mock.calls.length - 1][2].state;
+    unit.handlers["getState"]!(message, sender, vi.fn());
+    return _response.mock.calls[_response.mock.calls.length - 1]![2].state;
   }
 
   it("is disabled when the catch-all blocklist entry is set", () => {
@@ -134,13 +134,13 @@ describe("createSettings — updateSettings", () => {
     const conf: Record<string, any> = { tabsMRUOrder: true };
     const { unit } = makeUnit({ conf, sendTabMessage });
 
-    const result = unit.handlers.updateSettings!(
+    const result = unit.handlers["updateSettings"]!(
       { scope: "snippets", settings: { tabsMRUOrder: false, unknownKey: 9 } },
       {},
       vi.fn(),
     );
 
-    expect(conf.tabsMRUOrder).toBe(false);
+    expect(conf["tabsMRUOrder"]).toBe(false);
     expect("unknownKey" in conf).toBe(false);
     expect(sendTabMessage).not.toHaveBeenCalled();
     expect(result).toEqual({ error: "" });
@@ -156,7 +156,7 @@ describe("createSettings — updateSettings", () => {
     };
     const { unit } = makeUnit({ sendTabMessage });
 
-    unit.handlers.updateSettings!({ settings: { foo: 1 } }, {}, vi.fn());
+    unit.handlers["updateSettings"]!({ settings: { foo: 1 } }, {}, vi.fn());
 
     expect(sendTabMessage.mock.calls.map((c) => [c[0], c[1]])).toEqual([
       [11, -1],

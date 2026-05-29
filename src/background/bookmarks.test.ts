@@ -11,7 +11,7 @@ afterEach(() => {
 
 /** Captures the `result` argument the unit hands to the injected responder. */
 function lastResult(respond: ReturnType<typeof vi.fn>): any {
-  return respond.mock.calls[respond.mock.calls.length - 1][2];
+  return respond.mock.calls[respond.mock.calls.length - 1]![2];
 }
 
 describe("createBookmarkHandlers", () => {
@@ -41,7 +41,7 @@ describe("createBookmarkHandlers", () => {
     };
     const respond = vi.fn();
     const message = { action: "getBookmarkFolders" };
-    createBookmarkHandlers(respond).getBookmarkFolders!(message, {}, vi.fn());
+    createBookmarkHandlers(respond)["getBookmarkFolders"]!(message, {}, vi.fn());
 
     expect(lastResult(respond).folders).toEqual([
       { id: "1", title: "/Bar/" },
@@ -58,7 +58,7 @@ describe("createBookmarkHandlers", () => {
         ]),
     };
     const respond = vi.fn();
-    createBookmarkHandlers(respond).getBookmarks!(
+    createBookmarkHandlers(respond)["getBookmarks"]!(
       { query: "git", caseSensitive: false },
       {},
       vi.fn(),
@@ -73,7 +73,7 @@ describe("createBookmarkHandlers", () => {
       getTree: (cb: (tree: any[]) => void) => cb([{ children }]),
     };
     const respond = vi.fn();
-    createBookmarkHandlers(respond).getBookmarks!({}, {}, vi.fn());
+    createBookmarkHandlers(respond)["getBookmarks"]!({}, {}, vi.fn());
 
     expect(lastResult(respond).bookmarks).toBe(children);
   });
@@ -90,7 +90,7 @@ describe("createBookmarkHandlers", () => {
       },
     };
     const respond = vi.fn();
-    createBookmarkHandlers(respond).createBookmark!(
+    createBookmarkHandlers(respond)["createBookmark"]!(
       { page: { url: "https://x", title: "X", folder: "root", path: ["A", "B"] } },
       {},
       vi.fn(),
@@ -108,7 +108,7 @@ describe("createBookmarkHandlers", () => {
       search: (_q: any, cb: (b: any[]) => void) => cb([{ id: "7" }, { id: "8" }]),
       remove,
     };
-    createBookmarkHandlers(vi.fn()).removeBookmark!({}, { tab: { url: "https://x" } }, vi.fn());
+    createBookmarkHandlers(vi.fn())["removeBookmark"]!({}, { tab: { url: "https://x" } }, vi.fn());
 
     expect(remove.mock.calls.map((c) => c[0])).toEqual(["7", "8"]);
   });

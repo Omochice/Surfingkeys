@@ -13,7 +13,7 @@ afterEach(() => {
 });
 
 function lastResult(respond: ReturnType<typeof vi.fn>): any {
-  return respond.mock.calls[respond.mock.calls.length - 1][2];
+  return respond.mock.calls[respond.mock.calls.length - 1]![2];
 }
 
 /** A browser stub whose history search returns a fixed list. */
@@ -37,7 +37,7 @@ describe("createHistoryHandlers", () => {
         ]),
     };
     const respond = vi.fn();
-    createHistoryHandlers(respond, browserWith([]), identityFilter).getRecentlyClosed!(
+    createHistoryHandlers(respond, browserWith([]), identityFilter)["getRecentlyClosed"]!(
       { query: "" },
       {},
       vi.fn(),
@@ -52,7 +52,7 @@ describe("createHistoryHandlers", () => {
 
   it("getTopSites responds with an empty list when chrome.topSites is unavailable", () => {
     const respond = vi.fn();
-    createHistoryHandlers(respond, browserWith([]), identityFilter).getTopSites!(
+    createHistoryHandlers(respond, browserWith([]), identityFilter)["getTopSites"]!(
       { query: "" },
       {},
       vi.fn(),
@@ -67,7 +67,7 @@ describe("createHistoryHandlers", () => {
       { url: "https://low", visitCount: 1 },
       { url: "https://high", visitCount: 9 },
     ]);
-    createHistoryHandlers(respond, browser, identityFilter).getHistory!(
+    createHistoryHandlers(respond, browser, identityFilter)["getHistory"]!(
       { sortByMostUsed: true },
       {},
       vi.fn(),
@@ -85,7 +85,7 @@ describe("createHistoryHandlers", () => {
     };
     const respond = vi.fn();
     const browser = browserWith([{ url: "https://h1" }, { url: "https://h2" }]);
-    createHistoryHandlers(respond, browser, identityFilter).getAllURLs!(
+    createHistoryHandlers(respond, browser, identityFilter)["getAllURLs"]!(
       { maxResults: 3 },
       {},
       vi.fn(),
@@ -104,7 +104,7 @@ describe("createHistoryHandlers", () => {
         cb([{ url: "https://1" }, { url: "https://2" }, { url: "https://3" }]),
     };
     const respond = vi.fn();
-    createHistoryHandlers(respond, browserWith([]), identityFilter).getAllURLs!(
+    createHistoryHandlers(respond, browserWith([]), identityFilter)["getAllURLs"]!(
       { maxResults: 2 },
       {},
       vi.fn(),
@@ -116,7 +116,7 @@ describe("createHistoryHandlers", () => {
   it("addHistories forwards each url to chrome.history.addUrl", () => {
     const addUrl = vi.fn();
     g.chrome.history = { addUrl };
-    createHistoryHandlers(vi.fn(), browserWith([]), identityFilter).addHistories!(
+    createHistoryHandlers(vi.fn(), browserWith([]), identityFilter)["addHistories"]!(
       { history: ["https://a", "https://b"] },
       {},
       vi.fn(),

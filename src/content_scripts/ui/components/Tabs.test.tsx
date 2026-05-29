@@ -24,9 +24,9 @@ describe("Tabs", () => {
     const sk = container.querySelectorAll("div.sk_tab");
 
     expect(sk.length).toBe(3);
-    expect(sk[1].classList.contains("active")).toBe(true);
-    expect(sk[0].classList.contains("active")).toBe(false);
-    expect(sk[2].classList.contains("active")).toBe(false);
+    expect(sk[1]!.classList.contains("active")).toBe(true);
+    expect(sk[0]!.classList.contains("active")).toBe(false);
+    expect(sk[2]!.classList.contains("active")).toBe(false);
   });
 
   it("assigns hint labels and link expandos to the non-active tabs only", () => {
@@ -45,11 +45,11 @@ describe("Tabs", () => {
     );
 
     expect(hints.length).toBe(2);
-    expect(hints[0].textContent).toBe("A");
-    expect(hints[0].label).toBe("A");
-    expect(hints[0].link).toEqual({ id: 1, windowId: 7 });
-    expect(hints[1].label).toBe("B");
-    expect(hints[1].link).toEqual({ id: 3, windowId: 7 });
+    expect(hints[0]!.textContent).toBe("A");
+    expect(hints[0]!.label).toBe("A");
+    expect(hints[0]!.link).toEqual({ id: 1, windowId: 7 });
+    expect(hints[1]!.label).toBe("B");
+    expect(hints[1]!.link).toEqual({ id: 3, windowId: 7 });
     // the active tab carries no hint
     expect(container.querySelectorAll("div.sk_tab.active div.sk_tab_hint").length).toBe(0);
   });
@@ -64,7 +64,7 @@ describe("Tabs", () => {
         attachFavicon={() => {}}
       />
     ));
-    const title = container.querySelectorAll("div.sk_tab_title")[1];
+    const title = container.querySelectorAll("div.sk_tab_title")[1]!;
 
     expect(title.querySelector("b")).toBeNull();
     expect(title.textContent).toBe("Active <b>tab</b>");
@@ -82,7 +82,7 @@ describe("Tabs", () => {
     ));
     const sk = container.querySelectorAll<HTMLElement>("div.sk_tab");
 
-    expect(sk[0].style.width).toBe("120px");
+    expect(sk[0]!.style.width).toBe("120px");
     expect((container.querySelector("div.sk_tab_title") as HTMLElement).style.width).toBe("96px");
     expect(container.querySelector("div.tab_rocket")).toBeNull();
   });
@@ -100,7 +100,7 @@ describe("Tabs", () => {
     const sk = container.querySelectorAll<HTMLElement>("div.sk_tab");
 
     expect(container.querySelectorAll("div.tab_rocket").length).toBe(3);
-    expect(sk[0].style.width).toBe("");
+    expect(sk[0]!.style.width).toBe("");
   });
 
   it("attaches the favicon to each tab's img", () => {
@@ -116,7 +116,7 @@ describe("Tabs", () => {
     ));
 
     expect(calls.length).toBe(3);
-    expect(calls[0].tab).toBe(tabs[0]);
-    expect(calls[0].img).toBeInstanceOf(HTMLImageElement);
+    expect(calls[0]!.tab).toBe(tabs[0]);
+    expect(calls[0]!.img).toBeInstanceOf(HTMLImageElement);
   });
 });

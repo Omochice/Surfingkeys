@@ -24,7 +24,7 @@ function press(mode: ReturnType<typeof makeMode>, key: string): FakeKeyEvent {
     sk_keyName: KeyboardUtils.encodeKeystroke(key),
     isTrusted: true,
   };
-  Mode.handleMapKey.call(mode, event);
+  Mode.handleMapKey.call(mode, event as unknown as Event & { keyCode?: number });
   return event;
 }
 
@@ -37,7 +37,7 @@ describe("Mode.handleMapKey", () => {
 
   it("runs the bound code for a single-key mapping and resets", () => {
     let runs = 0;
-    mode.mappings.add(KeyboardUtils.encodeKeystroke("a"), {
+    mode.mappings!.add(KeyboardUtils.encodeKeystroke("a"), {
       annotation: "run",
       code: () => {
         runs++;
@@ -53,7 +53,7 @@ describe("Mode.handleMapKey", () => {
 
   it("runs a mapping only after the full multi-key sequence", () => {
     let runs = 0;
-    mode.mappings.add(KeyboardUtils.encodeKeystroke("ab"), {
+    mode.mappings!.add(KeyboardUtils.encodeKeystroke("ab"), {
       annotation: "run",
       code: () => {
         runs++;
@@ -71,7 +71,7 @@ describe("Mode.handleMapKey", () => {
 
   it("does not run the mapping for an unmatched key", () => {
     let runs = 0;
-    mode.mappings.add(KeyboardUtils.encodeKeystroke("a"), {
+    mode.mappings!.add(KeyboardUtils.encodeKeystroke("a"), {
       annotation: "run",
       code: () => {
         runs++;

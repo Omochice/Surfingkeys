@@ -66,19 +66,19 @@ describe("createTabs — tab navigation index math", () => {
 
   it("previousTab from the first tab wraps to the last", () => {
     const { unit, update } = tabUnitOver([{ id: 1 }, { id: 2 }, { id: 3 }]);
-    unit.handlers.previousTab!({ repeats: 1 }, { tab: { index: 0, windowId: 5 } }, vi.fn());
+    unit.handlers["previousTab"]!({ repeats: 1 }, { tab: { index: 0, windowId: 5 } }, vi.fn());
     expect(update).toHaveBeenCalledWith(3, { active: true });
   });
 
   it("nextTab from the last tab wraps to the first", () => {
     const { unit, update } = tabUnitOver([{ id: 1 }, { id: 2 }, { id: 3 }]);
-    unit.handlers.nextTab!({ repeats: 1 }, { tab: { index: 2, windowId: 5 } }, vi.fn());
+    unit.handlers["nextTab"]!({ repeats: 1 }, { tab: { index: 2, windowId: 5 } }, vi.fn());
     expect(update).toHaveBeenCalledWith(1, { active: true });
   });
 
   it("nextTab steps forward without wrapping inside the range", () => {
     const { unit, update } = tabUnitOver([{ id: 1 }, { id: 2 }, { id: 3 }]);
-    unit.handlers.nextTab!({ repeats: 1 }, { tab: { index: 0, windowId: 5 } }, vi.fn());
+    unit.handlers["nextTab"]!({ repeats: 1 }, { tab: { index: 0, windowId: 5 } }, vi.fn());
     expect(update).toHaveBeenCalledWith(2, { active: true });
   });
 });
