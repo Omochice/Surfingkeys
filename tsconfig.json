@@ -3,10 +3,10 @@
   "compilerOptions": {
     "target": "esnext",
     "module": "esnext",
-    "types": [],
-    "allowJs": true,
     "moduleResolution": "bundler",
-    "sourceMap": true,
+    "types": [],
+    "noEmit": true,
+    "verbatimModuleSyntax": true,
     "jsx": "preserve",
     "jsxImportSource": "solid-js"
   },
