@@ -1,8 +1,9 @@
+import { Result } from "@praha/byethrow";
 import { debounce } from "lodash";
 import { createEffect, createRoot, createSignal } from "solid-js";
 import { render } from "solid-js/web";
 
-import { unwrapOr } from "../../common/result";
+import { decodeError, unwrapOr } from "../../common/result";
 import { filterByTitleOrUrl, regexFromString } from "../../common/utils";
 import KeyboardUtils from "../common/keyboardUtils";
 import Mode from "../common/mode";
@@ -1295,11 +1296,12 @@ function CloseTabs(omnibar: any): any {
         runtime.getCaseSensitive(omnibar.input.value),
       );
       filtered.forEach((tab: any) => {
-        try {
-          const u = new URL(tab.url);
-          tab.url = u.origin + u.pathname;
-        } catch {
-          /* ignore invalid URL */
+        const r = Result.try({
+          try: () => new URL(tab.url),
+          catch: (cause) => decodeError(tab.url, cause),
+        });
+        if (Result.isSuccess(r)) {
+          tab.url = r.value.origin + r.value.pathname;
         }
       });
       omnibar.listURLs(filtered, false);
