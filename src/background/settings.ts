@@ -1,5 +1,6 @@
 import { Result } from "@praha/byethrow";
 
+import { chromeRuntimeError } from "../common/result";
 import { request } from "./request";
 import type { MessageHandler } from "./start";
 
@@ -297,15 +298,12 @@ export function createSettings(deps: SettingsDeps): SettingsUnit {
     }
   }
 
-  function isUserScriptsAvailable() {
-    try {
-      if (chrome.userScripts) {
-        return true;
-      }
-    } catch {
-      return false;
-    }
-    return false;
+  function isUserScriptsAvailable(): boolean {
+    const r = Result.try({
+      try: () => Boolean(chrome.userScripts),
+      catch: (cause) => chromeRuntimeError("userScripts feature detection", cause),
+    });
+    return Result.isSuccess(r) && r.value;
   }
 
   const handlersMap: Record<string, MessageHandler> = {
