@@ -6,13 +6,13 @@ export type DebouncedFunction = {
 export function debounce(fn: () => void, wait: number): DebouncedFunction {
   let timer: ReturnType<typeof setTimeout> | undefined;
   const debounced = () => {
-    if (timer !== undefined) {
+    if (timer != null) {
       clearTimeout(timer);
     }
     timer = setTimeout(fn, wait);
   };
   debounced.cancel = () => {
-    if (timer !== undefined) {
+    if (timer != null) {
       clearTimeout(timer);
       timer = undefined;
     }
