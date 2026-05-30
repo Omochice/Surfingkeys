@@ -1,5 +1,7 @@
+import { Result } from "@praha/byethrow";
 import DOMPurify from "dompurify";
 
+import { type DecodeError, decodeError } from "../../common/result";
 import browser from "./browser";
 import KeyboardUtils from "./keyboardUtils";
 import { RUNTIME, dispatchSKEvent, runtime } from "./runtime";
@@ -1133,20 +1135,18 @@ function flashPressedLink(link: Element, cb: () => void): void {
   }, 100);
 }
 
-function safeDecodeURI(url: string): string {
-  try {
-    return decodeURI(url);
-  } catch {
-    return url;
-  }
+function tryDecodeURI(url: string): Result.Result<string, DecodeError> {
+  return Result.try({
+    try: () => decodeURI(url),
+    catch: (cause) => decodeError(url, cause),
+  });
 }
 
-function safeDecodeURIComponent(url: string): string {
-  try {
-    return decodeURIComponent(url);
-  } catch {
-    return url;
-  }
+function tryDecodeURIComponent(url: string): Result.Result<string, DecodeError> {
+  return Result.try({
+    try: () => decodeURIComponent(url),
+    catch: (cause) => decodeError(url, cause),
+  });
 }
 
 function getCssSelectorsOfEditable(): string {
@@ -1264,8 +1264,8 @@ export {
   refreshHints,
   reportIssue,
   rotateInput,
-  safeDecodeURI,
-  safeDecodeURIComponent,
+  tryDecodeURI,
+  tryDecodeURIComponent,
   scrollIntoViewIfNeeded,
   setSanitizedContent,
   showBanner,

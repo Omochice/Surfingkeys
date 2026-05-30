@@ -2,6 +2,7 @@ import { debounce } from "lodash";
 import { createEffect, createRoot, createSignal } from "solid-js";
 import { render } from "solid-js/web";
 
+import { unwrapOr } from "../../common/result";
 import { filterByTitleOrUrl, regexFromString } from "../../common/utils";
 import KeyboardUtils from "../common/keyboardUtils";
 import Mode from "../common/mode";
@@ -14,12 +15,12 @@ import {
   getBrowserName,
   htmlEncode,
   parseAnnotation,
-  safeDecodeURI,
-  safeDecodeURIComponent,
   scrollIntoViewIfNeeded,
   showBanner,
   toggleQuote,
   timeStampString,
+  tryDecodeURI,
+  tryDecodeURIComponent,
 } from "../common/utils";
 import { Prompt } from "./components/Prompt";
 import { ResultList } from "./components/ResultList";
@@ -513,7 +514,7 @@ function createOmnibar(front: any, clipboard: any) {
   };
 
   self.createURLItem = (b: any, rxp: RegExp | null) => {
-    b.title = b.title && b.title !== "" ? b.title : safeDecodeURI(b.url);
+    b.title = b.title && b.title !== "" ? b.title : unwrapOr(tryDecodeURI(b.url), b.url);
     let type = "🔥";
     let additional = "";
     let uid = b.uid;
@@ -541,7 +542,7 @@ function createOmnibar(front: any, clipboard: any) {
     li.appendChild(
       createElementWithContent(
         "div",
-        `<div class="title">${self.highlight(rxp, htmlEncode(b.title))} ${additional}</div><div class="url">${self.highlight(rxp, htmlEncode(safeDecodeURIComponent(b.url)))}</div>`,
+        `<div class="title">${self.highlight(rxp, htmlEncode(b.title))} ${additional}</div><div class="url">${self.highlight(rxp, htmlEncode(unwrapOr(tryDecodeURIComponent(b.url), b.url)))}</div>`,
         { class: "text-container" },
       ),
     );
