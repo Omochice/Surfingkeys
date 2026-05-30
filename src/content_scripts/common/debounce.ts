@@ -1,7 +1,7 @@
-export interface DebouncedFunction {
+export type DebouncedFunction = {
   (): void;
   cancel: () => void;
-}
+};
 
 export function debounce(fn: () => void, wait: number): DebouncedFunction {
   let timer: ReturnType<typeof setTimeout> | undefined;
