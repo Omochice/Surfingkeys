@@ -1,7 +1,13 @@
 import { Result } from "@praha/byethrow";
 import DOMPurify from "dompurify";
 
-import { type DecodeError, decodeError } from "../../common/result";
+import {
+  type DecodeError,
+  type DomApiError,
+  decodeError,
+  domApiError,
+  unwrapOr,
+} from "../../common/result";
 import browser from "./browser";
 import KeyboardUtils from "./keyboardUtils";
 import { RUNTIME, dispatchSKEvent, runtime } from "./runtime";
@@ -722,26 +728,27 @@ function getTextRect(
   startOffset: number,
   endNodeOrOffset?: Node | number,
   endOffset?: number,
-): DOMRectList | DOMRect[] {
-  let rects: DOMRectList | DOMRect[] = [];
-  try {
-    let start = startOffset;
-    while (rects.length === 0 && start >= 0) {
-      _focusedRange.setStart(node, start);
-      if (endOffset !== undefined) {
-        _focusedRange.setEnd(endNodeOrOffset as Node, endOffset);
-      } else if (endNodeOrOffset !== undefined) {
-        _focusedRange.setEnd(node, endNodeOrOffset as number);
-      } else {
-        _focusedRange.setEnd(node, startOffset);
+): Result.Result<DOMRectList | DOMRect[], DomApiError> {
+  return Result.try({
+    try: () => {
+      let rects: DOMRectList | DOMRect[] = [];
+      let start = startOffset;
+      while (rects.length === 0 && start >= 0) {
+        _focusedRange.setStart(node, start);
+        if (endOffset !== undefined) {
+          _focusedRange.setEnd(endNodeOrOffset as Node, endOffset);
+        } else if (endNodeOrOffset !== undefined) {
+          _focusedRange.setEnd(node, endNodeOrOffset as number);
+        } else {
+          _focusedRange.setEnd(node, startOffset);
+        }
+        rects = _focusedRange.getClientRects();
+        start--;
       }
-      rects = _focusedRange.getClientRects();
-      start--;
-    }
-  } catch {
-    return [];
-  }
-  return rects;
+      return rects;
+    },
+    catch: (cause) => domApiError("getTextRect", cause),
+  });
 }
 
 function locateFocusNode(
@@ -750,7 +757,7 @@ function locateFocusNode(
   const sel = selection!;
   const se = sel.focusNode!.parentElement!;
   scrollIntoViewIfNeeded(se, true);
-  let r0 = getTextRect(sel.focusNode!, sel.focusOffset)[0];
+  let r0 = unwrapOr<DOMRectList | DOMRect[]>(getTextRect(sel.focusNode!, sel.focusOffset), [])[0];
   if (!r0) {
     r0 = (sel.focusNode as Element).getBoundingClientRect();
   }
@@ -818,7 +825,10 @@ function getWordUnderCursor(mouseCursor?: boolean): string | null {
   const selection = document.getSelection()!;
   if (selection.focusNode && selection.focusNode.textContent) {
     const range = getNearestWord(selection.focusNode.textContent, selection.focusOffset);
-    const selRect = getTextRect(selection.focusNode, range[0], range[0] + range[1])[0];
+    const selRect = unwrapOr<DOMRectList | DOMRect[]>(
+      getTextRect(selection.focusNode, range[0], range[0] + range[1]),
+      [],
+    )[0];
     const word = selection.focusNode.textContent.substr(range[0], range[1]);
     if (selRect && word) {
       if (!mouseCursor || (_clickPos && selRect.has(_clickPos[0], _clickPos[1], 0, 0))) {

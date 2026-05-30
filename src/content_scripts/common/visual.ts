@@ -1,3 +1,4 @@
+import { unwrapOr } from "../../common/result";
 import KeyboardUtils from "./keyboardUtils";
 import Mode from "./mode";
 import { RUNTIME, dispatchSKEvent, runtime } from "./runtime";
@@ -103,7 +104,7 @@ function createVisual(clipboard: ClipboardLike, hints: HintsLike): VisualMode {
   });
   self.addEventListener("scroll", () => {
     matches.forEach((m) => {
-      const r = getTextRect(m[0], m[1])[0];
+      const r = unwrapOr<DOMRectList | DOMRect[]>(getTextRect(m[0], m[1]), [])[0];
       if (r === undefined) {
         return;
       }
@@ -591,7 +592,10 @@ function createVisual(clipboard: ClipboardLike, hints: HintsLike): VisualMode {
     node2: Node,
     offset2: number,
   ): HTMLElement[] {
-    const rects = getTextRect(node1, offset1, node2, offset2);
+    const rects = unwrapOr<DOMRectList | DOMRect[]>(
+      getTextRect(node1, offset1, node2, offset2),
+      [],
+    );
     if (rects.length > 100) {
       // avoid hangs due to huge amounts of selection
       return [];
