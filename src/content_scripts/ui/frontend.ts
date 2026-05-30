@@ -26,6 +26,7 @@ import { Bubble as BubbleView } from "./components/Bubble";
 import { Keystroke as KeystrokeView } from "./components/Keystroke";
 import { Popup as PopupView } from "./components/Popup";
 import { StatusBar as StatusBarView } from "./components/StatusBar";
+import type { StatusCell } from "./components/StatusBar";
 import { Tabs as TabsView } from "./components/Tabs";
 import { Usage as UsageView } from "./components/Usage";
 import createOmnibar from "./omnibar";
@@ -846,7 +847,7 @@ const StatusBar = (() => {
   const ui = Front.statusBar;
 
   // mode: 0, search: 1, searchResult: 2
-  const [cells, setCells] = createSignal<string[]>(["", "", ""]);
+  const [cells, setCells] = createSignal<StatusCell[]>(["", "", ""]);
   // frontend.ts is plain TS (no JSX), so the component is invoked through a
   // getter prop that keeps `cells` reactive across the postMessage boundary.
   render(
@@ -917,7 +918,7 @@ const Find = (() => {
    * @instance
    */
   self.open = () => {
-    StatusBar.show(["/", '<input id="sk_find" class="sk_theme"/>']);
+    StatusBar.show(["/", { html: '<input id="sk_find" class="sk_theme"/>' }]);
     input = Front.statusBar.querySelector("input");
     input.oninput = () => {
       if (input.value.length && input.value !== ".") {

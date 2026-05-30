@@ -1,29 +1,39 @@
 import DOMPurify from "dompurify";
-import { Index } from "solid-js";
+import { Index, Show } from "solid-js";
 import type { Component } from "solid-js";
+
+/**
+ * A single status cell. A plain string is rendered as a text node (the mode name and the search
+ * result count are plain text); an `{ html }` cell is injected as sanitized HTML (only the search
+ * cell needs this, to carry the find `<input>` the legacy code reaches into).
+ */
+export type StatusCell = string | { html: string };
 
 export type StatusBarProps = {
   /**
-   * Raw HTML for each status cell (mode, search, search result). Empty cells render no padding or
-   * border so they collapse; the caller hides the whole bar when every cell is empty.
+   * The status cells (mode, search, search result). Empty cells render no padding or border so they
+   * collapse; the caller hides the whole bar when every cell is empty.
    */
-  cells: string[];
+  cells: StatusCell[];
 };
+
+const isEmpty = (cell: StatusCell): boolean => cell === "";
 
 /**
  * Status line shown in the frontend iframe. A reactive Solid replacement for the imperative
  * `showStatus` DOM updates in the legacy frontend.
  *
- * Each cell is injected as sanitized HTML (the search cell carries the find `<input>` the legacy
- * code reaches into), so the markup is run through DOMPurify at the injection point exactly as the
- * old `setSanitizedContent` did. Non-empty cells get padding and a divider; the divider is dropped
- * on the last non-empty cell so the bar has no trailing separator.
+ * Text cells render as text nodes; only the search cell carries markup (the find `<input>`), so it
+ * is the sole cell run through DOMPurify. Keeping plain text out of `innerHTML` removes it from the
+ * sanitization path entirely rather than relying on DOMPurify to pass it through unchanged.
+ * Non-empty cells get padding and a divider; the divider is dropped on the last non-empty cell so
+ * the bar has no trailing separator.
  */
 export const StatusBar: Component<StatusBarProps> = (props) => {
   const lastNonEmpty = () => {
     let last = -1;
     for (let i = 0; i < props.cells.length; i++) {
-      if (props.cells[i]) {
+      if (!isEmpty(props.cells[i]!)) {
         last = i;
       }
     }
@@ -35,15 +45,21 @@ export const StatusBar: Component<StatusBarProps> = (props) => {
       {(cell, i) => (
         <span
           style={
-            cell()
+            !isEmpty(cell())
               ? {
                   padding: "0px 8px",
                   "border-right": i === lastNonEmpty() ? "" : "1px solid #999",
                 }
               : { padding: "", "border-right": "" }
           }
-          innerHTML={DOMPurify.sanitize(cell())}
-        />
+        >
+          <Show
+            when={typeof cell() === "object"}
+            fallback={cell() as string}
+          >
+            <span innerHTML={DOMPurify.sanitize((cell() as { html: string }).html)} />
+          </Show>
+        </span>
       )}
     </Index>
   );
