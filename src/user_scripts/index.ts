@@ -1,3 +1,6 @@
+import { Result } from "@praha/byethrow";
+
+import { userCodeError } from "../common/result";
 import { RUNTIME, dispatchSKEvent } from "../content_scripts/common/runtime";
 import {
   applyUserSettings,
@@ -125,11 +128,14 @@ initSKFunctionListener(
       if (Object.prototype.hasOwnProperty.call(functionsToListSuggestions, url)) {
         const fn = functionsToListSuggestions[url];
         if (!fn) return;
-        try {
-          const ret = await fn(response, request);
-          dispatchSKEvent("front", [callbackId, ret]);
-        } catch (e) {
-          console.error("Search suggestion callback error:", e);
+        const r = await Result.try({
+          try: () => fn(response, request),
+          catch: (cause) => userCodeError("callback", cause),
+        });
+        if (Result.isSuccess(r)) {
+          dispatchSKEvent("front", [callbackId, r.value]);
+        } else {
+          console.error("Search suggestion callback error:", r.error.cause);
           dispatchSKEvent("front", [callbackId, []]);
         }
       }
@@ -337,13 +343,16 @@ export default (extensionRootUrl: string, uf: (api: any, settings: any) => void)
   if (isInUIFrame()) return;
   userScriptTask = () => {
     const settings = {};
-    let error = "";
-    try {
-      uf(api, settings);
-    } catch (e) {
-      error = String(e);
-    }
-    applyUserSettings({ settings, error });
+    const r = Result.try({
+      try: (): void => {
+        uf(api, settings);
+      },
+      catch: (cause) => userCodeError("snippet", cause),
+    });
+    applyUserSettings({
+      settings,
+      error: Result.isFailure(r) ? String(r.error.cause) : "",
+    });
   };
   if (window === top) {
     userScriptTask();

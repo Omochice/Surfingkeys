@@ -1,3 +1,6 @@
+import { Result } from "@praha/byethrow";
+
+import { userCodeError } from "../common/result";
 import createAPI from "./common/api";
 import browser from "./common/browser";
 import createDefaultMappings from "./common/default";
@@ -138,13 +141,17 @@ function applySettings(api: Api, normal: Normal, rs: StoredSettings): void {
     !document.location.href.startsWith(browser.runtime.getURL("/"))
   ) {
     const settings = {};
-    let error = "";
-    try {
-      new Function("settings", "api", rs.snippets)(settings, api);
-    } catch (e) {
-      error = String(e);
-    }
-    applyUserSettings({ settings, error });
+    const snippets = rs.snippets;
+    const r = Result.try({
+      try: (): void => {
+        new Function("settings", "api", snippets)(settings, api);
+      },
+      catch: (cause) => userCodeError("snippet", cause),
+    });
+    applyUserSettings({
+      settings,
+      error: Result.isFailure(r) ? String(r.error.cause) : "",
+    });
   }
 
   applyRuntimeConf(normal);
