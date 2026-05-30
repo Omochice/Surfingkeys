@@ -41,13 +41,9 @@ Surfingkeys is doing its best to make full use of keyboard for web browsing, but
 | Session management                              | Y                          | Y                  | Y                 |
 | Repeats action by pressing number before mapkey | Y                          | Y                  | Y                 |
 | Hotkey to toggle Surfingkeys                    | Y                          | Y                  | Y                 |
-| VIM editor and Emacs editor                     | Y                          | Y                  | Y                 |
 | Dot to repeat previous action                   | Y                          | Y                  | Y                 |
 | Capture page                                    | Y                          | Y                  | Y                 |
-| PDF viewer                                      | Y                          | N                  | N                 |
 | Sync across devices                             | Y                          | N                  | Y                 |
-| Tab Groups                                      | Y                          | Y                  | N                 |
-| Markdown preview                                | Y                          | Y                  | N                 |
 
 ### TABLE OF CONTENTS
 
@@ -65,11 +61,8 @@ Surfingkeys is doing its best to make full use of keyboard for web browsing, but
 - [Session management](#session-management)
 - [Repeats action by pressing number before mapkey](#repeats-action-by-pressing-number-before-mapkey)
 - [Hotkey to toggle Surfingkeys](#hotkey-to-toggle-surfingkeys)
-- [VIM editor and Emacs editor](#vim-editor-and-emacs-editor)
 - [Dot to repeat previous action](#dot-to-repeat-previous-action)
-- [Markdown preview](#markdown-preview)
 - [Capture page](#capture-page)
-- [PDF viewer](#pdf-viewer)
 - [Edit your own settings](#edit-your-own-settings)
 - [License](#license)
 
@@ -85,14 +78,10 @@ Surfingkeys is doing its best to make full use of keyboard for web browsing, but
 - Session management
 - A versatile bookmark/url finder
 - Count prefixes to repeat actions
-- Use vim editor to edit input on page
 - Dot to repeat previous action
-- `;pm` to preview markdown
 - Emoji completion in Insert mode
 - Rich hints for keystroke
-- Everything in Surfingkeys works for PDF
 - Regional Hints mode
-- Chat with LLM
 
 ## Quick start
 
@@ -172,7 +161,6 @@ Press `L` to enter regional Hints mode by picking a visually large element. Ther
 - `ct` to copy text from target element
 - `ch` to copy HTML from target element
 - `d` to delete target element
-- `l` to chat with AI about the text of the element
 
 [Demo on YouTube](https://www.youtube.com/watch?v=pFPOzAZDO38)
 
@@ -182,7 +170,6 @@ When focus is switched into any editable element by whatever means(`i` hints or 
 
 All mappings added with `imapkey` work in this mode.
 
-- `Ctrl - i` to open vim editor to edit.
 - `Ctrl - '` to toggle quotes in an input element, this is useful for search engines like google.
 - `Ctrl-e` move the cursor to the end of the line.
 - `Ctrl-a` move the cursor to the beginning of the line, use `Ctrl-f` in Windows to avoid conflict with select all.
@@ -451,58 +438,6 @@ When Surfingkeys is turned off on some site by `Alt-s`, the status will be persi
 
 Another way to disable Surfingkeys is to use `settings.blocklistPattern`, please refer to [regex for disabling](https://github.com/brookhong/Surfingkeys/issues/63).
 
-## VIM editor and Emacs editor
-
-Thanks ACE for the vim editor, Surfingkeys integrates ACE for the vim editor. The vim editor is used:
-
-- to edit any input on html page
-- to edit URL to open in new tab
-- to edit settings
-
-You could change to Emacs keybindings for the editor by adding below settings:
-
-```javascript
-settings.aceKeybindings = "emacs";
-```
-
-With Emacs keybindings, use `C-x C-s` to save your input.
-
-### Edit any input on html page
-
-In normal mode, press capital `I`, then use a hint letter to pick up a input box. A vim editor is opened for you to edit text. The vim editor is opened in slightly different way for `<input>`, `<textarea>`, and `<select>` elements.
-
-For `<input>` elements, the vim editor has only one line, and you use vim key bindings to edit your text. Then press `Enter` or `:w` to write your text back to the `<input>` element.
-
-![input_with_vim](https://cloud.githubusercontent.com/assets/288207/17644219/75a72b2e-61b3-11e6-8ce2-06c9cc94aeca.gif)
-
-For `<textarea>` elements, the vim editor is opened in bigger size. After you complete your edits, press `Ctrl-Enter` or `:w` to write your text back to the `<textarea>` element.
-
-![textarea_with_vim](https://cloud.githubusercontent.com/assets/288207/17644217/75a27e44-61b3-11e6-8f21-9cd79d3c5776.gif)
-
-For `<select>` elements, the vim editor is again opened in bigger size. Instead of editing the text, search for the desired option and jump to the line, then press `Enter` to select it. This is handy for `<select>` elements which have lots of options.
-
-![select_with_vim](https://cloud.githubusercontent.com/assets/288207/17644218/75a458a4-61b3-11e6-8ce7-eedcc996745c.gif)
-
-`Esc` or `:q` to quit vim editor without writing text back.
-
-`Tab` completion works with all words on current page, `Space` to choose a match from popup.
-
-If you enter insert mode with `i` or mouse click, you will edit your input in normal way. You could also open vim editor at that time by pressing `Ctrl-i`.
-
-Remember that in insert mode, press `Ctrl-i` to open the vim editor.
-
-### Edit URL to open in new tab
-
-`;u` to open vim editor to edit current URL, then `Enter` or `:w` to open the input URL, which works just like address bar with vim-binding keys.
-
-`Tab` completion works with all URLs from bookmark/history, `Space` to choose a match from popup.
-
-![url_with_vim](https://cloud.githubusercontent.com/assets/288207/17644220/75f8eedc-61b3-11e6-9630-da2250ac5f10.gif)
-
-### Edit settings
-
-`;e` to open settings editor, `:w` to save settings.
-
 ## Dot to repeat previous action
 
 [Repeating previous actions](https://github.com/brookhong/Surfingkeys/issues/67)
@@ -522,22 +457,6 @@ api.mapkey(
 
 Then `.` will not repeat your magic action with `se`, even it is just pressed.
 
-## Markdown preview
-
-1. copy your markdown source into clipboard.
-1. `;pm` to open markdown preview, which will preview markdown from clipboard.
-1. Then on the preview page, another `;pm` will open vim editor to edit markdown source.
-1. `:wq` to refresh preview.
-1. `r` to reload markdown source from clipboard.
-
-![markdown](https://cloud.githubusercontent.com/assets/288207/17669897/0b6fbaf6-6342-11e6-8583-86eb8691190d.gif)
-
-By default, Surfingkeys uses this [markdown parser](https://github.com/chjj/marked) to preview markdown, if you'd like to use [github markdown API](https://developer.github.com/v3/markdown/) to parse your markdown, please add below line to your settings:
-
-```javascript
-settings.useLocalMarkdownAPI = false;
-```
-
 ## Capture page
 
 There are some circumstances that you want to take a screenshot on a page, below shortcuts could help you, especially when it is for a long page or just for some scrollable DIV on the page.
@@ -548,14 +467,6 @@ There are some circumstances that you want to take a screenshot on a page, below
 
 After one of above shortcuts pressed, you could see a popup of captured image, on which you could then right click with a MOUSE( 😢 ) to save as or copy into system clipboard.
 
-## PDF viewer
-
-To make Surfingkeys work for PDF files, Surfingkeys integrates PDF viewer from the notable [pdf.js](https://github.com/mozilla/pdf.js). When a pdf file is opened in Chrome, the PDF viewer will be launched, and you could use everything from Surfingkeys then.
-
-If you would like to use original pdf viewer provided by Chrome itself, use `;s` to toggle that.
-
-Some functionalities are also available when you're using original pdf viewer, but some functionalities such as smooth scroll/visual mode etc won't be available.
-
 ## Edit your own settings
 
 ### Properties list
@@ -564,8 +475,6 @@ Some functionalities are also available when you're using original pdf viewer, b
 | :-------------------------------------- | :-------------------------------------------- | :--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | settings.showModeStatus                 | false                                         | Whether always to show mode status.                                                                                                                                                                                                                                                                                                                                                                  |
 | settings.richHintsForKeystroke          | 500                                           | Timeout(ms) to show rich hints for keystroke, 0 will disable rich hints.                                                                                                                                                                                                                                                                                                                             |
-| settings.useLocalMarkdownAPI            | true                                          | Whether to use [chjj/marked](https://github.com/chjj/marked) to parse markdown, otherwise use github markdown API.                                                                                                                                                                                                                                                                                   |
-| settings.focusOnSaved                   | true                                          | Whether to focus text input after quitting from vim editor.                                                                                                                                                                                                                                                                                                                                          |
 | settings.omnibarMaxResults              | 10                                            | How many results will be listed out each page for Omnibar.                                                                                                                                                                                                                                                                                                                                           |
 | settings.omnibarHistoryCacheSize        | 100                                           | The maximum of items fetched from browser history.                                                                                                                                                                                                                                                                                                                                                   |
 | settings.omnibarPosition                | "middle"                                      | Where to position Omnibar. ["middle", "bottom"]                                                                                                                                                                                                                                                                                                                                                      |
@@ -607,10 +516,8 @@ Some functionalities are also available when you're using original pdf viewer, b
 | settings.digitForRepeat                 | true                                          | Whether digits are reserved for repeats, by false to enable mapping of numeric keys.                                                                                                                                                                                                                                                                                                                 |
 | settings.editableBodyCare               | true                                          | Insert mode is activated automatically when an editable element is focused, so if document.body is editable for some window/iframe (such as docs.google.com), Insert mode is always activated on the window/iframe, which means all shortcuts from Normal mode will not be available. With `editableBodyCare` as `true`, Insert mode will not be activated automatically in this case.               |
 | settings.ignoredFrameHosts              | ["https://tpc.googlesyndication.com"]         | When using `w` to loop through frames, you could use this settings to exclude some of them, such as those for advertisements.                                                                                                                                                                                                                                                                        |
-| settings.aceKeybindings                 | "vim"                                         | Set it "emacs" to use emacs keybindings in the ACE editor.                                                                                                                                                                                                                                                                                                                                           |
 | settings.caretViewport                  | null                                          | Set it in format `[top, left, bottom, right]` to limit hints generation on `v` for entering visual mode, such as `[window.innerHeight / 2 - 10, 0, window.innerHeight / 2 + 10, window.innerWidth]` will make Surfingkeys generate Hints only for text that display on vertically middle of window.                                                                                                  |
 | settings.mouseSelectToQuery             | []                                            | All hosts that have enable feature -- mouse selection to query.                                                                                                                                                                                                                                                                                                                                      |
-| settings.autoSpeakOnInlineQuery         | false                                         | Whether to automatically speak the query string with TTS on inline query.                                                                                                                                                                                                                                                                                                                            |
 | settings.showTabIndices                 | false                                         | Whether to show tab numbers (indices) in the tab titles.                                                                                                                                                                                                                                                                                                                                             |
 | settings.tabIndicesSeparator            | "\|"                                          | The separator between index and original title of a tab.                                                                                                                                                                                                                                                                                                                                             |
 | settings.disabledOnActiveElementPattern | undefined                                     | Automatically disable this extension when the active element matches with this pattern and reactivate the extension when the active element changes, one useful case is to enable user to type to locate an option in a large dropdown, such as `settings.disabledOnActiveElementPattern = "ul.select-dropdown-options";`                                                                            |
@@ -623,87 +530,6 @@ settings.theme = `
             font-size: 20pt;
         }
     }`;
-```
-
-## Chat with LLM
-
-There are several LLM providers integrated into Surfingkeys now, use `A` to call out a chat popup, and chat with your AI providers. The supported LLM providers now are
-
-- Ollama
-- Bedrock
-- DeepSeek
-- Gemini
-- Custom LLM provider (e.g.: SiliconFlow and OpenRouter; other OpenAI API compatible services should also work)
-
-To use the feature, you need set up your credentials/API keys first, like
-
-```javascript
-settings.defaultLLMProvider = "bedrock";
-settings.llm = {
-  bedrock: {
-    accessKeyId: "********************",
-    secretAccessKey: "****************************************",
-    // model: 'anthropic.claude-3-5-sonnet-20241022-v2:0',
-    model: "us.anthropic.claude-3-7-sonnet-20250219-v1:0",
-  },
-  gemini: {
-    apiKey: "***************************************",
-  },
-  ollama: {
-    model: "qwen2.5-coder:32b",
-  },
-  deepseek: {
-    apiKey: "***********************************",
-    model: "deepseek-chat",
-  },
-  custom: {
-    serviceUrl: "https://api.siliconflow.cn/v1/chat/completions",
-    apiKey: "***********************************",
-    model: "deepseek-ai/DeepSeek-V3.1",
-  },
-};
-```
-
-You can also use `A` in visual mode. Press `v` or `V` to enter visual mode, then `v` again to select the text you'd like to chat with AI about, then `A` to call out the LLM chat box. Now start to chat with AI about the selected text.
-
-Another solution to select the content to chat with AI about is Regional Hints mode. Press `L` to pick an element, then `l` to call out the LLM chat box.
-
-### To use LLM chat with specified system prompt
-
-For example, you can designate your AI to be a translator with below snippets
-
-```javascript
-api.mapkey("A", "#8Open llm chat", function () {
-  api.Front.openOmnibar({
-    type: "LLMChat",
-    extra: {
-      system:
-        "You're a translator, whenever you got a message in Chinese, please just translate it into English, and if you got a message in English, please translate it to Chinese. You don't need to answer any question, just TRANSLATE.",
-    },
-  });
-});
-```
-
-### 403 Forbidden with Ollama
-
-To use Ollama with Chrome extension, you need run ollama with some modification on `OLLAMA_ORIGINS`
-
-Under Windows
-
-```console
-    OLLAMA_ORIGINS=chrome-extension://* ollama serve
-```
-
-Under Mac
-
-```console
-    launchctl setenv OLLAMA_ORIGINS chrome-extension://gfbliohnnapiefjpjlpjnehglfpaknnc
-```
-
-Under Mac for both Chrome and Firefox
-
-```console
-    launchctl setenv OLLAMA_ORIGINS "chrome-extension://gfbliohnnapiefjpjlpjnehglfpaknnc,moz-extension://*"
 ```
 
 ## API Documentation
@@ -722,9 +548,6 @@ Under Mac for both Chrome and Firefox
 
 - ~~[jQuery](https://github.com/jquery/jquery)~~, removed for less memory usage and better performance.
 - ~~[TRIE](https://github.com/mikedeboer/trie)~~, finally replaced by my own simple implementation for less memory usage and better performance.
-- [ACE vim editor](https://github.com/ajaxorg/ace), for vim editor.
-- [markdown parser](https://github.com/chjj/marked), for markdown parser.
-- [pdf.js](https://github.com/mozilla/pdf.js), for pdf viewer.
 - [vimium](https://github.com/philc/vimium), for the days without this extension.
 - [cVim](https://github.com/1995eaton/chromium-vim), for the days without this extension.
 
