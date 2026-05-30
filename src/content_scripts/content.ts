@@ -1,3 +1,6 @@
+import { Result } from "@praha/byethrow";
+
+import { reportOnFail, userCodeError } from "../common/result";
 import createAPI from "./common/api";
 import browser from "./common/browser";
 import createDefaultMappings from "./common/default";
@@ -5,6 +8,7 @@ import Mode from "./common/mode";
 import createModeGraph, { type ModeContext } from "./common/modeGraph";
 import createNormal from "./common/normal";
 import startScrollNodeObserver from "./common/observer";
+import { reportError } from "./common/report";
 import { RUNTIME, dispatchSKEvent, runtime } from "./common/runtime";
 import type { StoredSettings } from "./common/runtime";
 import {
@@ -75,31 +79,37 @@ function applyRuntimeConf(normal: Normal): void {
   ensureRegex("prevLinkRegex");
   ensureRegex("nextLinkRegex");
   ensureRegex("clickablePat");
-  RUNTIME(
-    "getState",
-    {
-      blocklistPattern: runtime.conf.blocklistPattern ? runtime.conf.blocklistPattern : undefined,
-      lurkingPattern: runtime.conf.lurkingPattern ? runtime.conf.lurkingPattern : undefined,
-    },
-    (resp) => {
-      let state = resp.state;
-      if (state === "disabled") {
-        normal.disable();
-        dispatchSKEvent("front", ["showStatus", [undefined, undefined, ""]]);
-      } else if (state === "lurking") {
-        state = normal.startLurk();
-      } else {
-        normal.enable();
-        Mode.showStatus();
-      }
+  reportOnFail(
+    RUNTIME(
+      "getState",
+      {
+        blocklistPattern: runtime.conf.blocklistPattern ? runtime.conf.blocklistPattern : undefined,
+        lurkingPattern: runtime.conf.lurkingPattern ? runtime.conf.lurkingPattern : undefined,
+      },
+      (resp) => {
+        let state = resp.state;
+        if (state === "disabled") {
+          normal.disable();
+          dispatchSKEvent("front", ["showStatus", [undefined, undefined, ""]]);
+        } else if (state === "lurking") {
+          state = normal.startLurk();
+        } else {
+          normal.enable();
+          Mode.showStatus();
+        }
 
-      if (window === top) {
-        RUNTIME("setSurfingkeysIcon", {
-          status: state,
-        });
-        dispatchSKEvent("front", ["showStatus", [undefined, undefined, ""]]);
-      }
-    },
+        if (window === top) {
+          reportOnFail(
+            RUNTIME("setSurfingkeysIcon", {
+              status: state,
+            }),
+            reportError,
+          );
+          dispatchSKEvent("front", ["showStatus", [undefined, undefined, ""]]);
+        }
+      },
+    ),
+    reportError,
   );
 }
 
@@ -138,13 +148,17 @@ function applySettings(api: Api, normal: Normal, rs: StoredSettings): void {
     !document.location.href.startsWith(browser.runtime.getURL("/"))
   ) {
     const settings = {};
-    let error = "";
-    try {
-      new Function("settings", "api", rs.snippets)(settings, api);
-    } catch (e) {
-      error = String(e);
-    }
-    applyUserSettings({ settings, error });
+    const snippets = rs.snippets;
+    const r = Result.try({
+      try: (): void => {
+        new Function("settings", "api", snippets)(settings, api);
+      },
+      catch: (cause) => userCodeError("snippet", cause),
+    });
+    applyUserSettings({
+      settings,
+      error: Result.isFailure(r) ? String(r.error.cause) : "",
+    });
   }
 
   applyRuntimeConf(normal);
@@ -173,19 +187,22 @@ function _initModules(): Modes {
   }
 
   dispatchSKEvent("defaultSettingsLoaded", { normal, api });
-  RUNTIME("getSettings", null, (response) => {
-    const rs = response.settings;
-    applySettings(api, normal, rs);
-    const disabledSearchAliases = rs.disabledSearchAliases;
-    const getUsage = front.getUsage;
-    const frontCommand = front.command;
-    dispatchSKEvent("userSettingsLoaded", {
-      settings: rs,
-      disabledSearchAliases,
-      getUsage,
-      frontCommand,
-    });
-  });
+  reportOnFail(
+    RUNTIME("getSettings", null, (response) => {
+      const rs = response.settings;
+      applySettings(api, normal, rs);
+      const disabledSearchAliases = rs.disabledSearchAliases;
+      const getUsage = front.getUsage;
+      const frontCommand = front.command;
+      dispatchSKEvent("userSettingsLoaded", {
+        settings: rs,
+        disabledSearchAliases,
+        getUsage,
+        frontCommand,
+      });
+    }),
+    reportError,
+  );
   return {
     normal,
     front,
@@ -281,44 +298,47 @@ function start(adapter?: BrowserAdapter): void {
         modes.front.attach();
       });
 
-      RUNTIME(
-        "tabURLAccessed",
-        {
-          title: document.title,
-          url: window.location.href,
-        },
-        (resp) => {
-          if (resp.index > 0) {
-            const showTabIndexInTitle = () => {
-              skipObserver = true;
-              userConfPromise.then((conf) => {
-                document.title = myTabIndex + conf.tabIndicesSeparator + originalTitle;
+      reportOnFail(
+        RUNTIME(
+          "tabURLAccessed",
+          {
+            title: document.title,
+            url: window.location.href,
+          },
+          (resp) => {
+            if (resp.index > 0) {
+              const showTabIndexInTitle = () => {
+                skipObserver = true;
+                userConfPromise.then((conf) => {
+                  document.title = myTabIndex + conf.tabIndicesSeparator + originalTitle;
+                });
+              };
+
+              let myTabIndex = resp.index;
+              let skipObserver = false;
+              let originalTitle = document.title;
+
+              new MutationObserver(() => {
+                if (skipObserver) {
+                  skipObserver = false;
+                } else {
+                  originalTitle = document.title;
+                  showTabIndexInTitle();
+                }
+              }).observe(document.querySelector("title")!, { childList: true });
+
+              showTabIndexInTitle();
+
+              runtime.on("tabIndexChange", (msg) => {
+                if (msg.index !== myTabIndex) {
+                  myTabIndex = msg.index;
+                  showTabIndexInTitle();
+                }
               });
-            };
-
-            let myTabIndex = resp.index;
-            let skipObserver = false;
-            let originalTitle = document.title;
-
-            new MutationObserver(() => {
-              if (skipObserver) {
-                skipObserver = false;
-              } else {
-                originalTitle = document.title;
-                showTabIndexInTitle();
-              }
-            }).observe(document.querySelector("title")!, { childList: true });
-
-            showTabIndexInTitle();
-
-            runtime.on("tabIndexChange", (msg) => {
-              if (msg.index !== myTabIndex) {
-                myTabIndex = msg.index;
-                showTabIndexInTitle();
-              }
-            });
-          }
-        },
+            }
+          },
+        ),
+        reportError,
       );
     });
   } else {

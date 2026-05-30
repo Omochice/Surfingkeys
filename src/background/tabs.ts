@@ -1,3 +1,6 @@
+import { Result } from "@praha/byethrow";
+
+import { chromeRuntimeError } from "../common/result";
 import { filterByTitleOrUrl } from "../common/utils";
 import type { MessageHandler } from "./start";
 import { createTabHistory } from "./tabHistory";
@@ -107,10 +110,13 @@ export function createTabs(deps: TabsDeps): TabsUnit {
 
   function sendTabMessage(tabId: number, frameId: number, message: any) {
     const opts = frameId === -1 ? undefined : { frameId: frameId };
-    // use catch to suppress Uncaught (in promise) Error on sending message to unsupported tabs like chrome://
+    // Wrap to suppress Uncaught (in promise) Error on sending message to unsupported tabs like chrome://
     const p = chrome.tabs.sendMessage(tabId, message, opts);
     if (p) {
-      p.catch(() => {});
+      void Result.try({
+        try: () => p as Promise<unknown>,
+        catch: (cause) => chromeRuntimeError("sendTabMessage", cause),
+      });
     }
   }
   function _tabActivated(tabId: number) {

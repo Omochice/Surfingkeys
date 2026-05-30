@@ -1,3 +1,6 @@
+import { Result } from "@praha/byethrow";
+
+import { domApiError } from "../../common/result";
 import KeyboardUtils from "./keyboardUtils";
 import { RUNTIME, dispatchSKEvent, runtime } from "./runtime";
 import type Trie from "./trie";
@@ -241,10 +244,12 @@ export default class Mode {
       (!document.body || document.body.childElementCount === 0)
     ) {
       window.frameElement.addEventListener("load", () => {
-        try {
-          init(cb);
-        } catch (e) {
-          console.log("Error on blank iframe loaded: " + e);
+        const r = Result.try({
+          try: (): void => init(cb),
+          catch: (cause) => domApiError("iframe init", cause),
+        });
+        if (Result.isFailure(r)) {
+          console.log("Error on blank iframe loaded: " + String(r.error.cause));
         }
       });
     } else {

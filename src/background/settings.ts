@@ -1,3 +1,6 @@
+import { Result } from "@praha/byethrow";
+
+import { chromeRuntimeError } from "../common/result";
 import { request } from "./request";
 import type { MessageHandler } from "./start";
 
@@ -57,9 +60,11 @@ export function _save(storage: any, data: any, cb?: () => void): void {
     if (data.localPath) {
       delete data.snippets;
       // try to fetch snippets from localPath and cache it in local storage.
-      request(data.localPath, (resp) => {
-        data.snippets = resp;
-        storage.set(data, cb);
+      void request(data.localPath).then((r) => {
+        if (Result.isSuccess(r)) {
+          data.snippets = r.value;
+          storage.set(data, cb);
+        }
       });
     } else {
       storage.set(data, cb);
@@ -124,20 +129,14 @@ export function createSettings(deps: SettingsDeps): SettingsUnit {
       keys,
       (set: any) => {
         if (set.localPath) {
-          request(
-            appendNonce(set.localPath),
-            (resp) => {
-              set.snippets = resp;
-              cb(set);
-            },
-            undefined,
-            undefined,
-            () => {
-              // failed to read snippets from localPath
+          void request(appendNonce(set.localPath)).then((r) => {
+            if (Result.isSuccess(r)) {
+              set.snippets = r.value;
+            } else {
               set.error = "Failed to read snippets from " + set.localPath;
-              cb(set);
-            },
-          );
+            }
+            cb(set);
+          });
         } else {
           cb(set);
         }
@@ -211,20 +210,17 @@ export function createSettings(deps: SettingsDeps): SettingsUnit {
   }
 
   function _loadSettingsFromUrl(url: string, cb: (status: any) => void) {
-    request(
-      appendNonce(url),
-      (resp) => {
+    void request(appendNonce(url)).then((r) => {
+      if (Result.isSuccess(r)) {
+        const resp = r.value;
         _updateAndPostSettings({ localPath: url, snippets: resp });
         registerUserScript(resp, () => {
           cb({ status: "Succeeded", snippets: resp });
         });
-      },
-      undefined,
-      undefined,
-      () => {
+      } else {
         cb({ status: "Failed" });
-      },
-    );
+      }
+    });
   }
 
   function registerUserScript(snippets: any, callback?: () => void) {
@@ -302,15 +298,12 @@ export function createSettings(deps: SettingsDeps): SettingsUnit {
     }
   }
 
-  function isUserScriptsAvailable() {
-    try {
-      if (chrome.userScripts) {
-        return true;
-      }
-    } catch {
-      return false;
-    }
-    return false;
+  function isUserScriptsAvailable(): boolean {
+    const r = Result.try({
+      try: () => Boolean(chrome.userScripts),
+      catch: (cause) => chromeRuntimeError("userScripts feature detection", cause),
+    });
+    return Result.isSuccess(r) && r.value;
   }
 
   const handlersMap: Record<string, MessageHandler> = {

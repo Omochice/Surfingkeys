@@ -1,4 +1,6 @@
+import { reportOnFail } from "../common/result";
 import Mode from "./common/mode";
+import { reportError } from "./common/report";
 import { RUNTIME, dispatchSKEvent, runtime } from "./common/runtime";
 import type Trie from "./common/trie";
 import {
@@ -261,7 +263,7 @@ function createFront(
 
   self.chooseTab = () => {
     if (normal.repeats !== "") {
-      RUNTIME("focusTabByIndex");
+      reportOnFail(RUNTIME("focusTabByIndex"), reportError);
     } else {
       self.command({
         action: "chooseTab",
@@ -313,7 +315,7 @@ function createFront(
       hidePopup();
     } else if (_inlineQuery) {
       query = query.toLocaleLowerCase();
-      RUNTIME("updateInputHistory", { OmniQuery: query });
+      reportOnFail(RUNTIME("updateInputHistory", { OmniQuery: query }), reportError);
 
       const callbackId = generateQuickGuid();
       skCallbacks[callbackId] = (res) => {
@@ -423,10 +425,13 @@ function createFront(
       }
       if (Object.keys(cloneUS).length > 0 && window === top) {
         // left settings are for background, need not broadcast the update, neither persist into storage
-        RUNTIME("updateSettings", {
-          scope: "snippets",
-          settings: cloneUS,
-        });
+        reportOnFail(
+          RUNTIME("updateSettings", {
+            scope: "snippets",
+            settings: cloneUS,
+          }),
+          reportError,
+        );
       }
       dispatchSKEvent("settingsFromSnippetsLoaded");
     },
@@ -531,7 +536,7 @@ function createFront(
   });
 
   _actions["omnibar_query_entered"] = (response: any) => {
-    RUNTIME("updateInputHistory", { OmniQuery: response.query });
+    reportOnFail(RUNTIME("updateInputHistory", { OmniQuery: response.query }), reportError);
     self.performInlineQuery(
       response.query,
       {
