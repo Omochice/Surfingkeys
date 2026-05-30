@@ -26,6 +26,7 @@ import { Bubble as BubbleView } from "./components/Bubble";
 import { Keystroke as KeystrokeView } from "./components/Keystroke";
 import { Popup as PopupView } from "./components/Popup";
 import { StatusBar as StatusBarView } from "./components/StatusBar";
+import type { StatusCell } from "./components/StatusBar";
 import { Tabs as TabsView } from "./components/Tabs";
 import { Usage as UsageView } from "./components/Usage";
 import createOmnibar from "./omnibar";
@@ -228,11 +229,15 @@ const Front = (() => {
     }
   };
   const keystroke: any = document.getElementById("sk_keystroke");
+  const [keystrokeText, setKeystrokeText] = createSignal("");
   const [keystrokeHtml, setKeystrokeHtml] = createSignal("");
   const [keystrokeRich, setKeystrokeRich] = createSignal(false);
   render(
     () =>
       KeystrokeView({
+        get text() {
+          return keystrokeText();
+        },
         get html() {
           return keystrokeHtml();
         },
@@ -681,6 +686,7 @@ const Front = (() => {
   _actions["hideKeystroke"] = () => {
     if (keystroke.style.display !== "none") {
       setKeystrokeRich(false);
+      setKeystrokeText("");
       setKeystrokeHtml("");
       keystroke.style.display = "none";
       self.flush();
@@ -719,9 +725,8 @@ const Front = (() => {
       clearPendingHint();
       keystroke.style.display = "";
       self.flush();
-      const keys =
-        keystrokeHtml() + htmlEncode(KeyboardUtils.decodeKeystroke(message.keyHints.key));
-      setKeystrokeHtml(keys);
+      const keys = keystrokeText() + KeyboardUtils.decodeKeystroke(message.keyHints.key);
+      setKeystrokeText(keys);
 
       if (runtime.conf.richHintsForKeystroke > 0 && runtime.conf.richHintsForKeystroke < 10000) {
         _pendingHint = setTimeout(() => {
@@ -846,7 +851,7 @@ const StatusBar = (() => {
   const ui = Front.statusBar;
 
   // mode: 0, search: 1, searchResult: 2
-  const [cells, setCells] = createSignal<string[]>(["", "", ""]);
+  const [cells, setCells] = createSignal<StatusCell[]>(["", "", ""]);
   // frontend.ts is plain TS (no JSX), so the component is invoked through a
   // getter prop that keeps `cells` reactive across the postMessage boundary.
   render(
@@ -917,7 +922,7 @@ const Find = (() => {
    * @instance
    */
   self.open = () => {
-    StatusBar.show(["/", '<input id="sk_find" class="sk_theme"/>']);
+    StatusBar.show(["/", { html: '<input id="sk_find" class="sk_theme"/>' }]);
     input = Front.statusBar.querySelector("input");
     input.oninput = () => {
       if (input.value.length && input.value !== ".") {

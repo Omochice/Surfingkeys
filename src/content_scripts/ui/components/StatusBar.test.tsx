@@ -4,6 +4,7 @@ import { describe, expect, it } from "vitest";
 
 import { expectDefined } from "../../../../test/helpers";
 import { StatusBar } from "./StatusBar";
+import type { StatusCell } from "./StatusBar";
 
 describe("StatusBar", () => {
   it("renders one span per cell and updates content reactively", () => {
@@ -40,15 +41,20 @@ describe("StatusBar", () => {
   });
 
   it("injects the search cell's HTML so the find input is reachable", () => {
-    const [cells] = createSignal(["/", '<input id="sk_find" class="sk_theme"/>', "", ""]);
+    const [cells] = createSignal<StatusCell[]>([
+      "/",
+      { html: '<input id="sk_find" class="sk_theme"/>' },
+      "",
+      "",
+    ]);
     const { container } = render(() => <StatusBar cells={cells()} />);
 
     expect(container.querySelector("input#sk_find")).not.toBeNull();
   });
 
-  it("sanitizes cell HTML before injection", () => {
-    const [cells] = createSignal([
-      '<img src=x onerror="alert(1)">no script<script>1</script>',
+  it("sanitizes html cell content before injection", () => {
+    const [cells] = createSignal<StatusCell[]>([
+      { html: '<img src=x onerror="alert(1)">no script<script>1</script>' },
       "",
       "",
       "",

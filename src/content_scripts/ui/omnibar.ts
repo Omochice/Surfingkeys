@@ -25,6 +25,7 @@ import {
   tryDecodeURIComponent,
 } from "../common/utils";
 import { Prompt } from "./components/Prompt";
+import type { PromptValue } from "./components/Prompt";
 import { ResultList } from "./components/ResultList";
 import type { ResultListItem } from "./components/ResultList";
 import { ResultPage } from "./components/ResultPage";
@@ -34,9 +35,6 @@ import { SearchInput } from "./components/SearchInput";
 // this module's scope in the original code; declared here so those paths keep
 // their original (throwing) runtime behavior while type-checking.
 declare const Normal: any;
-
-const separator = "➤";
-const separatorHtml = `<span class='separator'>${separator}</span>`;
 
 /**
  * A harvested omnibar row: the fields ResultList renders, plus the data the handlers and key
@@ -84,7 +82,7 @@ function createOmnibar(front: any, clipboard: any) {
   const [results, setResults] = createSignal<OmnibarResult[]>([]);
   const [focusedIndex, setFocusedIndex] = createSignal(-1);
   const [resultPage, setResultPage] = createSignal("");
-  const [prompt, setPrompt] = createSignal("");
+  const [prompt, setPrompt] = createSignal<PromptValue>("");
   self.setPrompt = setPrompt;
   const [query, setQuery] = createSignal("");
   const [inputVisible, setInputVisible] = createSignal(true);
@@ -355,7 +353,7 @@ function createOmnibar(front: any, clipboard: any) {
   render(
     () =>
       Prompt({
-        get html() {
+        get value() {
           return prompt();
         },
       }),
@@ -847,7 +845,7 @@ function createOmnibar(front: any, clipboard: any) {
   self.addHandler("AddBookmark", AddBookmark(self));
   self.addHandler(
     "History",
-    OpenURLs(`history${separatorHtml}`, self, () => {
+    OpenURLs("history", self, () => {
       return new Promise((resolve) => {
         reportOnFail(
           RUNTIME(
@@ -868,7 +866,7 @@ function createOmnibar(front: any, clipboard: any) {
   );
   self.addHandler(
     "URLs",
-    OpenURLs(separatorHtml, self, () => {
+    OpenURLs("", self, () => {
       return new Promise((resolve) => {
         reportOnFail(
           RUNTIME("getTabs", { queryInfo: runtime.conf.omnibarTabsQuery }, (response: any) => {
@@ -908,7 +906,7 @@ function createOmnibar(front: any, clipboard: any) {
   );
   self.addHandler(
     "RecentlyClosed",
-    OpenURLs(`Recently closed${separatorHtml}`, self, () => {
+    OpenURLs("Recently closed", self, () => {
       return new Promise((resolve) => {
         reportOnFail(
           RUNTIME("getRecentlyClosed", null, (response: any) => {
@@ -927,7 +925,7 @@ function createOmnibar(front: any, clipboard: any) {
   );
   self.addHandler(
     "TabURLs",
-    OpenURLs(`Tab History${separatorHtml}`, self, () => {
+    OpenURLs("Tab History", self, () => {
       return new Promise((resolve) => {
         reportOnFail(
           RUNTIME("getTabURLs", null, (response: any) => {
@@ -961,7 +959,7 @@ function createOmnibar(front: any, clipboard: any) {
 
 function OpenBookmarks(omnibar: any): any {
   const self: any = {
-    prompt: `bookmark${separatorHtml}`,
+    prompt: "bookmark",
     inFolder: [],
   };
 
@@ -1023,7 +1021,7 @@ function OpenBookmarks(omnibar: any): any {
         folderId: currentFolderId,
         focused: omnibar.focusedIndex(),
       });
-      self.prompt = fi.data.folder_name + separator;
+      self.prompt = fi.data.folder_name;
       omnibar.setPrompt(self.prompt);
       omnibar.setQuery("");
       currentFolderId = folderId;
@@ -1063,7 +1061,7 @@ function OpenBookmarks(omnibar: any): any {
 
   self.onClose = () => {
     self.inFolder = [];
-    self.prompt = `bookmark${separatorHtml}`;
+    self.prompt = "bookmark";
     currentFolderId = undefined;
   };
 
@@ -1071,7 +1069,7 @@ function OpenBookmarks(omnibar: any): any {
     let eaten = false;
     if (event.keyCode === KeyboardUtils.keyCodes["comma"]) {
       folderOnly = !folderOnly;
-      self.prompt = folderOnly ? `bookmark folder${separator}` : `bookmark${separator}`;
+      self.prompt = folderOnly ? "bookmark folder" : "bookmark";
       omnibar.setPrompt(self.prompt);
       reportOnFail(
         RUNTIME(
@@ -1134,7 +1132,7 @@ function OpenBookmarks(omnibar: any): any {
 function AddBookmark(omnibar: any): any {
   const self: any = {
     focusFirstCandidate: true,
-    prompt: `add bookmark${separatorHtml}`,
+    prompt: "add bookmark",
   };
   let folders: any[];
 
@@ -1149,7 +1147,7 @@ function AddBookmark(omnibar: any): any {
         RUNTIME("getBookmark", null, (resp: any) => {
           if (resp.bookmarks.length) {
             const b = resp.bookmarks[0];
-            omnibar.setPrompt(`edit bookmark${separatorHtml}`);
+            omnibar.setPrompt("edit bookmark");
             const idx = omnibar
               .results()
               .findIndex((r: any) => r.data.folder === String(b.parentId));
@@ -1242,7 +1240,7 @@ function AddBookmark(omnibar: any): any {
   return self;
 }
 
-function OpenURLs(prompt: string, omnibar: any, queryFn: () => Promise<any>): any {
+function OpenURLs(prompt: PromptValue, omnibar: any, queryFn: () => Promise<any>): any {
   const self: any = { prompt };
   let sequenceNumber: number;
 
@@ -1308,7 +1306,7 @@ function OpenTabs(omnibar: any): any {
   };
   self.onOpen = (args: any) => {
     if (args && args.action === "gather") {
-      self.prompt = `Gather filtered tabs into current window${separatorHtml}`;
+      self.prompt = "Gather filtered tabs into current window";
       self.onEnter = () => {
         reportOnFail(
           RUNTIME("gatherTabs", {
@@ -1320,7 +1318,7 @@ function OpenTabs(omnibar: any): any {
       };
       getTabsArgs = { queryInfo: { currentWindow: false } };
     } else {
-      self.prompt = `tabs${separatorHtml}`;
+      self.prompt = "tabs";
       self.onEnter = omnibar.openFocused.bind(self);
       getTabsArgs = {};
       if (args && typeof args.filter === "string") {
@@ -1349,7 +1347,7 @@ function CloseTabs(omnibar: any): any {
   };
 
   self.onOpen = () => {
-    self.prompt = `close tabs${separatorHtml}`;
+    self.prompt = "close tabs";
     omnibar.cachedPromise = new Promise((resolve) => {
       reportOnFail(
         RUNTIME("getTabs", { queryInfo: { currentWindow: true } }, (response: any) => {
@@ -1398,7 +1396,7 @@ function CloseTabs(omnibar: any): any {
 
 function OpenWindows(omnibar: any, front: any): any {
   const self: any = {
-    prompt: `Move current tab to window${separatorHtml}`,
+    prompt: "Move current tab to window",
   };
 
   self.getResults = () => {
@@ -1483,7 +1481,7 @@ function OpenWindows(omnibar: any, front: any): any {
 function OpenVIMarks(omnibar: any): any {
   const self: any = {
     focusFirstCandidate: true,
-    prompt: `VIMarks${separatorHtml}`,
+    prompt: "VIMarks",
   };
 
   self.onOpen = () => {
@@ -1634,15 +1632,16 @@ function SearchEngine(omnibar: any, front: any): any {
 
   front._actions["addSearchAlias"] = (message: any) => {
     self.aliases[message.alias] = {
-      prompt: "" + message.prompt + separatorHtml,
+      prompt: `${message.prompt}`,
       url: message.url,
       suggestionURL: message.suggestionURL,
     };
     const searchEngineIconStorageKey = `surfingkeys.searchEngineIcon.${message.prompt}`;
     const searchEngineIcon = localStorage.getItem(searchEngineIconStorageKey);
     if (searchEngineIcon) {
-      self.aliases[message.alias].prompt =
-        `<img src="${searchEngineIcon}" alt="${message.prompt}" style="width: 20px;" />`;
+      self.aliases[message.alias].prompt = {
+        html: `<img src="${searchEngineIcon}" alt="${message.prompt}" style="width: 20px;" />`,
+      };
     } else if (front.topOrigin.startsWith("http")) {
       let iconUrl;
       if (message.options?.favicon_url) {
@@ -1657,8 +1656,9 @@ function SearchEngine(omnibar: any, front: any): any {
         RUNTIME("requestImage", { url: iconUrl.href }, (response: any) => {
           if (response) {
             localStorage.setItem(searchEngineIconStorageKey, response.text);
-            self.aliases[message.alias].prompt =
-              `<img src="${response.text}" alt="${message.prompt}" style="width: 20px;" />`;
+            self.aliases[message.alias].prompt = {
+              html: `<img src="${response.text}" alt="${message.prompt}" style="width: 20px;" />`,
+            };
           }
         }),
         reportError,
@@ -1855,7 +1855,7 @@ function OmniQuery(omnibar: any, front: any): any {
 function OpenUserURLs(omnibar: any): any {
   const self: any = {
     focusFirstCandidate: true,
-    prompt: `UserURLs${separatorHtml}`,
+    prompt: "UserURLs",
   };
 
   let _items: any[];

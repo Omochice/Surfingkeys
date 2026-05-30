@@ -3,23 +3,35 @@ import { createSignal } from "solid-js";
 import { describe, expect, it } from "vitest";
 
 import { Prompt } from "./Prompt";
+import type { PromptValue } from "./Prompt";
 
 describe("Prompt", () => {
-  it("injects sanitized HTML and renders the separator markup, updating reactively", () => {
-    const [html, setHtml] = createSignal("bookmark<span class='separator'>➜</span>");
-    const { container } = render(() => <Prompt html={html()} />);
+  it("renders a text label followed by the styled separator, updating reactively", () => {
+    const [value, setValue] = createSignal<PromptValue>("bookmark");
+    const { container } = render(() => <Prompt value={value()} />);
 
-    expect(container.querySelector("span.separator")?.textContent).toBe("➜");
+    expect(container.querySelector("span.separator")?.textContent).toBe("➤");
     expect(container.textContent).toContain("bookmark");
 
-    setHtml("tabs<span class='separator'>➜</span>");
+    setValue("tabs");
     expect(container.textContent).toContain("tabs");
   });
 
-  it("strips scripts from the injected prompt", () => {
-    const { container } = render(() => <Prompt html="search<script>1</script>" />);
+  it("renders the label as text rather than markup", () => {
+    const { container } = render(() => <Prompt value="<script>1</script>" />);
 
-    expect(container.textContent).toContain("search");
     expect(container.querySelector("script")).toBeNull();
+    expect(container.textContent).toContain("<script>1</script>");
+  });
+
+  it("sanitizes html prompt content (the search-engine icon)", () => {
+    const { container } = render(() => (
+      <Prompt value={{ html: '<img src=x onerror="alert(1)">no script<script>1</script>' }} />
+    ));
+
+    expect(container.querySelector("script")).toBeNull();
+    expect(container.querySelector("img")?.hasAttribute("onerror")).toBe(false);
+    // the icon path carries no separator
+    expect(container.querySelector("span.separator")).toBeNull();
   });
 });

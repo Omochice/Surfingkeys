@@ -300,10 +300,10 @@ export default function (
         if (alias === undefined) {
           continue;
         }
-        let prompt = alias.prompt;
-        if (!prompt.startsWith("<img src=")) {
-          prompt = prompt.replace(/<span class='separator'>.*/, "");
-        }
+        // The omnibar prompt is either a plain label or an `{ html }` icon (the search-engine
+        // image); the options row shows the label text or the icon markup respectively.
+        const raw = alias.prompt;
+        const prompt = raw && typeof raw === "object" ? raw.html : raw;
         allAliases[key] = { prompt, checked: "checked" };
       }
       for (const key in disabledSearchAliases) {

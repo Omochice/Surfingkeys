@@ -1,17 +1,38 @@
 import DOMPurify from "dompurify";
+import { Show } from "solid-js";
 import type { Component } from "solid-js";
 
+/** The arrow drawn between the prompt label and the omnibar input. */
+const SEPARATOR = "➤";
+
+/**
+ * The omnibar prompt content: either a plain text label (the handler name, shown with the styled
+ * separator) or raw HTML (the per-search-engine `<img>` icon, whose `src` comes from storage or a
+ * remote fetch and so must be sanitized).
+ */
+export type PromptValue = string | { html: string };
+
 export type PromptProps = {
-  /** Prompt label HTML (handler name, separator span, search-engine icon); sanitized at injection. */
-  html: string;
+  value: PromptValue;
 };
 
 /**
- * The omnibar prompt label (#sk_omnibarSearchArea > span.prompt). The legacy code set it via
- * setSanitizedContent because the prompt carries markup (the `➤` separator span and
- * per-search-engine `<img>` icons), so only that injection moves to Solid. A `<span>` host is used
- * rather than Bubble's `<div>` to keep the inline-block flex layout of the search area intact.
+ * The omnibar prompt label (#sk_omnibarSearchArea > span.prompt). A text label renders as a text
+ * node followed by the styled separator span, keeping the common case out of `innerHTML`; only the
+ * search-engine icon HTML still needs DOMPurify.
  */
 export const Prompt: Component<PromptProps> = (props) => {
-  return <span innerHTML={DOMPurify.sanitize(props.html)} />;
+  return (
+    <Show
+      when={typeof props.value === "object"}
+      fallback={
+        <>
+          {props.value as string}
+          <span class="separator">{SEPARATOR}</span>
+        </>
+      }
+    >
+      <span innerHTML={DOMPurify.sanitize((props.value as { html: string }).html)} />
+    </Show>
+  );
 };

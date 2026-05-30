@@ -5,11 +5,12 @@ import { describe, expect, it } from "vitest";
 import { Keystroke } from "./Keystroke";
 
 describe("Keystroke", () => {
-  it("injects the accumulated keys and updates as the chord grows", () => {
-    const [html, setHtml] = createSignal("g");
+  it("renders the accumulated keys as text and updates as the chord grows", () => {
+    const [text, setText] = createSignal("g");
     const { container } = render(() => (
       <Keystroke
-        html={html()}
+        text={text()}
+        html=""
         rich={false}
       />
     ));
@@ -17,14 +18,29 @@ describe("Keystroke", () => {
 
     expect(root.innerHTML).toBe("g");
 
-    setHtml("gg");
+    setText("gg");
     expect(root.innerHTML).toBe("gg");
+  });
+
+  it("escapes markup in the plain chord keys instead of injecting it", () => {
+    const { container } = render(() => (
+      <Keystroke
+        text="<C-a>"
+        html=""
+        rich={false}
+      />
+    ));
+    const root = container.querySelector("div")!;
+
+    expect(root.querySelector("span")).toBeNull();
+    expect(root.textContent).toBe("<C-a>");
   });
 
   it("toggles the expandRichHints class reactively", () => {
     const [rich, setRich] = createSignal(false);
     const { container } = render(() => (
       <Keystroke
+        text=""
         html=""
         rich={rich()}
       />
@@ -41,6 +57,7 @@ describe("Keystroke", () => {
     const [html] = createSignal('<div class="annotation">scroll</div><script>1</script>');
     const { container } = render(() => (
       <Keystroke
+        text=""
         html={html()}
         rich={true}
       />
