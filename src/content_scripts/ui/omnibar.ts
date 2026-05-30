@@ -1,10 +1,10 @@
 import { Result } from "@praha/byethrow";
-import { debounce } from "lodash";
 import { createEffect, createRoot, createSignal } from "solid-js";
 import { render } from "solid-js/web";
 
 import { decodeError, reportOnFail, unwrapOr } from "../../common/result";
 import { filterByTitleOrUrl, regexFromString } from "../../common/utils";
+import { debounce } from "../common/debounce";
 import KeyboardUtils from "../common/keyboardUtils";
 import Mode from "../common/mode";
 import { reportError } from "../common/report";
