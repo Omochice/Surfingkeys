@@ -2,8 +2,9 @@ import { fireEvent, render } from "@solidjs/testing-library";
 import { createSignal } from "solid-js";
 import { describe, expect, it, vi } from "vitest";
 
-import { ResultList } from "../src/content_scripts/ui/components/ResultList";
-import type { ResultListItem } from "../src/content_scripts/ui/components/ResultList";
+import { expectDefined } from "../../../../test/helpers";
+import { ResultList } from "./ResultList";
+import type { ResultListItem } from "./ResultList";
 
 const items: ResultListItem[] = [
   { html: "<div>one</div>" },
@@ -24,12 +25,15 @@ describe("ResultList", () => {
     const li = container.querySelectorAll("ul>li");
 
     expect(li.length).toBe(3);
-    expect(li[0].classList.contains("focused")).toBe(true);
-    expect(li[2].classList.contains("window")).toBe(true);
+    const [first, , third] = li;
+    expectDefined(first);
+    expectDefined(third);
+    expect(first.classList.contains("focused")).toBe(true);
+    expect(third.classList.contains("window")).toBe(true);
 
     setFocused(2);
-    expect(li[0].classList.contains("focused")).toBe(false);
-    expect(li[2].classList.contains("focused")).toBe(true);
+    expect(first.classList.contains("focused")).toBe(false);
+    expect(third.classList.contains("focused")).toBe(true);
   });
 
   it("reports the clicked row index", () => {
@@ -41,7 +45,9 @@ describe("ResultList", () => {
         onSelect={onSelect}
       />
     ));
-    fireEvent.click(container.querySelectorAll("ul>li")[1]);
+    const second = container.querySelectorAll("ul>li")[1];
+    expectDefined(second);
+    fireEvent.click(second);
 
     expect(onSelect).toHaveBeenCalledWith(1);
   });

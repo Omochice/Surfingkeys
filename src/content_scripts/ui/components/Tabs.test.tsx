@@ -1,8 +1,9 @@
 import { render } from "@solidjs/testing-library";
 import { describe, expect, it } from "vitest";
 
-import { Tabs } from "../src/content_scripts/ui/components/Tabs";
-import type { TabsTab } from "../src/content_scripts/ui/components/Tabs";
+import { expectDefined } from "../../../../test/helpers";
+import { Tabs } from "./Tabs";
+import type { TabsTab } from "./Tabs";
 
 const tabs: TabsTab[] = [
   { id: 1, windowId: 7, title: "First", active: false, url: "https://a.example" },
@@ -22,11 +23,15 @@ describe("Tabs", () => {
       />
     ));
     const sk = container.querySelectorAll("div.sk_tab");
-
     expect(sk.length).toBe(3);
-    expect(sk[1].classList.contains("active")).toBe(true);
-    expect(sk[0].classList.contains("active")).toBe(false);
-    expect(sk[2].classList.contains("active")).toBe(false);
+    const [firstTab, secondTab, thirdTab] = sk;
+    expectDefined(firstTab);
+    expectDefined(secondTab);
+    expectDefined(thirdTab);
+
+    expect(secondTab.classList.contains("active")).toBe(true);
+    expect(firstTab.classList.contains("active")).toBe(false);
+    expect(thirdTab.classList.contains("active")).toBe(false);
   });
 
   it("assigns hint labels and link expandos to the non-active tabs only", () => {
@@ -43,13 +48,16 @@ describe("Tabs", () => {
     const hints = container.querySelectorAll<HTMLElement & { label?: string; link?: unknown }>(
       "div>div.sk_tab_hint",
     );
-
     expect(hints.length).toBe(2);
-    expect(hints[0].textContent).toBe("A");
-    expect(hints[0].label).toBe("A");
-    expect(hints[0].link).toEqual({ id: 1, windowId: 7 });
-    expect(hints[1].label).toBe("B");
-    expect(hints[1].link).toEqual({ id: 3, windowId: 7 });
+    const [firstHint, secondHint] = hints;
+    expectDefined(firstHint);
+    expectDefined(secondHint);
+
+    expect(firstHint.textContent).toBe("A");
+    expect(firstHint.label).toBe("A");
+    expect(firstHint.link).toEqual({ id: 1, windowId: 7 });
+    expect(secondHint.label).toBe("B");
+    expect(secondHint.link).toEqual({ id: 3, windowId: 7 });
     // the active tab carries no hint
     expect(container.querySelectorAll("div.sk_tab.active div.sk_tab_hint").length).toBe(0);
   });
@@ -65,6 +73,7 @@ describe("Tabs", () => {
       />
     ));
     const title = container.querySelectorAll("div.sk_tab_title")[1];
+    expectDefined(title);
 
     expect(title.querySelector("b")).toBeNull();
     expect(title.textContent).toBe("Active <b>tab</b>");
@@ -81,9 +90,13 @@ describe("Tabs", () => {
       />
     ));
     const sk = container.querySelectorAll<HTMLElement>("div.sk_tab");
+    const firstSk = sk[0];
+    expectDefined(firstSk);
+    const firstTitle = container.querySelector<HTMLElement>("div.sk_tab_title");
+    expectDefined(firstTitle);
 
-    expect(sk[0].style.width).toBe("120px");
-    expect((container.querySelector("div.sk_tab_title") as HTMLElement).style.width).toBe("96px");
+    expect(firstSk.style.width).toBe("120px");
+    expect(firstTitle.style.width).toBe("96px");
     expect(container.querySelector("div.tab_rocket")).toBeNull();
   });
 
@@ -98,9 +111,11 @@ describe("Tabs", () => {
       />
     ));
     const sk = container.querySelectorAll<HTMLElement>("div.sk_tab");
+    const firstSk = sk[0];
+    expectDefined(firstSk);
 
     expect(container.querySelectorAll("div.tab_rocket").length).toBe(3);
-    expect(sk[0].style.width).toBe("");
+    expect(firstSk.style.width).toBe("");
   });
 
   it("attaches the favicon to each tab's img", () => {
@@ -114,9 +129,11 @@ describe("Tabs", () => {
         attachFavicon={(tab, img) => calls.push({ tab, img })}
       />
     ));
-
     expect(calls.length).toBe(3);
-    expect(calls[0].tab).toBe(tabs[0]);
-    expect(calls[0].img).toBeInstanceOf(HTMLImageElement);
+    const firstCall = calls[0];
+    expectDefined(firstCall);
+
+    expect(firstCall.tab).toBe(tabs[0]);
+    expect(firstCall.img).toBeInstanceOf(HTMLImageElement);
   });
 });

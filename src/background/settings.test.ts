@@ -1,12 +1,13 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-import type { SettingsDeps } from "../src/background/settings";
-import { _save, createSettings, getSubSettings } from "../src/background/settings";
+import { expectDefined } from "../../test/helpers";
+import type { SettingsDeps } from "./settings";
+import { _save, createSettings, getSubSettings } from "./settings";
 
 // `_save` reaches the network through the request module on its local-storage
 // path; mock the module so that path is observable without a real fetch.
 const { mockRequest } = vi.hoisted(() => ({ mockRequest: vi.fn() }));
-vi.mock("../src/background/request.js", () => ({ request: mockRequest }));
+vi.mock("./request.js", () => ({ request: mockRequest }));
 
 type AnyChrome = { runtime?: any; storage?: any; tabs?: any };
 const g = globalThis as unknown as { chrome: AnyChrome };
@@ -99,8 +100,10 @@ describe("createSettings — getState", () => {
       browser: { loadRawSettings: (_keys: any, cb: any) => cb({ blocklist }) },
     });
     const sender = { tab: { id: 1 }, url: senderUrl, frameId: 0 };
-    unit.handlers.getState!(message, sender, vi.fn());
-    return _response.mock.calls[_response.mock.calls.length - 1][2].state;
+    const getState = unit.handlers["getState"];
+    expectDefined(getState);
+    getState(message, sender, vi.fn());
+    return _response.mock.calls.at(-1)?.[2].state;
   }
 
   it("is disabled when the catch-all blocklist entry is set", () => {
@@ -134,13 +137,15 @@ describe("createSettings — updateSettings", () => {
     const conf: Record<string, any> = { tabsMRUOrder: true };
     const { unit } = makeUnit({ conf, sendTabMessage });
 
-    const result = unit.handlers.updateSettings!(
+    const updateSettings = unit.handlers["updateSettings"];
+    expectDefined(updateSettings);
+    const result = updateSettings(
       { scope: "snippets", settings: { tabsMRUOrder: false, unknownKey: 9 } },
       {},
       vi.fn(),
     );
 
-    expect(conf.tabsMRUOrder).toBe(false);
+    expect(conf["tabsMRUOrder"]).toBe(false);
     expect("unknownKey" in conf).toBe(false);
     expect(sendTabMessage).not.toHaveBeenCalled();
     expect(result).toEqual({ error: "" });
@@ -156,7 +161,9 @@ describe("createSettings — updateSettings", () => {
     };
     const { unit } = makeUnit({ sendTabMessage });
 
-    unit.handlers.updateSettings!({ settings: { foo: 1 } }, {}, vi.fn());
+    const updateSettings = unit.handlers["updateSettings"];
+    expectDefined(updateSettings);
+    updateSettings({ settings: { foo: 1 } }, {}, vi.fn());
 
     expect(sendTabMessage.mock.calls.map((c) => [c[0], c[1]])).toEqual([
       [11, -1],

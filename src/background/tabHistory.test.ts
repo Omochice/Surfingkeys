@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { createTabHistory } from "../src/background/tabHistory";
+import { createTabHistory } from "./tabHistory";
 
 describe("createTabHistory", () => {
   it("records distinct activations and reports the previous tab", () => {

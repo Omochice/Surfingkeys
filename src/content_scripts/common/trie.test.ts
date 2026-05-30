@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import Trie from "../src/content_scripts/common/trie";
+import Trie from "./trie";
 
 describe("Trie", () => {
   it("stores a word and finds it with its meta", () => {

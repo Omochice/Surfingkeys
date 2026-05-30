@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import createClipboard from "../src/content_scripts/common/clipboard.js";
+import createClipboard from "./clipboard";
 
 // Smoke test proving DOM/messaging content-script modules are importable and
 // testable under jsdom now that the chrome stub is in place (see setup.ts).

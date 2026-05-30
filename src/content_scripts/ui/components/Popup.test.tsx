@@ -2,7 +2,7 @@ import { render } from "@solidjs/testing-library";
 import { createSignal } from "solid-js";
 import { describe, expect, it } from "vitest";
 
-import { Popup } from "../src/content_scripts/ui/components/Popup";
+import { Popup } from "./Popup";
 
 describe("Popup", () => {
   it("injects sanitized HTML and updates reactively", () => {
