@@ -48,7 +48,6 @@
   "devDependencies": {
     "@solidjs/testing-library": "0.8.10",
     "@tsconfig/strictest": "^2.0.8",
-    "@types/offscreencanvas": "^2019.6.4",
     "@types/webextension-polyfill": "0.12.5",
     "@wxt-dev/module-solid": "1.1.4",
     "jsdom": "29.1.1",

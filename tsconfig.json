@@ -3,15 +3,10 @@
   "compilerOptions": {
     "target": "esnext",
     "module": "esnext",
-    "types": ["offscreencanvas"],
-    "allowJs": true,
-    "strict": true,
     "moduleResolution": "bundler",
-    "sourceMap": true,
-    "declaration": false,
-    "skipLibCheck": true,
-    "allowSyntheticDefaultImports": true,
-    "isolatedModules": true,
+    "types": [],
+    "noEmit": true,
+    "verbatimModuleSyntax": true,
     "jsx": "preserve",
     "jsxImportSource": "solid-js"
   },
