@@ -1,5 +1,5 @@
 import Mode from "./common/mode";
-import { RUNTIME, dispatchSKEvent, runtime } from "./common/runtime.js";
+import { RUNTIME, dispatchSKEvent, runtime } from "./common/runtime";
 import type Trie from "./common/trie";
 import {
   createElementWithContent,
@@ -10,8 +10,8 @@ import {
   initSKFunctionListener,
   isInUIFrame,
   tabOpenLink,
-} from "./common/utils.js";
-import createUiHost from "./uiframe.js";
+} from "./common/utils";
+import createUiHost from "./uiframe";
 
 type InsertLike = { mappings: Trie; enableEmojiInsertion(): void };
 type NormalLike = {

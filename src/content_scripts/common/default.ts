@@ -1,7 +1,7 @@
-import type { SurfingkeysApi } from "./api.js";
+import type { SurfingkeysApi } from "./api";
 import KeyboardUtils from "./keyboardUtils";
 import type { ModeContext } from "./modeGraph";
-import { RUNTIME, dispatchSKEvent, runtime } from "./runtime.js";
+import { RUNTIME, dispatchSKEvent, runtime } from "./runtime";
 import {
   getBrowserName,
   getCssSelectorsOfEditable,
@@ -14,7 +14,7 @@ import {
   showPopup,
   tabOpenLink,
   toggleQuote,
-} from "./utils.js";
+} from "./utils";
 
 // Browser-extension global. `surfingkeys` is an optional companion native API.
 declare const chrome: {

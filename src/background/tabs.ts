@@ -1,6 +1,6 @@
-import { filterByTitleOrUrl } from "../common/utils.js";
-import type { MessageHandler } from "./start.js";
-import { createTabHistory } from "./tabHistory.js";
+import { filterByTitleOrUrl } from "../common/utils";
+import type { MessageHandler } from "./start";
+import { createTabHistory } from "./tabHistory";
 
 // Browser-extension global; background is an untyped chrome.* boundary (see start.ts).
 declare const chrome: any;

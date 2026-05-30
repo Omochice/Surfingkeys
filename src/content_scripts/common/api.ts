@@ -1,8 +1,8 @@
-import { LOG } from "../../common/utils.js";
+import { LOG } from "../../common/utils";
 import KeyboardUtils from "./keyboardUtils";
 import Mode from "./mode";
 import type { ModeContext } from "./modeGraph";
-import { RUNTIME, dispatchSKEvent } from "./runtime.js";
+import { RUNTIME, dispatchSKEvent } from "./runtime";
 import Trie from "./trie";
 import {
   constructSearchURL,
@@ -16,7 +16,7 @@ import {
   showBanner,
   showPopup,
   tabOpenLink,
-} from "./utils.js";
+} from "./utils";
 
 type ModeWithMappings = { name: string; mappings: Trie; map_node: Trie };
 

@@ -1,10 +1,10 @@
-import { RUNTIME } from "./runtime.js";
+import { RUNTIME } from "./runtime";
 import {
   actionWithSelectionPreserved,
   getBrowserName,
   setSanitizedContent,
   showBanner,
-} from "./utils.js";
+} from "./utils";
 
 type Clipboard = {
   read(onReady: (response: { data: string }) => void): void;

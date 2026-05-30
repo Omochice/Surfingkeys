@@ -1,7 +1,7 @@
 import browser from "./browser";
 import KeyboardUtils from "./keyboardUtils";
 import Mode from "./mode";
-import { RUNTIME, dispatchSKEvent, runtime } from "./runtime.js";
+import { RUNTIME, dispatchSKEvent, runtime } from "./runtime";
 import Trie from "./trie";
 import {
   getRealEdit,
@@ -13,7 +13,7 @@ import {
   scrollIntoViewIfNeeded,
   showBanner,
   showPopup,
-} from "./utils.js";
+} from "./utils";
 
 // Surfingkeys attaches scroll helpers and bookkeeping fields onto scrollable
 // elements; these expandos type those additions.

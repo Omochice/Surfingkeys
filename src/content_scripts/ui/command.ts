@@ -1,5 +1,5 @@
-import { RUNTIME } from "../common/runtime.js";
-import { createElementWithContent } from "../common/utils.js";
+import { RUNTIME } from "../common/runtime";
+import { createElementWithContent } from "../common/utils";
 
 type NormalLike = { feedkeys(keys: string): void };
 type CommandFn = (

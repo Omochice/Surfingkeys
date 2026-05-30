@@ -2,7 +2,7 @@ import DOMPurify from "dompurify";
 
 import browser from "./browser";
 import KeyboardUtils from "./keyboardUtils";
-import { RUNTIME, dispatchSKEvent, runtime } from "./runtime.js";
+import { RUNTIME, dispatchSKEvent, runtime } from "./runtime";
 import type Trie from "./trie";
 import type { TrieMeta } from "./trie";
 

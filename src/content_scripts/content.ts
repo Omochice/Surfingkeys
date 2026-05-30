@@ -1,20 +1,20 @@
-import createAPI from "./common/api.js";
+import createAPI from "./common/api";
 import browser from "./common/browser";
-import createDefaultMappings from "./common/default.js";
+import createDefaultMappings from "./common/default";
 import Mode from "./common/mode";
 import createModeGraph, { type ModeContext } from "./common/modeGraph";
-import createNormal from "./common/normal.js";
+import createNormal from "./common/normal";
 import startScrollNodeObserver from "./common/observer";
-import { RUNTIME, dispatchSKEvent, runtime } from "./common/runtime.js";
-import type { StoredSettings } from "./common/runtime.js";
+import { RUNTIME, dispatchSKEvent, runtime } from "./common/runtime";
+import type { StoredSettings } from "./common/runtime";
 import {
   applyUserSettings,
   generateQuickGuid,
   getRealEdit,
   isInUIFrame,
   showBanner,
-} from "./common/utils.js";
-import createFront from "./front.js";
+} from "./common/utils";
+import createFront from "./front";
 
 // The injected browser adapter (createFront / plugin hook) is untyped JS.
 type BrowserAdapter = {

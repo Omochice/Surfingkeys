@@ -1,8 +1,8 @@
-import { createBookmarkHandlers } from "./bookmarks.js";
-import { createHistoryHandlers } from "./history.js";
-import { request } from "./request.js";
-import { createSettings } from "./settings.js";
-import { createTabs } from "./tabs.js";
+import { createBookmarkHandlers } from "./bookmarks";
+import { createHistoryHandlers } from "./history";
+import { request } from "./request";
+import { createSettings } from "./settings";
+import { createTabs } from "./tabs";
 
 // Browser-extension globals. The typed BrowserAdapter (task #13) will replace
 // these once cross-browser API access is centralized; background is almost

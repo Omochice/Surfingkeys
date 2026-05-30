@@ -2,10 +2,10 @@ import { debounce } from "lodash";
 import { createEffect, createRoot, createSignal } from "solid-js";
 import { render } from "solid-js/web";
 
-import { filterByTitleOrUrl, regexFromString } from "../../common/utils.js";
+import { filterByTitleOrUrl, regexFromString } from "../../common/utils";
 import KeyboardUtils from "../common/keyboardUtils";
 import Mode from "../common/mode";
-import { RUNTIME, runtime } from "../common/runtime.js";
+import { RUNTIME, runtime } from "../common/runtime";
 import Trie from "../common/trie";
 import {
   attachFaviconToImgSrc,
@@ -20,7 +20,7 @@ import {
   showBanner,
   toggleQuote,
   timeStampString,
-} from "../common/utils.js";
+} from "../common/utils";
 import { Prompt } from "./components/Prompt";
 import { ResultList } from "./components/ResultList";
 import type { ResultListItem } from "./components/ResultList";

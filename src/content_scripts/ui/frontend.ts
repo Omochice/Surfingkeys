@@ -1,12 +1,12 @@
 import { createSignal } from "solid-js";
 import { render } from "solid-js/web";
 
-import createAPI from "../common/api.js";
-import createDefaultMappings from "../common/default.js";
+import createAPI from "../common/api";
+import createDefaultMappings from "../common/default";
 import KeyboardUtils from "../common/keyboardUtils";
 import Mode from "../common/mode";
 import createModeGraph, { type ModeContext } from "../common/modeGraph";
-import { RUNTIME, runtime } from "../common/runtime.js";
+import { RUNTIME, runtime } from "../common/runtime";
 import {
   attachFaviconToImgSrc,
   generateQuickGuid,
@@ -19,8 +19,8 @@ import {
   rotateInput,
   setSanitizedContent,
   mapInMode,
-} from "../common/utils.js";
-import createCommands from "./command.js";
+} from "../common/utils";
+import createCommands from "./command";
 import { Banner as BannerView } from "./components/Banner";
 import { Bubble as BubbleView } from "./components/Bubble";
 import { Keystroke as KeystrokeView } from "./components/Keystroke";
@@ -28,7 +28,7 @@ import { Popup as PopupView } from "./components/Popup";
 import { StatusBar as StatusBarView } from "./components/StatusBar";
 import { Tabs as TabsView } from "./components/Tabs";
 import { Usage as UsageView } from "./components/Usage";
-import createOmnibar from "./omnibar.js";
+import createOmnibar from "./omnibar";
 
 const Front = (() => {
   Mode.init();

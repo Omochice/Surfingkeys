@@ -1,4 +1,4 @@
-import { extendObject, getSubSettings } from "./settings.js";
+import { extendObject, getSubSettings } from "./settings";
 
 // Browser-extension globals. The typed BrowserAdapter (task #13) will replace
 // these once cross-browser API access is centralized; background is almost

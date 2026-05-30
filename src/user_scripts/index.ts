@@ -1,4 +1,4 @@
-import { RUNTIME, dispatchSKEvent } from "../content_scripts/common/runtime.js";
+import { RUNTIME, dispatchSKEvent } from "../content_scripts/common/runtime";
 import {
   applyUserSettings,
   getBrowserName,
@@ -9,7 +9,7 @@ import {
   showBanner,
   showPopup,
   tabOpenLink,
-} from "../content_scripts/common/utils.js";
+} from "../content_scripts/common/utils";
 
 let EXTENSION_ROOT_URL = "";
 function isInUIFrame() {

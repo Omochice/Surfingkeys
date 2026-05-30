@@ -1,5 +1,5 @@
 import Mode from "./mode";
-import { getVisibleElements, initSKFunctionListener } from "./utils.js";
+import { getVisibleElements, initSKFunctionListener } from "./utils";
 
 // Nodes Surfingkeys injects are tagged so the observer skips them; newly seen
 // nodes are flagged for downstream handling.
