@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { deleteNextWord, nextNonWord } from "./insert.js";
+import { deleteNextWord, nextNonWord } from "./insert";
 
 describe("nextNonWord", () => {
   it("moves forward to the first non-word character after the cursor", () => {

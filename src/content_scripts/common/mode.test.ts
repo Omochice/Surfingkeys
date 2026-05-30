@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it } from "vitest";
 
 import KeyboardUtils from "./keyboardUtils";
-import Mode from "./mode.js";
+import Mode from "./mode";
 import Trie from "./trie";
 
 type FakeKeyEvent = {
