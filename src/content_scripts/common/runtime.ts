@@ -1,3 +1,7 @@
+import { Result } from "@praha/byethrow";
+
+import { type ChromeRuntimeError, chromeRuntimeError } from "../../common/result";
+
 // This module is the messaging service. It deliberately keeps the raw,
 // callback-based chrome.runtime API rather than the promise-based
 // BrowserAdapter: RUNTIME is used fire-and-forget (no callback) in many places,
@@ -37,14 +41,18 @@ function dispatchSKEvent(type: SKEventType, args?: unknown, target: EventTarget 
 }
 
 type RuntimeFn = {
-  (action: string, args?: Record<string, unknown> | null, callback?: (response: any) => void): void;
+  (
+    action: string,
+    args?: Record<string, unknown> | null,
+    callback?: (response: any) => void,
+  ): Result.Result<void, ChromeRuntimeError>;
   /** Pending repeat count shared with the mode system; set per key action. */
   repeats: number;
 };
 
 /**
  * Call background `action` with `args`, the `callback` will be executed with response from
- * background.
+ * background. Returns a `Result` so callers decide whether to surface failure to the user.
  *
  * @example
  *   RUNTIME("getTabs", { queryInfo: { currentWindow: true } }, (response) => {
@@ -59,7 +67,7 @@ const RUNTIME = function (
   action: string,
   args?: Record<string, unknown> | null,
   callback?: (response: any) => void,
-): void {
+): Result.Result<void, ChromeRuntimeError> {
   const actionsRepeatBackground = [
     "closeTab",
     "nextTab",
@@ -79,12 +87,13 @@ const RUNTIME = function (
     a["repeats"] = RUNTIME.repeats;
     RUNTIME.repeats = 1;
   }
-  try {
-    a["needResponse"] = callback !== undefined;
-    chrome.runtime.sendMessage(a, callback);
-  } catch (e) {
-    dispatchSKEvent("front", ["showPopup", "[runtime exception] " + e]);
-  }
+  return Result.try({
+    try: (): void => {
+      a["needResponse"] = callback !== undefined;
+      chrome.runtime.sendMessage(a, callback);
+    },
+    catch: (cause) => chromeRuntimeError(`sendMessage:${action}`, cause),
+  });
 } as RuntimeFn;
 
 type MessageHandler = (

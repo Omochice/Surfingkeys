@@ -3,10 +3,11 @@ import { debounce } from "lodash";
 import { createEffect, createRoot, createSignal } from "solid-js";
 import { render } from "solid-js/web";
 
-import { decodeError, unwrapOr } from "../../common/result";
+import { decodeError, reportOnFail, unwrapOr } from "../../common/result";
 import { filterByTitleOrUrl, regexFromString } from "../../common/utils";
 import KeyboardUtils from "../common/keyboardUtils";
 import Mode from "../common/mode";
+import { reportError } from "../common/report";
 import { RUNTIME, runtime } from "../common/runtime";
 import Trie from "../common/trie";
 import {
@@ -116,22 +117,25 @@ function createOmnibar(front: any, clipboard: any) {
       const fi = focusedResult();
       const idx = focusedIndex();
       if (fi && fi.data.uid) {
-        RUNTIME("removeURL", { uid: fi.data.uid }, (ret: any) => {
-          if (ret.response !== "Done") {
-            return;
-          }
-          const remaining = results().slice();
-          remaining.splice(idx, 1);
-          setResults(remaining);
-          const bottom = getPosition() === "bottom";
-          const newIdx = bottom ? idx - 1 : idx;
-          if (newIdx >= 0 && newIdx < remaining.length) {
-            self.focusItem(newIdx);
-          } else {
-            savedFocused = bottom ? 0 : remaining.length;
-            self.triggerInput();
-          }
-        });
+        reportOnFail(
+          RUNTIME("removeURL", { uid: fi.data.uid }, (ret: any) => {
+            if (ret.response !== "Done") {
+              return;
+            }
+            const remaining = results().slice();
+            remaining.splice(idx, 1);
+            setResults(remaining);
+            const bottom = getPosition() === "bottom";
+            const newIdx = bottom ? idx - 1 : idx;
+            if (newIdx >= 0 && newIdx < remaining.length) {
+              self.focusItem(newIdx);
+            } else {
+              savedFocused = bottom ? 0 : remaining.length;
+              self.triggerInput();
+            }
+          }),
+          reportError,
+        );
       }
     },
   });
@@ -224,14 +228,17 @@ function createOmnibar(front: any, clipboard: any) {
         .map((r) => r.data.uid)
         .filter((u) => u);
       if (uids.length) {
-        RUNTIME("removeURL", { uid: uids }, (ret: any) => {
-          if (ret.response === "Done") {
-            if (handler && handler.getResults) {
-              handler.getResults();
+        reportOnFail(
+          RUNTIME("removeURL", { uid: uids }, (ret: any) => {
+            if (ret.response === "Done") {
+              if (handler && handler.getResults) {
+                handler.getResults();
+              }
+              self.triggerInput();
             }
-            self.triggerInput();
-          }
-        });
+          }),
+          reportError,
+        );
       }
     },
   });
@@ -400,7 +407,10 @@ function createOmnibar(front: any, clipboard: any) {
       return;
     }
     if (d.url) {
-      RUNTIME("openLink", { tab: { tabbed: true, active: true }, url: d.url });
+      reportOnFail(
+        RUNTIME("openLink", { tab: { tabbed: true, active: true }, url: d.url }),
+        reportError,
+      );
     } else {
       setQuery(d.query ?? "");
       self.input.focus();
@@ -726,18 +736,24 @@ function createOmnibar(front: any, clipboard: any) {
     }
     if (type === "T") {
       const parts = uid.split(":");
-      RUNTIME("focusTab", {
-        windowId: parseInt(parts[0] ?? ""),
-        tabId: parseInt(parts[1] ?? ""),
-      });
+      reportOnFail(
+        RUNTIME("focusTab", {
+          windowId: parseInt(parts[0] ?? ""),
+          tabId: parseInt(parts[1] ?? ""),
+        }),
+        reportError,
+      );
     } else if (url && url.length) {
-      RUNTIME("openLink", {
-        tab: {
-          tabbed: this.tabbed,
-          active: this.activeTab,
-        },
-        url: url,
-      });
+      reportOnFail(
+        RUNTIME("openLink", {
+          tab: {
+            tabbed: this.tabbed,
+            active: this.activeTab,
+          },
+          url: url,
+        }),
+        reportError,
+      );
     }
     return this.activeTab;
   };
@@ -815,13 +831,16 @@ function createOmnibar(front: any, clipboard: any) {
   };
 
   self.listBookmarkFolders = (cb?: (response: any, folders: any) => void) => {
-    RUNTIME("getBookmarkFolders", null, (response: any) => {
-      bookmarkFolders = {};
-      response.folders.forEach((f: any) => {
-        bookmarkFolders[f.id] = f;
-      });
-      cb && cb(response, bookmarkFolders);
-    });
+    reportOnFail(
+      RUNTIME("getBookmarkFolders", null, (response: any) => {
+        bookmarkFolders = {};
+        response.folders.forEach((f: any) => {
+          bookmarkFolders[f.id] = f;
+        });
+        cb && cb(response, bookmarkFolders);
+      }),
+      reportError,
+    );
   };
 
   self.addHandler("Bookmarks", OpenBookmarks(self));
@@ -830,16 +849,19 @@ function createOmnibar(front: any, clipboard: any) {
     "History",
     OpenURLs(`history${separatorHtml}`, self, () => {
       return new Promise((resolve) => {
-        RUNTIME(
-          "getHistory",
-          {
-            maxResults: self.getHistoryCacheSize(),
-            query: self.input.value,
-            sortByMostUsed: runtime.conf.historyMUOrder,
-          },
-          (response: any) => {
-            resolve(response.history);
-          },
+        reportOnFail(
+          RUNTIME(
+            "getHistory",
+            {
+              maxResults: self.getHistoryCacheSize(),
+              query: self.input.value,
+              sortByMostUsed: runtime.conf.historyMUOrder,
+            },
+            (response: any) => {
+              resolve(response.history);
+            },
+          ),
+          reportError,
         );
       });
     }),
@@ -848,30 +870,39 @@ function createOmnibar(front: any, clipboard: any) {
     "URLs",
     OpenURLs(separatorHtml, self, () => {
       return new Promise((resolve) => {
-        RUNTIME("getTabs", { queryInfo: runtime.conf.omnibarTabsQuery }, (response: any) => {
-          let results = response.tabs;
-          RUNTIME("getTopSites", null, (response2: any) => {
-            results = results.concat(response2.urls);
-            results = filterByTitleOrUrl(
-              results,
-              self.input.value,
-              runtime.getCaseSensitive(self.input.value),
+        reportOnFail(
+          RUNTIME("getTabs", { queryInfo: runtime.conf.omnibarTabsQuery }, (response: any) => {
+            let results = response.tabs;
+            reportOnFail(
+              RUNTIME("getTopSites", null, (response2: any) => {
+                results = results.concat(response2.urls);
+                results = filterByTitleOrUrl(
+                  results,
+                  self.input.value,
+                  runtime.getCaseSensitive(self.input.value),
+                );
+                self.listBookmarkFolders(() => {
+                  reportOnFail(
+                    RUNTIME(
+                      "getAllURLs",
+                      {
+                        maxResults: self.getHistoryCacheSize() - results.length,
+                        query: self.input.value,
+                      },
+                      (response3: any) => {
+                        results = results.concat(response3.urls);
+                        resolve(results);
+                      },
+                    ),
+                    reportError,
+                  );
+                });
+              }),
+              reportError,
             );
-            self.listBookmarkFolders(() => {
-              RUNTIME(
-                "getAllURLs",
-                {
-                  maxResults: self.getHistoryCacheSize() - results.length,
-                  query: self.input.value,
-                },
-                (response3: any) => {
-                  results = results.concat(response3.urls);
-                  resolve(results);
-                },
-              );
-            });
-          });
-        });
+          }),
+          reportError,
+        );
       });
     }),
   );
@@ -879,15 +910,18 @@ function createOmnibar(front: any, clipboard: any) {
     "RecentlyClosed",
     OpenURLs(`Recently closed${separatorHtml}`, self, () => {
       return new Promise((resolve) => {
-        RUNTIME("getRecentlyClosed", null, (response: any) => {
-          resolve(
-            filterByTitleOrUrl(
-              response.urls,
-              self.input.value,
-              runtime.getCaseSensitive(self.input.value),
-            ),
-          );
-        });
+        reportOnFail(
+          RUNTIME("getRecentlyClosed", null, (response: any) => {
+            resolve(
+              filterByTitleOrUrl(
+                response.urls,
+                self.input.value,
+                runtime.getCaseSensitive(self.input.value),
+              ),
+            );
+          }),
+          reportError,
+        );
       });
     }),
   );
@@ -895,15 +929,18 @@ function createOmnibar(front: any, clipboard: any) {
     "TabURLs",
     OpenURLs(`Tab History${separatorHtml}`, self, () => {
       return new Promise((resolve) => {
-        RUNTIME("getTabURLs", null, (response: any) => {
-          resolve(
-            filterByTitleOrUrl(
-              response.urls,
-              self.input.value,
-              runtime.getCaseSensitive(self.input.value),
-            ),
-          );
-        });
+        reportOnFail(
+          RUNTIME("getTabURLs", null, (response: any) => {
+            resolve(
+              filterByTitleOrUrl(
+                response.urls,
+                self.input.value,
+                runtime.getCaseSensitive(self.input.value),
+              ),
+            );
+          }),
+          reportError,
+        );
       });
     }),
   );
@@ -936,10 +973,13 @@ function OpenBookmarks(omnibar: any): any {
     const fl = self.inFolder.pop();
     if (fl.folderId) {
       currentFolderId = fl.folderId;
-      RUNTIME("getBookmarks", { parentId: currentFolderId }, self.onResponse);
+      reportOnFail(
+        RUNTIME("getBookmarks", { parentId: currentFolderId }, self.onResponse),
+        reportError,
+      );
     } else {
       currentFolderId = undefined;
-      RUNTIME("getBookmarks", null, self.onResponse);
+      reportOnFail(RUNTIME("getBookmarks", null, self.onResponse), reportError);
     }
     self.prompt = fl.prompt;
     omnibar.setPrompt(self.prompt);
@@ -951,20 +991,26 @@ function OpenBookmarks(omnibar: any): any {
     const fi = omnibar.focusedResult();
     const folderId = fi?.data.folderId;
     if (folderId && !this.activeTab) {
-      RUNTIME("getBookmarks", { parentId: folderId }, (response: any) => {
-        const subItems = response.bookmarks;
-        for (const m of subItems) {
-          if (m.url) {
-            RUNTIME("openLink", {
-              tab: {
-                tabbed: true,
-                active: false,
-              },
-              url: m.url,
-            });
+      reportOnFail(
+        RUNTIME("getBookmarks", { parentId: folderId }, (response: any) => {
+          const subItems = response.bookmarks;
+          for (const m of subItems) {
+            if (m.url) {
+              reportOnFail(
+                RUNTIME("openLink", {
+                  tab: {
+                    tabbed: true,
+                    active: false,
+                  },
+                  url: m.url,
+                }),
+                reportError,
+              );
+            }
           }
-        }
-      });
+        }),
+        reportError,
+      );
       self.inFolder.push({
         prompt: self.prompt,
         folderId: currentFolderId,
@@ -982,7 +1028,10 @@ function OpenBookmarks(omnibar: any): any {
       omnibar.setQuery("");
       currentFolderId = folderId;
       lastFocused = 0;
-      RUNTIME("getBookmarks", { parentId: currentFolderId }, self.onResponse);
+      reportOnFail(
+        RUNTIME("getBookmarks", { parentId: currentFolderId }, self.onResponse),
+        reportError,
+      );
     } else {
       ret = omnibar.openFocused.call(self);
       if (ret) {
@@ -1004,7 +1053,7 @@ function OpenBookmarks(omnibar: any): any {
         self.inFolder = JSON.parse(lastBookmarkFolder);
         onFolderUp();
       } else {
-        RUNTIME("getBookmarks", null, self.onResponse);
+        reportOnFail(RUNTIME("getBookmarks", null, self.onResponse), reportError);
       }
       if (omnibar.input.value !== "") {
         self.onInput();
@@ -1024,10 +1073,13 @@ function OpenBookmarks(omnibar: any): any {
       folderOnly = !folderOnly;
       self.prompt = folderOnly ? `bookmark folder${separator}` : `bookmark${separator}`;
       omnibar.setPrompt(self.prompt);
-      RUNTIME(
-        "getBookmarks",
-        { parentId: currentFolderId, query: omnibar.input.value },
-        self.onResponse,
+      reportOnFail(
+        RUNTIME(
+          "getBookmarks",
+          { parentId: currentFolderId, query: omnibar.input.value },
+          self.onResponse,
+        ),
+        reportError,
       );
       eaten = true;
     } else if (
@@ -1049,14 +1101,17 @@ function OpenBookmarks(omnibar: any): any {
   };
   self.onInput = () => {
     const query = omnibar.input.value;
-    RUNTIME(
-      "getBookmarks",
-      {
-        parentId: currentFolderId,
-        caseSensitive: runtime.getCaseSensitive(query),
-        query,
-      },
-      self.onResponse,
+    reportOnFail(
+      RUNTIME(
+        "getBookmarks",
+        {
+          parentId: currentFolderId,
+          caseSensitive: runtime.getCaseSensitive(query),
+          query,
+        },
+        self.onResponse,
+      ),
+      reportError,
     );
   };
   self.onResponse = (response: any) => {
@@ -1090,29 +1145,34 @@ function AddBookmark(omnibar: any): any {
       omnibar.listResults(folders.slice(), (f: any) => {
         return createElementWithContent("li", `▷ ${f.title}`, { folder: f.id });
       });
-      RUNTIME("getBookmark", null, (resp: any) => {
-        if (resp.bookmarks.length) {
-          const b = resp.bookmarks[0];
-          omnibar.setPrompt(`edit bookmark${separatorHtml}`);
-          const idx = omnibar.results().findIndex((r: any) => r.data.folder === String(b.parentId));
-          if (idx >= 0) {
-            omnibar.focusItem(idx);
+      reportOnFail(
+        RUNTIME("getBookmark", null, (resp: any) => {
+          if (resp.bookmarks.length) {
+            const b = resp.bookmarks[0];
+            omnibar.setPrompt(`edit bookmark${separatorHtml}`);
+            const idx = omnibar
+              .results()
+              .findIndex((r: any) => r.data.folder === String(b.parentId));
+            if (idx >= 0) {
+              omnibar.focusItem(idx);
+            }
           }
-        }
 
-        //restore the last used bookmark folder input
-        const lastBookmarkFolder = localStorage.getItem("surfingkeys.lastAddedBookmark");
-        if (lastBookmarkFolder) {
-          omnibar.setQuery(lastBookmarkFolder);
+          //restore the last used bookmark folder input
+          const lastBookmarkFolder = localStorage.getItem("surfingkeys.lastAddedBookmark");
+          if (lastBookmarkFolder) {
+            omnibar.setQuery(lastBookmarkFolder);
 
-          //make the input selected, so if user don't want to use it,
-          //just input to overwrite the previous value
-          omnibar.input.select();
+            //make the input selected, so if user don't want to use it,
+            //just input to overwrite the previous value
+            omnibar.input.select();
 
-          // trigger omnibar input matching
-          self.onInput();
-        }
-      });
+            // trigger omnibar input matching
+            self.onInput();
+          }
+        }),
+        reportError,
+      );
     });
   };
 
@@ -1157,9 +1217,12 @@ function AddBookmark(omnibar: any): any {
         folderName = `${folders[0].title}${path.join("/")}`;
       }
     }
-    RUNTIME("createBookmark", { page: self.page }, () => {
-      showBanner("Bookmark created at {0}.".format(folderName), 3000);
-    });
+    reportOnFail(
+      RUNTIME("createBookmark", { page: self.page }, () => {
+        showBanner("Bookmark created at {0}.".format(folderName), 3000);
+      }),
+      reportError,
+    );
     localStorage.setItem("surfingkeys.lastAddedBookmark", omnibar.input.value);
     return true;
   };
@@ -1235,18 +1298,24 @@ function OpenTabs(omnibar: any): any {
         runtime.conf.tabsThreshold,
         Math.ceil(window.innerWidth / 26),
       );
-      RUNTIME("getTabs", getTabsArgs, (response: any) => {
-        resolve(response.tabs);
-      });
+      reportOnFail(
+        RUNTIME("getTabs", getTabsArgs, (response: any) => {
+          resolve(response.tabs);
+        }),
+        reportError,
+      );
     });
   };
   self.onOpen = (args: any) => {
     if (args && args.action === "gather") {
       self.prompt = `Gather filtered tabs into current window${separatorHtml}`;
       self.onEnter = () => {
-        RUNTIME("gatherTabs", {
-          tabs: omnibar.getItems(),
-        });
+        reportOnFail(
+          RUNTIME("gatherTabs", {
+            tabs: omnibar.getItems(),
+          }),
+          reportError,
+        );
         return true;
       };
       getTabsArgs = { queryInfo: { currentWindow: false } };
@@ -1282,9 +1351,12 @@ function CloseTabs(omnibar: any): any {
   self.onOpen = () => {
     self.prompt = `close tabs${separatorHtml}`;
     omnibar.cachedPromise = new Promise((resolve) => {
-      RUNTIME("getTabs", { queryInfo: { currentWindow: true } }, (response: any) => {
-        resolve(response.tabs);
-      });
+      reportOnFail(
+        RUNTIME("getTabs", { queryInfo: { currentWindow: true } }, (response: any) => {
+          resolve(response.tabs);
+        }),
+        reportError,
+      );
     });
     self.onInput();
   };
@@ -1317,7 +1389,7 @@ function CloseTabs(omnibar: any): any {
       }
     });
     if (tabIds.length > 0) {
-      RUNTIME("closeTabByIds", { tabIds: tabIds });
+      reportOnFail(RUNTIME("closeTabByIds", { tabIds: tabIds }), reportError);
     }
     return true;
   };
@@ -1331,9 +1403,12 @@ function OpenWindows(omnibar: any, front: any): any {
 
   self.getResults = () => {
     omnibar.cachedPromise = new Promise((resolve) => {
-      RUNTIME("getWindows", { query: "" }, (response: any) => {
-        resolve(response.windows);
-      });
+      reportOnFail(
+        RUNTIME("getWindows", { query: "" }, (response: any) => {
+          resolve(response.windows);
+        }),
+        reportError,
+      );
     });
   };
   self.onEnter = () => {
@@ -1342,7 +1417,7 @@ function OpenWindows(omnibar: any, front: any): any {
     if (fi && fi.data.windowId !== undefined) {
       windowId = fi.data.windowId;
     }
-    RUNTIME("moveToWindow", { windowId });
+    reportOnFail(RUNTIME("moveToWindow", { windowId }), reportError);
     return true;
   };
   self.onOpen = () => {
@@ -1353,7 +1428,7 @@ function OpenWindows(omnibar: any, front: any): any {
   self.onInput = () => {
     omnibar.cachedPromise.then((cached: any) => {
       if (cached.length === 0) {
-        RUNTIME("moveToWindow", { windowId: -1 });
+        reportOnFail(RUNTIME("moveToWindow", { windowId: -1 }), reportError);
         front.hidePopup();
       }
       let filtered = cached;
@@ -1414,27 +1489,30 @@ function OpenVIMarks(omnibar: any): any {
   self.onOpen = () => {
     const query = omnibar.input.value;
     const urls: any[] = [];
-    RUNTIME("getSettings", { key: "marks" }, (response: any) => {
-      for (const m in response.settings.marks) {
-        let markInfo = response.settings.marks[m];
-        if (typeof markInfo === "string") {
-          markInfo = {
-            url: markInfo,
-            scrollLeft: 0,
-            scrollTop: 0,
-          };
+    reportOnFail(
+      RUNTIME("getSettings", { key: "marks" }, (response: any) => {
+        for (const m in response.settings.marks) {
+          let markInfo = response.settings.marks[m];
+          if (typeof markInfo === "string") {
+            markInfo = {
+              url: markInfo,
+              scrollLeft: 0,
+              scrollTop: 0,
+            };
+          }
+          if (query === "" || markInfo.url.indexOf(query) !== -1) {
+            urls.push({
+              title: m,
+              type: "🔗",
+              uid: "M" + m,
+              url: markInfo.url,
+            });
+          }
         }
-        if (query === "" || markInfo.url.indexOf(query) !== -1) {
-          urls.push({
-            title: m,
-            type: "🔗",
-            uid: "M" + m,
-            url: markInfo.url,
-          });
-        }
-      }
-      omnibar.listURLs(urls, false);
-    });
+        omnibar.listURLs(urls, false);
+      }),
+      reportError,
+    );
   };
   self.onInput = self.onOpen;
   return self;
@@ -1484,13 +1562,16 @@ function SearchEngine(omnibar: any, front: any): any {
     } else {
       url = constructSearchURL(self.url, encodeURIComponent(omnibar.input.value));
     }
-    RUNTIME("openLink", {
-      tab: {
-        tabbed: this.tabbed,
-        active: this.activeTab,
-      },
-      url: url,
-    });
+    reportOnFail(
+      RUNTIME("openLink", {
+        tab: {
+          tabbed: this.tabbed,
+          active: this.activeTab,
+        },
+        url: url,
+      }),
+      reportError,
+    );
     return this.activeTab;
   };
   function listSuggestions(suggestions: any[]) {
@@ -1527,24 +1608,27 @@ function SearchEngine(omnibar: any, front: any): any {
         self.suggestionURL,
         encodeURIComponent(omnibar.input.value),
       );
-      RUNTIME("request", { method: "get", url: requestUrl }, (resp: any) => {
-        front.contentCommand(
-          {
-            action: "getSearchSuggestions",
-            url: self.suggestionURL,
-            query: omnibar.input.value,
-            requestUrl,
-            response: resp,
-          },
-          (resp2: any) => {
-            let data = resp2.data;
-            if (!Array.isArray(data)) {
-              data = [];
-            }
-            listSuggestions(data);
-          },
-        );
-      });
+      reportOnFail(
+        RUNTIME("request", { method: "get", url: requestUrl }, (resp: any) => {
+          front.contentCommand(
+            {
+              action: "getSearchSuggestions",
+              url: self.suggestionURL,
+              query: omnibar.input.value,
+              requestUrl,
+              response: resp,
+            },
+            (resp2: any) => {
+              let data = resp2.data;
+              if (!Array.isArray(data)) {
+                data = [];
+              }
+              listSuggestions(data);
+            },
+          );
+        }),
+        reportError,
+      );
     }, runtime.conf.omnibarSuggestionTimeout);
   };
 
@@ -1569,13 +1653,16 @@ function SearchEngine(omnibar: any, front: any): any {
         iconUrl.search = "";
         iconUrl.hash = "";
       }
-      RUNTIME("requestImage", { url: iconUrl.href }, (response: any) => {
-        if (response) {
-          localStorage.setItem(searchEngineIconStorageKey, response.text);
-          self.aliases[message.alias].prompt =
-            `<img src="${response.text}" alt="${message.prompt}" style="width: 20px;" />`;
-        }
-      });
+      reportOnFail(
+        RUNTIME("requestImage", { url: iconUrl.href }, (response: any) => {
+          if (response) {
+            localStorage.setItem(searchEngineIconStorageKey, response.text);
+            self.aliases[message.alias].prompt =
+              `<img src="${response.text}" alt="${message.prompt}" style="width: 20px;" />`;
+          }
+        }),
+        reportError,
+      );
     }
   };
   front._actions["removeSearchAlias"] = (message: any) => {
@@ -1607,16 +1694,19 @@ function Commands(omnibar: any, front: any): any {
       return;
     }
 
-    RUNTIME("getSettings", { key: "cmdHistory" }, (response: any) => {
-      const candidates = response.settings.cmdHistory;
-      if (candidates.length) {
-        omnibar.listResults(candidates, (c: any) => {
-          const li: any = createElementWithContent("li", c);
-          li.cmd = c;
-          return li;
-        });
-      }
-    });
+    reportOnFail(
+      RUNTIME("getSettings", { key: "cmdHistory" }, (response: any) => {
+        const candidates = response.settings.cmdHistory;
+        if (candidates.length) {
+          omnibar.listResults(candidates, (c: any) => {
+            const li: any = createElementWithContent("li", c);
+            li.cmd = c;
+            return li;
+          });
+        }
+      }),
+      reportError,
+    );
   };
 
   self.onReset = self.onOpen;
@@ -1649,7 +1739,7 @@ function Commands(omnibar: any, front: any): any {
     const ret = false;
     const cmdline = omnibar.input.value;
     if (cmdline.length) {
-      RUNTIME("updateInputHistory", { cmd: cmdline });
+      reportOnFail(RUNTIME("updateInputHistory", { cmd: cmdline }), reportError);
       execute(cmdline);
       omnibar.setQuery("");
     }

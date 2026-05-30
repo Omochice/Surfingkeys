@@ -1,44 +1,49 @@
+import { reportOnFail } from "../common/result";
 import browser from "./common/browser";
+import { reportError } from "./common/report";
 import { RUNTIME } from "./common/runtime";
 import { setSanitizedContent } from "./common/utils";
 
-RUNTIME("getTopSites", null, (response) => {
-  const urls = response.urls.map((u: { url: string; title: string }) => {
-    const favUrl = browser.runtime.getURL(`/_favicon/?pageUrl=${encodeURIComponent(u.url)}`);
-    return `<li><a href="${u.url}"><i style="background:url(${favUrl}) no-repeat"></i>${u.title}</a></li>`;
-  });
-  setSanitizedContent(document.querySelector("#topSites>ul")!, urls.join("\n"));
-
-  const screen1 = document.querySelector("#screen1") as HTMLElement;
-  screen1.show();
-  screen1.classList.add("fadeIn");
-
-  const screen2 = document.querySelector("#screen2") as HTMLElement;
-
-  document.getElementById("back")!.onclick = () => {
-    const cl = screen2.classList;
-    cl.remove("fadeOut");
-    cl.remove("fadeIn");
-    cl.add("fadeOut");
-    screen2.one("animationend", () => {
-      screen2.hide();
-      screen1.show();
-      screen1.classList.add("fadeIn");
+reportOnFail(
+  RUNTIME("getTopSites", null, (response) => {
+    const urls = response.urls.map((u: { url: string; title: string }) => {
+      const favUrl = browser.runtime.getURL(`/_favicon/?pageUrl=${encodeURIComponent(u.url)}`);
+      return `<li><a href="${u.url}"><i style="background:url(${favUrl}) no-repeat"></i>${u.title}</a></li>`;
     });
-  };
+    setSanitizedContent(document.querySelector("#topSites>ul")!, urls.join("\n"));
 
-  document.querySelector<HTMLElement>("#show-full-list-of-surfingkeys>a")!.onclick = () => {
-    const cl = screen1.classList;
-    cl.remove("fadeOut");
-    cl.remove("fadeIn");
-    cl.add("fadeOut");
-    screen1.one("animationend", () => {
-      screen1.hide();
-      screen2.show();
-      screen2.classList.add("fadeIn");
-    });
-  };
-});
+    const screen1 = document.querySelector("#screen1") as HTMLElement;
+    screen1.show();
+    screen1.classList.add("fadeIn");
+
+    const screen2 = document.querySelector("#screen2") as HTMLElement;
+
+    document.getElementById("back")!.onclick = () => {
+      const cl = screen2.classList;
+      cl.remove("fadeOut");
+      cl.remove("fadeIn");
+      cl.add("fadeOut");
+      screen2.one("animationend", () => {
+        screen2.hide();
+        screen1.show();
+        screen1.classList.add("fadeIn");
+      });
+    };
+
+    document.querySelector<HTMLElement>("#show-full-list-of-surfingkeys>a")!.onclick = () => {
+      const cl = screen1.classList;
+      cl.remove("fadeOut");
+      cl.remove("fadeIn");
+      cl.add("fadeOut");
+      screen1.one("animationend", () => {
+        screen1.hide();
+        screen2.show();
+        screen2.classList.add("fadeIn");
+      });
+    };
+  }),
+  reportError,
+);
 
 document.addEventListener("surfingkeys:userSettingsLoaded", (evt) => {
   const { getUsage } = (evt as CustomEvent).detail;

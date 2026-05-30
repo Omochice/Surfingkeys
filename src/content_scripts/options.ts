@@ -1,10 +1,14 @@
+import { Result } from "@praha/byethrow";
+
+import { type ChromeRuntimeError, reportOnFail } from "../common/result";
+import { reportError } from "./common/report";
 import type { StoredSettings } from "./common/runtime";
 
 type RuntimeFn = (
   action: string,
   args?: Record<string, unknown> | null,
   callback?: (resp: any) => void,
-) => void;
+) => Result.Result<void, ChromeRuntimeError>;
 type KeyboardUtilsLike = {
   encodeKeystroke(k: string): string;
   decodeKeystroke(k: string): string;
@@ -106,20 +110,23 @@ export default function (
 
   advancedToggler.onclick = () => {
     const newFlag = advancedToggler.checked;
-    RUNTIME(
-      "updateSettings",
-      {
-        settings: {
-          showAdvanced: newFlag,
+    reportOnFail(
+      RUNTIME(
+        "updateSettings",
+        {
+          settings: {
+            showAdvanced: newFlag,
+          },
         },
-      },
-      (resp) => {
-        if (resp.error) {
-          showBanner(resp.error, 3000);
-        } else {
-          showAdvanced(newFlag);
-        }
-      },
+        (resp) => {
+          if (resp.error) {
+            showBanner(resp.error, 3000);
+          } else {
+            showAdvanced(newFlag);
+          }
+        },
+      ),
+      reportError,
     );
   };
   const resetBtn = document.getElementById("resetSettings") as HTMLElement;
@@ -128,11 +135,14 @@ export default function (
       resetBtn.innerText =
         "WARNING! This will clear all your settings. Click this again to continue.";
     } else {
-      RUNTIME("resetSettings", null, (response) => {
-        renderSettings(response.settings);
-        renderKeyMappings(response.settings);
-        showBanner("Settings reset", 1000);
-      });
+      reportOnFail(
+        RUNTIME("resetSettings", null, (response) => {
+          renderSettings(response.settings);
+          renderKeyMappings(response.settings);
+          showBanner("Settings reset", 1000);
+        }),
+        reportError,
+      );
     }
   };
 
@@ -160,29 +170,35 @@ export default function (
     const settingsCode = mappingsEditor.getValue();
     const localPath = getURIPath(localPathInput.value.trim());
     if (localPath.length && localPath !== localPathSaved) {
-      RUNTIME(
-        "loadSettingsFromUrl",
-        {
-          url: localPath,
-        },
-        (res) => {
-          showBanner(res.status + " to load settings from " + localPath, 5000);
-          renderKeyMappings(res);
-          if (res.snippets && res.snippets.length) {
-            localPathSaved = localPath;
-            mappingsEditor.setValue(res.snippets, -1);
-          } else if (settingsCode === "") {
-            mappingsEditor.setValue(sample, -1);
-          }
-        },
+      reportOnFail(
+        RUNTIME(
+          "loadSettingsFromUrl",
+          {
+            url: localPath,
+          },
+          (res) => {
+            showBanner(res.status + " to load settings from " + localPath, 5000);
+            renderKeyMappings(res);
+            if (res.snippets && res.snippets.length) {
+              localPathSaved = localPath;
+              mappingsEditor.setValue(res.snippets, -1);
+            } else if (settingsCode === "") {
+              mappingsEditor.setValue(sample, -1);
+            }
+          },
+        ),
+        reportError,
       );
     } else {
-      RUNTIME("updateSettings", {
-        settings: {
-          snippets: settingsCode,
-          localPath: getURIPath(localPathInput.value),
-        },
-      });
+      reportOnFail(
+        RUNTIME("updateSettings", {
+          settings: {
+            snippets: settingsCode,
+            localPath: getURIPath(localPathInput.value),
+          },
+        }),
+        reportError,
+      );
 
       showBanner("Settings saved", 1000);
     }
@@ -315,11 +331,14 @@ export default function (
             disabledSearchAliases[key] = prompt;
           }
 
-          RUNTIME("updateSettings", {
-            settings: {
-              disabledSearchAliases,
-            },
-          });
+          reportOnFail(
+            RUNTIME("updateSettings", {
+              settings: {
+                disabledSearchAliases,
+              },
+            }),
+            reportError,
+          );
         };
       }
     });
@@ -393,11 +412,14 @@ export default function (
             realDefMap[el.dataset["origin"]!] = n!;
           }
         });
-        RUNTIME("updateSettings", {
-          settings: {
-            basicMappings: realDefMap,
-          },
-        });
+        reportOnFail(
+          RUNTIME("updateSettings", {
+            settings: {
+              basicMappings: realDefMap,
+            },
+          }),
+          reportError,
+        );
       } else {
         if (event.sk_keyName.length > 1) {
           const keyStr = JSON.stringify(
