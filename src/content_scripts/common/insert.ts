@@ -1,3 +1,6 @@
+import { Result } from "@praha/byethrow";
+
+import { domApiError } from "../../common/result";
 import browser from "./browser";
 import CursorPrompt from "./cursorPrompt";
 import KeyboardUtils from "./keyboardUtils";
@@ -66,13 +69,17 @@ function createInsert(): InsertMode {
   function moveCursorEOL(): void {
     const element = getRealEdit();
     if (element.setSelectionRange !== undefined) {
-      try {
-        element.setSelectionRange(element.value.length, element.value.length);
-      } catch (err) {
-        if (err instanceof DOMException && err.name === "InvalidStateError") {
-          // setSelectionRange does not apply
-        } else {
-          throw err;
+      const r = Result.try({
+        try: (): void => {
+          element.setSelectionRange(element.value.length, element.value.length);
+        },
+        catch: (cause) => domApiError("setSelectionRange", cause),
+      });
+      if (Result.isFailure(r)) {
+        const { cause } = r.error;
+        // InvalidStateError means setSelectionRange does not apply to this element.
+        if (!(cause instanceof DOMException && cause.name === "InvalidStateError")) {
+          throw cause;
         }
       }
     } else if (isEditable(element)) {
