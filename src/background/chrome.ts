@@ -1,5 +1,5 @@
-import { filterByTitleOrUrl } from "../common/utils.js";
-import { _save, extendObject, getSubSettings } from "./settings.js";
+import { filterByTitleOrUrl } from "../common/utils";
+import { _save, extendObject, getSubSettings } from "./settings";
 
 // Browser-extension globals. The typed BrowserAdapter (task #13) will replace
 // these once cross-browser API access is centralized; background is almost

@@ -2,9 +2,9 @@ import browser from "./browser";
 import CursorPrompt from "./cursorPrompt";
 import KeyboardUtils from "./keyboardUtils";
 import Mode from "./mode";
-import { runtime } from "./runtime.js";
+import { runtime } from "./runtime";
 import Trie from "./trie";
-import { getRealEdit, isEditable } from "./utils.js";
+import { getRealEdit, isEditable } from "./utils";
 
 /**
  * Find the offset of the next non-word character from `cur` in `str`, scanning in direction `dir`

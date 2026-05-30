@@ -1,7 +1,7 @@
-import { LOG } from "../common/utils.js";
+import { LOG } from "../common/utils";
 import browser from "./common/browser";
-import { runtime } from "./common/runtime.js";
-import { getDocumentOrigin } from "./common/utils.js";
+import { runtime } from "./common/runtime";
+import { getDocumentOrigin } from "./common/utils";
 
 type BrowserLike = {
   getBackFocusFromFrontend?: () => void;

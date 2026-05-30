@@ -1,5 +1,5 @@
-import { request } from "./request.js";
-import type { MessageHandler } from "./start.js";
+import { request } from "./request";
+import type { MessageHandler } from "./start";
 
 // Browser-extension global; background is an untyped chrome.* boundary (see start.ts).
 declare const chrome: any;

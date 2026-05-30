@@ -1,6 +1,6 @@
 import KeyboardUtils from "./keyboardUtils";
 import Mode from "./mode";
-import { RUNTIME, dispatchSKEvent, runtime } from "./runtime.js";
+import { RUNTIME, dispatchSKEvent, runtime } from "./runtime";
 import Trie from "./trie";
 import type { TrieMeta } from "./trie";
 import {
@@ -15,7 +15,7 @@ import {
   getWordUnderCursor,
   locateFocusNode,
   setSanitizedContent,
-} from "./utils.js";
+} from "./utils";
 
 type ClipboardLike = { write(text: string): void };
 type HintsLike = {

@@ -1,8 +1,8 @@
 import KeyboardUtils from "./keyboardUtils";
-import { RUNTIME, dispatchSKEvent, runtime } from "./runtime.js";
+import { RUNTIME, dispatchSKEvent, runtime } from "./runtime";
 import type Trie from "./trie";
 import type { TrieMeta } from "./trie";
-import { listElements, isInUIFrame, reportIssue } from "./utils.js";
+import { listElements, isInUIFrame, reportIssue } from "./utils";
 
 type StackEvent = Event & { keyCode?: number };
 

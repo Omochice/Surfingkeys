@@ -1,6 +1,6 @@
 import browser from "./common/browser";
-import { RUNTIME } from "./common/runtime.js";
-import { setSanitizedContent } from "./common/utils.js";
+import { RUNTIME } from "./common/runtime";
+import { setSanitizedContent } from "./common/utils";
 
 RUNTIME("getTopSites", null, (response) => {
   const urls = response.urls.map((u: { url: string; title: string }) => {

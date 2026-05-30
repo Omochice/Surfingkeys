@@ -6,7 +6,7 @@ import {
   locateFocusNode,
   scrollIntoViewIfNeeded,
   setSanitizedContent,
-} from "./utils.js";
+} from "./utils";
 
 type Renderer = (choice: string) => string;
 type Picker = (selected: Element) => string;

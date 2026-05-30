@@ -1,4 +1,4 @@
-import type { StoredSettings } from "./common/runtime.js";
+import type { StoredSettings } from "./common/runtime";
 
 type RuntimeFn = (
   action: string,

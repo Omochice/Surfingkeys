@@ -1,6 +1,6 @@
 import KeyboardUtils from "./keyboardUtils";
 import Mode from "./mode";
-import { dispatchSKEvent, runtime } from "./runtime.js";
+import { dispatchSKEvent, runtime } from "./runtime";
 import Trie from "./trie";
 import {
   createElementWithContent,
@@ -22,7 +22,7 @@ import {
   isElementDrawn,
   refreshHints,
   setSanitizedContent,
-} from "./utils.js";
+} from "./utils";
 
 // Browser-extension global. The typed BrowserAdapter (task #13) will replace
 // this narrow declaration once cross-browser API access is centralized.
