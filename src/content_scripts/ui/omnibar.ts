@@ -36,8 +36,6 @@ import { SearchInput } from "./components/SearchInput";
 // their original (throwing) runtime behavior while type-checking.
 declare const Normal: any;
 
-const separator = "➤";
-
 /**
  * A harvested omnibar row: the fields ResultList renders, plus the data the handlers and key
  * bindings read back from the store instead of reaching into the DOM (the legacy code stored these
@@ -1023,7 +1021,7 @@ function OpenBookmarks(omnibar: any): any {
         folderId: currentFolderId,
         focused: omnibar.focusedIndex(),
       });
-      self.prompt = { html: fi.data.folder_name + separator };
+      self.prompt = fi.data.folder_name;
       omnibar.setPrompt(self.prompt);
       omnibar.setQuery("");
       currentFolderId = folderId;
@@ -1071,7 +1069,7 @@ function OpenBookmarks(omnibar: any): any {
     let eaten = false;
     if (event.keyCode === KeyboardUtils.keyCodes["comma"]) {
       folderOnly = !folderOnly;
-      self.prompt = { html: (folderOnly ? "bookmark folder" : "bookmark") + separator };
+      self.prompt = folderOnly ? "bookmark folder" : "bookmark";
       omnibar.setPrompt(self.prompt);
       reportOnFail(
         RUNTIME(
