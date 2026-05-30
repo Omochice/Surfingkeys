@@ -9,7 +9,10 @@ export function debounce(fn: () => void, wait: number): DebouncedFunction {
     if (timer != null) {
       clearTimeout(timer);
     }
-    timer = setTimeout(fn, wait);
+    timer = setTimeout(() => {
+      timer = undefined;
+      fn();
+    }, wait);
   };
   debounced.cancel = () => {
     if (timer != null) {
