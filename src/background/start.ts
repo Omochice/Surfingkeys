@@ -202,6 +202,9 @@ function start(browser: any): void {
       handleMessage(m, s, r);
     });
     chrome.runtime.onInstalled.addListener(() => {
+      if (!chrome.userScripts) {
+        return;
+      }
       chrome.userScripts.configureWorld({
         csp: "script-src 'self' 'unsafe-eval'",
         messaging: true,
