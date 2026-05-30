@@ -229,11 +229,15 @@ const Front = (() => {
     }
   };
   const keystroke: any = document.getElementById("sk_keystroke");
+  const [keystrokeText, setKeystrokeText] = createSignal("");
   const [keystrokeHtml, setKeystrokeHtml] = createSignal("");
   const [keystrokeRich, setKeystrokeRich] = createSignal(false);
   render(
     () =>
       KeystrokeView({
+        get text() {
+          return keystrokeText();
+        },
         get html() {
           return keystrokeHtml();
         },
@@ -682,6 +686,7 @@ const Front = (() => {
   _actions["hideKeystroke"] = () => {
     if (keystroke.style.display !== "none") {
       setKeystrokeRich(false);
+      setKeystrokeText("");
       setKeystrokeHtml("");
       keystroke.style.display = "none";
       self.flush();
@@ -720,9 +725,8 @@ const Front = (() => {
       clearPendingHint();
       keystroke.style.display = "";
       self.flush();
-      const keys =
-        keystrokeHtml() + htmlEncode(KeyboardUtils.decodeKeystroke(message.keyHints.key));
-      setKeystrokeHtml(keys);
+      const keys = keystrokeText() + KeyboardUtils.decodeKeystroke(message.keyHints.key);
+      setKeystrokeText(keys);
 
       if (runtime.conf.richHintsForKeystroke > 0 && runtime.conf.richHintsForKeystroke < 10000) {
         _pendingHint = setTimeout(() => {
