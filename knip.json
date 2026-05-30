@@ -7,5 +7,7 @@
     "src/pages/popup.ts",
     "src/user_scripts/index.ts"
   ],
-  "project": ["src/**/*.{ts,tsx,js}", "entrypoints/**/*.{ts,tsx,html}", "test/**/*.{ts,tsx,js}"]
+  "project": ["src/**/*.{ts,tsx,js}", "entrypoints/**/*.{ts,tsx,html}", "test/**/*.{ts,tsx,js}"],
+  "ignore": ["src/common/result/**", "src/content_scripts/common/report.ts"],
+  "ignoreDependencies": ["@praha/byethrow"]
 }
