@@ -202,7 +202,7 @@ function start(browser: any): void {
       handleMessage(m, s, r);
     });
     chrome.runtime.onInstalled.addListener(() => {
-      if (!chrome.userScripts) {
+      if (chrome.userScripts?.configureWorld == null) {
         return;
       }
       chrome.userScripts.configureWorld({
