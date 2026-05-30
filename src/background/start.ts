@@ -1,5 +1,6 @@
 import { Result } from "@praha/byethrow";
 
+import { domApiError } from "../common/result";
 import { createBookmarkHandlers } from "./bookmarks";
 import { createHistoryHandlers } from "./history";
 import { request } from "./request";
@@ -250,34 +251,25 @@ function start(browser: any): void {
     });
   };
   handlers["requestImage"] = (message: any, _sender: any, sendResponse: any) => {
-    fetch(message.url, {
-      method: "GET",
-    })
-      .then((res) => {
-        return res.blob();
-      })
-      .then((blob) => {
-        return createImageBitmap(blob);
-      })
-      .then((img) => {
+    void Result.try({
+      try: async () => {
+        const res = await fetch(message.url, { method: "GET" });
+        const img = await createImageBitmap(await res.blob());
         const canvas = new OffscreenCanvas(img.width, img.height);
-        const ctx = canvas.getContext("2d")!;
-        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-        canvas.convertToBlob().then((blob) => {
+        canvas.getContext("2d")!.drawImage(img, 0, 0, canvas.width, canvas.height);
+        const outBlob = await canvas.convertToBlob();
+        return await new Promise<string | ArrayBuffer | null>((resolve) => {
           const fr = new FileReader();
-          fr.onload = (e) => {
-            _response(message, sendResponse, {
-              text: e.target!.result,
-            });
-          };
-          fr.readAsDataURL(blob);
+          fr.onload = (e) => resolve(e.target!.result);
+          fr.readAsDataURL(outBlob);
         });
-      })
-      .catch(() => {
-        _response(message, sendResponse, {
-          text: "",
-        });
+      },
+      catch: (cause) => domApiError("requestImage", cause),
+    }).then((r) => {
+      _response(message, sendResponse, {
+        text: Result.isSuccess(r) ? r.value : "",
       });
+    });
   };
   function _quit() {
     chrome.windows.getAll(
