@@ -217,7 +217,7 @@ importers:
   .:
     dependencies:
       '@praha/byethrow':
-        specifier: ^0.11.2
+        specifier: 0.11.2
         version: 0.11.2(typescript@6.0.3)
       dompurify:
         specifier: ^3.2.4
