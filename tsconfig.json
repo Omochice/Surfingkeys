@@ -3,7 +3,7 @@
   "compilerOptions": {
     "target": "esnext",
     "module": "esnext",
-    "types": ["offscreencanvas"],
+    "types": [],
     "allowJs": true,
     "strict": true,
     "moduleResolution": "bundler",

@@ -235,9 +235,6 @@ importers:
       '@tsconfig/strictest':
         specifier: ^2.0.8
         version: 2.0.8
-      '@types/offscreencanvas':
-        specifier: ^2019.6.4
-        version: 2019.7.3
       '@types/webextension-polyfill':
         specifier: 0.12.5
         version: 0.12.5
@@ -1302,9 +1299,6 @@ packages:
 
   '@types/node@25.2.1':
     resolution: {integrity: sha512-CPrnr8voK8vC6eEtyRzvMpgp3VyVRhgclonE7qYi6P9sXwYb59ucfrnmFBTaP0yUi8Gk4yZg/LlTJULGxvTNsg==}
-
-  '@types/offscreencanvas@2019.7.3':
-    resolution: {integrity: sha512-ieXiYmgSRXUDeOntE1InxjWyvEelZGP63M+cGuquuRLuIKKT1osnkXjxev9B7d1nXSug5vpunx+gNlbVxMlC9A==}
 
   '@types/trusted-types@2.0.7':
     resolution: {integrity: sha512-ScaPdn1dQczgbl0QFTeTOmVHFULt394XJgOQNoyVhZ6r2vLnMLJfBPd53SB52T/3G36VI1/g2MZaX0cwDuXsfw==}
@@ -3827,8 +3821,6 @@ snapshots:
   '@types/node@25.2.1':
     dependencies:
       undici-types: 7.16.0
-
-  '@types/offscreencanvas@2019.7.3': {}
 
   '@types/trusted-types@2.0.7':
     optional: true
