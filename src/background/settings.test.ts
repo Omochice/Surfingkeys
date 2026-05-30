@@ -1,3 +1,4 @@
+import { Result } from "@praha/byethrow";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { expectDefined } from "../../test/helpers";
@@ -76,17 +77,16 @@ describe("_save", () => {
     expect(set).not.toHaveBeenCalled();
   });
 
-  it("fetches and caches snippets from localPath before writing to local storage", () => {
-    mockRequest.mockImplementation((_url: string, onReady: (c: string) => void) =>
-      onReady("FETCHED"),
-    );
+  it("fetches and caches snippets from localPath before writing to local storage", async () => {
+    mockRequest.mockResolvedValue(Result.succeed("FETCHED"));
     const set = vi.fn();
     const local = { set };
     g.chrome.storage = { local, sync: {} };
 
     _save(local, { localPath: "/snips.js", snippets: "stale" });
+    await vi.waitFor(() => expect(set).toHaveBeenCalled());
 
-    expect(mockRequest).toHaveBeenCalledWith("/snips.js", expect.any(Function));
+    expect(mockRequest).toHaveBeenCalledWith("/snips.js");
     expect(set).toHaveBeenCalledWith({ localPath: "/snips.js", snippets: "FETCHED" }, undefined);
   });
 });

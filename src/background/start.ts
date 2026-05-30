@@ -1,3 +1,5 @@
+import { Result } from "@praha/byethrow";
+
 import { createBookmarkHandlers } from "./bookmarks";
 import { createHistoryHandlers } from "./history";
 import { request } from "./request";
@@ -25,40 +27,32 @@ const Gist = (() => {
   const self: any = {};
 
   function _initGist(token: string, magic_word: string, onGistReady: (gist: string) => void) {
-    request(
-      "https://api.github.com/gists",
-      (res) => {
-        const gists = JSON.parse(res);
-        let gist = "";
-        gists.forEach((g: any) => {
-          if (
-            Object.prototype.hasOwnProperty.call(g, "description") &&
-            g["description"] === magic_word &&
-            Object.prototype.hasOwnProperty.call(g.files, magic_word)
-          ) {
-            gist = g.id;
-          }
-        });
-        if (gist === "") {
-          request(
-            "https://api.github.com/gists",
-            (res2) => {
-              const ng = JSON.parse(res2);
-              onGistReady(ng.id);
-            },
-            {
-              Authorization: "token " + token,
-            },
-            `{ "description": "${magic_word}", "public": false, "files": { "${magic_word}": { "content": "${magic_word}" } } }`,
-          );
-        } else {
-          onGistReady(gist);
+    const auth = { Authorization: "token " + token };
+    void request("https://api.github.com/gists", auth).then((r) => {
+      if (Result.isFailure(r)) return;
+      const gists = JSON.parse(r.value);
+      let gist = "";
+      gists.forEach((g: any) => {
+        if (
+          Object.prototype.hasOwnProperty.call(g, "description") &&
+          g["description"] === magic_word &&
+          Object.prototype.hasOwnProperty.call(g.files, magic_word)
+        ) {
+          gist = g.id;
         }
-      },
-      {
-        Authorization: "token " + token,
-      },
-    );
+      });
+      if (gist === "") {
+        void request(
+          "https://api.github.com/gists",
+          auth,
+          `{ "description": "${magic_word}", "public": false, "files": { "${magic_word}": { "content": "${magic_word}" } } }`,
+        ).then((r2) => {
+          if (Result.isSuccess(r2)) onGistReady(JSON.parse(r2.value).id);
+        });
+      } else {
+        onGistReady(gist);
+      }
+    });
   }
 
   let _token: string;
@@ -78,54 +72,42 @@ const Gist = (() => {
   };
 
   function _newComment(text: string, cb?: (res: string) => void) {
-    request(
+    void request(
       `https://api.github.com/gists/${_gist}/comments`,
-      (res) => {
-        cb && cb(res);
-      },
-      {
-        Authorization: "token " + _token,
-      },
+      { Authorization: "token " + _token },
       `{"body": "${encodeURIComponent(text)}"}`,
-    );
+    ).then((r) => {
+      if (Result.isSuccess(r)) cb && cb(r.value);
+    });
   }
   function _readComment(cid: string, cb: (resp: any) => void) {
-    request(
-      `https://api.github.com/gists/${_gist}/comments/${cid}`,
-      (res) => {
-        const comment = JSON.parse(res);
+    void request(`https://api.github.com/gists/${_gist}/comments/${cid}`, {
+      Authorization: "token " + _token,
+    }).then((r) => {
+      if (Result.isSuccess(r)) {
+        const comment = JSON.parse(r.value);
         cb({ status: 0, content: decodeURIComponent(comment.body) });
-      },
-      {
-        Authorization: "token " + _token,
-      },
-    );
+      }
+    });
   }
   function _listComment(cb: (comments: any[]) => void) {
-    request(
-      `https://api.github.com/gists/${_gist}/comments`,
-      (res) => {
-        _comments = JSON.parse(res).map((c: any) => {
-          return c.id;
-        });
+    void request(`https://api.github.com/gists/${_gist}/comments`, {
+      Authorization: "token " + _token,
+    }).then((r) => {
+      if (Result.isSuccess(r)) {
+        _comments = JSON.parse(r.value).map((c: any) => c.id);
         cb(_comments);
-      },
-      {
-        Authorization: "token " + _token,
-      },
-    );
+      }
+    });
   }
   function _writeComment(cid: string, clip: string, cb?: (res: string) => void) {
-    request(
+    void request(
       `https://api.github.com/gists/${_gist}/comments/${cid}`,
-      (res) => {
-        cb && cb(res);
-      },
-      {
-        Authorization: "token " + _token,
-      },
+      { Authorization: "token " + _token },
       `{"body": "${encodeURIComponent(clip)}"}`,
-    );
+    ).then((r) => {
+      if (Result.isSuccess(r)) cb && cb(r.value);
+    });
   }
   self.readComment = (nr: number, cb: (resp: any) => void) => {
     if (_gist === "") {
@@ -259,21 +241,13 @@ function start(browser: any): void {
     });
   };
   handlers["request"] = (message: any, _sender: any, sendResponse: any) => {
-    request(
-      message.url,
-      (res) => {
-        _response(message, sendResponse, {
-          text: res,
-        });
-      },
-      message.headers,
-      message.data,
-      (e) => {
-        _response(message, sendResponse, {
-          error: e.toString(),
-        });
-      },
-    );
+    void request(message.url, message.headers, message.data).then((r) => {
+      if (Result.isSuccess(r)) {
+        _response(message, sendResponse, { text: r.value });
+      } else {
+        _response(message, sendResponse, { error: String(r.error.cause) });
+      }
+    });
   };
   handlers["requestImage"] = (message: any, _sender: any, sendResponse: any) => {
     fetch(message.url, {
