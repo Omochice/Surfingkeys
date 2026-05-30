@@ -5,13 +5,8 @@
     "module": "esnext",
     "types": [],
     "allowJs": true,
-    "strict": true,
     "moduleResolution": "bundler",
     "sourceMap": true,
-    "declaration": false,
-    "skipLibCheck": true,
-    "allowSyntheticDefaultImports": true,
-    "isolatedModules": true,
     "jsx": "preserve",
     "jsxImportSource": "solid-js"
   },
