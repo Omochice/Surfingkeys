@@ -111,7 +111,7 @@ export function createTabs(deps: TabsDeps): TabsUnit {
     const p = chrome.tabs.sendMessage(tabId, message, opts);
     if (p) {
       void Result.try({
-        try: () => p as Promise<unknown>,
+        try: () => p,
         catch: (cause) => chromeRuntimeError("sendTabMessage", cause),
       });
     }
