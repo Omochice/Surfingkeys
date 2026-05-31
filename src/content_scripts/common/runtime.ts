@@ -92,7 +92,15 @@ const RUNTIME = function (
         // user callback an undefined response.
         chrome.runtime.sendMessage(a, (response: unknown) => {
           if (chrome.runtime.lastError) {
-            reportError(chromeRuntimeError(`sendMessage:${action}`, chrome.runtime.lastError));
+            // Pass the message string, not the lastError object: formatMessage
+            // renders chrome-runtime causes via String(cause), which would turn
+            // the { message } object into "[object Object]".
+            reportError(
+              chromeRuntimeError(
+                `sendMessage:${action}`,
+                chrome.runtime.lastError.message ?? "unknown error",
+              ),
+            );
             return;
           }
           callback(response);

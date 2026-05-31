@@ -55,7 +55,11 @@ describe("RUNTIME", () => {
     expect(userCallback).not.toHaveBeenCalled();
     expect(reportErrorMock).toHaveBeenCalledTimes(1);
     expect(reportErrorMock).toHaveBeenCalledWith(
-      expect.objectContaining({ kind: "chrome-runtime", op: "sendMessage:getTabs" }),
+      expect.objectContaining({
+        kind: "chrome-runtime",
+        op: "sendMessage:getTabs",
+        cause: "Could not establish connection.",
+      }),
     );
   });
 
