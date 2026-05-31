@@ -71,7 +71,7 @@ function dispatchKeydown(normal: ReturnType<typeof createNormal>, target: Elemen
   // jsdom marks `isTrusted` non-configurable, so it cannot be redefined; wrap
   // the event to report a trusted event while binding methods to the real one.
   const event = new Proxy(base, {
-    get(t, p, r) {
+    get(t, p) {
       if (p === "isTrusted") {
         return true;
       }
