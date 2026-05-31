@@ -32,8 +32,11 @@ type HintElement = HTMLElement & {
   link?: any;
   label?: string;
   zIndex?: string;
-  skColorIndex?: number;
 };
+
+// Color index per hinted element, kept off the element so HintElement need not
+// carry it as an expando.
+const skColorIndices = new WeakMap<HTMLElement, number>();
 
 type InsertLike = { enter(elm: HTMLElement, keepCursor?: boolean): void; exit(): void };
 type NormalLike = {
@@ -514,7 +517,7 @@ div.hint-scrollable {
       if (typeof _onHintKey === "function") {
         if (behaviours.regionalHints) {
           setTimeout(() => {
-            const overlay = createOverlay(elm, elm.skColorIndex, "99");
+            const overlay = createOverlay(elm, skColorIndices.get(elm)!, "99");
             overlay.link = elm;
             regionalHints.attach(overlay);
           }, 10);
@@ -773,7 +776,7 @@ div.hint-scrollable {
   }
 
   function createOverlay(e: HintElement, i: number, alpha: string): HintElement {
-    e.skColorIndex = i;
+    skColorIndices.set(e, i);
 
     const be = e.getBoundingClientRect();
     const z = getZIndex(e);
