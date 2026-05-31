@@ -1,8 +1,8 @@
 import { Result } from "@praha/byethrow";
 
-import { type ChromeRuntimeError, reportOnFail } from "../common/result";
-import { reportError } from "./common/report";
-import type { StoredSettings } from "./common/runtime";
+import { type ChromeRuntimeError, reportOnFail } from "../../common/result";
+import { reportError } from "../common/report";
+import type { StoredSettings } from "../common/runtime";
 
 type RuntimeFn = (
   action: string,

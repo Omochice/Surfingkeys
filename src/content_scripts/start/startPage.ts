@@ -1,4 +1,4 @@
-import { start } from "./content";
+import { start } from "../content";
 // The help page's own logic self-runs on import (it queries top sites and
 // fills the page). Importing it also installs the HTMLElement prototype
 // helpers it relies on, via the shared utils module.
