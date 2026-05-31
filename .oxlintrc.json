@@ -8,7 +8,8 @@
   "rules": {
     "typescript/no-this-alias": "off",
     "typescript/consistent-type-definitions": ["error", "type"],
-    "no-unused-expressions": ["error", { "allowShortCircuit": true, "allowTernary": true }]
+    "no-unused-expressions": ["error", { "allowShortCircuit": true, "allowTernary": true }],
+    "curly": ["error", "multi-line"]
   },
   "env": {
     "builtin": true,

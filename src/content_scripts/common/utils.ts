@@ -498,8 +498,12 @@ function getLargeElements(minWidth = 0.3, minHeight = 0.3): HTMLElement[] {
       return;
     }
     if (rect.width < minWidthPx && rect.height < minHeightPx) return;
-    if ((rect.width / viewportWidth) * (rect.height / viewportHeight) < (minWidth * minHeight) / 6)
+    if (
+      (rect.width / viewportWidth) * (rect.height / viewportHeight) <
+      (minWidth * minHeight) / 6
+    ) {
       return;
+    }
     const style = getComputedStyle(element);
     if (
       parseFloat(style.opacity) > 0.1 &&
