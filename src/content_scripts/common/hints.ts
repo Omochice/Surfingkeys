@@ -324,7 +324,8 @@ div.hint-scrollable {
       } else if (event.keyCode === KeyboardUtils.keyCodes["tab"]) {
         ai.classList.remove("activeInput");
         _lastCreateAttrs.activeInput =
-          (_lastCreateAttrs.activeInput! + (keyEvent["shiftKey"] ? -1 : 1)) % masks.length;
+          (_lastCreateAttrs.activeInput! + (keyEvent["shiftKey"] ? -1 : 1) + masks.length) %
+          masks.length;
         ai = masks[_lastCreateAttrs.activeInput]!;
         ai.classList.add("activeInput");
 
