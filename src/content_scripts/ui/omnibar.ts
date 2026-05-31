@@ -31,11 +31,6 @@ import type { ResultListItem } from "./components/ResultList";
 import { ResultPage } from "./components/ResultPage";
 import { SearchInput } from "./components/SearchInput";
 
-// `Normal` is referenced by a couple of omnibar mappings but is not defined in
-// this module's scope in the original code; declared here so those paths keep
-// their original (throwing) runtime behavior while type-checking.
-declare const Normal: any;
-
 /**
  * A harvested omnibar row: the fields ResultList renders, plus the data the handlers and key
  * bindings read back from the store instead of reaching into the DOM (the legacy code stored these
