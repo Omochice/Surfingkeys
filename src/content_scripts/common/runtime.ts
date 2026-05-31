@@ -82,19 +82,15 @@ const RUNTIME = function (
     try: (): void => {
       a["needResponse"] = callback !== undefined;
       if (callback) {
-        // Most sendMessage failures ("Receiving end does not exist", "message
-        // port closed") surface asynchronously via chrome.runtime.lastError
-        // inside this callback, after Result.try has already returned Success;
-        // its synchronous catch only sees throws (e.g. invalid extension
-        // context). Read lastError here both to route the failure through the
-        // same reportError pipeline call sites use and to suppress Chrome's
-        // "Unchecked runtime.lastError" console spam, rather than handing the
-        // user callback an undefined response.
+        // sendMessage reports most failures ("Receiving end does not exist",
+        // "message port closed") asynchronously via lastError, which
+        // Result.try's synchronous catch never sees. Reading it here routes the
+        // failure through reportError and silences Chrome's "Unchecked
+        // runtime.lastError" warning.
         chrome.runtime.sendMessage(a, (response: unknown) => {
           if (chrome.runtime.lastError) {
-            // Pass the message string, not the lastError object: formatMessage
-            // renders chrome-runtime causes via String(cause), which would turn
-            // the { message } object into "[object Object]".
+            // Pass message, not the object: formatMessage stringifies the cause,
+            // turning { message } into "[object Object]".
             reportError(
               chromeRuntimeError(
                 `sendMessage:${action}`,
