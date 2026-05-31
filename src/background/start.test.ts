@@ -201,3 +201,66 @@ describe("start — editComment", () => {
     expect(sendResponse.mock.calls.at(-1)?.[0]).toHaveProperty("gistResp");
   });
 });
+
+describe("start — requestImage", () => {
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  /**
+   * Stubs the OffscreenCanvas pipeline so the handler reaches a `FileReader` whose `readAsDataURL`
+   * fires the event named by `settleVia`, exercising the error/abort paths the handler must now
+   * reject on instead of hanging.
+   */
+  function stubImagePipeline(settleVia: "onerror" | "onabort"): void {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () => ({ blob: async () => new Blob() })),
+    );
+    vi.stubGlobal(
+      "createImageBitmap",
+      vi.fn(async () => ({ width: 1, height: 1 })),
+    );
+    vi.stubGlobal(
+      "OffscreenCanvas",
+      class {
+        getContext() {
+          return { drawImage: () => {} };
+        }
+        convertToBlob() {
+          return Promise.resolve(new Blob());
+        }
+      },
+    );
+    vi.stubGlobal(
+      "FileReader",
+      class {
+        onload: ((e: any) => void) | null = null;
+        onerror: ((e: any) => void) | null = null;
+        onabort: ((e: any) => void) | null = null;
+        error: unknown = new DOMException("read failed");
+        readAsDataURL() {
+          this[settleVia]?.({ target: this });
+        }
+      },
+    );
+  }
+
+  it.each(["onerror", "onabort"] as const)(
+    "settles with an empty text when the FileReader fires %s",
+    async (settleVia) => {
+      stubImagePipeline(settleVia);
+      const dispatch = bootDispatch();
+      const sendResponse = vi.fn();
+
+      dispatch(
+        { action: "requestImage", url: "https://example.com/x.png", needResponse: true },
+        { tab: { id: 1 } },
+        sendResponse,
+      );
+
+      await vi.waitFor(() => expect(sendResponse).toHaveBeenCalled());
+      expect(sendResponse.mock.calls.at(-1)?.[0]).toEqual({ text: "" });
+    },
+  );
+});

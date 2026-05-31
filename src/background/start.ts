@@ -278,9 +278,14 @@ function start(browser: any): void {
         const canvas = new OffscreenCanvas(img.width, img.height);
         canvas.getContext("2d")!.drawImage(img, 0, 0, canvas.width, canvas.height);
         const outBlob = await canvas.convertToBlob();
-        return await new Promise<string | ArrayBuffer | null>((resolve) => {
+        return await new Promise<string | ArrayBuffer | null>((resolve, reject) => {
           const fr = new FileReader();
           fr.onload = (e) => resolve(e.target!.result);
+          // `readAsDataURL` reports failures via `onerror`/`onabort`. Without
+          // rejecting here the promise (and the awaiting `Result.try`) would
+          // stay pending forever, hanging the background response and leaking.
+          fr.onerror = () => reject(fr.error);
+          fr.onabort = () => reject(fr.error);
           fr.readAsDataURL(outBlob);
         });
       },
