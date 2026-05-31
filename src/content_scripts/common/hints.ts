@@ -317,9 +317,9 @@ div.hint-scrollable {
     event.sk_stopPropagation = true;
     const keyEvent = event as KeyboardEvent;
 
-    let ai = holder.querySelector("[mode=input]>mask.activeInput") as HintElement | null;
+    let ai = holder.querySelector<HTMLElement>("[mode=input]>mask.activeInput");
     if (ai !== null) {
-      const masks = holder.querySelectorAll("mask");
+      const masks = holder.querySelectorAll<HTMLElement>("mask");
       let elm = hintLink.get(ai);
       if (Mode.isSpecialKeyOf("<Esc>", event.sk_keyName ?? "")) {
         elm.blur();
@@ -328,7 +328,7 @@ div.hint-scrollable {
         ai.classList.remove("activeInput");
         _lastCreateAttrs.activeInput =
           (_lastCreateAttrs.activeInput! + (keyEvent["shiftKey"] ? -1 : 1)) % masks.length;
-        ai = masks[_lastCreateAttrs.activeInput] as unknown as HintElement;
+        ai = masks[_lastCreateAttrs.activeInput]!;
         ai.classList.add("activeInput");
 
         elm = hintLink.get(ai);
@@ -509,9 +509,7 @@ div.hint-scrollable {
   }
 
   function handleHint(evt?: Event & { keyCode?: number }): void {
-    const hints = holder.querySelectorAll("div:not(:empty)") as unknown as NodeListOf<
-      HintElement & { label: string; link: unknown }
-    >;
+    const hints = holder.querySelectorAll<HTMLElement>("div:not(:empty)");
     const hintState = refreshHints(hints, prefix);
     const elm: any = hintState.matched;
     if (elm) {
@@ -554,7 +552,7 @@ div.hint-scrollable {
   }
 
   function refreshByTextFilter(): void {
-    let hints = Array.from(holder.querySelectorAll("div")) as HintElement[];
+    let hints = Array.from(holder.querySelectorAll<HTMLElement>("div"));
     if (textFilter.length > 0) {
       hints = hints.filter((hint) => {
         hintLabel.set(hint, "");
@@ -594,7 +592,7 @@ div.hint-scrollable {
   }
 
   function flip(): void {
-    const hints = holder.querySelectorAll("div") as unknown as NodeListOf<HintElement>;
+    const hints = holder.querySelectorAll<HTMLElement>("div");
     const firstHint = hints[0];
     if (firstHint && firstHint.style.zIndex == zIndices.get(firstHint)) {
       hints.forEach((hint, i) => {
@@ -878,7 +876,7 @@ div.hint-scrollable {
 
     const filtered = filterInvisibleElements(elements as HTMLElement[]);
     if (filtered.length > 0) {
-      placeHints(filtered as HintElement[]);
+      placeHints(filtered);
     }
     return filtered.length;
   }
@@ -915,7 +913,7 @@ div.hint-scrollable {
     }
 
     if (elements.length > 0) {
-      placeHints(elements as HintElement[]);
+      placeHints(elements);
     }
 
     return elements.length;
@@ -1083,7 +1081,7 @@ div.hint-scrollable {
       });
       hintsHost.shadowRoot!.appendChild(holder);
       _lastCreateAttrs.activeInput = 0;
-      const ai = holder.querySelector("[mode=input]>mask") as HintElement;
+      const ai = holder.querySelector<HTMLElement>("[mode=input]>mask")!;
       ai.classList.add("activeInput");
       normal.passFocus(true);
       hintLink.get(ai).focus();
