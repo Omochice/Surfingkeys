@@ -1,15 +1,6 @@
 // Standalone popup bundle (not part of the module graph beyond this file).
 export {};
 
-// Browser-extension global. The typed BrowserAdapter (task #13) will replace
-// this narrow declaration once cross-browser API access is centralized.
-declare const chrome: {
-  runtime: {
-    getManifest(): { version: string };
-    sendMessage(message: unknown, callback?: (response: any) => void): void;
-  };
-};
-
 // String.prototype.format is globally declared in content_scripts/common/utils.ts;
 // the popup is a standalone bundle, so it carries its own implementation.
 String.prototype.format = function (...args: unknown[]): string {
@@ -32,7 +23,11 @@ function RUNTIME(
   const a: Record<string, unknown> = args || {};
   a["action"] = action;
   a["needResponse"] = callback !== undefined;
-  chrome.runtime.sendMessage(a, callback);
+  if (callback) {
+    chrome.runtime.sendMessage(a, callback);
+  } else {
+    chrome.runtime.sendMessage(a);
+  }
 }
 
 function updateStatus(blocklist: Record<string, unknown>) {

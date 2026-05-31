@@ -4,7 +4,7 @@
     "target": "esnext",
     "module": "esnext",
     "moduleResolution": "bundler",
-    "types": [],
+    "types": ["chrome", "firefox-webext-browser"],
     "noEmit": true,
     "verbatimModuleSyntax": true,
     "jsx": "preserve",

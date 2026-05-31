@@ -16,14 +16,6 @@ import {
   toggleQuote,
 } from "./utils";
 
-// Browser-extension global. `surfingkeys` is an optional companion native API.
-declare const chrome: {
-  surfingkeys?: {
-    translateCurrentPage(): void;
-    sendMouseEvent(type: number, x: number, y: number, button: number): void;
-  };
-};
-
 export default function (api: SurfingkeysApi, ctx: ModeContext): void {
   const { clipboard, normal, hints, visual, front } = ctx;
   const { addSearchAlias, cmap, map, mapkey, imapkey, vmapkey, searchSelectedWith } = api;

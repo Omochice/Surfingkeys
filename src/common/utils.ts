@@ -1,15 +1,9 @@
-// Browser-extension global. The typed BrowserAdapter (task #13) will replace
-// this narrow declaration once cross-browser API access is centralized.
-declare const chrome: {
-  storage: { local: { get(keys: string[], cb: (r: any) => void): void } };
-};
-
 type LogLevel = "log" | "warn" | "error";
 
 function LOG(level: LogLevel, msg: unknown): void {
   // To turn on all levels: chrome.storage.local.set({"logLevels": ["log", "warn", "error"]})
   chrome.storage.local.get(["logLevels"], (r) => {
-    const logLevels: string[] = (r && r.logLevels) || ["error"];
+    const logLevels: string[] = (r as { logLevels?: string[] }).logLevels || ["error"];
     if (["log", "warn", "error"].indexOf(level) !== -1 && logLevels.indexOf(level) !== -1) {
       console[level](msg);
     }

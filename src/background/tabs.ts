@@ -5,9 +5,6 @@ import { filterByTitleOrUrl } from "../common/utils";
 import type { MessageHandler } from "./start";
 import { createTabHistory } from "./tabHistory";
 
-// Browser-extension global; background is an untyped chrome.* boundary (see start.ts).
-declare const chrome: any;
-
 /**
  * Sends a (possibly deferred) response for a handled message; injected from the composition root so
  * the unit shares the one pending-port bookkeeping.

@@ -1,11 +1,6 @@
 import { filterByTitleOrUrl } from "../common/utils";
 import { _save, extendObject, getSubSettings } from "./settings";
 
-// Browser-extension globals. The typed BrowserAdapter (task #13) will replace
-// these once cross-browser API access is centralized; background is almost
-// entirely chrome.* glue, so it is treated as an untyped boundary here.
-declare const chrome: any;
-
 function loadRawSettings(keys: string[], cb: (set: any) => void, defaultSet?: any): void {
   const rawSet = defaultSet || {};
   chrome.storage.local.get(null, (localSet: any) => {
