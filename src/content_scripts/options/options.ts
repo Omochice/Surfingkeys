@@ -3,6 +3,7 @@ import { Result } from "@praha/byethrow";
 import { type ChromeRuntimeError, reportOnFail } from "../../common/result";
 import { reportError } from "../common/report";
 import type { StoredSettings } from "../common/runtime";
+import { requireElement } from "../common/utils";
 
 type RuntimeFn = (
   action: string,
@@ -66,13 +67,13 @@ export default function (
   }
 
   if (getBrowserName() === "Firefox") {
-    (document.querySelector("#localPathForSettings") as HTMLElement).style.display = "";
+    requireElement("#localPathForSettings").style.display = "";
   }
 
-  const basicSettingsDiv = document.getElementById("basicSettings") as HTMLElement;
-  const basicMappingsDiv = document.getElementById("basicMappings") as HTMLElement;
-  const advancedSettingDiv = document.getElementById("advancedSetting") as HTMLElement;
-  const advancedToggler = document.getElementById("advancedToggler") as HTMLInputElement;
+  const basicSettingsDiv = requireElement("#basicSettings");
+  const basicMappingsDiv = requireElement("#basicMappings");
+  const advancedSettingDiv = requireElement("#advancedSetting");
+  const advancedToggler = requireElement<HTMLInputElement>("#advancedToggler");
   function showAdvanced(flag?: boolean): void {
     if (flag) {
       basicSettingsDiv.hide();
@@ -86,11 +87,11 @@ export default function (
   }
 
   let localPathSaved = "";
-  const localPathInput = document.getElementById("localPath") as HTMLInputElement;
-  const sample = (document.getElementById("sample") as HTMLElement).innerHTML;
+  const localPathInput = requireElement<HTMLInputElement>("#localPath");
+  const sample = requireElement("#sample").innerHTML;
   function renderSettings(rs: StoredSettings): void {
     if (rs.isMV3) {
-      (document.getElementById("advancedTip") as HTMLElement).innerText =
+      requireElement("#advancedTip").innerText =
         "First turn on 'Developer mode' in chrome://extensions/, then turn on 'Allow User Scripts' in Surfingkeys extension details, then toggle the 'Advanced mode' flag here.";
       advancedToggler.disabled = !rs.isUserScriptsAvailable;
       showAdvanced(rs.isUserScriptsAvailable && rs.showAdvanced);
@@ -129,7 +130,7 @@ export default function (
       reportError,
     );
   };
-  const resetBtn = document.getElementById("resetSettings") as HTMLElement;
+  const resetBtn = requireElement("#resetSettings");
   resetBtn.onclick = () => {
     if (resetBtn.innerText === "Reset") {
       resetBtn.innerText =
@@ -146,9 +147,13 @@ export default function (
     }
   };
 
-  const infoPointer = document.querySelector(".infoPointer") as HTMLElement;
+  const infoPointer = requireElement(".infoPointer");
   infoPointer.onclick = () => {
-    const f = document.getElementById(infoPointer.getAttribute("for")!) as HTMLElement;
+    const targetId = infoPointer.getAttribute("for");
+    const f = targetId === null ? null : document.getElementById(targetId);
+    if (f === null) {
+      return;
+    }
     if (f.style.display === "none") {
       f.style.display = "";
     } else {
@@ -203,7 +208,7 @@ export default function (
       showBanner("Settings saved", 1000);
     }
   }
-  (document.getElementById("save_button") as HTMLElement).onclick = saveSettings;
+  requireElement("#save_button").onclick = saveSettings;
 
   let basicMappings: any[] = [
     "d",
@@ -389,7 +394,7 @@ export default function (
     }
 
     let _key = "";
-    const keyPickerDiv = document.getElementById("keyPicker") as HTMLElement;
+    const keyPickerDiv = requireElement("#keyPicker");
     self.addEventListener("keydown", (event: any) => {
       if (event.keyCode === 27) {
         keyPickerDiv.hide();
