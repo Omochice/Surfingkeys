@@ -9,7 +9,11 @@ const insertStub = { enter() {}, exit() {} };
 function dispatchFocus(normal: ReturnType<typeof createNormal>, target: Element): Event {
   const event = new Event("focus");
   Object.defineProperty(event, "target", { value: target });
-  normal.eventListeners.focus(event);
+  const handler = normal.eventListeners["focus"];
+  if (handler === undefined) {
+    throw new Error("normal mode did not register a focus handler");
+  }
+  handler(event);
   return event;
 }
 
