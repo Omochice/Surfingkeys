@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { getColor, parseAnnotation, refreshHints } from "./utils";
+import { getColor, hintLabel, parseAnnotation, refreshHints } from "./utils";
 
 describe("getColor", () => {
   it("returns a CSS color string for valid indices", () => {
@@ -46,7 +46,9 @@ describe("parseAnnotation", () => {
 // it is handed and how it mutates them; the expected values are whatever the
 // current code produces, not a hand-authored spec.
 function makeHint(label: string, link: unknown) {
-  return Object.assign(document.createElement("div"), { label, link });
+  const el = document.createElement("div");
+  hintLabel.set(el, label);
+  return Object.assign(el, { link });
 }
 
 describe("refreshHints (characterization)", () => {

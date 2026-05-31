@@ -15,6 +15,7 @@ import {
   getRealRect,
   getTextNodePos,
   getVisibleElements,
+  hintLabel,
   htmlEncode,
   initSKFunctionListener,
   isEditable,
@@ -30,7 +31,6 @@ import {
 // Surfingkeys stores the target element/label/z-index on each hint node.
 type HintElement = HTMLElement & {
   link?: any;
-  label?: string;
 };
 
 // Color index per hinted element, kept off the element so HintElement need not
@@ -558,7 +558,7 @@ div.hint-scrollable {
     let hints = Array.from(holder.querySelectorAll("div")) as HintElement[];
     if (textFilter.length > 0) {
       hints = hints.filter((hint) => {
-        hint.label = "";
+        hintLabel.set(hint, "");
         setSanitizedContent(hint, "");
         const e = hint.link;
         let text = e.innerText;
@@ -571,7 +571,7 @@ div.hint-scrollable {
     const hintLabels = self.genLabels(hints.length);
     hints.forEach((e, i) => {
       const label = hintLabels[i] ?? "";
-      e.label = label;
+      hintLabel.set(e, label);
       setSanitizedContent(e, label);
     });
   }
@@ -844,7 +844,7 @@ div.hint-scrollable {
         link.style.background = getColor(i);
       }
       zIndices.set(link, link.style.zIndex);
-      link.label = hintLabels[i] ?? "";
+      hintLabel.set(link, hintLabels[i] ?? "");
       link.link = elm;
 
       lastTop = lTop;
@@ -1010,7 +1010,7 @@ div.hint-scrollable {
       const hintLabels = self.genLabels(elements.length);
       elements.forEach((e, i) => {
         const label = hintLabels[i] ?? "";
-        e.label = label;
+        hintLabel.set(e, label);
         setSanitizedContent(e, label);
         holder.append(e);
       });

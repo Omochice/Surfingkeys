@@ -1167,7 +1167,11 @@ function getCssSelectorsOfEditable(): string {
   return "input:not([type=submit]), textarea, *[contenteditable=true], *[role=textbox], select, div.ace_cursor";
 }
 
-type Hint = HTMLElement & { label: string; link: unknown };
+// Hint label kept off the element (set in hints.ts / frontend.ts), read here by
+// refreshHints. Lets HintElement drop the `label` expando.
+const hintLabel = new WeakMap<HTMLElement, string>();
+
+type Hint = HTMLElement & { link: unknown };
 
 function refreshHints(
   hints: ArrayLike<Hint> & Iterable<Hint>,
@@ -1176,7 +1180,7 @@ function refreshHints(
   const result: { candidates: number; matched?: unknown } = { candidates: 0 };
   if (pressedKeys.length > 0) {
     for (const hint of hints) {
-      const label = hint.label;
+      const label = hintLabel.get(hint) ?? "";
       if (pressedKeys === label) {
         result.matched = hint.link;
         break;
@@ -1197,7 +1201,7 @@ function refreshHints(
     } else {
       for (const hint of hints) {
         hint.style.opacity = "1";
-        setSanitizedContent(hint, hint.label);
+        setSanitizedContent(hint, hintLabel.get(hint) ?? "");
       }
       result.candidates = hints.length;
     }
@@ -1279,6 +1283,7 @@ export {
   getTextRect,
   getVisibleElements,
   getWordUnderCursor,
+  hintLabel,
   htmlEncode,
   httpRequest,
   initL10n,

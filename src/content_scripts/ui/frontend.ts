@@ -12,6 +12,7 @@ import {
   generateQuickGuid,
   getAnnotations,
   getWordUnderCursor,
+  hintLabel,
   htmlEncode,
   initL10n,
   initSKFunctionListener,
@@ -534,9 +535,9 @@ const Front = (() => {
         const tabHints: any = _popup.querySelectorAll("div.sk_tab_hint");
         _popup.style.textAlign = "center";
         tabHints[0].link = "Ok";
-        tabHints[0].label = hintLabels[0];
+        hintLabel.set(tabHints[0], hintLabels[0] ?? "");
         tabHints[1].link = "Cancel";
-        tabHints[1].label = hintLabels[1];
+        hintLabel.set(tabHints[1], hintLabels[1] ?? "");
       },
       (matched) => {
         self.contentCommand({
