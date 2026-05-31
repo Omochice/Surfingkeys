@@ -11,13 +11,14 @@ import { _save, createSettings, getSubSettings } from "./settings";
 const { mockRequest } = vi.hoisted(() => ({ mockRequest: vi.fn() }));
 vi.mock("./request.js", () => ({ request: mockRequest }));
 
-type AnyChrome = { runtime?: any; storage?: any; tabs?: any };
+type AnyChrome = { runtime?: any; storage?: any; tabs?: any; userScripts?: any };
 const g = globalThis as unknown as { chrome: AnyChrome };
 const defaultStorage = g.chrome.storage;
 
 afterEach(() => {
   g.chrome.storage = defaultStorage;
   delete g.chrome.tabs;
+  delete g.chrome.userScripts;
   mockRequest.mockReset();
 });
 
@@ -91,6 +92,32 @@ describe("_save", () => {
     expect(set).toHaveBeenCalledWith({ localPath: "/snips.js", snippets: "FETCHED" }, undefined);
   });
 
+  it("does not mutate the caller's data when caching snippets to local storage", async () => {
+    mockRequest.mockResolvedValue(Result.succeed("FETCHED"));
+    const set = vi.fn();
+    const local = { set };
+    g.chrome.storage = { local, sync: {} };
+    const data = { localPath: "/snips.js", snippets: "stale" };
+
+    _save(local, data);
+    await vi.waitFor(() => expect(set).toHaveBeenCalled());
+
+    expect(data).toEqual({ localPath: "/snips.js", snippets: "stale" });
+    expect(set).toHaveBeenCalledWith({ localPath: "/snips.js", snippets: "FETCHED" }, undefined);
+  });
+
+  it("does not mutate the caller's data when stripping for sync storage", () => {
+    const set = vi.fn();
+    const sync = { set };
+    g.chrome.storage = { local: {}, sync };
+    const data = { localPath: "/x", snippets: "s", foo: 1, bar: 2 };
+
+    _save(sync, data, vi.fn());
+
+    expect(data).toEqual({ localPath: "/x", snippets: "s", foo: 1, bar: 2 });
+    expect(set).toHaveBeenCalledWith({ foo: 1, bar: 2 }, expect.any(Function));
+  });
+
   it("still writes to local storage and fires cb when the snippet fetch fails", async () => {
     // A failed fetch must not strand callers: `cb` is what `_updateSettings`
     // chains `afterSet` onto, and the `updateSettings` handler ultimately calls
@@ -107,7 +134,8 @@ describe("_save", () => {
 
     expect(cb).toBe(set.mock.calls.at(-1)?.[1]);
     expect(set).toHaveBeenCalledWith({ localPath: "/snips.js" }, cb);
-    expect("snippets" in data).toBe(false);
+    // The caller's object is left intact; only the persisted copy drops snippets.
+    expect(data).toEqual({ localPath: "/snips.js", snippets: "stale" });
   });
 
   it("still fires cb when storage.set throws after a snippet fetch", async () => {
@@ -203,5 +231,37 @@ describe("createSettings — updateSettings", () => {
       [22, -1],
     ]);
     expect(localSet).toHaveBeenCalled();
+  });
+
+  it("registers the user script with the snippets when saving advanced settings with a localPath", () => {
+    // The bug: _save synchronously deletes snippets from the shared settings
+    // object before registerUserScript reads message.settings.snippets, so the
+    // snippet code was lost and the script unregistered.
+    mockRequest.mockResolvedValue(Result.succeed("FETCHED"));
+    const register = vi.fn((_scripts: any, cb?: () => void) => cb && cb());
+    g.chrome.userScripts = {
+      configureWorld: vi.fn(),
+      getScripts: (_q: any, cb: (r: any[]) => void) => cb([]),
+      register,
+      unregister: (_q: any, cb?: () => void) => cb && cb(),
+    };
+    g.chrome.storage = {
+      local: { set: (_d: any, cb?: () => void) => cb && cb() },
+      sync: { set: vi.fn() },
+    };
+    g.chrome.tabs = { query: (_q: any, cb: (t: any[]) => void) => cb([]) };
+    const { unit } = makeUnit();
+
+    const updateSettings = unit.handlers["updateSettings"];
+    expectDefined(updateSettings);
+    updateSettings(
+      { settings: { showAdvanced: true, localPath: "/snips.js", snippets: "SNIPPET_MARKER" } },
+      {},
+      vi.fn(),
+    );
+
+    expect(register).toHaveBeenCalled();
+    const code = register.mock.calls.at(-1)?.[0][0].js[0].code;
+    expect(code).toContain("SNIPPET_MARKER");
   });
 });
