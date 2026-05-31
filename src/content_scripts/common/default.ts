@@ -560,7 +560,7 @@ export default function (api: SurfingkeysApi, ctx: ModeContext): void {
   });
   mapkey("ys", "#7Copy current page's source", () => {
     const aa = document.documentElement.cloneNode(true);
-    if (aa instanceof HTMLElement) {
+    if (aa instanceof Element) {
       clipboard.write(aa.outerHTML);
     }
   });
