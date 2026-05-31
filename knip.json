@@ -4,7 +4,7 @@
     "src/content_scripts/ui/frontend.ts",
     "src/content_scripts/options/optionsPage.ts",
     "src/content_scripts/start/startPage.ts",
-    "src/pages/popup.ts",
+    "src/pages/popup/popup.ts",
     "src/user_scripts/index.ts"
   ],
   "project": ["src/**/*.{ts,tsx,js}", "entrypoints/**/*.{ts,tsx,html}", "test/**/*.{ts,tsx,js}"]
