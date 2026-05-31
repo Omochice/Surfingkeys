@@ -309,8 +309,10 @@ function start(browser: any): void {
           // `readAsDataURL` reports failures via `onerror`/`onabort`. Without
           // rejecting here the promise (and the awaiting `Result.try`) would
           // stay pending forever, hanging the background response and leaking.
-          fr.onerror = () => reject(fr.error);
-          fr.onabort = () => reject(fr.error);
+          // `fr.error` is null on abort and may be null on error, so fall back
+          // to an Error rather than rejecting with null.
+          fr.onerror = () => reject(fr.error ?? new Error("FileReader failed to read blob"));
+          fr.onabort = () => reject(fr.error ?? new Error("FileReader read aborted"));
           fr.readAsDataURL(outBlob);
         });
       },

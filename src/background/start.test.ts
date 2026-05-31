@@ -260,7 +260,10 @@ describe("start — requestImage", () => {
    * fires the event named by `settleVia`, exercising the error/abort paths the handler must now
    * reject on instead of hanging.
    */
-  function stubImagePipeline(settleVia: "onerror" | "onabort"): void {
+  function stubImagePipeline(
+    settleVia: "onerror" | "onabort",
+    readerError: unknown = new DOMException("read failed"),
+  ): void {
     vi.stubGlobal(
       "fetch",
       vi.fn(async () => ({ blob: async () => new Blob() })),
@@ -286,7 +289,7 @@ describe("start — requestImage", () => {
         onload: ((e: any) => void) | null = null;
         onerror: ((e: any) => void) | null = null;
         onabort: ((e: any) => void) | null = null;
-        error: unknown = new DOMException("read failed");
+        error: unknown = readerError;
         readAsDataURL() {
           this[settleVia]?.({ target: this });
         }
@@ -311,4 +314,19 @@ describe("start — requestImage", () => {
       expect(sendResponse.mock.calls.at(-1)?.[0]).toEqual({ text: "" });
     },
   );
+
+  it("settles with an empty text when the FileReader error is null", async () => {
+    stubImagePipeline("onerror", null);
+    const dispatch = bootDispatch();
+    const sendResponse = vi.fn();
+
+    dispatch(
+      { action: "requestImage", url: "https://example.com/x.png", needResponse: true },
+      { tab: { id: 1 } },
+      sendResponse,
+    );
+
+    await vi.waitFor(() => expect(sendResponse).toHaveBeenCalled());
+    expect(sendResponse.mock.calls.at(-1)?.[0]).toEqual({ text: "" });
+  });
 });
