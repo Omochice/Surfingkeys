@@ -44,40 +44,45 @@ export function getSubSettings(set: any, keys: any): any {
  * from that path before saving.
  */
 export function _save(storage: any, data: any, cb?: () => void): void {
+  // Persist a shallow copy so the caller's object is never stripped or
+  // reassigned. `updateSettings` reads `message.settings.snippets` right after
+  // this returns; mutating it in place dropped the snippets and unregistered
+  // the user script.
+  const toSave = { ...data };
   if (storage === chrome.storage.sync) {
     // don't store snippets from localPath into sync storage, since sync storage has its quota.
-    if (data.localPath) {
-      delete data.snippets;
-      delete data.localPath;
+    if (toSave.localPath) {
+      delete toSave.snippets;
+      delete toSave.localPath;
     }
-    if (Object.keys(data).length > 1) {
-      storage.set(data, cb);
+    if (Object.keys(toSave).length > 1) {
+      storage.set(toSave, cb);
     }
   } else {
-    if (data.localPath) {
-      delete data.snippets;
+    if (toSave.localPath) {
+      delete toSave.snippets;
       // try to fetch snippets from localPath and cache it in local storage.
-      void request(data.localPath)
+      void request(toSave.localPath)
         .then((r) => {
           if (Result.isSuccess(r)) {
-            data.snippets = r.value;
+            toSave.snippets = r.value;
           } else {
             // Leave the cached snippets untouched on failure, but still persist so
             // `cb` always fires; otherwise callers chaining `afterSet` (and the
             // `updateSettings` response) would hang on a bad/unreachable snippet URL.
-            console.error("Failed to fetch snippets from", data.localPath, r.error);
+            console.error("Failed to fetch snippets from", toSave.localPath, r.error);
           }
-          storage.set(data, cb);
+          storage.set(toSave, cb);
         })
         .catch((err) => {
           // request() resolves rather than rejects, so this only fires if
           // storage.set throws synchronously; still invoke cb so the chain
           // never hangs.
-          console.error("Failed to save snippets from", data.localPath, err);
+          console.error("Failed to save snippets from", toSave.localPath, err);
           cb?.();
         });
     } else {
-      storage.set(data, cb);
+      storage.set(toSave, cb);
     }
   }
 }
