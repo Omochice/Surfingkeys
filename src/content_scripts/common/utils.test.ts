@@ -1,6 +1,13 @@
 import { describe, expect, it } from "vitest";
 
-import { getColor, hintLabel, hintLink, parseAnnotation, refreshHints } from "./utils";
+import {
+  getColor,
+  hintLabel,
+  hintLink,
+  parseAnnotation,
+  refreshHints,
+  requireElement,
+} from "./utils";
 
 describe("getColor", () => {
   it("returns a CSS color string for valid indices", () => {
@@ -85,5 +92,24 @@ describe("refreshHints (characterization)", () => {
     expect(result).toEqual({ candidates: 2 });
     expect(a.style.opacity).toBe("1");
     expect(a.innerHTML).toBe("ab");
+  });
+});
+
+describe("requireElement", () => {
+  it("returns the element matching the selector", () => {
+    const el = document.createElement("div");
+    el.id = "require-element-target";
+    document.body.appendChild(el);
+    try {
+      expect(requireElement("#require-element-target")).toBe(el);
+    } finally {
+      el.remove();
+    }
+  });
+
+  it("throws with the selector when no element matches", () => {
+    expect(() => requireElement("#require-element-missing")).toThrow(
+      "required element not found: #require-element-missing",
+    );
   });
 });
