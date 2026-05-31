@@ -1,8 +1,8 @@
-import { reportOnFail } from "../common/result";
-import browser from "./common/browser";
-import { reportError } from "./common/report";
-import { RUNTIME } from "./common/runtime";
-import { setSanitizedContent } from "./common/utils";
+import { reportOnFail } from "../../common/result";
+import browser from "../common/browser";
+import { reportError } from "../common/report";
+import { RUNTIME } from "../common/runtime";
+import { setSanitizedContent } from "../common/utils";
 
 reportOnFail(
   RUNTIME("getTopSites", null, (response) => {

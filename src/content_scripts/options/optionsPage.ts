@@ -1,6 +1,6 @@
-import KeyboardUtils from "./common/keyboardUtils";
-import Mode from "./common/mode";
-import { RUNTIME } from "./common/runtime";
+import KeyboardUtils from "../common/keyboardUtils";
+import Mode from "../common/mode";
+import { RUNTIME } from "../common/runtime";
 import {
   createElementWithContent,
   getBrowserName,
@@ -9,8 +9,8 @@ import {
   reportIssue,
   setSanitizedContent,
   showBanner,
-} from "./common/utils";
-import { start } from "./content";
+} from "../common/utils";
+import { start } from "../content";
 import optionsMain from "./options";
 
 // Bootstrap for the options page. The old build loaded the content script onto
