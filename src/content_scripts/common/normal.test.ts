@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-import { markAutoFocus } from "./domFlags";
+import { markAutoFocus, markNewlyCreated } from "./domFlags";
 import createNormal from "./normal";
 import { runtime } from "./runtime";
 
@@ -58,6 +58,78 @@ describe("createNormal focus handler — auto-focus suppression", () => {
 
     expect(blur).not.toHaveBeenCalled();
     expect(event.sk_stopPropagation).toBeUndefined();
+
+    textarea.remove();
+  });
+});
+
+function dispatchKeydown(normal: ReturnType<typeof createNormal>, target: Element): Event {
+  const base = new Event("keydown");
+  Object.defineProperty(base, "target", { value: target });
+  Object.defineProperty(base, "key", { value: "a" });
+  base.sk_keyName = "a";
+  // jsdom marks `isTrusted` non-configurable, so it cannot be redefined; wrap
+  // the event to report a trusted event while binding methods to the real one.
+  const event = new Proxy(base, {
+    get(t, p, r) {
+      if (p === "isTrusted") {
+        return true;
+      }
+      const value = Reflect.get(t, p, t);
+      return typeof value === "function" ? value.bind(t) : value;
+    },
+  });
+  const handler = normal.eventListeners["keydown"];
+  if (handler === undefined) {
+    throw new Error("normal mode did not register a keydown handler");
+  }
+  handler(event);
+  return event;
+}
+
+describe("createNormal keydown handler — newly-created focus steal", () => {
+  it("enters insert mode for an editable element that is not newly-created", () => {
+    const insert = { enter: vi.fn(), exit: vi.fn() };
+    const normal = createNormal(insert);
+    const textarea = document.createElement("textarea");
+    document.body.appendChild(textarea);
+    const blur = vi.spyOn(textarea, "blur");
+
+    dispatchKeydown(normal, textarea);
+
+    expect(insert.enter).toHaveBeenCalledWith(textarea, true);
+    expect(blur).not.toHaveBeenCalled();
+
+    textarea.remove();
+  });
+
+  it("steals focus from an editable element marked as newly-created", () => {
+    const insert = { enter: vi.fn(), exit: vi.fn() };
+    const normal = createNormal(insert);
+    const textarea = document.createElement("textarea");
+    document.body.appendChild(textarea);
+    markNewlyCreated(textarea);
+    const blur = vi.spyOn(textarea, "blur");
+
+    dispatchKeydown(normal, textarea);
+
+    expect(blur).toHaveBeenCalledOnce();
+    expect(insert.enter).not.toHaveBeenCalled();
+
+    textarea.remove();
+  });
+
+  it("clears the mark after stealing once, so the next keydown enters insert mode", () => {
+    const insert = { enter: vi.fn(), exit: vi.fn() };
+    const normal = createNormal(insert);
+    const textarea = document.createElement("textarea");
+    document.body.appendChild(textarea);
+    markNewlyCreated(textarea);
+
+    dispatchKeydown(normal, textarea);
+    dispatchKeydown(normal, textarea);
+
+    expect(insert.enter).toHaveBeenCalledWith(textarea, true);
 
     textarea.remove();
   });
