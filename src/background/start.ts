@@ -25,7 +25,12 @@ const Gist = (() => {
   function _initGist(token: string, magic_word: string, onGistReady: (gist: string) => void) {
     const auth = { Authorization: "token " + token };
     void request("https://api.github.com/gists", auth).then((r) => {
-      if (Result.isFailure(r)) return;
+      if (Result.isFailure(r)) {
+        // Without this the message handler never calls `_response`, leaving the
+        // runtime sender hung forever; signal failure with an empty gist id.
+        onGistReady("");
+        return;
+      }
       const gists = JSON.parse(r.value);
       let gist = "";
       gists.forEach((g: any) => {
@@ -43,7 +48,9 @@ const Gist = (() => {
           auth,
           `{ "description": "${magic_word}", "public": false, "files": { "${magic_word}": { "content": "${magic_word}" } } }`,
         ).then((r2) => {
-          if (Result.isSuccess(r2)) onGistReady(JSON.parse(r2.value).id);
+          // Same hang trap as above: resolve with an empty gist id on failure
+          // so the runtime sender never waits indefinitely.
+          onGistReady(Result.isSuccess(r2) ? JSON.parse(r2.value).id : "");
         });
       } else {
         onGistReady(gist);
