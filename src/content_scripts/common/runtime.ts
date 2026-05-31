@@ -1,6 +1,7 @@
 import { Result } from "@praha/byethrow";
 
 import { type ChromeRuntimeError, chromeRuntimeError } from "../../common/result";
+import { reportError } from "./report";
 
 // This module is the messaging service. It deliberately keeps the raw,
 // callback-based chrome.runtime API rather than the promise-based
@@ -81,7 +82,25 @@ const RUNTIME = function (
     try: (): void => {
       a["needResponse"] = callback !== undefined;
       if (callback) {
-        chrome.runtime.sendMessage(a, callback);
+        // sendMessage reports most failures ("Receiving end does not exist",
+        // "message port closed") asynchronously via lastError, which
+        // Result.try's synchronous catch never sees. Reading it here routes the
+        // failure through reportError and silences Chrome's "Unchecked
+        // runtime.lastError" warning.
+        chrome.runtime.sendMessage(a, (response: unknown) => {
+          if (chrome.runtime.lastError) {
+            // Pass message, not the object: formatMessage stringifies the cause,
+            // turning { message } into "[object Object]".
+            reportError(
+              chromeRuntimeError(
+                `sendMessage:${action}`,
+                chrome.runtime.lastError.message ?? "unknown error",
+              ),
+            );
+            return;
+          }
+          callback(response);
+        });
       } else {
         chrome.runtime.sendMessage(a);
       }
