@@ -74,13 +74,18 @@ const Gist = (() => {
     }
   };
 
+  // The Gist comment helpers below must always invoke their callback, even on
+  // request failure: their consumers (`self.readComment`/`self.editComment`)
+  // feed the callback straight into `_response`, so a dropped callback hangs the
+  // runtime sender forever. Each helper forwards the failure through a payload
+  // shaped like its success path so the sender still settles.
   function _newComment(text: string, cb?: (res: string) => void) {
     void request(
       `https://api.github.com/gists/${_gist}/comments`,
       { Authorization: "token " + _token },
       `{"body": "${encodeURIComponent(text)}"}`,
     ).then((r) => {
-      if (Result.isSuccess(r)) cb && cb(r.value);
+      cb && cb(Result.isSuccess(r) ? r.value : "");
     });
   }
   function _readComment(cid: string, cb: (resp: any) => void) {
@@ -90,16 +95,20 @@ const Gist = (() => {
       if (Result.isSuccess(r)) {
         const comment = JSON.parse(r.value);
         cb({ status: 0, content: decodeURIComponent(comment.body) });
+      } else {
+        cb({ status: 1, error: String(r.error.cause) });
       }
     });
   }
-  function _listComment(cb: (comments: any[]) => void) {
+  function _listComment(cb: (comments: any[]) => void, onError: (error: string) => void) {
     void request(`https://api.github.com/gists/${_gist}/comments`, {
       Authorization: "token " + _token,
     }).then((r) => {
       if (Result.isSuccess(r)) {
         _comments = JSON.parse(r.value).map((c: any) => c.id);
         cb(_comments);
+      } else {
+        onError(String(r.error.cause));
       }
     });
   }
@@ -109,20 +118,23 @@ const Gist = (() => {
       { Authorization: "token " + _token },
       `{"body": "${encodeURIComponent(clip)}"}`,
     ).then((r) => {
-      if (Result.isSuccess(r)) cb && cb(r.value);
+      cb && cb(Result.isSuccess(r) ? r.value : "");
     });
   }
   self.readComment = (nr: number, cb: (resp: any) => void) => {
     if (_gist === "") {
       cb({ status: 1, content: "Please call initGist first!" });
     } else if (nr >= _comments.length) {
-      _listComment((cmts) => {
-        if (nr < cmts.length) {
-          _readComment(cmts[nr], cb);
-        } else {
-          cb({ status: 1, content: "Register not exists!" });
-        }
-      });
+      _listComment(
+        (cmts) => {
+          if (nr < cmts.length) {
+            _readComment(cmts[nr], cb);
+          } else {
+            cb({ status: 1, content: "Register not exists!" });
+          }
+        },
+        (error) => cb({ status: 1, error }),
+      );
     } else {
       _readComment(_comments[nr], cb);
     }
@@ -131,22 +143,25 @@ const Gist = (() => {
     if (_gist === "") {
       cb({ status: 1, content: "Please call initGist first!" });
     } else if (nr >= _comments.length) {
-      _listComment((cmts) => {
-        if (nr < cmts.length) {
-          _writeComment(cmts[nr], clip, cb);
-        } else {
-          let toCreate = nr - cmts.length + 1;
-          const cbAfterCreated = () => {
-            toCreate--;
-            if (toCreate > 0) {
-              _newComment(".", cbAfterCreated);
-            } else if (toCreate === 0) {
-              _newComment(clip, cb);
-            }
-          };
-          cbAfterCreated();
-        }
-      });
+      _listComment(
+        (cmts) => {
+          if (nr < cmts.length) {
+            _writeComment(cmts[nr], clip, cb);
+          } else {
+            let toCreate = nr - cmts.length + 1;
+            const cbAfterCreated = () => {
+              toCreate--;
+              if (toCreate > 0) {
+                _newComment(".", cbAfterCreated);
+              } else if (toCreate === 0) {
+                _newComment(clip, cb);
+              }
+            };
+            cbAfterCreated();
+          }
+        },
+        (error) => cb({ status: 1, error }),
+      );
     } else {
       _writeComment(_comments[nr], clip, cb);
     }

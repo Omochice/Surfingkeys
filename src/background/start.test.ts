@@ -109,3 +109,95 @@ describe("start — initGist", () => {
     expect(sendResponse.mock.calls.at(-1)?.[0]).toMatchObject({ gist: "" });
   });
 });
+
+/**
+ * Drives a successful `initGist` so the shared Gist closure holds a non-empty `_gist`, a
+ * precondition for the comment handlers to proceed past their "call initGist first" guard. Returns
+ * once the gist id is set.
+ */
+async function primeGist(dispatch: MessageHandler, token: string): Promise<void> {
+  // A matching gist already exists, so no creation request is issued.
+  mockRequest.mockResolvedValueOnce(
+    Result.succeed(
+      JSON.stringify([{ description: "cloudboard", files: { cloudboard: {} }, id: "gist-id" }]),
+    ),
+  );
+  const ready = vi.fn();
+  dispatch({ action: "initGist", token, needResponse: true }, { tab: { id: 1 } }, ready);
+  await vi.waitFor(() => expect(ready).toHaveBeenCalled());
+  mockRequest.mockReset();
+}
+
+describe("start — readComment", () => {
+  it("still settles the response when listing comments fails", async () => {
+    const dispatch = bootDispatch();
+    await primeGist(dispatch, "tok-read-list-fail");
+    mockRequest.mockResolvedValue(gistsFail());
+    const sendResponse = vi.fn();
+
+    dispatch(
+      { action: "readComment", index: 0, needResponse: true },
+      { tab: { id: 1 } },
+      sendResponse,
+    );
+
+    await vi.waitFor(() => expect(sendResponse).toHaveBeenCalled());
+    expect(sendResponse.mock.calls.at(-1)?.[0]).toMatchObject({ status: 1 });
+  });
+
+  it("still settles the response when reading a known comment fails", async () => {
+    const dispatch = bootDispatch();
+    await primeGist(dispatch, "tok-read-read-fail");
+    // List succeeds with one comment, then the per-comment read fails.
+    mockRequest
+      .mockResolvedValueOnce(Result.succeed(JSON.stringify([{ id: "c1" }])))
+      .mockResolvedValueOnce(gistsFail());
+    const sendResponse = vi.fn();
+
+    dispatch(
+      { action: "readComment", index: 0, needResponse: true },
+      { tab: { id: 1 } },
+      sendResponse,
+    );
+
+    await vi.waitFor(() => expect(sendResponse).toHaveBeenCalled());
+    expect(sendResponse.mock.calls.at(-1)?.[0]).toMatchObject({ status: 1 });
+  });
+});
+
+describe("start — editComment", () => {
+  it("still settles the response when listing comments fails", async () => {
+    const dispatch = bootDispatch();
+    await primeGist(dispatch, "tok-edit-list-fail");
+    mockRequest.mockResolvedValue(gistsFail());
+    const sendResponse = vi.fn();
+
+    dispatch(
+      { action: "editComment", index: 0, content: "x", needResponse: true },
+      { tab: { id: 1 } },
+      sendResponse,
+    );
+
+    await vi.waitFor(() => expect(sendResponse).toHaveBeenCalled());
+    expect(sendResponse.mock.calls.at(-1)?.[0]).toHaveProperty("gistResp");
+  });
+
+  it("still settles the response when writing a known comment fails", async () => {
+    const dispatch = bootDispatch();
+    await primeGist(dispatch, "tok-edit-write-fail");
+    // List succeeds with one comment, then the write to it fails.
+    mockRequest
+      .mockResolvedValueOnce(Result.succeed(JSON.stringify([{ id: "c1" }])))
+      .mockResolvedValueOnce(gistsFail());
+    const sendResponse = vi.fn();
+
+    dispatch(
+      { action: "editComment", index: 0, content: "x", needResponse: true },
+      { tab: { id: 1 } },
+      sendResponse,
+    );
+
+    await vi.waitFor(() => expect(sendResponse).toHaveBeenCalled());
+    expect(sendResponse.mock.calls.at(-1)?.[0]).toHaveProperty("gistResp");
+  });
+});
