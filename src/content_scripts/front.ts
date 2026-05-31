@@ -11,6 +11,7 @@ import {
   getDocumentOrigin,
   initSKFunctionListener,
   isInUIFrame,
+  requireElement,
   tabOpenLink,
 } from "./common/utils";
 import createUiHost from "./uiframe";
@@ -326,7 +327,7 @@ function createFront(
       _showQueryResult = (result) => {
         showQueryResult(pos, result);
       };
-      (document.getElementById("proxyFrame") as HTMLIFrameElement).contentWindow!.postMessage(
+      requireElement<HTMLIFrameElement>("#proxyFrame").contentWindow!.postMessage(
         {
           surfingkeys_content_data: {
             action: "performInlineQuery",
