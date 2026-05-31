@@ -569,9 +569,10 @@ function createFront(
     window.focus();
     if (window === top && frontendPromise) {
       frontendPromise.then((uiHost) => {
-        if (uiHost.shadowRoot.contains(document.activeElement)) {
+        const active = document.activeElement;
+        if (uiHost.shadowRoot.contains(active) && active instanceof HTMLElement) {
           // fix for Firefox, blur from iframe for frontend after Omnibar closed.
-          (document.activeElement as HTMLElement).blur();
+          active.blur();
         }
       });
     }
