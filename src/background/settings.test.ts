@@ -109,6 +109,19 @@ describe("_save", () => {
     expect(set).toHaveBeenCalledWith({ localPath: "/snips.js" }, cb);
     expect("snippets" in data).toBe(false);
   });
+
+  it("still fires cb when storage.set throws after a snippet fetch", async () => {
+    mockRequest.mockResolvedValue(Result.succeed("FETCHED"));
+    const set = vi.fn(() => {
+      throw new Error("quota exceeded");
+    });
+    const local = { set };
+    g.chrome.storage = { local, sync: {} };
+    const cb = vi.fn();
+
+    _save(local, { localPath: "/snips.js", snippets: "stale" }, cb);
+    await vi.waitFor(() => expect(cb).toHaveBeenCalled());
+  });
 });
 
 describe("createSettings — getState", () => {

@@ -57,17 +57,25 @@ export function _save(storage: any, data: any, cb?: () => void): void {
     if (data.localPath) {
       delete data.snippets;
       // try to fetch snippets from localPath and cache it in local storage.
-      void request(data.localPath).then((r) => {
-        if (Result.isSuccess(r)) {
-          data.snippets = r.value;
-        } else {
-          // Leave the cached snippets untouched on failure, but still persist so
-          // `cb` always fires; otherwise callers chaining `afterSet` (and the
-          // `updateSettings` response) would hang on a bad/unreachable snippet URL.
-          console.error("Failed to fetch snippets from", data.localPath, r.error);
-        }
-        storage.set(data, cb);
-      });
+      void request(data.localPath)
+        .then((r) => {
+          if (Result.isSuccess(r)) {
+            data.snippets = r.value;
+          } else {
+            // Leave the cached snippets untouched on failure, but still persist so
+            // `cb` always fires; otherwise callers chaining `afterSet` (and the
+            // `updateSettings` response) would hang on a bad/unreachable snippet URL.
+            console.error("Failed to fetch snippets from", data.localPath, r.error);
+          }
+          storage.set(data, cb);
+        })
+        .catch((err) => {
+          // request() resolves rather than rejects, so this only fires if
+          // storage.set throws synchronously; still invoke cb so the chain
+          // never hangs.
+          console.error("Failed to save snippets from", data.localPath, err);
+          cb?.();
+        });
     } else {
       storage.set(data, cb);
     }
