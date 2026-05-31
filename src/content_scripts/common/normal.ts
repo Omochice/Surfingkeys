@@ -1,4 +1,5 @@
 import browser from "./browser";
+import { isAutoFocusMarked } from "./domFlags";
 import KeyboardUtils from "./keyboardUtils";
 import Mode from "./mode";
 import { RUNTIME, dispatchSKEvent, runtime } from "./runtime";
@@ -24,7 +25,6 @@ type SKElement = HTMLElement & {
   lastScrollTop?: number;
   lastScrollLeft?: number;
   newlyCreated?: boolean;
-  enableAutoFocus?: boolean;
   style: CSSStyleDeclaration;
 };
 
@@ -306,7 +306,7 @@ function createNormal(insert: InsertLike): NormalMode {
     if (runtime.conf.stealFocusOnLoad && !isInUIFrame()) {
       const elm = getRealEdit(event);
       if (isEditable(elm)) {
-        if (_passFocus || elm.enableAutoFocus) {
+        if (_passFocus || isAutoFocusMarked(elm)) {
           if (!runtime.conf.enableAutoFocus) {
             // prevent focus on input only when enableAutoFocus is turned off.
             _passFocus = false;
