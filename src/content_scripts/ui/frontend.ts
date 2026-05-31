@@ -16,6 +16,7 @@ import {
   initL10n,
   initSKFunctionListener,
   refreshHints,
+  requireElement,
   rotateInput,
   setSanitizedContent,
   mapInMode,
@@ -192,10 +193,10 @@ const Front = (() => {
 
   const _omnibar: any = document.getElementById("sk_omnibar");
   self.statusBar = document.getElementById("sk_status");
-  const _usage = document.getElementById("sk_usage") as HTMLElement;
-  const _popup = document.getElementById("sk_popup") as HTMLElement;
-  const _tabs = document.getElementById("sk_tabs") as HTMLElement;
-  const _banner = document.getElementById("sk_banner") as HTMLElement;
+  const _usage = requireElement("#sk_usage");
+  const _popup = requireElement("#sk_popup");
+  const _tabs = requireElement("#sk_tabs");
+  const _banner = requireElement("#sk_banner");
   const _bubble: any = document.getElementById("sk_bubble");
   const sk_bubble_content: any = _bubble.querySelector("div.sk_bubble_content");
   const sk_bubble_arrow = _bubble.querySelector("div.sk_arrow") as HTMLElement;
@@ -449,10 +450,7 @@ const Front = (() => {
       }
     }
     if ("theme" in message.userSettings) {
-      setSanitizedContent(
-        document.getElementById("sk_theme") as HTMLElement,
-        message.userSettings.theme,
-      );
+      setSanitizedContent(requireElement("#sk_theme"), message.userSettings.theme);
     }
   };
   _actions["setHintsCharacters"] = (message: any) => {

@@ -1236,6 +1236,23 @@ function attachFaviconToImgSrc(
   }
 }
 
+/**
+ * Query a single element that the page is statically known to contain (markup wired up at init
+ * time) and narrow it to {@link T}. A missing match throws, because it signals a broken template
+ * rather than a runtime condition the caller should branch on. Using
+ * {@link Document.querySelector}'s generic keeps the result typed without a cast.
+ *
+ * @param selector A CSS selector identifying the required element.
+ * @throws {Error} If no element matches the selector.
+ */
+function requireElement<T extends Element = HTMLElement>(selector: string): T {
+  const el = document.querySelector<T>(selector);
+  if (el === null) {
+    throw new Error(`required element not found: ${selector}`);
+  }
+  return el;
+}
+
 export {
   actionWithSelectionPreserved,
   applyUserSettings,
@@ -1277,6 +1294,7 @@ export {
   parseAnnotation,
   refreshHints,
   reportIssue,
+  requireElement,
   rotateInput,
   tryDecodeURI,
   tryDecodeURIComponent,
