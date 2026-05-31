@@ -16,6 +16,7 @@ import {
   getTextNodePos,
   getVisibleElements,
   hintLabel,
+  hintLink,
   htmlEncode,
   initSKFunctionListener,
   isEditable,
@@ -29,9 +30,7 @@ import {
 // this narrow declaration once cross-browser API access is centralized.
 
 // Surfingkeys stores the target element/label/z-index on each hint node.
-type HintElement = HTMLElement & {
-  link?: any;
-};
+type HintElement = HTMLElement;
 
 // Color index per hinted element, kept off the element so HintElement need not
 // carry it as an expando.
@@ -158,7 +157,7 @@ kbd {
     annotation: "copy text from target element",
     feature_group: 16,
     code: () => {
-      clipboard.write(overlay!.link.innerText);
+      clipboard.write(hintLink.get(overlay!).innerText);
     },
   });
 
@@ -166,7 +165,7 @@ kbd {
     annotation: "copy html from target element",
     feature_group: 16,
     code: () => {
-      clipboard.write(overlay!.link.innerHTML);
+      clipboard.write(hintLink.get(overlay!).innerHTML);
     },
   });
 
@@ -174,7 +173,7 @@ kbd {
     annotation: "delete target element",
     feature_group: 16,
     code: () => {
-      overlay!.link.remove();
+      hintLink.get(overlay!).remove();
       self.exit();
     },
   });
@@ -213,7 +212,7 @@ kbd {
     overlay!.style.display = "none";
   };
   self.onScrollDone = () => {
-    const be = overlay!.link.getBoundingClientRect();
+    const be = hintLink.get(overlay!).getBoundingClientRect();
     overlay!.style.top = be.top + "px";
     overlay!.style.left = be.left + "px";
     overlay!.style.display = "";
@@ -321,7 +320,7 @@ div.hint-scrollable {
     let ai = holder.querySelector("[mode=input]>mask.activeInput") as HintElement | null;
     if (ai !== null) {
       const masks = holder.querySelectorAll("mask");
-      let elm = ai.link;
+      let elm = hintLink.get(ai);
       if (Mode.isSpecialKeyOf("<Esc>", event.sk_keyName ?? "")) {
         elm.blur();
         hide();
@@ -332,7 +331,7 @@ div.hint-scrollable {
         ai = masks[_lastCreateAttrs.activeInput] as unknown as HintElement;
         ai.classList.add("activeInput");
 
-        elm = ai.link;
+        elm = hintLink.get(ai);
         elm.focus();
       } else if (event.keyCode !== KeyboardUtils.keyCodes["shiftKey"]) {
         event.sk_stopPropagation = false;
@@ -521,7 +520,7 @@ div.hint-scrollable {
         if (behaviours.regionalHints) {
           setTimeout(() => {
             const overlay = createOverlay(elm, skColorIndices.get(elm)!, "99");
-            overlay.link = elm;
+            hintLink.set(overlay, elm);
             regionalHints.attach(overlay);
           }, 10);
         } else {
@@ -560,7 +559,7 @@ div.hint-scrollable {
       hints = hints.filter((hint) => {
         hintLabel.set(hint, "");
         setSanitizedContent(hint, "");
-        const e = hint.link;
+        const e = hintLink.get(hint);
         let text = e.innerText;
         if (text === undefined) {
           text = e[0] ? e[0].textContent : "";
@@ -845,7 +844,7 @@ div.hint-scrollable {
       }
       zIndices.set(link, link.style.zIndex);
       hintLabel.set(link, hintLabels[i] ?? "");
-      link.link = elm;
+      hintLink.set(link, elm);
 
       lastTop = lTop;
       lastLeft = left;
@@ -996,7 +995,7 @@ div.hint-scrollable {
           link.style.left = pos.left + "px";
           link.style.zIndex = String(z + 9999);
           zIndices.set(link, link.style.zIndex);
-          link.link = e;
+          hintLink.set(link, e);
           return link;
         }
       })
@@ -1079,7 +1078,7 @@ div.hint-scrollable {
         mask.style.width = be.width + "px";
         mask.style.height = be.height + "px";
         mask.style.zIndex = String(z + 9999);
-        mask.link = e;
+        hintLink.set(mask, e);
         holder.append(mask);
       });
       hintsHost.shadowRoot!.appendChild(holder);
@@ -1087,7 +1086,7 @@ div.hint-scrollable {
       const ai = holder.querySelector("[mode=input]>mask") as HintElement;
       ai.classList.add("activeInput");
       normal.passFocus(true);
-      ai.link.focus();
+      hintLink.get(ai).focus();
     } else if (elements.length === 1) {
       const onlyElement = elements[0];
       if (onlyElement) {

@@ -1167,11 +1167,13 @@ function getCssSelectorsOfEditable(): string {
   return "input:not([type=submit]), textarea, *[contenteditable=true], *[role=textbox], select, div.ace_cursor";
 }
 
-// Hint label kept off the element (set in hints.ts / frontend.ts), read here by
-// refreshHints. Lets HintElement drop the `label` expando.
+// Hint label/link kept off the element (set in hints.ts / frontend.ts), read
+// here by refreshHints. Lets HintElement drop these expandos. `link` is the
+// arbitrary payload (target element or string) the caller stored, hence `any`.
 const hintLabel = new WeakMap<HTMLElement, string>();
+const hintLink = new WeakMap<HTMLElement, any>();
 
-type Hint = HTMLElement & { link: unknown };
+type Hint = HTMLElement;
 
 function refreshHints(
   hints: ArrayLike<Hint> & Iterable<Hint>,
@@ -1182,7 +1184,7 @@ function refreshHints(
     for (const hint of hints) {
       const label = hintLabel.get(hint) ?? "";
       if (pressedKeys === label) {
-        result.matched = hint.link;
+        result.matched = hintLink.get(hint);
         break;
       } else if (label.indexOf(pressedKeys) === 0) {
         hint.style.opacity = "1";
@@ -1197,7 +1199,7 @@ function refreshHints(
     }
   } else {
     if (hints.length === 1 && hints[0] !== undefined) {
-      result.matched = hints[0].link;
+      result.matched = hintLink.get(hints[0]);
     } else {
       for (const hint of hints) {
         hint.style.opacity = "1";
@@ -1284,6 +1286,7 @@ export {
   getVisibleElements,
   getWordUnderCursor,
   hintLabel,
+  hintLink,
   htmlEncode,
   httpRequest,
   initL10n,

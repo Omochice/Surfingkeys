@@ -13,6 +13,7 @@ import {
   getAnnotations,
   getWordUnderCursor,
   hintLabel,
+  hintLink,
   htmlEncode,
   initL10n,
   initSKFunctionListener,
@@ -534,9 +535,9 @@ const Front = (() => {
         );
         const tabHints: any = _popup.querySelectorAll("div.sk_tab_hint");
         _popup.style.textAlign = "center";
-        tabHints[0].link = "Ok";
+        hintLink.set(tabHints[0], "Ok");
         hintLabel.set(tabHints[0], hintLabels[0] ?? "");
-        tabHints[1].link = "Cancel";
+        hintLink.set(tabHints[1], "Cancel");
         hintLabel.set(tabHints[1], hintLabels[1] ?? "");
       },
       (matched) => {

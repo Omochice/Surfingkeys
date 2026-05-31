@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { getColor, hintLabel, parseAnnotation, refreshHints } from "./utils";
+import { getColor, hintLabel, hintLink, parseAnnotation, refreshHints } from "./utils";
 
 describe("getColor", () => {
   it("returns a CSS color string for valid indices", () => {
@@ -48,7 +48,8 @@ describe("parseAnnotation", () => {
 function makeHint(label: string, link: unknown) {
   const el = document.createElement("div");
   hintLabel.set(el, label);
-  return Object.assign(el, { link });
+  hintLink.set(el, link);
+  return el;
 }
 
 describe("refreshHints (characterization)", () => {
