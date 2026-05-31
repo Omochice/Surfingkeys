@@ -783,7 +783,7 @@ div.hint-scrollable {
     const be = e.getBoundingClientRect();
     const z = getZIndex(e);
 
-    const frame = document.createElement("mask") as unknown as HintElement;
+    const frame = document.createElement("mask");
     frame.style.position = "fixed";
     frame.style.top = be.top + "px";
     frame.style.left = be.left + "px";
@@ -826,7 +826,7 @@ div.hint-scrollable {
       } else if (left + 32 > window.pageXOffset + window.innerWidth) {
         left = window.pageXOffset + window.innerWidth - 32;
       }
-      const link = createElementWithContent("div", hintLabels[i] ?? "") as HintElement;
+      const link = createElementWithContent("div", hintLabels[i] ?? "");
       if (elm.dataset["hint_scrollable"]) {
         link.classList.add("hint-scrollable");
       }
@@ -986,7 +986,7 @@ div.hint-scrollable {
           return null;
         } else {
           const z = getZIndex(e[0].parentNode);
-          const link = document.createElement("div") as HintElement;
+          const link: HintElement = document.createElement("div");
           if (e[1] === 0) {
             link.className = "begin";
           }
@@ -1071,7 +1071,7 @@ div.hint-scrollable {
         const be = e.getBoundingClientRect();
         const z = getZIndex(e);
 
-        const mask = document.createElement("mask") as unknown as HintElement;
+        const mask = document.createElement("mask");
         mask.style.position = "fixed";
         mask.style.top = be.top + "px";
         mask.style.left = be.left + "px";
