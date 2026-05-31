@@ -853,7 +853,10 @@ div.hint-scrollable {
     if (firstHint !== undefined) {
       let bcr = getRealRect(firstHint);
       for (let i = 1; i < hints.length; i++) {
-        const h = hints[i] as HTMLElement;
+        const h = hints[i];
+        if (h === undefined) {
+          continue;
+        }
         const tcr = getRealRect(h);
         if (tcr.top === bcr.top && Math.abs(tcr.left - bcr.left) < bcr.width) {
           h.style.top = h.offsetTop + h.offsetHeight + "px";
@@ -926,7 +929,7 @@ div.hint-scrollable {
       const aa = e.childNodes;
       for (let i = 0, len = aa.length; i < len; i++) {
         const node = aa[i];
-        if (node && node.nodeType == Node.TEXT_NODE && (node as Text).data.length > 0) {
+        if (node instanceof Text && node.data.length > 0) {
           v.push(e);
           break;
         }
@@ -937,8 +940,8 @@ div.hint-scrollable {
       const bb: Text[] = [];
       for (let i = 0, len = aa.length; i < len; i++) {
         const node = aa[i];
-        if (node && node.nodeType == Node.TEXT_NODE && (node as Text).data.trim().length > 1) {
-          bb.push(node as Text);
+        if (node instanceof Text && node.data.trim().length > 1) {
+          bb.push(node);
         }
       }
       return bb;

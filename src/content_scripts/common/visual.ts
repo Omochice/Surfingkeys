@@ -522,7 +522,11 @@ function createVisual(clipboard: ClipboardLike, hints: HintsLike): VisualMode {
     let node: Node | null = null;
     const treeWalker = getTextNodes(document.body, /./, 0) as TreeWalker;
     while (treeWalker.nextNode()) {
-      const br = (treeWalker.currentNode.parentNode as Element).getBoundingClientRect();
+      const parent = treeWalker.currentNode.parentNode;
+      if (!(parent instanceof Element)) {
+        continue;
+      }
+      const br = parent.getBoundingClientRect();
       if (br.top > window.innerHeight * y) {
         node = treeWalker.currentNode;
         break;
@@ -541,8 +545,9 @@ function createVisual(clipboard: ClipboardLike, hints: HintsLike): VisualMode {
   self.showCursor = () => {
     if (
       selection.focusNode &&
-      ((selection.focusNode as HTMLElement).offsetHeight > 0 ||
-        (selection.focusNode.parentNode as HTMLElement).offsetHeight > 0)
+      ((selection.focusNode instanceof HTMLElement && selection.focusNode.offsetHeight > 0) ||
+        (selection.focusNode.parentNode instanceof HTMLElement &&
+          selection.focusNode.parentNode.offsetHeight > 0))
     ) {
       // https://developer.mozilla.org/en-US/docs/Web/API/Selection
       // If focusNode is a text node, this is the number of characters within focusNode preceding the focus. If focusNode is an element, this is the number of child nodes of the focusNode preceding the focus.
@@ -642,7 +647,10 @@ function createVisual(clipboard: ClipboardLike, hints: HintsLike): VisualMode {
   function highlight(pattern: RegExp): void {
     const gpattern = new RegExp(pattern.source, "g" + pattern.flags);
     (getTextNodes(document.body, pattern) as Node[]).forEach((node) => {
-      const data = (node as Text).data;
+      if (!(node instanceof Text)) {
+        return;
+      }
+      const data = node.data;
       let mtches;
       while ((mtches = gpattern.exec(data)) !== null) {
         const match = mtches[0];
@@ -807,7 +815,7 @@ function createVisual(clipboard: ClipboardLike, hints: HintsLike): VisualMode {
     // window.find sometimes does not move selection forward
     let firstNode: Node | null = null;
     while (win.find(query, caseSensitive, backwards)) {
-      if ((selection.anchorNode as Text).splitText) {
+      if (selection.anchorNode instanceof Text) {
         found = true;
         break;
       } else if (firstNode === null) {

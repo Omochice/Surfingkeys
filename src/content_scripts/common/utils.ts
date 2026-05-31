@@ -195,7 +195,7 @@ function listElements<T extends Node = Element>(
     const node = currentNode as T;
     filter(node) && elms.push(node);
 
-    const shadowRoot = (currentNode as Element).shadowRoot;
+    const shadowRoot = currentNode instanceof Element ? currentNode.shadowRoot : null;
     if (shadowRoot) {
       elms.push(...listElements<T>(shadowRoot, whatToShow, filter));
     }
