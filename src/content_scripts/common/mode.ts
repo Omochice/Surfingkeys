@@ -334,7 +334,7 @@ export default class Mode {
         const code = meta.code;
         if (code && code.length) {
           // bound function needs arguments
-          this.pendingMap = code as (key: string) => void;
+          this.pendingMap = code;
           this.isTrustedEvent && dispatchSKEvent("front", ["showKeystroke", key, this]);
           event.sk_stopPropagation = true;
         } else {

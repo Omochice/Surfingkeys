@@ -36,8 +36,8 @@ export default function (
   function createMappingEditor(elmId: string): any {
     const existing = document.getElementById(elmId);
     let textarea: HTMLTextAreaElement;
-    if (existing && existing.tagName === "TEXTAREA") {
-      textarea = existing as HTMLTextAreaElement;
+    if (existing instanceof HTMLTextAreaElement) {
+      textarea = existing;
     } else {
       textarea = document.createElement("textarea");
       textarea.id = elmId;
@@ -329,7 +329,7 @@ export default function (
         );
         document.querySelector("#searchAliases")!.appendChild(elm);
 
-        (elm.querySelector("input") as HTMLInputElement).onchange = () => {
+        elm.querySelector<HTMLInputElement>("input")!.onchange = () => {
           if (Object.prototype.hasOwnProperty.call(disabledSearchAliases, key)) {
             delete disabledSearchAliases[key];
           } else {
@@ -364,7 +364,7 @@ export default function (
 
       setSanitizedContent(basicMappingsDiv, customization.join(""));
       basicMappingsDiv.querySelectorAll("kbd").forEach((d) => {
-        (d as HTMLElement).onclick = () => {
+        d.onclick = () => {
           KeyPicker.enter(d);
         };
       });
@@ -410,8 +410,7 @@ export default function (
         setSanitizedContent(_elm, _key !== "" ? htmlEncode(_key) : "🚫");
         _elm.dataset["custom"] = _key;
         const realDefMap: Record<string, string> = {};
-        Array.from(basicMappingsDiv.querySelectorAll("kbd")).forEach((m) => {
-          const el = m as HTMLElement;
+        Array.from(basicMappingsDiv.querySelectorAll("kbd")).forEach((el) => {
           const n = el.dataset["custom"];
           if (el.dataset["origin"] !== n) {
             realDefMap[el.dataset["origin"]!] = n!;
