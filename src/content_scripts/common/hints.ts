@@ -31,12 +31,15 @@ import {
 type HintElement = HTMLElement & {
   link?: any;
   label?: string;
-  zIndex?: string;
 };
 
 // Color index per hinted element, kept off the element so HintElement need not
 // carry it as an expando.
 const skColorIndices = new WeakMap<HTMLElement, number>();
+
+// Saved z-index per hinted element (the value before flip() rewrites style),
+// likewise kept off the element.
+const zIndices = new WeakMap<HTMLElement, string>();
 
 type InsertLike = { enter(elm: HTMLElement, keepCursor?: boolean): void; exit(): void };
 type NormalLike = {
@@ -594,14 +597,14 @@ div.hint-scrollable {
   function flip(): void {
     const hints = holder.querySelectorAll("div") as unknown as NodeListOf<HintElement>;
     const firstHint = hints[0];
-    if (firstHint && firstHint.style.zIndex == firstHint.zIndex) {
+    if (firstHint && firstHint.style.zIndex == zIndices.get(firstHint)) {
       hints.forEach((hint, i) => {
         const z = parseInt(hint.style.zIndex);
         hint.style.zIndex = String(hints.length - i + 2147483000 - z);
       });
     } else {
       hints.forEach((hint) => {
-        hint.style.zIndex = hint.zIndex!;
+        hint.style.zIndex = zIndices.get(hint)!;
       });
     }
   }
@@ -840,7 +843,7 @@ div.hint-scrollable {
       if (behaviours.regionalHints) {
         link.style.background = getColor(i);
       }
-      link.zIndex = link.style.zIndex;
+      zIndices.set(link, link.style.zIndex);
       link.label = hintLabels[i] ?? "";
       link.link = elm;
 
@@ -992,7 +995,7 @@ div.hint-scrollable {
           link.style.top = pos.top + "px";
           link.style.left = pos.left + "px";
           link.style.zIndex = String(z + 9999);
-          link.zIndex = link.style.zIndex;
+          zIndices.set(link, link.style.zIndex);
           link.link = e;
           return link;
         }
