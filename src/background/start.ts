@@ -22,11 +22,31 @@ export type MessageHandler = (
 const Gist = (() => {
   const self: any = {};
 
+  // A 200 response with an empty or malformed body still throws in JSON.parse,
+  // which would skip the settle that each helper relies on and re-hang the
+  // runtime sender. Treat an unparseable body the same as a request failure.
+  const parseGist = (text: string): any | undefined => {
+    try {
+      return JSON.parse(text);
+    } catch {
+      return undefined;
+    }
+  };
+
   function _initGist(token: string, magic_word: string, onGistReady: (gist: string) => void) {
     const auth = { Authorization: "token " + token };
     void request("https://api.github.com/gists", auth).then((r) => {
-      if (Result.isFailure(r)) return;
-      const gists = JSON.parse(r.value);
+      if (Result.isFailure(r)) {
+        // Without this the message handler never calls `_response`, leaving the
+        // runtime sender hung forever; signal failure with an empty gist id.
+        onGistReady("");
+        return;
+      }
+      const gists = parseGist(r.value);
+      if (gists === undefined) {
+        onGistReady("");
+        return;
+      }
       let gist = "";
       gists.forEach((g: any) => {
         if (
@@ -43,7 +63,10 @@ const Gist = (() => {
           auth,
           `{ "description": "${magic_word}", "public": false, "files": { "${magic_word}": { "content": "${magic_word}" } } }`,
         ).then((r2) => {
-          if (Result.isSuccess(r2)) onGistReady(JSON.parse(r2.value).id);
+          // Same hang trap as above: resolve with an empty gist id on failure
+          // (request error or unparseable body) so the sender never waits.
+          const created = Result.isSuccess(r2) ? parseGist(r2.value) : undefined;
+          onGistReady(created?.id ?? "");
         });
       } else {
         onGistReady(gist);
@@ -67,33 +90,51 @@ const Gist = (() => {
     }
   };
 
+  // The Gist comment helpers below must always invoke their callback, even on
+  // request failure: their consumers (`self.readComment`/`self.editComment`)
+  // feed the callback straight into `_response`, so a dropped callback hangs the
+  // runtime sender forever. Each helper forwards the failure through a payload
+  // shaped like its success path so the sender still settles.
   function _newComment(text: string, cb?: (res: string) => void) {
     void request(
       `https://api.github.com/gists/${_gist}/comments`,
       { Authorization: "token " + _token },
       `{"body": "${encodeURIComponent(text)}"}`,
     ).then((r) => {
-      if (Result.isSuccess(r)) cb && cb(r.value);
+      cb && cb(Result.isSuccess(r) ? r.value : "");
     });
   }
   function _readComment(cid: string, cb: (resp: any) => void) {
     void request(`https://api.github.com/gists/${_gist}/comments/${cid}`, {
       Authorization: "token " + _token,
     }).then((r) => {
-      if (Result.isSuccess(r)) {
-        const comment = JSON.parse(r.value);
-        cb({ status: 0, content: decodeURIComponent(comment.body) });
+      if (Result.isFailure(r)) {
+        cb({ status: 1, error: String(r.error.cause) });
+        return;
       }
+      const comment = parseGist(r.value);
+      if (comment === undefined) {
+        cb({ status: 1, error: "malformed gist comment response" });
+        return;
+      }
+      cb({ status: 0, content: decodeURIComponent(comment.body) });
     });
   }
-  function _listComment(cb: (comments: any[]) => void) {
+  function _listComment(cb: (comments: any[]) => void, onError: (error: string) => void) {
     void request(`https://api.github.com/gists/${_gist}/comments`, {
       Authorization: "token " + _token,
     }).then((r) => {
-      if (Result.isSuccess(r)) {
-        _comments = JSON.parse(r.value).map((c: any) => c.id);
-        cb(_comments);
+      if (Result.isFailure(r)) {
+        onError(String(r.error.cause));
+        return;
       }
+      const comments = parseGist(r.value);
+      if (comments === undefined) {
+        onError("malformed gist comment list response");
+        return;
+      }
+      _comments = comments.map((c: any) => c.id);
+      cb(_comments);
     });
   }
   function _writeComment(cid: string, clip: string, cb?: (res: string) => void) {
@@ -102,20 +143,23 @@ const Gist = (() => {
       { Authorization: "token " + _token },
       `{"body": "${encodeURIComponent(clip)}"}`,
     ).then((r) => {
-      if (Result.isSuccess(r)) cb && cb(r.value);
+      cb && cb(Result.isSuccess(r) ? r.value : "");
     });
   }
   self.readComment = (nr: number, cb: (resp: any) => void) => {
     if (_gist === "") {
       cb({ status: 1, content: "Please call initGist first!" });
     } else if (nr >= _comments.length) {
-      _listComment((cmts) => {
-        if (nr < cmts.length) {
-          _readComment(cmts[nr], cb);
-        } else {
-          cb({ status: 1, content: "Register not exists!" });
-        }
-      });
+      _listComment(
+        (cmts) => {
+          if (nr < cmts.length) {
+            _readComment(cmts[nr], cb);
+          } else {
+            cb({ status: 1, content: "Register not exists!" });
+          }
+        },
+        (error) => cb({ status: 1, error }),
+      );
     } else {
       _readComment(_comments[nr], cb);
     }
@@ -124,22 +168,25 @@ const Gist = (() => {
     if (_gist === "") {
       cb({ status: 1, content: "Please call initGist first!" });
     } else if (nr >= _comments.length) {
-      _listComment((cmts) => {
-        if (nr < cmts.length) {
-          _writeComment(cmts[nr], clip, cb);
-        } else {
-          let toCreate = nr - cmts.length + 1;
-          const cbAfterCreated = () => {
-            toCreate--;
-            if (toCreate > 0) {
-              _newComment(".", cbAfterCreated);
-            } else if (toCreate === 0) {
-              _newComment(clip, cb);
-            }
-          };
-          cbAfterCreated();
-        }
-      });
+      _listComment(
+        (cmts) => {
+          if (nr < cmts.length) {
+            _writeComment(cmts[nr], clip, cb);
+          } else {
+            let toCreate = nr - cmts.length + 1;
+            const cbAfterCreated = () => {
+              toCreate--;
+              if (toCreate > 0) {
+                _newComment(".", cbAfterCreated);
+              } else if (toCreate === 0) {
+                _newComment(clip, cb);
+              }
+            };
+            cbAfterCreated();
+          }
+        },
+        (error) => cb({ status: 1, error }),
+      );
     } else {
       _writeComment(_comments[nr], clip, cb);
     }
@@ -256,9 +303,16 @@ function start(browser: any): void {
         const canvas = new OffscreenCanvas(img.width, img.height);
         canvas.getContext("2d")!.drawImage(img, 0, 0, canvas.width, canvas.height);
         const outBlob = await canvas.convertToBlob();
-        return await new Promise<string | ArrayBuffer | null>((resolve) => {
+        return await new Promise<string | ArrayBuffer | null>((resolve, reject) => {
           const fr = new FileReader();
           fr.onload = (e) => resolve(e.target!.result);
+          // `readAsDataURL` reports failures via `onerror`/`onabort`. Without
+          // rejecting here the promise (and the awaiting `Result.try`) would
+          // stay pending forever, hanging the background response and leaking.
+          // `fr.error` is null on abort and may be null on error, so fall back
+          // to an Error rather than rejecting with null.
+          fr.onerror = () => reject(fr.error ?? new Error("FileReader failed to read blob"));
+          fr.onabort = () => reject(fr.error ?? new Error("FileReader read aborted"));
           fr.readAsDataURL(outBlob);
         });
       },
