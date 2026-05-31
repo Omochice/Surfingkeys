@@ -2,6 +2,7 @@ import { Result } from "@praha/byethrow";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { expectDefined } from "../../test/helpers";
+import { httpError } from "../common/result";
 import type { SettingsDeps } from "./settings";
 import { _save, createSettings, getSubSettings } from "./settings";
 
@@ -88,6 +89,38 @@ describe("_save", () => {
 
     expect(mockRequest).toHaveBeenCalledWith("/snips.js");
     expect(set).toHaveBeenCalledWith({ localPath: "/snips.js", snippets: "FETCHED" }, undefined);
+  });
+
+  it("still writes to local storage and fires cb when the snippet fetch fails", async () => {
+    // A failed fetch must not strand callers: `cb` is what `_updateSettings`
+    // chains `afterSet` onto, and the `updateSettings` handler ultimately calls
+    // `_response` from there, so dropping it hangs the response forever.
+    mockRequest.mockResolvedValue(Result.fail(httpError("/snips.js", new Error("404"), 404)));
+    const set = vi.fn();
+    const local = { set };
+    g.chrome.storage = { local, sync: {} };
+    const cb = vi.fn();
+    const data = { localPath: "/snips.js", snippets: "stale" };
+
+    _save(local, data, cb);
+    await vi.waitFor(() => expect(set).toHaveBeenCalled());
+
+    expect(cb).toBe(set.mock.calls.at(-1)?.[1]);
+    expect(set).toHaveBeenCalledWith({ localPath: "/snips.js" }, cb);
+    expect("snippets" in data).toBe(false);
+  });
+
+  it("still fires cb when storage.set throws after a snippet fetch", async () => {
+    mockRequest.mockResolvedValue(Result.succeed("FETCHED"));
+    const set = vi.fn(() => {
+      throw new Error("quota exceeded");
+    });
+    const local = { set };
+    g.chrome.storage = { local, sync: {} };
+    const cb = vi.fn();
+
+    _save(local, { localPath: "/snips.js", snippets: "stale" }, cb);
+    await vi.waitFor(() => expect(cb).toHaveBeenCalled());
   });
 });
 
