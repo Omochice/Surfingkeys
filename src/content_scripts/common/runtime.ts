@@ -8,16 +8,6 @@ import { type ChromeRuntimeError, chromeRuntimeError } from "../../common/result
 // and the polyfill's promise form would turn every such call's
 // "message port closed" into an unhandled rejection. onMessage stays here too
 // for the same callback contract.
-declare const chrome: {
-  runtime: {
-    sendMessage(message: unknown, callback?: (response: any) => void): void;
-    onMessage: {
-      addListener(
-        callback: (msg: any, sender: unknown, sendResponse: (response?: unknown) => void) => void,
-      ): void;
-    };
-  };
-};
 
 /**
  * Custom-event channels dispatched as `surfingkeys:<type>` for content↔frontend communication.
@@ -90,7 +80,11 @@ const RUNTIME = function (
   return Result.try({
     try: (): void => {
       a["needResponse"] = callback !== undefined;
-      chrome.runtime.sendMessage(a, callback);
+      if (callback) {
+        chrome.runtime.sendMessage(a, callback);
+      } else {
+        chrome.runtime.sendMessage(a);
+      }
     },
     catch: (cause) => chromeRuntimeError(`sendMessage:${action}`, cause),
   });

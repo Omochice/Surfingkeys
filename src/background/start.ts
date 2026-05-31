@@ -7,11 +7,6 @@ import { request } from "./request";
 import { createSettings } from "./settings";
 import { createTabs } from "./tabs";
 
-// Browser-extension globals. The typed BrowserAdapter (task #13) will replace
-// these once cross-browser API access is centralized; background is almost
-// entirely chrome.* glue, so it is treated as an untyped boundary here.
-declare const chrome: any;
-
 /**
  * A background message handler, dispatched by `message.action`. Returning a truthy value sends it
  * as the synchronous response; returning falsy while `message.needResponse` is set defers to an
@@ -323,12 +318,12 @@ function start(browser: any): void {
         return parseInt(u);
       });
       chrome.windows.update(
-        parts[0],
+        parts[0]!,
         {
           focused: true,
         },
         () => {
-          chrome.tabs.remove(parts[1], cb);
+          chrome.tabs.remove(parts[1]!, cb);
         },
       );
     } else if (type === "M") {
@@ -374,7 +369,7 @@ function start(browser: any): void {
     }
   };
   handlers["captureVisibleTab"] = (message: any, _sender: any, sendResponse: any) => {
-    chrome.tabs.captureVisibleTab(null, { format: "png" }, (dataUrl: string) => {
+    chrome.tabs.captureVisibleTab({ format: "png" }, (dataUrl: string) => {
       _response(message, sendResponse, {
         dataUrl: dataUrl,
       });
@@ -388,7 +383,7 @@ function start(browser: any): void {
         height: img.height,
       });
     };
-    chrome.tabs.captureVisibleTab(null, { format: "png" }, (dataUrl: string) => {
+    chrome.tabs.captureVisibleTab({ format: "png" }, (dataUrl: string) => {
       img.src = dataUrl;
     });
   };
