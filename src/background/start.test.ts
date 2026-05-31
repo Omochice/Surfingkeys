@@ -29,6 +29,10 @@ function deepNoop(): any {
   const fn = () => deepNoop();
   return new Proxy(fn, {
     get(_t, prop) {
+      // Returning a proxy for `then` would make this stub a thenable, so any
+      // `await`/`Promise.resolve` touching a chrome.* path would recurse or
+      // hang; keep it non-thenable.
+      if (prop === "then") return undefined;
       if (prop === "manifest_version") return 2;
       return deepNoop();
     },
