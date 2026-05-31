@@ -60,8 +60,13 @@ export function _save(storage: any, data: any, cb?: () => void): void {
       void request(data.localPath).then((r) => {
         if (Result.isSuccess(r)) {
           data.snippets = r.value;
-          storage.set(data, cb);
+        } else {
+          // Leave the cached snippets untouched on failure, but still persist so
+          // `cb` always fires; otherwise callers chaining `afterSet` (and the
+          // `updateSettings` response) would hang on a bad/unreachable snippet URL.
+          console.error("Failed to fetch snippets from", data.localPath, r.error);
         }
+        storage.set(data, cb);
       });
     } else {
       storage.set(data, cb);
