@@ -1,6 +1,8 @@
 import { For, Show } from "solid-js";
 import type { Component } from "solid-js";
 
+import { hintLabel, hintLink } from "../../common/utils";
+
 export type TabsTab = {
   id: number;
   windowId: number;
@@ -22,14 +24,13 @@ export type TabsProps = {
   attachFavicon: (tab: TabsTab, img: HTMLImageElement) => void;
 };
 
-type HintElement = HTMLDivElement & { label?: string; link?: { id: number; windowId: number } };
-
 /**
  * The tab-chooser overlay (#sk_tabs). Renders one .sk_tab per tab with the active one flagged; each
- * non-active tab carries a .sk_tab_hint whose .label/.link expandos the frontend keydown handler
- * and refreshHints read to resolve the pressed hint. Favicon attachment is injected (async,
- * extension-bound). The container's vertical/horizontal/inline class and the post-render
- * height-overflow check stay with the controller.
+ * non-active tab carries a .sk_tab_hint whose label/link are stored in the hintLabel/hintLink
+ * WeakMaps that the frontend keydown handler and refreshHints read to resolve the pressed hint.
+ * Favicon attachment is injected (async, extension-bound). The container's
+ * vertical/horizontal/inline class and the post-render height-overflow check stay with the
+ * controller.
  */
 export const Tabs: Component<TabsProps> = (props) => {
   const hintLabelFor = (index: number): string | undefined => {
@@ -60,9 +61,8 @@ export const Tabs: Component<TabsProps> = (props) => {
               <div
                 class="sk_tab_hint"
                 ref={(el) => {
-                  const hint = el as HintElement;
-                  hint.label = label();
-                  hint.link = { id: tab.id, windowId: tab.windowId };
+                  hintLabel.set(el, label());
+                  hintLink.set(el, { id: tab.id, windowId: tab.windowId });
                 }}
               >
                 {label()}

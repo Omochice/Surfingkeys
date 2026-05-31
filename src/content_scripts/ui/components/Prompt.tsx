@@ -24,15 +24,15 @@ export type PromptProps = {
 export const Prompt: Component<PromptProps> = (props) => {
   return (
     <Show
-      when={typeof props.value === "object"}
+      when={typeof props.value === "object" && props.value}
       fallback={
         <>
-          {props.value as string}
+          {props.value}
           <span class="separator">{SEPARATOR}</span>
         </>
       }
     >
-      <span innerHTML={DOMPurify.sanitize((props.value as { html: string }).html)} />
+      {(value) => <span innerHTML={DOMPurify.sanitize(value().html)} />}
     </Show>
   );
 };

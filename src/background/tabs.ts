@@ -111,7 +111,7 @@ export function createTabs(deps: TabsDeps): TabsUnit {
     const p = chrome.tabs.sendMessage(tabId, message, opts);
     if (p) {
       void Result.try({
-        try: () => p as Promise<unknown>,
+        try: () => p,
         catch: (cause) => chromeRuntimeError("sendTabMessage", cause),
       });
     }
@@ -605,9 +605,7 @@ export function createTabs(deps: TabsDeps): TabsUnit {
             tabId: tid,
           },
           func: () => {
-            return typeof (window as any).getFrameId === "function"
-              ? (window as any).getFrameId()
-              : 0;
+            return typeof window.getFrameId === "function" ? window.getFrameId() : 0;
           },
         },
         (framesInTab: any[]) => {

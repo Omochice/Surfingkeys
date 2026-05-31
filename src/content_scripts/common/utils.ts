@@ -195,7 +195,7 @@ function listElements<T extends Node = Element>(
     const node = currentNode as T;
     filter(node) && elms.push(node);
 
-    const shadowRoot = (currentNode as Element).shadowRoot;
+    const shadowRoot = currentNode instanceof Element ? currentNode.shadowRoot : null;
     if (shadowRoot) {
       elms.push(...listElements<T>(shadowRoot, whatToShow, filter));
     }
@@ -1167,7 +1167,13 @@ function getCssSelectorsOfEditable(): string {
   return "input:not([type=submit]), textarea, *[contenteditable=true], *[role=textbox], select, div.ace_cursor";
 }
 
-type Hint = HTMLElement & { label: string; link: unknown };
+// Hint label/link kept off the element (set in hints.ts / frontend.ts), read
+// here by refreshHints. Lets HintElement drop these expandos. `link` is the
+// arbitrary payload (target element or string) the caller stored, hence `any`.
+const hintLabel = new WeakMap<HTMLElement, string>();
+const hintLink = new WeakMap<HTMLElement, any>();
+
+type Hint = HTMLElement;
 
 function refreshHints(
   hints: ArrayLike<Hint> & Iterable<Hint>,
@@ -1176,9 +1182,9 @@ function refreshHints(
   const result: { candidates: number; matched?: unknown } = { candidates: 0 };
   if (pressedKeys.length > 0) {
     for (const hint of hints) {
-      const label = hint.label;
+      const label = hintLabel.get(hint) ?? "";
       if (pressedKeys === label) {
-        result.matched = hint.link;
+        result.matched = hintLink.get(hint);
         break;
       } else if (label.indexOf(pressedKeys) === 0) {
         hint.style.opacity = "1";
@@ -1193,11 +1199,11 @@ function refreshHints(
     }
   } else {
     if (hints.length === 1 && hints[0] !== undefined) {
-      result.matched = hints[0].link;
+      result.matched = hintLink.get(hints[0]);
     } else {
       for (const hint of hints) {
         hint.style.opacity = "1";
-        setSanitizedContent(hint, hint.label);
+        setSanitizedContent(hint, hintLabel.get(hint) ?? "");
       }
       result.candidates = hints.length;
     }
@@ -1236,6 +1242,23 @@ function attachFaviconToImgSrc(
   }
 }
 
+/**
+ * Query a single element that the page is statically known to contain (markup wired up at init
+ * time) and narrow it to {@link T}. A missing match throws, because it signals a broken template
+ * rather than a runtime condition the caller should branch on. Using
+ * {@link Document.querySelector}'s generic keeps the result typed without a cast.
+ *
+ * @param selector A CSS selector identifying the required element.
+ * @throws {Error} If no element matches the selector.
+ */
+function requireElement<T extends Element = HTMLElement>(selector: string): T {
+  const el = document.querySelector<T>(selector);
+  if (el === null) {
+    throw new Error(`required element not found: ${selector}`);
+  }
+  return el;
+}
+
 export {
   actionWithSelectionPreserved,
   applyUserSettings,
@@ -1262,6 +1285,8 @@ export {
   getTextRect,
   getVisibleElements,
   getWordUnderCursor,
+  hintLabel,
+  hintLink,
   htmlEncode,
   httpRequest,
   initL10n,
@@ -1277,6 +1302,7 @@ export {
   parseAnnotation,
   refreshHints,
   reportIssue,
+  requireElement,
   rotateInput,
   tryDecodeURI,
   tryDecodeURIComponent,

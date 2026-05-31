@@ -15,6 +15,8 @@ import {
   getRealRect,
   getTextNodePos,
   getVisibleElements,
+  hintLabel,
+  hintLink,
   htmlEncode,
   initSKFunctionListener,
   isEditable,
@@ -27,13 +29,13 @@ import {
 // Browser-extension global. The typed BrowserAdapter (task #13) will replace
 // this narrow declaration once cross-browser API access is centralized.
 
-// Surfingkeys stores the target element/label/z-index on each hint node.
-type HintElement = HTMLElement & {
-  link?: any;
-  label?: string;
-  zIndex?: string;
-  skColorIndex?: number;
-};
+// Color index per hinted element, kept off the element so the hint node need
+// not carry it as an expando.
+const skColorIndices = new WeakMap<HTMLElement, number>();
+
+// Saved z-index per hinted element (the value before flip() rewrites style),
+// likewise kept off the element.
+const zIndices = new WeakMap<HTMLElement, string>();
 
 type InsertLike = { enter(elm: HTMLElement, keepCursor?: boolean): void; exit(): void };
 type NormalLike = {
@@ -59,7 +61,7 @@ type Behaviours = {
 type RegionalHintsMode = Mode & {
   mappings: Trie;
   map_node: Trie;
-  attach(elm: HintElement): void;
+  attach(elm: HTMLElement): void;
   onScrollStarted(): void;
   onScrollDone(): void;
 };
@@ -152,7 +154,7 @@ kbd {
     annotation: "copy text from target element",
     feature_group: 16,
     code: () => {
-      clipboard.write(overlay!.link.innerText);
+      clipboard.write(hintLink.get(overlay!).innerText);
     },
   });
 
@@ -160,7 +162,7 @@ kbd {
     annotation: "copy html from target element",
     feature_group: 16,
     code: () => {
-      clipboard.write(overlay!.link.innerHTML);
+      clipboard.write(hintLink.get(overlay!).innerHTML);
     },
   });
 
@@ -168,7 +170,7 @@ kbd {
     annotation: "delete target element",
     feature_group: 16,
     code: () => {
-      overlay!.link.remove();
+      hintLink.get(overlay!).remove();
       self.exit();
     },
   });
@@ -187,7 +189,7 @@ kbd {
     Mode.handleMapKey.call(self, event);
   });
 
-  let overlay: HintElement | null = null;
+  let overlay: HTMLElement | null = null;
   self.onExit = () => {
     overlay!.remove();
     regionalHintsHost.remove();
@@ -207,7 +209,7 @@ kbd {
     overlay!.style.display = "none";
   };
   self.onScrollDone = () => {
-    const be = overlay!.link.getBoundingClientRect();
+    const be = hintLink.get(overlay!).getBoundingClientRect();
     overlay!.style.top = be.top + "px";
     overlay!.style.left = be.left + "px";
     overlay!.style.display = "";
@@ -312,21 +314,22 @@ div.hint-scrollable {
     event.sk_stopPropagation = true;
     const keyEvent = event as KeyboardEvent;
 
-    let ai = holder.querySelector("[mode=input]>mask.activeInput") as HintElement | null;
+    let ai = holder.querySelector<HTMLElement>("[mode=input]>mask.activeInput");
     if (ai !== null) {
-      const masks = holder.querySelectorAll("mask");
-      let elm = ai.link;
+      const masks = holder.querySelectorAll<HTMLElement>("mask");
+      let elm = hintLink.get(ai);
       if (Mode.isSpecialKeyOf("<Esc>", event.sk_keyName ?? "")) {
         elm.blur();
         hide();
       } else if (event.keyCode === KeyboardUtils.keyCodes["tab"]) {
         ai.classList.remove("activeInput");
         _lastCreateAttrs.activeInput =
-          (_lastCreateAttrs.activeInput! + (keyEvent["shiftKey"] ? -1 : 1)) % masks.length;
-        ai = masks[_lastCreateAttrs.activeInput] as unknown as HintElement;
+          (_lastCreateAttrs.activeInput! + (keyEvent["shiftKey"] ? -1 : 1) + masks.length) %
+          masks.length;
+        ai = masks[_lastCreateAttrs.activeInput]!;
         ai.classList.add("activeInput");
 
-        elm = ai.link;
+        elm = hintLink.get(ai);
         elm.focus();
       } else if (event.keyCode !== KeyboardUtils.keyCodes["shiftKey"]) {
         event.sk_stopPropagation = false;
@@ -504,9 +507,7 @@ div.hint-scrollable {
   }
 
   function handleHint(evt?: Event & { keyCode?: number }): void {
-    const hints = holder.querySelectorAll("div:not(:empty)") as unknown as NodeListOf<
-      HintElement & { label: string; link: unknown }
-    >;
+    const hints = holder.querySelectorAll<HTMLElement>("div:not(:empty)");
     const hintState = refreshHints(hints, prefix);
     const elm: any = hintState.matched;
     if (elm) {
@@ -514,8 +515,8 @@ div.hint-scrollable {
       if (typeof _onHintKey === "function") {
         if (behaviours.regionalHints) {
           setTimeout(() => {
-            const overlay = createOverlay(elm, elm.skColorIndex, "99");
-            overlay.link = elm;
+            const overlay = createOverlay(elm, skColorIndices.get(elm)!, "99");
+            hintLink.set(overlay, elm);
             regionalHints.attach(overlay);
           }, 10);
         } else {
@@ -549,12 +550,12 @@ div.hint-scrollable {
   }
 
   function refreshByTextFilter(): void {
-    let hints = Array.from(holder.querySelectorAll("div")) as HintElement[];
+    let hints = Array.from(holder.querySelectorAll<HTMLElement>("div"));
     if (textFilter.length > 0) {
       hints = hints.filter((hint) => {
-        hint.label = "";
+        hintLabel.set(hint, "");
         setSanitizedContent(hint, "");
-        const e = hint.link;
+        const e = hintLink.get(hint);
         let text = e.innerText;
         if (text === undefined) {
           text = e[0] ? e[0].textContent : "";
@@ -565,7 +566,7 @@ div.hint-scrollable {
     const hintLabels = self.genLabels(hints.length);
     hints.forEach((e, i) => {
       const label = hintLabels[i] ?? "";
-      e.label = label;
+      hintLabel.set(e, label);
       setSanitizedContent(e, label);
     });
   }
@@ -589,16 +590,16 @@ div.hint-scrollable {
   }
 
   function flip(): void {
-    const hints = holder.querySelectorAll("div") as unknown as NodeListOf<HintElement>;
+    const hints = holder.querySelectorAll<HTMLElement>("div");
     const firstHint = hints[0];
-    if (firstHint && firstHint.style.zIndex == firstHint.zIndex) {
+    if (firstHint && firstHint.style.zIndex == zIndices.get(firstHint)) {
       hints.forEach((hint, i) => {
         const z = parseInt(hint.style.zIndex);
         hint.style.zIndex = String(hints.length - i + 2147483000 - z);
       });
     } else {
       hints.forEach((hint) => {
-        hint.style.zIndex = hint.zIndex!;
+        hint.style.zIndex = zIndices.get(hint)!;
       });
     }
   }
@@ -772,13 +773,13 @@ div.hint-scrollable {
     holder.style.display = "";
   }
 
-  function createOverlay(e: HintElement, i: number, alpha: string): HintElement {
-    e.skColorIndex = i;
+  function createOverlay(e: HTMLElement, i: number, alpha: string): HTMLElement {
+    skColorIndices.set(e, i);
 
     const be = e.getBoundingClientRect();
     const z = getZIndex(e);
 
-    const frame = document.createElement("mask") as unknown as HintElement;
+    const frame = document.createElement("mask");
     frame.style.position = "fixed";
     frame.style.top = be.top + "px";
     frame.style.left = be.left + "px";
@@ -790,7 +791,7 @@ div.hint-scrollable {
     return frame;
   }
 
-  function placeHints(elements: HintElement[]): void {
+  function placeHints(elements: HTMLElement[]): void {
     _initHolder("click");
     const hintLabels = self.genLabels(elements.length);
     const bof = self.coordinate();
@@ -821,7 +822,7 @@ div.hint-scrollable {
       } else if (left + 32 > window.pageXOffset + window.innerWidth) {
         left = window.pageXOffset + window.innerWidth - 32;
       }
-      const link = createElementWithContent("div", hintLabels[i] ?? "") as HintElement;
+      const link = createElementWithContent("div", hintLabels[i] ?? "");
       if (elm.dataset["hint_scrollable"]) {
         link.classList.add("hint-scrollable");
       }
@@ -837,9 +838,9 @@ div.hint-scrollable {
       if (behaviours.regionalHints) {
         link.style.background = getColor(i);
       }
-      link.zIndex = link.style.zIndex;
-      link.label = hintLabels[i] ?? "";
-      link.link = elm;
+      zIndices.set(link, link.style.zIndex);
+      hintLabel.set(link, hintLabels[i] ?? "");
+      hintLink.set(link, elm);
 
       lastTop = lTop;
       lastLeft = left;
@@ -853,7 +854,10 @@ div.hint-scrollable {
     if (firstHint !== undefined) {
       let bcr = getRealRect(firstHint);
       for (let i = 1; i < hints.length; i++) {
-        const h = hints[i] as HTMLElement;
+        const h = hints[i];
+        if (h === undefined) {
+          continue;
+        }
         const tcr = getRealRect(h);
         if (tcr.top === bcr.top && Math.abs(tcr.left - bcr.left) < bcr.width) {
           h.style.top = h.offsetTop + h.offsetHeight + "px";
@@ -873,7 +877,7 @@ div.hint-scrollable {
 
     const filtered = filterInvisibleElements(elements as HTMLElement[]);
     if (filtered.length > 0) {
-      placeHints(filtered as HintElement[]);
+      placeHints(filtered);
     }
     return filtered.length;
   }
@@ -910,7 +914,7 @@ div.hint-scrollable {
     }
 
     if (elements.length > 0) {
-      placeHints(elements as HintElement[]);
+      placeHints(elements);
     }
 
     return elements.length;
@@ -926,7 +930,7 @@ div.hint-scrollable {
       const aa = e.childNodes;
       for (let i = 0, len = aa.length; i < len; i++) {
         const node = aa[i];
-        if (node && node.nodeType == Node.TEXT_NODE && (node as Text).data.length > 0) {
+        if (node instanceof Text && node.data.length > 0) {
           v.push(e);
           break;
         }
@@ -937,8 +941,8 @@ div.hint-scrollable {
       const bb: Text[] = [];
       for (let i = 0, len = aa.length; i < len; i++) {
         const node = aa[i];
-        if (node && node.nodeType == Node.TEXT_NODE && (node as Text).data.trim().length > 1) {
-          bb.push(node as Text);
+        if (node instanceof Text && node.data.trim().length > 1) {
+          bb.push(node);
         }
       }
       return bb;
@@ -981,7 +985,7 @@ div.hint-scrollable {
           return null;
         } else {
           const z = getZIndex(e[0].parentNode);
-          const link = document.createElement("div") as HintElement;
+          const link: HTMLElement = document.createElement("div");
           if (e[1] === 0) {
             link.className = "begin";
           }
@@ -989,12 +993,12 @@ div.hint-scrollable {
           link.style.top = pos.top + "px";
           link.style.left = pos.left + "px";
           link.style.zIndex = String(z + 9999);
-          link.zIndex = link.style.zIndex;
-          link.link = e;
+          zIndices.set(link, link.style.zIndex);
+          hintLink.set(link, e);
           return link;
         }
       })
-      .filter((e): e is HintElement => e !== null);
+      .filter((e): e is HTMLElement => e !== null);
     if (document.getSelection()!.anchorNode) {
       document.getSelection()!.collapseToStart();
     }
@@ -1004,7 +1008,7 @@ div.hint-scrollable {
       const hintLabels = self.genLabels(elements.length);
       elements.forEach((e, i) => {
         const label = hintLabels[i] ?? "";
-        e.label = label;
+        hintLabel.set(e, label);
         setSanitizedContent(e, label);
         holder.append(e);
       });
@@ -1066,22 +1070,22 @@ div.hint-scrollable {
         const be = e.getBoundingClientRect();
         const z = getZIndex(e);
 
-        const mask = document.createElement("mask") as unknown as HintElement;
+        const mask = document.createElement("mask");
         mask.style.position = "fixed";
         mask.style.top = be.top + "px";
         mask.style.left = be.left + "px";
         mask.style.width = be.width + "px";
         mask.style.height = be.height + "px";
         mask.style.zIndex = String(z + 9999);
-        mask.link = e;
+        hintLink.set(mask, e);
         holder.append(mask);
       });
       hintsHost.shadowRoot!.appendChild(holder);
       _lastCreateAttrs.activeInput = 0;
-      const ai = holder.querySelector("[mode=input]>mask") as HintElement;
+      const ai = holder.querySelector<HTMLElement>("[mode=input]>mask")!;
       ai.classList.add("activeInput");
       normal.passFocus(true);
-      ai.link.focus();
+      hintLink.get(ai).focus();
     } else if (elements.length === 1) {
       const onlyElement = elements[0];
       if (onlyElement) {

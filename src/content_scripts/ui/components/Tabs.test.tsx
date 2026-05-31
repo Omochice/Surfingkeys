@@ -2,6 +2,7 @@ import { render } from "@solidjs/testing-library";
 import { describe, expect, it } from "vitest";
 
 import { expectDefined } from "../../../../test/helpers";
+import { hintLabel, hintLink, refreshHints } from "../../common/utils";
 import { Tabs } from "./Tabs";
 import type { TabsTab } from "./Tabs";
 
@@ -34,7 +35,7 @@ describe("Tabs", () => {
     expect(thirdTab.classList.contains("active")).toBe(false);
   });
 
-  it("assigns hint labels and link expandos to the non-active tabs only", () => {
+  it("stores hint labels and links in the WeakMaps for the non-active tabs only", () => {
     const { container } = render(() => (
       <Tabs
         tabs={tabs}
@@ -45,19 +46,17 @@ describe("Tabs", () => {
       />
     ));
     // the frontend keydown handler selects with this exact query
-    const hints = container.querySelectorAll<HTMLElement & { label?: string; link?: unknown }>(
-      "div>div.sk_tab_hint",
-    );
+    const hints = container.querySelectorAll<HTMLElement>("div>div.sk_tab_hint");
     expect(hints.length).toBe(2);
     const [firstHint, secondHint] = hints;
     expectDefined(firstHint);
     expectDefined(secondHint);
 
     expect(firstHint.textContent).toBe("A");
-    expect(firstHint.label).toBe("A");
-    expect(firstHint.link).toEqual({ id: 1, windowId: 7 });
-    expect(secondHint.label).toBe("B");
-    expect(secondHint.link).toEqual({ id: 3, windowId: 7 });
+    expect(hintLabel.get(firstHint)).toBe("A");
+    expect(hintLink.get(firstHint)).toEqual({ id: 1, windowId: 7 });
+    expect(hintLabel.get(secondHint)).toBe("B");
+    expect(hintLink.get(secondHint)).toEqual({ id: 3, windowId: 7 });
     // the active tab carries no hint
     expect(container.querySelectorAll("div.sk_tab.active div.sk_tab_hint").length).toBe(0);
   });
@@ -135,5 +134,26 @@ describe("Tabs", () => {
 
     expect(firstCall.tab).toBe(tabs[0]);
     expect(firstCall.img).toBeInstanceOf(HTMLImageElement);
+  });
+
+  it("resolves a tab hint through refreshHints (regression: label/link were expandos, not WeakMaps)", () => {
+    const { container } = render(() => (
+      <Tabs
+        tabs={tabs}
+        hintLabels={["A", "B"]}
+        vertical={false}
+        unitWidth={120}
+        attachFavicon={() => {}}
+      />
+    ));
+    const firstHint = container.querySelector<HTMLElement>("div>div.sk_tab_hint");
+    expectDefined(firstHint);
+
+    // refreshHints reads label/link via the hintLabel/hintLink WeakMaps; pressing
+    // the hint's label must resolve to the first non-active tab's link.
+    expect(refreshHints([firstHint], "A")).toEqual({
+      candidates: 0,
+      matched: { id: 1, windowId: 7 },
+    });
   });
 });

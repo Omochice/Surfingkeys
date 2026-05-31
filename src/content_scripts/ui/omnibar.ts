@@ -1800,7 +1800,7 @@ function OmniQuery(omnibar: any, front: any): any {
   }
   let _words: string[];
   self.onOpen = (arg: any) => {
-    if (arg && (document as any).dictEnabled === undefined) {
+    if (arg && document.dictEnabled === undefined) {
       omnibar.setQuery(arg);
       front.contentCommand({
         action: "omnibar_query_entered",

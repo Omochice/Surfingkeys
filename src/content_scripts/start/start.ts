@@ -12,11 +12,11 @@ reportOnFail(
     });
     setSanitizedContent(document.querySelector("#topSites>ul")!, urls.join("\n"));
 
-    const screen1 = document.querySelector("#screen1") as HTMLElement;
+    const screen1 = document.querySelector<HTMLElement>("#screen1")!;
     screen1.show();
     screen1.classList.add("fadeIn");
 
-    const screen2 = document.querySelector("#screen2") as HTMLElement;
+    const screen2 = document.querySelector<HTMLElement>("#screen2")!;
 
     document.getElementById("back")!.onclick = () => {
       const cl = screen2.classList;
@@ -55,7 +55,7 @@ document.addEventListener("surfingkeys:userSettingsLoaded", (evt) => {
     });
     const randomTip = document.getElementById("randomTip")!;
     setInterval(() => {
-      const i = Math.floor(((Math.random() * 100000) % keys.length) as number);
+      const i = Math.floor((Math.random() * 100000) % keys.length);
       const cl = randomTip.classList;
       cl.remove("fadeOut");
       cl.remove("fadeIn");

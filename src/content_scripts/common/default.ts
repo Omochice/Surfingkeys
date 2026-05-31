@@ -559,8 +559,10 @@ export default function (api: SurfingkeysApi, ctx: ModeContext): void {
     RUNTIME("clearQueueURLs");
   });
   mapkey("ys", "#7Copy current page's source", () => {
-    const aa = document.documentElement.cloneNode(true) as HTMLElement;
-    clipboard.write(aa.outerHTML);
+    const aa = document.documentElement.cloneNode(true);
+    if (aa instanceof Element) {
+      clipboard.write(aa.outerHTML);
+    }
   });
   mapkey("yj", "#7Copy current settings", () => {
     RUNTIME(

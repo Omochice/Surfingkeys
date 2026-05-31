@@ -11,6 +11,7 @@ import {
   getDocumentOrigin,
   initSKFunctionListener,
   isInUIFrame,
+  requireElement,
   tabOpenLink,
 } from "./common/utils";
 import createUiHost from "./uiframe";
@@ -292,7 +293,7 @@ function createFront(
     pos: any,
     showQueryResult: (pos: any, res: any) => void,
   ) => {
-    if ((document as any).dictEnabled !== undefined) {
+    if (document.dictEnabled !== undefined) {
       if (window.location.href.startsWith("chrome://dictorium-query/")) {
         if (window === top) {
           window.location.href = `chrome://dictorium-query/${query}`;
@@ -326,7 +327,7 @@ function createFront(
       _showQueryResult = (result) => {
         showQueryResult(pos, result);
       };
-      (document.getElementById("proxyFrame") as HTMLIFrameElement).contentWindow!.postMessage(
+      requireElement<HTMLIFrameElement>("#proxyFrame").contentWindow!.postMessage(
         {
           surfingkeys_content_data: {
             action: "performInlineQuery",
@@ -568,9 +569,10 @@ function createFront(
     window.focus();
     if (window === top && frontendPromise) {
       frontendPromise.then((uiHost) => {
-        if (uiHost.shadowRoot.contains(document.activeElement)) {
+        const active = document.activeElement;
+        if (uiHost.shadowRoot.contains(active) && active instanceof HTMLElement) {
           // fix for Firefox, blur from iframe for frontend after Omnibar closed.
-          (document.activeElement as HTMLElement).blur();
+          active.blur();
         }
       });
     }
