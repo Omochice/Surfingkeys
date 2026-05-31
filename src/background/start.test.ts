@@ -108,6 +108,38 @@ describe("start — initGist", () => {
     await vi.waitFor(() => expect(sendResponse).toHaveBeenCalled());
     expect(sendResponse.mock.calls.at(-1)?.[0]).toMatchObject({ gist: "" });
   });
+
+  it("still settles the response when the initial gist list is malformed JSON", async () => {
+    mockRequest.mockResolvedValue(Result.succeed("not-json"));
+    const dispatch = bootDispatch();
+    const sendResponse = vi.fn();
+
+    dispatch(
+      { action: "initGist", token: "tok-init-bad-json", needResponse: true },
+      { tab: { id: 1 } },
+      sendResponse,
+    );
+
+    await vi.waitFor(() => expect(sendResponse).toHaveBeenCalled());
+    expect(sendResponse.mock.calls.at(-1)?.[0]).toMatchObject({ gist: "" });
+  });
+
+  it("still settles the response when the gist-creation response is malformed JSON", async () => {
+    mockRequest
+      .mockResolvedValueOnce(Result.succeed("[]"))
+      .mockResolvedValueOnce(Result.succeed("not-json"));
+    const dispatch = bootDispatch();
+    const sendResponse = vi.fn();
+
+    dispatch(
+      { action: "initGist", token: "tok-create-bad-json", needResponse: true },
+      { tab: { id: 1 } },
+      sendResponse,
+    );
+
+    await vi.waitFor(() => expect(sendResponse).toHaveBeenCalled());
+    expect(sendResponse.mock.calls.at(-1)?.[0]).toMatchObject({ gist: "" });
+  });
 });
 
 /**
@@ -152,6 +184,22 @@ describe("start — readComment", () => {
     mockRequest
       .mockResolvedValueOnce(Result.succeed(JSON.stringify([{ id: "c1" }])))
       .mockResolvedValueOnce(gistsFail());
+    const sendResponse = vi.fn();
+
+    dispatch(
+      { action: "readComment", index: 0, needResponse: true },
+      { tab: { id: 1 } },
+      sendResponse,
+    );
+
+    await vi.waitFor(() => expect(sendResponse).toHaveBeenCalled());
+    expect(sendResponse.mock.calls.at(-1)?.[0]).toMatchObject({ status: 1 });
+  });
+
+  it("still settles the response when the comment list is malformed JSON", async () => {
+    const dispatch = bootDispatch();
+    await primeGist(dispatch, "tok-read-list-bad-json");
+    mockRequest.mockResolvedValue(Result.succeed("not-json"));
     const sendResponse = vi.fn();
 
     dispatch(

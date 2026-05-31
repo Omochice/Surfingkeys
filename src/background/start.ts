@@ -22,6 +22,17 @@ export type MessageHandler = (
 const Gist = (() => {
   const self: any = {};
 
+  // A 200 response with an empty or malformed body still throws in JSON.parse,
+  // which would skip the settle that each helper relies on and re-hang the
+  // runtime sender. Treat an unparseable body the same as a request failure.
+  const parseGist = (text: string): any | undefined => {
+    try {
+      return JSON.parse(text);
+    } catch {
+      return undefined;
+    }
+  };
+
   function _initGist(token: string, magic_word: string, onGistReady: (gist: string) => void) {
     const auth = { Authorization: "token " + token };
     void request("https://api.github.com/gists", auth).then((r) => {
@@ -31,7 +42,11 @@ const Gist = (() => {
         onGistReady("");
         return;
       }
-      const gists = JSON.parse(r.value);
+      const gists = parseGist(r.value);
+      if (gists === undefined) {
+        onGistReady("");
+        return;
+      }
       let gist = "";
       gists.forEach((g: any) => {
         if (
@@ -49,8 +64,9 @@ const Gist = (() => {
           `{ "description": "${magic_word}", "public": false, "files": { "${magic_word}": { "content": "${magic_word}" } } }`,
         ).then((r2) => {
           // Same hang trap as above: resolve with an empty gist id on failure
-          // so the runtime sender never waits indefinitely.
-          onGistReady(Result.isSuccess(r2) ? JSON.parse(r2.value).id : "");
+          // (request error or unparseable body) so the sender never waits.
+          const created = Result.isSuccess(r2) ? parseGist(r2.value) : undefined;
+          onGistReady(created?.id ?? "");
         });
       } else {
         onGistReady(gist);
@@ -92,24 +108,33 @@ const Gist = (() => {
     void request(`https://api.github.com/gists/${_gist}/comments/${cid}`, {
       Authorization: "token " + _token,
     }).then((r) => {
-      if (Result.isSuccess(r)) {
-        const comment = JSON.parse(r.value);
-        cb({ status: 0, content: decodeURIComponent(comment.body) });
-      } else {
+      if (Result.isFailure(r)) {
         cb({ status: 1, error: String(r.error.cause) });
+        return;
       }
+      const comment = parseGist(r.value);
+      if (comment === undefined) {
+        cb({ status: 1, error: "malformed gist comment response" });
+        return;
+      }
+      cb({ status: 0, content: decodeURIComponent(comment.body) });
     });
   }
   function _listComment(cb: (comments: any[]) => void, onError: (error: string) => void) {
     void request(`https://api.github.com/gists/${_gist}/comments`, {
       Authorization: "token " + _token,
     }).then((r) => {
-      if (Result.isSuccess(r)) {
-        _comments = JSON.parse(r.value).map((c: any) => c.id);
-        cb(_comments);
-      } else {
+      if (Result.isFailure(r)) {
         onError(String(r.error.cause));
+        return;
       }
+      const comments = parseGist(r.value);
+      if (comments === undefined) {
+        onError("malformed gist comment list response");
+        return;
+      }
+      _comments = comments.map((c: any) => c.id);
+      cb(_comments);
     });
   }
   function _writeComment(cid: string, clip: string, cb?: (res: string) => void) {
