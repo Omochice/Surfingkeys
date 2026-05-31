@@ -29,11 +29,8 @@ import {
 // Browser-extension global. The typed BrowserAdapter (task #13) will replace
 // this narrow declaration once cross-browser API access is centralized.
 
-// Surfingkeys stores the target element/label/z-index on each hint node.
-type HintElement = HTMLElement;
-
-// Color index per hinted element, kept off the element so HintElement need not
-// carry it as an expando.
+// Color index per hinted element, kept off the element so the hint node need
+// not carry it as an expando.
 const skColorIndices = new WeakMap<HTMLElement, number>();
 
 // Saved z-index per hinted element (the value before flip() rewrites style),
@@ -64,7 +61,7 @@ type Behaviours = {
 type RegionalHintsMode = Mode & {
   mappings: Trie;
   map_node: Trie;
-  attach(elm: HintElement): void;
+  attach(elm: HTMLElement): void;
   onScrollStarted(): void;
   onScrollDone(): void;
 };
@@ -192,7 +189,7 @@ kbd {
     Mode.handleMapKey.call(self, event);
   });
 
-  let overlay: HintElement | null = null;
+  let overlay: HTMLElement | null = null;
   self.onExit = () => {
     overlay!.remove();
     regionalHintsHost.remove();
@@ -775,7 +772,7 @@ div.hint-scrollable {
     holder.style.display = "";
   }
 
-  function createOverlay(e: HintElement, i: number, alpha: string): HintElement {
+  function createOverlay(e: HTMLElement, i: number, alpha: string): HTMLElement {
     skColorIndices.set(e, i);
 
     const be = e.getBoundingClientRect();
@@ -793,7 +790,7 @@ div.hint-scrollable {
     return frame;
   }
 
-  function placeHints(elements: HintElement[]): void {
+  function placeHints(elements: HTMLElement[]): void {
     _initHolder("click");
     const hintLabels = self.genLabels(elements.length);
     const bof = self.coordinate();
@@ -984,7 +981,7 @@ div.hint-scrollable {
           return null;
         } else {
           const z = getZIndex(e[0].parentNode);
-          const link: HintElement = document.createElement("div");
+          const link: HTMLElement = document.createElement("div");
           if (e[1] === 0) {
             link.className = "begin";
           }
@@ -997,7 +994,7 @@ div.hint-scrollable {
           return link;
         }
       })
-      .filter((e): e is HintElement => e !== null);
+      .filter((e): e is HTMLElement => e !== null);
     if (document.getSelection()!.anchorNode) {
       document.getSelection()!.collapseToStart();
     }
