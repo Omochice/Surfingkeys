@@ -605,9 +605,7 @@ export function createTabs(deps: TabsDeps): TabsUnit {
             tabId: tid,
           },
           func: () => {
-            return typeof (window as any).getFrameId === "function"
-              ? (window as any).getFrameId()
-              : 0;
+            return typeof window.getFrameId === "function" ? window.getFrameId() : 0;
           },
         },
         (framesInTab: any[]) => {
