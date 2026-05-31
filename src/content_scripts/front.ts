@@ -292,7 +292,7 @@ function createFront(
     pos: any,
     showQueryResult: (pos: any, res: any) => void,
   ) => {
-    if ((document as any).dictEnabled !== undefined) {
+    if (document.dictEnabled !== undefined) {
       if (window.location.href.startsWith("chrome://dictorium-query/")) {
         if (window === top) {
           window.location.href = `chrome://dictorium-query/${query}`;

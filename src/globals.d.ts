@@ -32,6 +32,10 @@ declare global {
     sk_stopPropagation?: boolean;
     sk_suppressed?: boolean;
   }
+  interface Document {
+    /** Set by the Dictorium extension when its dictionary integration is active. */
+    dictEnabled?: boolean;
+  }
   interface Window {
     frameId?: string;
     getFrameId(): string | undefined;
