@@ -23,3 +23,35 @@ export function markAutoFocus(element: Element): void {
 export function isAutoFocusMarked(element: Element): boolean {
   return autoFocusElements.has(element);
 }
+
+const newlyCreatedElements = new WeakSet<Element>();
+
+/**
+ * Flag an element as newly inserted into the page, so normal mode steals focus from it on the next
+ * keystroke (set by the mutation observer).
+ *
+ * @param element The freshly inserted element.
+ */
+export function markNewlyCreated(element: Element): void {
+  newlyCreatedElements.add(element);
+}
+
+/**
+ * Whether the element is flagged as newly inserted via {@link markNewlyCreated}.
+ *
+ * @param element The element to test.
+ * @returns `true` while the element is still flagged as newly created.
+ */
+export function isNewlyCreated(element: Element): boolean {
+  return newlyCreatedElements.has(element);
+}
+
+/**
+ * Clear the newly-created flag once focus has been stolen, so the element is treated normally
+ * afterwards.
+ *
+ * @param element The element to clear.
+ */
+export function unmarkNewlyCreated(element: Element): void {
+  newlyCreatedElements.delete(element);
+}

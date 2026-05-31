@@ -1,5 +1,5 @@
 import browser from "./browser";
-import { isAutoFocusMarked } from "./domFlags";
+import { isAutoFocusMarked, isNewlyCreated, unmarkNewlyCreated } from "./domFlags";
 import KeyboardUtils from "./keyboardUtils";
 import Mode from "./mode";
 import { RUNTIME, dispatchSKEvent, runtime } from "./runtime";
@@ -24,7 +24,6 @@ type SKElement = HTMLElement & {
   safeScroll_?: (prop: "scrollTop" | "scrollLeft", value: number, increasing: boolean) => boolean;
   lastScrollTop?: number;
   lastScrollLeft?: number;
-  newlyCreated?: boolean;
   style: CSSStyleDeclaration;
 };
 
@@ -261,15 +260,15 @@ function createNormal(insert: InsertLike): NormalMode {
           let stealFocus = false;
           if (!isElementPartiallyInViewport(realTarget)) {
             let n = realTarget;
-            while (n !== document.documentElement && !n.newlyCreated) {
+            while (n !== document.documentElement && !isNewlyCreated(n)) {
               n = n.parentElement;
             }
-            stealFocus = n !== document.documentElement && n.newlyCreated;
+            stealFocus = n !== document.documentElement && isNewlyCreated(n);
           }
           if (stealFocus) {
             // steal focus from dynamically created input widget
             realTarget.blur();
-            delete realTarget.newlyCreated;
+            unmarkNewlyCreated(realTarget);
             Mode.handleMapKey.call(self, event);
           } else {
             // keep cursor where it is

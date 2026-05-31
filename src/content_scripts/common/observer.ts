@@ -1,11 +1,10 @@
+import { markNewlyCreated } from "./domFlags";
 import Mode from "./mode";
 import { getVisibleElements, initSKFunctionListener } from "./utils";
 
-// Nodes Surfingkeys injects are tagged so the observer skips them; newly seen
-// nodes are flagged for downstream handling.
+// Nodes Surfingkeys injects are tagged so the observer skips them.
 type SKNode = Element & {
   fromSurfingKeys?: boolean;
-  newlyCreated?: boolean;
 };
 
 function isElementPositionRelative(elm: HTMLElement): boolean {
@@ -29,7 +28,7 @@ function startScrollNodeObserver(normal: {
       for (const n of m.addedNodes) {
         if (n.nodeType === Node.ELEMENT_NODE && !(n as SKNode).fromSurfingKeys) {
           const el = n as SKNode;
-          el.newlyCreated = true;
+          markNewlyCreated(el);
           addedNodes.push(el);
         }
       }
