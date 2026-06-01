@@ -26,10 +26,6 @@ type ScrollHelpers = {
   lastScrollLeft?: number;
 };
 
-type SKElement = HTMLElement & {
-  style: CSSStyleDeclaration;
-};
-
 type InsertLike = { enter(elm: HTMLElement, keepCursor?: boolean): void; exit(): void };
 
 type DisabledMode = Mode & { activatedOnElement: boolean };
@@ -56,7 +52,7 @@ type NormalMode = Mode & {
   addVIMark(mark: string, url?: string): void;
   jumpVIMark(mark: string): void;
   moveTab(pos: number): void;
-  captureElement(elm: SKElement): void;
+  captureElement(elm: HTMLElement): void;
   highlightElement(elm: Element): void;
   isScrollKeyInHints(key: string): boolean;
   disable(onElement?: boolean): void;
@@ -413,7 +409,7 @@ function createNormal(insert: InsertLike): NormalMode {
 
   self.repeats = "";
 
-  function initScroll(elm: SKElement): void {
+  function initScroll(elm: HTMLElement): void {
     const helpers: ScrollHelpers = {
       skScrollBy(x: number, y: number) {
         if (
@@ -624,9 +620,9 @@ function createNormal(insert: InsertLike): NormalMode {
    */
   self.scroll = (type) => {
     initScrollIndex();
-    let scrollNode = document.scrollingElement as SKElement | null;
+    let scrollNode = document.scrollingElement as HTMLElement | null;
     if (scrollNodes!.length > 0) {
-      scrollNode = scrollNodes![scrollIndex] as SKElement;
+      scrollNode = scrollNodes![scrollIndex]!;
       if (scrollNode !== document.scrollingElement && scrollNode !== document.body) {
         const br = scrollNode.getBoundingClientRect();
         if (
@@ -637,7 +633,7 @@ function createNormal(insert: InsertLike): NormalMode {
         ) {
           // Recompute scrollable elements, the webpage has changed.
           self.refreshScrollableElements();
-          scrollNode = scrollNodes![scrollIndex] as SKElement;
+          scrollNode = scrollNodes![scrollIndex]!;
         }
       }
     }
@@ -645,7 +641,7 @@ function createNormal(insert: InsertLike): NormalMode {
       // to set document.body.style.overflow auto will make document.scrollingElement null
       // set visible to bring it back.
       document.body.style.overflow = "visible";
-      scrollNode = document.scrollingElement as SKElement | null;
+      scrollNode = document.scrollingElement as HTMLElement | null;
     }
     if (!scrollNode) {
       // scrollNode could be null on a page with frameset as its body.
@@ -661,10 +657,10 @@ function createNormal(insert: InsertLike): NormalMode {
       const direction = scrollTypeDirections.get(type);
 
       if (direction && !canScrollInDirection(scrollNode, direction)) {
-        scrollNode = document.scrollingElement as SKElement | null;
+        scrollNode = document.scrollingElement as HTMLElement | null;
         if (!scrollNode && document.body) {
           document.body.style.overflow = "visible";
-          scrollNode = document.scrollingElement as SKElement | null;
+          scrollNode = document.scrollingElement as HTMLElement | null;
         }
       }
     }
@@ -819,7 +815,7 @@ function createNormal(insert: InsertLike): NormalMode {
     if (mark === "'") {
       initScrollIndex();
       if (scrollNodes!.length > 0) {
-        const scrollNode = scrollNodes![scrollIndex] as SKElement;
+        const scrollNode = scrollNodes![scrollIndex]!;
         const helpers = scrollHelpers.get(scrollNode);
         if (helpers?.lastScrollTop !== undefined && helpers.lastScrollLeft !== undefined) {
           const lt = scrollNode.scrollTop;
@@ -958,17 +954,17 @@ function createNormal(insert: InsertLike): NormalMode {
     annotation: "Capture current full page",
     feature_group: 7,
     code: () => {
-      self.captureElement(document.scrollingElement as SKElement);
+      self.captureElement(document.scrollingElement as HTMLElement);
     },
   });
   self.mappings.add("yS", {
     annotation: "Capture scrolling element",
     feature_group: 7,
     code: () => {
-      let scrollNode = document.scrollingElement as SKElement;
+      let scrollNode = document.scrollingElement as HTMLElement;
       initScrollIndex();
       if (scrollNodes!.length > 0) {
-        scrollNode = scrollNodes![scrollIndex] as SKElement;
+        scrollNode = scrollNodes![scrollIndex]!;
       }
       self.captureElement(scrollNode);
     },
