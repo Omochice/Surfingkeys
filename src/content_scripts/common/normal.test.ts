@@ -2,7 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { markAutoFocus, markNewlyCreated } from "./domFlags";
 import createNormal from "./normal";
-import { runtime } from "./runtime";
+import { RUNTIME, runtime } from "./runtime";
 
 const insertStub = { enter() {}, exit() {} };
 
@@ -132,5 +132,97 @@ describe("createNormal keydown handler — newly-created focus steal", () => {
     expect(insert.enter).toHaveBeenCalledWith(textarea, true);
 
     textarea.remove();
+  });
+});
+
+// jsdom returns undefined for document.scrollingElement, which makes
+// `self.scroll` bail out early; point it at <html> so the scroll path runs.
+function scrollTarget(): HTMLElement {
+  return document.documentElement;
+}
+
+describe("createNormal scroll — skScrollBy reaches the scrolling element", () => {
+  let savedSmoothScroll: boolean;
+  let savedSmartPageBoundary: boolean;
+  let savedRepeats: number;
+  let scrollBy: ReturnType<typeof vi.fn>;
+
+  beforeEach(() => {
+    savedSmoothScroll = runtime.conf.smoothScroll;
+    savedSmartPageBoundary = runtime.conf.smartPageBoundary;
+    savedRepeats = RUNTIME.repeats;
+    runtime.conf.smoothScroll = false;
+    // The all-zero jsdom rect otherwise trips skScrollBy's bottom-boundary guard.
+    runtime.conf.smartPageBoundary = false;
+    RUNTIME.repeats = 1;
+    Object.defineProperty(document, "scrollingElement", {
+      value: document.documentElement,
+      configurable: true,
+    });
+    // jsdom does not implement Element.scrollBy; provide a spy to observe it.
+    scrollBy = vi.fn();
+    Object.defineProperty(scrollTarget(), "scrollBy", { value: scrollBy, configurable: true });
+  });
+
+  afterEach(() => {
+    runtime.conf.smoothScroll = savedSmoothScroll;
+    runtime.conf.smartPageBoundary = savedSmartPageBoundary;
+    RUNTIME.repeats = savedRepeats;
+    scrollTarget().style.scrollBehavior = "";
+    Reflect.deleteProperty(document, "scrollingElement");
+    Reflect.deleteProperty(scrollTarget(), "scrollBy");
+  });
+
+  it("scrolls the page down by the step size", () => {
+    const normal = createNormal(insertStub);
+
+    normal.scroll("down");
+
+    expect(scrollBy).toHaveBeenCalledWith({
+      behavior: "instant",
+      left: 0,
+      top: runtime.conf.scrollStepSize,
+    });
+  });
+
+  it("scrolls the page up by the step size", () => {
+    const normal = createNormal(insertStub);
+
+    normal.scroll("up");
+
+    expect(scrollBy).toHaveBeenCalledWith({
+      behavior: "instant",
+      left: 0,
+      top: -runtime.conf.scrollStepSize,
+    });
+  });
+
+  it("scrolls right and left along the x-axis by half the step size", () => {
+    const normal = createNormal(insertStub);
+    const half = Math.round(runtime.conf.scrollStepSize / 2);
+
+    normal.scroll("right");
+    normal.scroll("left");
+
+    expect(scrollBy).toHaveBeenNthCalledWith(1, { behavior: "instant", left: half, top: 0 });
+    expect(scrollBy).toHaveBeenNthCalledWith(2, { behavior: "instant", left: -half, top: 0 });
+  });
+
+  it("scrolls again on a second call (the per-element helper is reused, not suppressed)", () => {
+    const normal = createNormal(insertStub);
+
+    normal.scroll("down");
+    normal.scroll("down");
+
+    expect(scrollBy).toHaveBeenCalledTimes(2);
+  });
+
+  it("takes the smooth-scroll path when smoothScroll is on", () => {
+    runtime.conf.smoothScroll = true;
+    const normal = createNormal(insertStub);
+
+    normal.scroll("down");
+
+    expect(scrollTarget().style.scrollBehavior).toBe("auto");
   });
 });
