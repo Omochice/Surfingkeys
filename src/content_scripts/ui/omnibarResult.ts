@@ -56,12 +56,13 @@ export function buildOmnibarResult(
 /**
  * Order the items the omnibar will render: bottom-positioned omnibars list results in reverse so
  * the first match sits next to the input at the screen bottom.
+ *
+ * WHY a copy: `listResults` is sometimes handed a shared, cached array by reference (e.g.
+ * `OpenWindows` passes its cache verbatim on an empty query, and that cache is reused across
+ * keystrokes). Reversing in place would reorder the caller's array on every input event.
  */
-export function orderItemsForDisplay<T>(items: T[], bottom: boolean): T[] {
-  if (bottom) {
-    items.reverse();
-  }
-  return items;
+export function orderItemsForDisplay<T>(items: readonly T[], bottom: boolean): T[] {
+  return bottom ? [...items].reverse() : [...items];
 }
 
 /**
