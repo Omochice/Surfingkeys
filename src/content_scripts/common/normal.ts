@@ -1,4 +1,5 @@
 import browser from "./browser";
+import { isAutoFocusMarked, isNewlyCreated, unmarkNewlyCreated } from "./domFlags";
 import KeyboardUtils from "./keyboardUtils";
 import Mode from "./mode";
 import { RUNTIME, dispatchSKEvent, runtime } from "./runtime";
@@ -15,17 +16,14 @@ import {
   showPopup,
 } from "./utils";
 
-// Surfingkeys attaches scroll helpers and bookkeeping fields onto scrollable
-// elements; these expandos type those additions.
-type SKElement = HTMLElement & {
-  skScrollBy?: (x: number, y: number) => unknown;
-  smoothScrollBy?: (x: number, y: number, d: number) => void;
-  safeScroll_?: (prop: "scrollTop" | "scrollLeft", value: number, increasing: boolean) => boolean;
+// Per-element scroll helpers and cached scroll positions Surfingkeys used to
+// store as DOM expandos are kept in a WeakMap side-table instead.
+type ScrollHelpers = {
+  skScrollBy: (x: number, y: number) => unknown;
+  smoothScrollBy: (x: number, y: number, d: number) => void;
+  safeScroll_: (prop: "scrollTop" | "scrollLeft", value: number, increasing: boolean) => boolean;
   lastScrollTop?: number;
   lastScrollLeft?: number;
-  newlyCreated?: boolean;
-  enableAutoFocus?: boolean;
-  style: CSSStyleDeclaration;
 };
 
 type InsertLike = { enter(elm: HTMLElement, keepCursor?: boolean): void; exit(): void };
@@ -54,7 +52,7 @@ type NormalMode = Mode & {
   addVIMark(mark: string, url?: string): void;
   jumpVIMark(mark: string): void;
   moveTab(pos: number): void;
-  captureElement(elm: SKElement): void;
+  captureElement(elm: HTMLElement): void;
   highlightElement(elm: Element): void;
   isScrollKeyInHints(key: string): boolean;
   disable(onElement?: boolean): void;
@@ -197,7 +195,7 @@ function createNormal(insert: InsertLike): NormalMode {
   let scrollNodes: HTMLElement[] | null = null;
   let scrollIndex = 0;
   let lastKeys: string[] | undefined;
-  const _nodesHasSKScroll: SKElement[] = [];
+  let scrollHelpers = new WeakMap<Element, ScrollHelpers>();
 
   self.passFocus = (pf) => {
     _passFocus = pf;
@@ -261,15 +259,15 @@ function createNormal(insert: InsertLike): NormalMode {
           let stealFocus = false;
           if (!isElementPartiallyInViewport(realTarget)) {
             let n = realTarget;
-            while (n !== document.documentElement && !n.newlyCreated) {
+            while (n !== document.documentElement && !isNewlyCreated(n)) {
               n = n.parentElement;
             }
-            stealFocus = n !== document.documentElement && n.newlyCreated;
+            stealFocus = n !== document.documentElement && isNewlyCreated(n);
           }
           if (stealFocus) {
             // steal focus from dynamically created input widget
             realTarget.blur();
-            delete realTarget.newlyCreated;
+            unmarkNewlyCreated(realTarget);
             Mode.handleMapKey.call(self, event);
           } else {
             // keep cursor where it is
@@ -306,7 +304,7 @@ function createNormal(insert: InsertLike): NormalMode {
     if (runtime.conf.stealFocusOnLoad && !isInUIFrame()) {
       const elm = getRealEdit(event);
       if (isEditable(elm)) {
-        if (_passFocus || elm.enableAutoFocus) {
+        if (_passFocus || isAutoFocusMarked(elm)) {
           if (!runtime.conf.enableAutoFocus) {
             // prevent focus on input only when enableAutoFocus is turned off.
             _passFocus = false;
@@ -411,105 +409,107 @@ function createNormal(insert: InsertLike): NormalMode {
 
   self.repeats = "";
 
-  function initScroll(elm: SKElement): void {
-    elm.skScrollBy = function (this: SKElement, x: number, y: number) {
-      if (
-        runtime.conf.smartPageBoundary &&
-        (this === document.scrollingElement ||
-          (scrollNodes!.length === 1 && this === scrollNodes![0]))
-      ) {
-        if (this.scrollTop === 0 && y < 0) {
-          return dispatchSKEvent("hints", ["topBoundaryHit"]);
-        }
-        if (this.scrollHeight - this.scrollTop <= this.clientHeight + 1 && y > 0) {
-          return dispatchSKEvent("hints", ["bottomBoundaryHit"]);
-        }
-      }
-      if (RUNTIME.repeats > 1) {
-        x = RUNTIME.repeats * x;
-        y = RUNTIME.repeats * y;
-        RUNTIME.repeats = 0;
-      }
-      if (runtime.conf.smoothScroll) {
-        const d = Math.max(100, 20 * Math.log(Math.abs(x || y)));
-        elm.smoothScrollBy!(x, y, d);
-      } else {
-        dispatchSKEvent("hints", ["scrollStarted"]);
-        elm.scrollBy({
-          // "instant" is a valid runtime value the lib types omit.
-          behavior: "instant" as ScrollBehavior,
-          left: x,
-          top: y,
-        });
-        dispatchSKEvent("hints", ["scrollDone"]);
-      }
-    };
-    elm.safeScroll_ = (prop, value, increasing) => {
-      const clientHeight =
-        elm === document.scrollingElement ? window.innerHeight : elm.clientHeight;
-      const clientWidth = elm === document.scrollingElement ? window.innerWidth : elm.clientWidth;
-      const rangeMin = 0;
-      const rangeMax =
-        prop === "scrollTop" ? elm.scrollHeight - clientHeight : elm.scrollWidth - clientWidth;
-      const boundary = increasing ? rangeMax : rangeMin;
-      if (value >= rangeMin && value <= rangeMax) {
-        elm[prop] = value;
-        return false;
-      } else {
-        elm[prop] = boundary;
-        return true;
-      }
-    };
-    elm.smoothScrollBy = function (x: number, y: number, d: number) {
-      if (!keyHeld) {
-        const prop: "scrollTop" | "scrollLeft" = y ? "scrollTop" : "scrollLeft";
-        const distance = y ? y : x;
-        const duration = d;
-        let previousTimestamp = 0;
-        let originValue = elm[prop];
-        let stepCompleted = false;
-        keyHeld = 1;
-        const step = (t: number): void => {
-          if (previousTimestamp === 0) {
-            // init previousTimestamp in first step
-            previousTimestamp = t;
-            dispatchSKEvent("hints", ["scrollStarted"]);
-            window.requestAnimationFrame(step);
-            return;
+  function initScroll(elm: HTMLElement): void {
+    const helpers: ScrollHelpers = {
+      skScrollBy(x: number, y: number) {
+        if (
+          runtime.conf.smartPageBoundary &&
+          (elm === document.scrollingElement ||
+            (scrollNodes!.length === 1 && elm === scrollNodes![0]))
+        ) {
+          if (elm.scrollTop === 0 && y < 0) {
+            return dispatchSKEvent("hints", ["topBoundaryHit"]);
           }
-          const old = elm[prop];
-          const delta = ((t - previousTimestamp) * distance) / duration;
-          let boundaryHit = false;
-          if (Math.abs(old + delta - originValue) >= Math.abs(distance)) {
-            stepCompleted = true;
-            if (keyHeld > runtime.conf.scrollFriction) {
-              boundaryHit = elm.safeScroll_!(prop, old + delta, distance > 0);
-              originValue = elm[prop];
-            } else if (keyHeld > 0) {
-              keyHeld++;
-            } else {
-              boundaryHit = elm.safeScroll_!(prop, originValue + distance, distance > 0);
+          if (elm.scrollHeight - elm.scrollTop <= elm.clientHeight + 1 && y > 0) {
+            return dispatchSKEvent("hints", ["bottomBoundaryHit"]);
+          }
+        }
+        if (RUNTIME.repeats > 1) {
+          x = RUNTIME.repeats * x;
+          y = RUNTIME.repeats * y;
+          RUNTIME.repeats = 0;
+        }
+        if (runtime.conf.smoothScroll) {
+          const d = Math.max(100, 20 * Math.log(Math.abs(x || y)));
+          helpers.smoothScrollBy(x, y, d);
+        } else {
+          dispatchSKEvent("hints", ["scrollStarted"]);
+          elm.scrollBy({
+            // "instant" is a valid runtime value the lib types omit.
+            behavior: "instant" as ScrollBehavior,
+            left: x,
+            top: y,
+          });
+          dispatchSKEvent("hints", ["scrollDone"]);
+        }
+      },
+      safeScroll_(prop, value, increasing) {
+        const clientHeight =
+          elm === document.scrollingElement ? window.innerHeight : elm.clientHeight;
+        const clientWidth = elm === document.scrollingElement ? window.innerWidth : elm.clientWidth;
+        const rangeMin = 0;
+        const rangeMax =
+          prop === "scrollTop" ? elm.scrollHeight - clientHeight : elm.scrollWidth - clientWidth;
+        const boundary = increasing ? rangeMax : rangeMin;
+        if (value >= rangeMin && value <= rangeMax) {
+          elm[prop] = value;
+          return false;
+        } else {
+          elm[prop] = boundary;
+          return true;
+        }
+      },
+      smoothScrollBy(x: number, y: number, d: number) {
+        if (!keyHeld) {
+          const prop: "scrollTop" | "scrollLeft" = y ? "scrollTop" : "scrollLeft";
+          const distance = y ? y : x;
+          const duration = d;
+          let previousTimestamp = 0;
+          let originValue = elm[prop];
+          let stepCompleted = false;
+          keyHeld = 1;
+          const step = (t: number): void => {
+            if (previousTimestamp === 0) {
+              // init previousTimestamp in first step
+              previousTimestamp = t;
+              dispatchSKEvent("hints", ["scrollStarted"]);
+              window.requestAnimationFrame(step);
+              return;
             }
-          } else {
-            boundaryHit = elm.safeScroll_!(prop, old + delta, distance > 0);
-          }
-          previousTimestamp = t;
+            const old = elm[prop];
+            const delta = ((t - previousTimestamp) * distance) / duration;
+            let boundaryHit = false;
+            if (Math.abs(old + delta - originValue) >= Math.abs(distance)) {
+              stepCompleted = true;
+              if (keyHeld > runtime.conf.scrollFriction) {
+                boundaryHit = helpers.safeScroll_(prop, old + delta, distance > 0);
+                originValue = elm[prop];
+              } else if (keyHeld > 0) {
+                keyHeld++;
+              } else {
+                boundaryHit = helpers.safeScroll_(prop, originValue + distance, distance > 0);
+              }
+            } else {
+              boundaryHit = helpers.safeScroll_(prop, old + delta, distance > 0);
+            }
+            previousTimestamp = t;
 
-          if (
-            !keyHeld &&
-            (boundaryHit || stepCompleted) // distance completed
-          ) {
-            elm.style.scrollBehavior = "";
-            dispatchSKEvent("hints", ["scrollDone"]);
-          } else {
-            window.requestAnimationFrame(step);
-          }
-        };
-        elm.style.scrollBehavior = "auto";
-        window.requestAnimationFrame(step);
-      }
+            if (
+              !keyHeld &&
+              (boundaryHit || stepCompleted) // distance completed
+            ) {
+              elm.style.scrollBehavior = "";
+              dispatchSKEvent("hints", ["scrollDone"]);
+            } else {
+              window.requestAnimationFrame(step);
+            }
+          };
+          elm.style.scrollBehavior = "auto";
+          window.requestAnimationFrame(step);
+        }
+      },
     };
-    _nodesHasSKScroll.push(elm);
+    scrollHelpers.set(elm, helpers);
   }
 
   // set scrollIndex to the highest node
@@ -620,9 +620,9 @@ function createNormal(insert: InsertLike): NormalMode {
    */
   self.scroll = (type) => {
     initScrollIndex();
-    let scrollNode = document.scrollingElement as SKElement | null;
+    let scrollNode = document.scrollingElement as HTMLElement | null;
     if (scrollNodes!.length > 0) {
-      scrollNode = scrollNodes![scrollIndex] as SKElement;
+      scrollNode = scrollNodes![scrollIndex]!;
       if (scrollNode !== document.scrollingElement && scrollNode !== document.body) {
         const br = scrollNode.getBoundingClientRect();
         if (
@@ -633,7 +633,7 @@ function createNormal(insert: InsertLike): NormalMode {
         ) {
           // Recompute scrollable elements, the webpage has changed.
           self.refreshScrollableElements();
-          scrollNode = scrollNodes![scrollIndex] as SKElement;
+          scrollNode = scrollNodes![scrollIndex]!;
         }
       }
     }
@@ -641,7 +641,7 @@ function createNormal(insert: InsertLike): NormalMode {
       // to set document.body.style.overflow auto will make document.scrollingElement null
       // set visible to bring it back.
       document.body.style.overflow = "visible";
-      scrollNode = document.scrollingElement as SKElement | null;
+      scrollNode = document.scrollingElement as HTMLElement | null;
     }
     if (!scrollNode) {
       // scrollNode could be null on a page with frameset as its body.
@@ -657,10 +657,10 @@ function createNormal(insert: InsertLike): NormalMode {
       const direction = scrollTypeDirections.get(type);
 
       if (direction && !canScrollInDirection(scrollNode, direction)) {
-        scrollNode = document.scrollingElement as SKElement | null;
+        scrollNode = document.scrollingElement as HTMLElement | null;
         if (!scrollNode && document.body) {
           document.body.style.overflow = "visible";
-          scrollNode = document.scrollingElement as SKElement | null;
+          scrollNode = document.scrollingElement as HTMLElement | null;
         }
       }
     }
@@ -668,54 +668,52 @@ function createNormal(insert: InsertLike): NormalMode {
     if (!scrollNode) {
       return;
     }
-    if (!scrollNode.skScrollBy) {
+    if (!scrollHelpers.has(scrollNode)) {
       initScroll(scrollNode);
     }
+    const helpers = scrollHelpers.get(scrollNode)!;
     const size: [number, number] =
       scrollNode === document.scrollingElement
         ? [window.innerWidth, window.innerHeight]
         : [scrollNode.offsetWidth, scrollNode.offsetHeight];
-    scrollNode.lastScrollTop = scrollNode.scrollTop;
-    scrollNode.lastScrollLeft = scrollNode.scrollLeft;
+    helpers.lastScrollTop = scrollNode.scrollTop;
+    helpers.lastScrollLeft = scrollNode.scrollLeft;
     switch (type) {
       case "down":
-        scrollNode.skScrollBy!(0, runtime.conf.scrollStepSize);
+        helpers.skScrollBy(0, runtime.conf.scrollStepSize);
         break;
       case "up":
-        scrollNode.skScrollBy!(0, -runtime.conf.scrollStepSize);
+        helpers.skScrollBy(0, -runtime.conf.scrollStepSize);
         break;
       case "pageDown":
-        scrollNode.skScrollBy!(0, Math.round(size[1] / 2));
+        helpers.skScrollBy(0, Math.round(size[1] / 2));
         break;
       case "fullPageDown":
-        scrollNode.skScrollBy!(0, size[1]);
+        helpers.skScrollBy(0, size[1]);
         break;
       case "pageUp":
-        scrollNode.skScrollBy!(0, -Math.round(size[1] / 2));
+        helpers.skScrollBy(0, -Math.round(size[1] / 2));
         break;
       case "fullPageUp":
-        scrollNode.skScrollBy!(0, -size[1]);
+        helpers.skScrollBy(0, -size[1]);
         break;
       case "top":
-        scrollNode.skScrollBy!(0, -scrollNode.scrollTop);
+        helpers.skScrollBy(0, -scrollNode.scrollTop);
         break;
       case "bottom":
-        scrollNode.skScrollBy!(
-          scrollNode.scrollLeft,
-          scrollNode.scrollHeight - scrollNode.scrollTop,
-        );
+        helpers.skScrollBy(scrollNode.scrollLeft, scrollNode.scrollHeight - scrollNode.scrollTop);
         break;
       case "left":
-        scrollNode.skScrollBy!(-Math.round(runtime.conf.scrollStepSize / 2), 0);
+        helpers.skScrollBy(-Math.round(runtime.conf.scrollStepSize / 2), 0);
         break;
       case "right":
-        scrollNode.skScrollBy!(Math.round(runtime.conf.scrollStepSize / 2), 0);
+        helpers.skScrollBy(Math.round(runtime.conf.scrollStepSize / 2), 0);
         break;
       case "leftmost":
-        scrollNode.skScrollBy!(-scrollNode.scrollLeft - 10, 0);
+        helpers.skScrollBy(-scrollNode.scrollLeft - 10, 0);
         break;
       case "rightmost":
-        scrollNode.skScrollBy!(scrollNode.scrollWidth - scrollNode.scrollLeft - size[0] + 20, 0);
+        helpers.skScrollBy(scrollNode.scrollWidth - scrollNode.scrollLeft - size[0] + 20, 0);
         break;
       case "byRatio": {
         const y =
@@ -723,7 +721,7 @@ function createNormal(insert: InsertLike): NormalMode {
           size[1] / 2 -
           scrollNode.scrollTop;
         RUNTIME.repeats = 0;
-        scrollNode.skScrollBy!(0, y);
+        helpers.skScrollBy(0, y);
         break;
       }
       default:
@@ -817,14 +815,15 @@ function createNormal(insert: InsertLike): NormalMode {
     if (mark === "'") {
       initScrollIndex();
       if (scrollNodes!.length > 0) {
-        const scrollNode = scrollNodes![scrollIndex] as SKElement;
-        if (scrollNode.lastScrollTop !== undefined && scrollNode.lastScrollLeft !== undefined) {
+        const scrollNode = scrollNodes![scrollIndex]!;
+        const helpers = scrollHelpers.get(scrollNode);
+        if (helpers?.lastScrollTop !== undefined && helpers.lastScrollLeft !== undefined) {
           const lt = scrollNode.scrollTop;
           const ll = scrollNode.scrollLeft;
-          scrollNode.scrollTop = scrollNode.lastScrollTop;
-          scrollNode.scrollLeft = scrollNode.lastScrollLeft;
-          scrollNode.lastScrollTop = lt;
-          scrollNode.lastScrollLeft = ll;
+          scrollNode.scrollTop = helpers.lastScrollTop;
+          scrollNode.scrollLeft = helpers.lastScrollLeft;
+          helpers.lastScrollTop = lt;
+          helpers.lastScrollLeft = ll;
         }
       }
     } else {
@@ -955,17 +954,17 @@ function createNormal(insert: InsertLike): NormalMode {
     annotation: "Capture current full page",
     feature_group: 7,
     code: () => {
-      self.captureElement(document.scrollingElement as SKElement);
+      self.captureElement(document.scrollingElement as HTMLElement);
     },
   });
   self.mappings.add("yS", {
     annotation: "Capture scrolling element",
     feature_group: 7,
     code: () => {
-      let scrollNode = document.scrollingElement as SKElement;
+      let scrollNode = document.scrollingElement as HTMLElement;
       initScrollIndex();
       if (scrollNodes!.length > 0) {
-        scrollNode = scrollNodes![scrollIndex] as SKElement;
+        scrollNode = scrollNodes![scrollIndex]!;
       }
       self.captureElement(scrollNode);
     },
@@ -1148,10 +1147,8 @@ function createNormal(insert: InsertLike): NormalMode {
 
   self.onExit = () => {
     dispatchSKEvent("observer", ["turnOff"]);
-    _nodesHasSKScroll.forEach((n) => {
-      delete n.skScrollBy;
-      delete n.smoothScrollBy;
-    });
+    // Drop all cached scroll helpers so the next activation re-initializes them.
+    scrollHelpers = new WeakMap();
   };
 
   return self;

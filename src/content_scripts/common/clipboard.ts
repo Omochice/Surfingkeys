@@ -1,3 +1,4 @@
+import { markAutoFocus } from "./domFlags";
 import { RUNTIME } from "./runtime";
 import {
   actionWithSelectionPreserved,
@@ -14,12 +15,11 @@ type Clipboard = {
 function createClipboard(): Clipboard {
   const self = {} as Clipboard;
 
-  // `enableAutoFocus` is an expando flag read by normal mode to skip auto-focus.
-  const holder = document.createElement("textarea") as HTMLTextAreaElement & {
-    enableAutoFocus?: boolean;
-  };
+  const holder = document.createElement("textarea");
   holder.contentEditable = "true";
-  holder.enableAutoFocus = true;
+  // Exempt the holder from normal mode's auto-focus suppression so focusing it
+  // for copy/paste is not blurred away.
+  markAutoFocus(holder);
   holder.id = "sk_clipboard";
 
   function clipboardActionWithSelectionPreserved(cb: (selection: Selection | null) => void): void {

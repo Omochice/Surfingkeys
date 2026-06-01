@@ -1,4 +1,5 @@
 import { reportOnFail } from "../common/result";
+import { markSurfingKeysElement } from "./common/domFlags";
 import Mode from "./common/mode";
 import { reportError } from "./common/report";
 import { RUNTIME, dispatchSKEvent, runtime } from "./common/runtime";
@@ -211,8 +212,8 @@ function createFront(
 
   const frameElement = createElementWithContent("div", "Hi, I'm here now!", {
     id: "sk_frame",
-  }) as HTMLElement & { fromSurfingKeys?: boolean };
-  frameElement.fromSurfingKeys = true;
+  });
+  markSurfingKeysElement(frameElement);
   function highlightElement(sn: any) {
     document.documentElement.append(frameElement);
     const rect = sn.rect;
