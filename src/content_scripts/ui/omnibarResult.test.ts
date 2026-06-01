@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { buildFolderResult, buildOmnibarResult } from "./omnibarResult";
+import { buildFolderResult, buildOmnibarResult, orderItemsForDisplay } from "./omnibarResult";
 
 function li(html: string): HTMLElement {
   const el = document.createElement("li");
@@ -57,6 +57,30 @@ describe("buildOmnibarResult", () => {
 
     expect(result.data.folder).toBe("from-props");
     expect(result.data.text).toBe("from-props");
+  });
+});
+
+describe("orderItemsForDisplay", () => {
+  it("returns the items unchanged when not positioned at the bottom", () => {
+    const items = ["a", "b", "c"];
+
+    expect(orderItemsForDisplay(items, false)).toEqual(["a", "b", "c"]);
+  });
+
+  it("returns the items reversed when positioned at the bottom", () => {
+    const items = ["a", "b", "c"];
+
+    expect(orderItemsForDisplay(items, true)).toEqual(["c", "b", "a"]);
+  });
+
+  // OpenWindows.onInput hands listResults its cache array by reference on an empty query, and the
+  // same array is reused across keystrokes; reordering it in place would corrupt the cache order.
+  it("does not mutate the caller's array when positioned at the bottom", () => {
+    const items = ["a", "b", "c"];
+
+    orderItemsForDisplay(items, true);
+
+    expect(items).toEqual(["a", "b", "c"]);
   });
 });
 
