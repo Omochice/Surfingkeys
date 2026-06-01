@@ -12,6 +12,7 @@
   },
   "license": "MIT",
   "author": "brook hong",
+  "type": "module",
   "directories": {
     "test": "test"
   },
