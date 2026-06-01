@@ -29,7 +29,7 @@ import type { PromptValue } from "./components/Prompt";
 import { ResultList } from "./components/ResultList";
 import { ResultPage } from "./components/ResultPage";
 import { SearchInput } from "./components/SearchInput";
-import { buildOmnibarResult } from "./omnibarResult";
+import { buildFolderResult, buildOmnibarResult } from "./omnibarResult";
 import type { OmnibarResult } from "./omnibarResult";
 
 function createOmnibar(front: any, clipboard: any) {
@@ -1094,10 +1094,7 @@ function AddBookmark(omnibar: any): any {
     omnibar.listBookmarkFolders((response: any) => {
       folders = response.folders;
       omnibar.listResults(folders.slice(), (f: any) => {
-        return buildOmnibarResult(
-          createElementWithContent("li", `▷ ${f.title}`, { folder: f.id }),
-          {},
-        );
+        return buildFolderResult(f.title, f.id);
       });
       reportOnFail(
         RUNTIME("getBookmark", null, (resp: any) => {
@@ -1189,7 +1186,7 @@ function AddBookmark(omnibar: any): any {
       else return b.title.toLowerCase().indexOf(query.toLowerCase()) !== -1;
     });
     omnibar.listResults(matches, (f: any) => {
-      return createElementWithContent("li", `▷ ${f.title}`, { folder: f.id });
+      return buildFolderResult(f.title, f.id);
     });
   };
 

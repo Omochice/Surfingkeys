@@ -1,3 +1,4 @@
+import { createElementWithContent } from "../common/utils";
 import type { ResultListItem } from "./components/ResultList";
 
 /**
@@ -50,4 +51,16 @@ export function buildOmnibarResult(
       ...data,
     },
   };
+}
+
+/**
+ * Build the omnibar row for a bookmark folder.
+ *
+ * WHY: `AddBookmark` lists folders from two entry points (initial open and on every keystroke).
+ * Sharing one builder keeps both producing an {@link OmnibarResult} (with the folder id read back
+ * off the `folder` attribute), so neither path can regress to returning a bare `<li>` that
+ * `<ResultList>` cannot render.
+ */
+export function buildFolderResult(title: string, folderId: string): OmnibarResult {
+  return buildOmnibarResult(createElementWithContent("li", `▷ ${title}`, { folder: folderId }), {});
 }
