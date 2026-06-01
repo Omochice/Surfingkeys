@@ -55,3 +55,25 @@ export function isNewlyCreated(element: Element): boolean {
 export function unmarkNewlyCreated(element: Element): void {
   newlyCreatedElements.delete(element);
 }
+
+const surfingKeysElements = new WeakSet<Element>();
+
+/**
+ * Mark an element as injected by Surfingkeys, so the scroll observer ignores it instead of treating
+ * it as a newly inserted page node.
+ *
+ * @param element The Surfingkeys-injected element.
+ */
+export function markSurfingKeysElement(element: Element): void {
+  surfingKeysElements.add(element);
+}
+
+/**
+ * Whether the element was injected by Surfingkeys (see {@link markSurfingKeysElement}).
+ *
+ * @param element The element to test.
+ * @returns `true` when the element is a Surfingkeys-injected node.
+ */
+export function isSurfingKeysElement(element: Element): boolean {
+  return surfingKeysElements.has(element);
+}

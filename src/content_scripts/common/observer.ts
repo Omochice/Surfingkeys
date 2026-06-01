@@ -1,11 +1,6 @@
-import { markNewlyCreated } from "./domFlags";
+import { isSurfingKeysElement, markNewlyCreated } from "./domFlags";
 import Mode from "./mode";
 import { getVisibleElements, initSKFunctionListener } from "./utils";
-
-// Nodes Surfingkeys injects are tagged so the observer skips them.
-type SKNode = Element & {
-  fromSurfingKeys?: boolean;
-};
 
 function isElementPositionRelative(elm: HTMLElement): boolean {
   let cur: HTMLElement | null = elm;
@@ -23,13 +18,15 @@ function startScrollNodeObserver(normal: {
 }): void {
   let pendingUpdater: number | undefined = undefined;
   const DOMObserver = new MutationObserver((mutations) => {
-    const addedNodes: SKNode[] = [];
+    const addedNodes: Element[] = [];
     for (const m of mutations) {
       for (const n of m.addedNodes) {
-        if (n.nodeType === Node.ELEMENT_NODE && !(n as SKNode).fromSurfingKeys) {
-          const el = n as SKNode;
-          markNewlyCreated(el);
-          addedNodes.push(el);
+        if (n.nodeType === Node.ELEMENT_NODE) {
+          const el = n as Element;
+          if (!isSurfingKeysElement(el)) {
+            markNewlyCreated(el);
+            addedNodes.push(el);
+          }
         }
       }
     }
