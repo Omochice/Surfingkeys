@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { buildOmnibarResult } from "./omnibarResult";
+import { buildFolderResult, buildOmnibarResult } from "./omnibarResult";
 
 function li(html: string): HTMLElement {
   const el = document.createElement("li");
@@ -57,5 +57,17 @@ describe("buildOmnibarResult", () => {
 
     expect(result.data.folder).toBe("from-props");
     expect(result.data.text).toBe("from-props");
+  });
+});
+
+describe("buildFolderResult", () => {
+  // A bookmark-folder row is built in two AddBookmark sites (onOpen and onInput); both must
+  // return an OmnibarResult carrying the folder id, never a bare <li>, or <ResultList> can render
+  // neither the row HTML nor resolve the folder on selection.
+  it("returns an OmnibarResult carrying the folder id and labelled title", () => {
+    const result = buildFolderResult("Bookmarks Bar", "42");
+
+    expect(result.data.folder).toBe("42");
+    expect(result.html).toContain("▷ Bookmarks Bar");
   });
 });
