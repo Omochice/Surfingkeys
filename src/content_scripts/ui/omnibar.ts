@@ -27,29 +27,10 @@ import {
 import { Prompt } from "./components/Prompt";
 import type { PromptValue } from "./components/Prompt";
 import { ResultList } from "./components/ResultList";
-import type { ResultListItem } from "./components/ResultList";
 import { ResultPage } from "./components/ResultPage";
 import { SearchInput } from "./components/SearchInput";
-
-/**
- * A harvested omnibar row: the fields ResultList renders, plus the data the handlers and key
- * bindings read back from the store instead of reaching into the DOM (the legacy code stored these
- * as expandos on each <li>).
- */
-type OmnibarResult = {
-  data: {
-    uid?: string;
-    url?: string;
-    copy?: string;
-    query?: string;
-    windowId?: number;
-    folderId?: string;
-    folder_name?: string;
-    cmd?: any;
-    folder?: string;
-    text: string;
-  };
-} & ResultListItem;
+import { buildOmnibarResult } from "./omnibarResult";
+import type { OmnibarResult } from "./omnibarResult";
 
 function createOmnibar(front: any, clipboard: any) {
   const self: any = new Mode("Omnibar");
@@ -550,17 +531,14 @@ function createOmnibar(front: any, clipboard: any) {
         { class: "text-container" },
       ),
     );
-    li.uid = uid;
-    li.url = b.url;
-    return li;
+    return buildOmnibarResult(li, { uid, url: b.url });
   };
 
   self.createItemFromRawHtml = ({ html, props }: { html: string; props?: any }) => {
     const li: any = createElementWithContent("li", html);
-    if (typeof props === "object") {
-      Object.assign(li, props);
-    }
-    return li;
+    // User suggestion handlers pass their data fields (url, copy, ...) via `props`; route them
+    // into the result's data instead of assigning them as expandos on the <li>.
+    return buildOmnibarResult(li, typeof props === "object" ? props : {});
   };
 
   self.detectAndInsertURLItem = (str: string, toList: any[]) => {
@@ -626,23 +604,21 @@ function createOmnibar(front: any, clipboard: any) {
       rxp = regexFromString(query, runtime.getCaseSensitive(query), true);
     }
     self.listResults(_page, (b: any) => {
-      let li;
       if (Object.prototype.hasOwnProperty.call(b, "html")) {
-        li = self.createItemFromRawHtml(b);
+        return self.createItemFromRawHtml(b);
       } else if (Object.prototype.hasOwnProperty.call(b, "url") && b.url !== undefined) {
         if (getBrowserName() === "Firefox" && /^(place|data):/i.test(b.url)) {
           return null;
         }
-        li = self.createURLItem(b, rxp);
+        return self.createURLItem(b, rxp);
       } else if (_showFolder) {
-        li = createElementWithContent(
+        const li = createElementWithContent(
           "li",
           `<div class="title">▷ ${self.highlight(rxp, b.title)}</div>`,
-        ) as any;
-        li.folder_name = b.title;
-        li.folderId = b.id;
+        );
+        return buildOmnibarResult(li, { folder_name: b.title, folderId: b.id });
       }
-      return li;
+      return undefined;
     });
   }
 
@@ -751,7 +727,7 @@ function createOmnibar(front: any, clipboard: any) {
     return this.activeTab;
   };
 
-  self.listResults = (items: any, renderItem: (b: any) => any) => {
+  self.listResults = (items: any, renderItem: (b: any) => OmnibarResult | null | undefined) => {
     if (!items || items.length === 0) {
       setResults([]);
       setFocusedIndex(-1);
@@ -760,31 +736,14 @@ function createOmnibar(front: any, clipboard: any) {
     if (getPosition() === "bottom") {
       items.reverse();
     }
-    // The per-handler renderItem still builds a detached <li>; harvest its
-    // display HTML and the expando data the handlers read, then let
-    // <ResultList> render the rows reactively from the store.
+    // Each renderItem returns a fully-formed OmnibarResult (display HTML plus the data the
+    // handlers and key bindings read from the store); collect them for <ResultList> to render
+    // reactively. No data is read back off the <li> any more.
     const built: OmnibarResult[] = [];
     items.forEach((b: any) => {
-      const li: any = renderItem(b);
-      if (li) {
-        const img = li.querySelector ? li.querySelector("img.icon") : null;
-        built.push({
-          html: li.innerHTML,
-          className: li.className || undefined,
-          faviconSrc: img ? (img.getAttribute("src") ?? undefined) : undefined,
-          data: {
-            uid: li.uid,
-            url: li.url,
-            copy: li.copy,
-            query: li.query,
-            windowId: li.windowId,
-            folderId: li.folderId,
-            folder_name: li.folder_name,
-            cmd: li.cmd,
-            folder: li.getAttribute ? (li.getAttribute("folder") ?? undefined) : undefined,
-            text: li.textContent ?? "",
-          },
-        });
+      const result = renderItem(b);
+      if (result) {
+        built.push(result);
       }
     });
     setResults(built);
@@ -803,9 +762,8 @@ function createOmnibar(front: any, clipboard: any) {
 
   self.listWords = (words: any[]) => {
     self.listResults(words, (w: any) => {
-      const li: any = createElementWithContent("li", `⌕ ${w}`);
-      li.query = w;
-      return li;
+      const li = createElementWithContent("li", `⌕ ${w}`);
+      return buildOmnibarResult(li, { query: w });
     });
   };
 
@@ -1136,7 +1094,10 @@ function AddBookmark(omnibar: any): any {
     omnibar.listBookmarkFolders((response: any) => {
       folders = response.folders;
       omnibar.listResults(folders.slice(), (f: any) => {
-        return createElementWithContent("li", `▷ ${f.title}`, { folder: f.id });
+        return buildOmnibarResult(
+          createElementWithContent("li", `▷ ${f.title}`, { folder: f.id }),
+          {},
+        );
       });
       reportOnFail(
         RUNTIME("getBookmark", null, (resp: any) => {
@@ -1440,8 +1401,7 @@ function OpenWindows(omnibar: any, front: any): any {
       }
       rxp = regexFromString(query, runtime.getCaseSensitive(query), true);
       omnibar.listResults(filtered, (w: any) => {
-        const li: any = createElementWithContent("li");
-        li.windowId = parseInt(w.id);
+        const li = createElementWithContent("li");
         li.classList.add("window");
         if (w.isPreviousChoice) {
           li.classList.add("focused");
@@ -1460,13 +1420,9 @@ function OpenWindows(omnibar: any, front: any): any {
           );
           li.appendChild(div);
         });
-        // set url so that we can copy all URls of tabs in this window.
-        li.url = w.tabs
-          .map((t: any) => {
-            return t.url;
-          })
-          .join("\n");
-        return li;
+        // Join every tab URL so the copy-line binding can yank all tabs in this window at once.
+        const url = w.tabs.map((t: any) => t.url).join("\n");
+        return buildOmnibarResult(li, { windowId: parseInt(w.id), url });
       });
     });
   };
@@ -1577,9 +1533,8 @@ function SearchEngine(omnibar: any, front: any): any {
       } else if (Object.prototype.hasOwnProperty.call(w, "url")) {
         return omnibar.createURLItem(w, rxp);
       } else {
-        const li: any = createElementWithContent("li", `⌕ ${w}`);
-        li.query = w;
-        return li;
+        const li = createElementWithContent("li", `⌕ ${w}`);
+        return buildOmnibarResult(li, { query: w });
       }
     });
   }
@@ -1694,9 +1649,8 @@ function Commands(omnibar: any, front: any): any {
         const candidates = response.settings.cmdHistory;
         if (candidates.length) {
           omnibar.listResults(candidates, (c: any) => {
-            const li: any = createElementWithContent("li", c);
-            li.cmd = c;
-            return li;
+            const li = createElementWithContent("li", c);
+            return buildOmnibarResult(li, { cmd: c });
           });
         }
       }),
@@ -1713,12 +1667,11 @@ function Commands(omnibar: any, front: any): any {
     });
     if (candidates.length) {
       omnibar.listResults(candidates, (c: any) => {
-        const li: any = createElementWithContent(
+        const li = createElementWithContent(
           "li",
           `${c}<span class=annotation>${htmlEncode(items[c].annotation)}</span>`,
         );
-        li.cmd = c;
-        return li;
+        return buildOmnibarResult(li, { cmd: c });
       });
     }
   };
@@ -1825,7 +1778,7 @@ function OmniQuery(omnibar: any, front: any): any {
     });
     if (candidates.length) {
       omnibar.listResults(candidates, (w: any) => {
-        return createElementWithContent("li", w);
+        return buildOmnibarResult(createElementWithContent("li", w), {});
       });
     }
   };
