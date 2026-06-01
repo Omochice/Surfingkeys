@@ -29,7 +29,7 @@ import type { PromptValue } from "./components/Prompt";
 import { ResultList } from "./components/ResultList";
 import { ResultPage } from "./components/ResultPage";
 import { SearchInput } from "./components/SearchInput";
-import { buildFolderResult, buildOmnibarResult } from "./omnibarResult";
+import { buildFolderResult, buildOmnibarResult, orderItemsForDisplay } from "./omnibarResult";
 import type { OmnibarResult } from "./omnibarResult";
 
 function createOmnibar(front: any, clipboard: any) {
@@ -733,14 +733,12 @@ function createOmnibar(front: any, clipboard: any) {
       setFocusedIndex(-1);
       return;
     }
-    if (getPosition() === "bottom") {
-      items.reverse();
-    }
+    const displayItems = orderItemsForDisplay(items, getPosition() === "bottom");
     // Each renderItem returns a fully-formed OmnibarResult (display HTML plus the data the
     // handlers and key bindings read from the store); collect them for <ResultList> to render
     // reactively. No data is read back off the <li> any more.
     const built: OmnibarResult[] = [];
-    items.forEach((b: any) => {
+    displayItems.forEach((b: any) => {
       const result = renderItem(b);
       if (result) {
         built.push(result);

@@ -54,6 +54,17 @@ export function buildOmnibarResult(
 }
 
 /**
+ * Order the items the omnibar will render: bottom-positioned omnibars list results in reverse so
+ * the first match sits next to the input at the screen bottom.
+ */
+export function orderItemsForDisplay<T>(items: T[], bottom: boolean): T[] {
+  if (bottom) {
+    items.reverse();
+  }
+  return items;
+}
+
+/**
  * Build the omnibar row for a bookmark folder.
  *
  * WHY: `AddBookmark` lists folders from two entry points (initial open and on every keystroke).
