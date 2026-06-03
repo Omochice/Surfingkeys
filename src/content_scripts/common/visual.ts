@@ -105,7 +105,7 @@ function createVisual(clipboard: ClipboardLike, hints: HintsLike): VisualMode {
   self.addEventListener("scroll", () => {
     matches.forEach((m) => {
       const r = unwrapOr<DOMRectList | DOMRect[]>(getTextRect(m[0], m[1]), [])[0];
-      if (r === undefined) {
+      if (r == null) {
         return;
       }
       m[2].forEach((mi) => {
@@ -445,7 +445,7 @@ function createVisual(clipboard: ClipboardLike, hints: HintsLike): VisualMode {
         const textNodes = getTextNodes(p!, /./) as Node[];
         const firstNode = textNodes[0];
         const lastNode = textNodes[textNodes.length - 1] as Text | undefined;
-        if (firstNode === undefined || lastNode === undefined) {
+        if (firstNode == null || lastNode == null) {
           continue;
         }
         const range = selection.getRangeAt(0);
@@ -707,7 +707,7 @@ function createVisual(clipboard: ClipboardLike, hints: HintsLike): VisualMode {
 
   function _onStateChange(): void {
     const yankFn = _yankFunctions[state];
-    if (yankFn !== undefined) {
+    if (yankFn != null) {
       self.mappings.add("y", yankFn);
     }
     self.statusLine = self.name + " - " + (status[state] ?? "");
@@ -904,7 +904,7 @@ function createVisual(clipboard: ClipboardLike, hints: HintsLike): VisualMode {
 
     let sentence = "";
     const firstElement = elements[0];
-    if (firstElement === undefined) {
+    if (firstElement == null) {
       return sentence;
     }
     actionWithSelectionPreserved((sel) => {

@@ -43,7 +43,7 @@ const Gist = (() => {
         return;
       }
       const gists = parseGist(r.value);
-      if (gists === undefined) {
+      if (gists == null) {
         onGistReady("");
         return;
       }
@@ -113,7 +113,7 @@ const Gist = (() => {
         return;
       }
       const comment = parseGist(r.value);
-      if (comment === undefined) {
+      if (comment == null) {
         cb({ status: 1, error: "malformed gist comment response" });
         return;
       }
@@ -129,7 +129,7 @@ const Gist = (() => {
         return;
       }
       const comments = parseGist(r.value);
-      if (comments === undefined) {
+      if (comments == null) {
         onError("malformed gist comment list response");
         return;
       }

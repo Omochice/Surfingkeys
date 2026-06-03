@@ -17,7 +17,7 @@ export function createBookmarkHandlers(_response: Respond): Record<string, Messa
     let cd = root;
     if (
       tree.title !== "" &&
-      (!Object.prototype.hasOwnProperty.call(tree, "url") || tree.url === undefined)
+      (!Object.prototype.hasOwnProperty.call(tree, "url") || tree.url == null)
     ) {
       cd += "/" + tree.title;
       bookmarkFolders.push({ id: tree.id, title: cd + "/" });

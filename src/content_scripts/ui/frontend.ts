@@ -382,9 +382,9 @@ const Front = (() => {
       const altSKeys = Mode.specialKeys["<Alt-s>"];
       const lh = altSKeys?.length ?? 0;
       const firstGroup = help_groups[0];
-      if (lh > 0 && altSKeys !== undefined && firstGroup !== undefined) {
+      if (lh > 0 && altSKeys != null && firstGroup != null) {
         const last = altSKeys[lh - 1];
-        if (last !== undefined) {
+        if (last != null) {
           firstGroup.push(
             "<div><span class=kbd-span><kbd>{0}</kbd></span><span class=annotation>{1}</span></div>".format(
               htmlEncode(last),
@@ -399,9 +399,8 @@ const Front = (() => {
         const w = KeyboardUtils.decodeKeystroke(meta.word);
         const annotation = localizeAnnotation(locale, meta.annotation);
         const item = `<div><span class=kbd-span><kbd>${htmlEncode(w)}</kbd></span><span class=annotation>${annotation}</span></div>`;
-        const group =
-          meta.feature_group !== undefined ? help_groups[meta.feature_group] : undefined;
-        if (group !== undefined) {
+        const group = meta.feature_group != null ? help_groups[meta.feature_group] : undefined;
+        if (group != null) {
           group.push(item);
         }
       });
@@ -460,11 +459,11 @@ const Front = (() => {
   };
   _actions["addMapkey"] = (message: any) => {
     const specialKey = Mode.specialKeys[message.old_keystroke];
-    if (specialKey !== undefined) {
+    if (specialKey != null) {
       specialKey.push(message.new_keystroke);
     } else if (Object.prototype.hasOwnProperty.call(modes, message.mode)) {
       const mode = modes[message.mode];
-      if (mode !== undefined) {
+      if (mode != null) {
         mapInMode(mode, message.new_keystroke, message.old_keystroke);
       }
     }
@@ -755,7 +754,7 @@ const Front = (() => {
     "message",
     (event) => {
       const _message = event.data && event.data.surfingkeys_frontend_data;
-      if (_message === undefined) {
+      if (_message == null) {
         return;
       }
       const f = _callbacks[_message.id];
@@ -873,7 +872,7 @@ const StatusBar = (() => {
     // the trailing cells (e.g. find clears mode+search but keeps results).
     const next = cells().slice();
     for (let i = 0; i < contents.length; i++) {
-      if (contents[i] !== undefined) {
+      if (contents[i] != null) {
         next[i] = contents[i];
       }
     }

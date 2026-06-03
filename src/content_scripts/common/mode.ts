@@ -183,7 +183,7 @@ export default class Mode {
 
   static isSpecialKeyOf(specialKey: string, keyToCheck: string): boolean {
     const keys = Mode.specialKeys[specialKey];
-    return keys !== undefined && keys.indexOf(KeyboardUtils.decodeKeystroke(keyToCheck)) !== -1;
+    return keys != null && keys.indexOf(KeyboardUtils.decodeKeystroke(keyToCheck)) !== -1;
   }
 
   static suppressKeyUp(keyCode: number): void {
@@ -260,7 +260,7 @@ export default class Mode {
   static showStatus(): void {
     if (document.hasFocus() && mode_stack.length) {
       const cm = mode_stack[0];
-      if (cm === undefined) {
+      if (cm == null) {
         return;
       }
       let sl = cm.statusLine || (runtime.conf.showModeStatus ? cm.name : "");
@@ -311,7 +311,7 @@ export default class Mode {
       pf(key);
       actionDone = Mode.finish(thisMode);
     } else if (
-      this.repeats !== undefined &&
+      this.repeats != null &&
       this.map_node === this.mappings &&
       runtime.conf.digitForRepeat &&
       (key >= "1" || (this.repeats !== "" && key >= "0")) &&

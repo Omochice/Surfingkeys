@@ -63,7 +63,7 @@ export default class Trie {
     const ancestors: Trie[] = [];
     let node: Trie | undefined = this;
     for (const c of word) {
-      if (node === undefined) {
+      if (node == null) {
         break;
       }
       ancestors.push(node);
@@ -76,7 +76,7 @@ export default class Trie {
         return node;
       }
       parent.children.delete(node.stem!);
-      while (parent !== this && parent.children.size === 0 && parent.meta === undefined) {
+      while (parent !== this && parent.children.size === 0 && parent.meta == null) {
         const grandparent = ancestors[--i];
         if (grandparent == null) {
           break;

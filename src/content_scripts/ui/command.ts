@@ -21,7 +21,7 @@ export default (normal: NormalLike, command: CommandFn, omnibar: OmnibarLike): v
   });
   command("clearHistory", "clearHistory <find|cmd|...>", (args) => {
     const key = args[0];
-    if (key === undefined) {
+    if (key == null) {
       return;
     }
     const update: Record<string, unknown[]> = {};

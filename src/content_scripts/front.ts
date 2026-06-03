@@ -294,7 +294,7 @@ function createFront(
     pos: any,
     showQueryResult: (pos: any, res: any) => void,
   ) => {
-    if (document.dictEnabled !== undefined) {
+    if (document.dictEnabled != null) {
       if (window.location.href.startsWith("chrome://dictorium-query/")) {
         if (window === top) {
           window.location.href = `chrome://dictorium-query/${query}`;
@@ -653,7 +653,7 @@ function createFront(
     (event) => {
       const _message =
         event.data && (event.data.surfingkeys_content_data || event.data.dictorium_data);
-      if (_message === undefined) {
+      if (_message == null) {
         return;
       }
       if (_message.action === "performInlineQuery") {

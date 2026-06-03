@@ -208,13 +208,13 @@ export default function (api: SurfingkeysApi, ctx: ModeContext): void {
       // ['f', 'Hints\tBA']
       const lastKeys = runtime.conf.lastKeys;
       const firstKey = lastKeys[0];
-      if (firstKey !== undefined) {
+      if (firstKey != null) {
         normal.feedkeys(firstKey);
       }
       const modeKeys = lastKeys.slice(1);
       for (let i = 0; i < modeKeys.length; i++) {
         const entry = modeKeys[i];
-        if (entry === undefined) {
+        if (entry == null) {
           continue;
         }
         const modeKey = entry.split("\t");
@@ -222,7 +222,7 @@ export default function (api: SurfingkeysApi, ctx: ModeContext): void {
           const closureWrapper = () => {
             const hintKeys = modeKey[1];
             return () => {
-              if (hintKeys !== undefined) {
+              if (hintKeys != null) {
                 hints.feedkeys(hintKeys);
               }
             };

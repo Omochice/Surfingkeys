@@ -80,7 +80,7 @@ const RUNTIME = function (
   }
   return Result.try({
     try: (): void => {
-      a["needResponse"] = callback !== undefined;
+      a["needResponse"] = callback != null;
       if (callback) {
         // sendMessage reports most failures ("Receiving end does not exist",
         // "message port closed") asynchronously via lastError, which

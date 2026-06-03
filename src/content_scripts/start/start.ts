@@ -61,7 +61,7 @@ document.addEventListener("surfingkeys:userSettingsLoaded", (evt) => {
       cl.remove("fadeIn");
       cl.add("fadeOut");
       const tip = keys[i];
-      if (tip === undefined) {
+      if (tip == null) {
         return;
       }
       randomTip.one("animationend", function (this: HTMLElement) {

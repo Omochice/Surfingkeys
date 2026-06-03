@@ -10,7 +10,7 @@ const formatMessage = (err: SkError): string => {
     case "decode":
       return `[decode] failed to parse: ${err.input}`;
     case "http":
-      return `[http${err.status !== undefined ? ` ${err.status}` : ""}] ${err.url}: ${String(err.cause)}`;
+      return `[http${err.status != null ? ` ${err.status}` : ""}] ${err.url}: ${String(err.cause)}`;
     case "dom-api":
       return `[dom] ${err.op}: ${String(err.cause)}`;
   }

@@ -10,7 +10,7 @@ function dispatchFocus(normal: ReturnType<typeof createNormal>, target: Element)
   const event = new Event("focus");
   Object.defineProperty(event, "target", { value: target });
   const handler = normal.eventListeners["focus"];
-  if (handler === undefined) {
+  if (handler == null) {
     throw new Error("normal mode did not register a focus handler");
   }
   handler(event);
@@ -80,7 +80,7 @@ function dispatchKeydown(normal: ReturnType<typeof createNormal>, target: Elemen
     },
   });
   const handler = normal.eventListeners["keydown"];
-  if (handler === undefined) {
+  if (handler == null) {
     throw new Error("normal mode did not register a keydown handler");
   }
   handler(event);

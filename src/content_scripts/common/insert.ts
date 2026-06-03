@@ -25,7 +25,7 @@ export function nextNonWord(str: string, dir: number, cur: number): number {
       break;
     } else {
       const ch = str[cur];
-      if (ch === undefined || nonWord.test(ch)) {
+      if (ch == null || nonWord.test(ch)) {
         break;
       }
       cur = cur + dir;
@@ -68,7 +68,7 @@ function createInsert(): InsertMode {
 
   function moveCursorEOL(): void {
     const element = getRealEdit();
-    if (element.setSelectionRange !== undefined) {
+    if (element.setSelectionRange != null) {
       const r = Result.try({
         try: (): void => {
           element.setSelectionRange(element.value.length, element.value.length);
@@ -121,7 +121,7 @@ function createInsert(): InsertMode {
     feature_group: 14,
     code: () => {
       const element = getRealEdit();
-      if (element.setSelectionRange !== undefined) {
+      if (element.setSelectionRange != null) {
         element.setSelectionRange(0, 0);
       } else {
         // for contenteditable div
@@ -135,7 +135,7 @@ function createInsert(): InsertMode {
     feature_group: 14,
     code: () => {
       const element = getRealEdit();
-      if (element.setSelectionRange !== undefined) {
+      if (element.setSelectionRange != null) {
         element.value = element.value.substr(element.selectionStart);
         element.setSelectionRange(0, 0);
       } else {
@@ -151,7 +151,7 @@ function createInsert(): InsertMode {
     feature_group: 14,
     code: () => {
       const element = getRealEdit();
-      if (element.setSelectionRange !== undefined) {
+      if (element.setSelectionRange != null) {
         const pos = nextNonWord(element.value, -1, element.selectionStart);
         element.setSelectionRange(pos, pos);
       } else {
@@ -165,7 +165,7 @@ function createInsert(): InsertMode {
     feature_group: 14,
     code: () => {
       const element = getRealEdit();
-      if (element.setSelectionRange !== undefined) {
+      if (element.setSelectionRange != null) {
         const pos = nextNonWord(element.value, 1, element.selectionStart);
         element.setSelectionRange(pos, pos);
       } else {
@@ -179,7 +179,7 @@ function createInsert(): InsertMode {
     feature_group: 14,
     code: () => {
       const element = getRealEdit();
-      if (element.setSelectionRange !== undefined) {
+      if (element.setSelectionRange != null) {
         const pos = deleteNextWord(element.value, -1, element.selectionStart);
         element.value = pos[0];
         element.setSelectionRange(pos[1], pos[1]);
@@ -201,7 +201,7 @@ function createInsert(): InsertMode {
     feature_group: 14,
     code: () => {
       const element = getRealEdit();
-      if (element.setSelectionRange !== undefined) {
+      if (element.setSelectionRange != null) {
         const pos = deleteNextWord(element.value, 1, element.selectionStart);
         element.value = pos[0];
         element.setSelectionRange(pos[1], pos[1]);
@@ -237,7 +237,7 @@ function createInsert(): InsertMode {
     (c: string) => {
       const ee = c.split("\t");
       const codepoints = ee[0];
-      if (codepoints === undefined) {
+      if (codepoints == null) {
         return "";
       }
       const parsedUnicodeEmoji = String.fromCodePoint(...codepoints.split(",").map(Number));
@@ -287,7 +287,7 @@ function createInsert(): InsertMode {
           let elm = getRealEdit();
           const str = elm.value;
           let pos = elm.selectionStart;
-          if (str !== undefined && pos !== undefined) {
+          if (str != null && pos != null) {
             elm.value = str.substr(0, elm.selectionStart) + pw + str.substr(elm.selectionEnd);
             pos += pw.length;
             elm.setSelectionRange(pos, pos);
@@ -297,7 +297,7 @@ function createInsert(): InsertMode {
             const n = document.createTextNode(pw);
             if (elm.type === "Caret") {
               const data = elm.focusNode.data;
-              if (data === undefined) {
+              if (data == null) {
                 range.insertNode(n);
                 elm.setPosition(n, n.length);
               } else {

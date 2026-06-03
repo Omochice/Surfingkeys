@@ -445,7 +445,7 @@ export function createSettings(deps: SettingsDeps): SettingsUnit {
         message.key = "";
       }
       pf(message.key, (data: any) => {
-        if (message.key === undefined) {
+        if (message.key == null) {
           onFullSettingsRequested(data);
         }
 

@@ -32,7 +32,7 @@ export function request(
   return Result.try({
     try: async () => {
       const res = await fetch(url, {
-        method: data !== undefined ? "POST" : "GET",
+        method: data != null ? "POST" : "GET",
         headers: headers ?? {},
         body: data ?? null,
       });

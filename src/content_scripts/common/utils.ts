@@ -312,10 +312,10 @@ function dispatchMouseEvent(
       cancelable: true,
       composed: true,
       view: window,
-      ...(modifiers.ctrlKey !== undefined && { ctrlKey: modifiers.ctrlKey }),
-      ...(modifiers.altKey !== undefined && { altKey: modifiers.altKey }),
-      ...(modifiers.shiftKey !== undefined && { shiftKey: modifiers.shiftKey }),
-      ...(modifiers.metaKey !== undefined && { metaKey: modifiers.metaKey }),
+      ...(modifiers.ctrlKey != null && { ctrlKey: modifiers.ctrlKey }),
+      ...(modifiers.altKey != null && { altKey: modifiers.altKey }),
+      ...(modifiers.shiftKey != null && { shiftKey: modifiers.shiftKey }),
+      ...(modifiers.metaKey != null && { metaKey: modifiers.metaKey }),
     });
     element.dispatchEvent(event);
   });
@@ -430,7 +430,7 @@ function getVisibleElements(
   const visibleElements: HTMLElement[] = [];
   for (let i = 0; i < all.length; i++) {
     const e = all[i];
-    if (e === undefined) {
+    if (e == null) {
       continue;
     }
     // include elements in a shadowRoot.
@@ -438,7 +438,7 @@ function getVisibleElements(
       const cc = e.shadowRoot.querySelectorAll("*");
       for (let j = 0; j < cc.length; j++) {
         const child = cc[j];
-        if (child !== undefined) {
+        if (child != null) {
           all.push(child);
         }
       }
@@ -556,7 +556,7 @@ function filterAncestors(elements: Element[]): Element[] {
     } else {
       for (let j = 0; j < result.length; j++) {
         const r = result[j];
-        if (r === undefined) {
+        if (r == null) {
           continue;
         }
         if (r.contains(e)) {
@@ -582,10 +582,10 @@ function filterAncestors(elements: Element[]): Element[] {
 function getRealRect(elm: Element): DOMRect {
   if (elm.childElementCount === 0) {
     const r = elm.getClientRects();
-    if (r.length === 3 && r[1] !== undefined) {
+    if (r.length === 3 && r[1] != null) {
       // for a clipped A tag
       return r[1];
-    } else if (r.length === 2 && r[0] !== undefined) {
+    } else if (r.length === 2 && r[0] != null) {
       // for a wrapped A tag
       return r[0];
     } else {
@@ -739,9 +739,9 @@ function getTextRect(
       let start = startOffset;
       while (rects.length === 0 && start >= 0) {
         _focusedRange.setStart(node, start);
-        if (endOffset !== undefined) {
+        if (endOffset != null) {
           _focusedRange.setEnd(endNodeOrOffset as Node, endOffset);
-        } else if (endNodeOrOffset !== undefined) {
+        } else if (endNodeOrOffset != null) {
           _focusedRange.setEnd(node, endNodeOrOffset as number);
         } else {
           _focusedRange.setEnd(node, startOffset);
@@ -894,14 +894,14 @@ function parseAnnotation(ag: { annotation: string | string[]; feature_group?: nu
   }
   const arr = an as string[];
   const first = arr[0];
-  if (first === undefined) {
+  if (first == null) {
     return ag;
   }
   const annotations = first.match(/^#(\d+)(.*)/);
   if (annotations !== null) {
     const featureGroup = annotations[1];
     const rest = annotations[2];
-    if (featureGroup !== undefined && rest !== undefined) {
+    if (featureGroup != null && rest != null) {
       ag.feature_group = parseInt(featureGroup);
       arr[0] = rest;
     }
@@ -1051,7 +1051,7 @@ function createElementWithContent(
   if (attributes) {
     for (const attr in attributes) {
       const val = attributes[attr];
-      if (val !== undefined) {
+      if (val != null) {
         elm.setAttribute(attr, val);
       }
     }
@@ -1086,7 +1086,7 @@ HTMLElement.prototype.hide = function () {
 HTMLElement.prototype.removeAttributes = function () {
   while (this.attributes.length > 0) {
     const first = this.attributes[0];
-    if (first === undefined) {
+    if (first == null) {
       break;
     }
     this.removeAttribute(first.name);
@@ -1198,7 +1198,7 @@ function refreshHints(
       }
     }
   } else {
-    if (hints.length === 1 && hints[0] !== undefined) {
+    if (hints.length === 1 && hints[0] != null) {
       result.matched = hintLink.get(hints[0]);
     } else {
       for (const hint of hints) {

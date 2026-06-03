@@ -302,7 +302,7 @@ export default function (
       const allAliases: Record<string, { prompt: string; checked: string }> = {};
       for (const key in aliases) {
         const alias = aliases[key];
-        if (alias === undefined) {
+        if (alias == null) {
           continue;
         }
         // The omnibar prompt is either a plain label or an `{ html }` icon (the search-engine
@@ -313,13 +313,13 @@ export default function (
       }
       for (const key in disabledSearchAliases) {
         const prompt = disabledSearchAliases[key];
-        if (prompt !== undefined) {
+        if (prompt != null) {
           allAliases[key] = { prompt, checked: "" };
         }
       }
       for (const key in allAliases) {
         const entry = allAliases[key];
-        if (entry === undefined) {
+        if (entry == null) {
           continue;
         }
         const { prompt, checked } = entry;
