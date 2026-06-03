@@ -52,7 +52,7 @@ export default class Trie {
       }
       node = child;
     }
-    node.meta = Object.assign(meta, { word }) as TrieMeta;
+    node.meta = { ...meta, word };
   }
 
   /**
