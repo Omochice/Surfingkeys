@@ -39,9 +39,9 @@ export function createHistoryHandlers(
         let tabs: any[] = [];
         for (let i = 0; i < sessions.length; i++) {
           const s = sessions[i];
-          if (Object.prototype.hasOwnProperty.call(s, "window")) {
+          if (Object.hasOwn(s, "window")) {
             tabs = tabs.concat(s.window.tabs);
-          } else if (Object.prototype.hasOwnProperty.call(s, "tab")) {
+          } else if (Object.hasOwn(s, "tab")) {
             tabs.push(s.tab);
           }
         }

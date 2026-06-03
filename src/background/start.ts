@@ -50,9 +50,9 @@ const Gist = (() => {
       let gist = "";
       gists.forEach((g: any) => {
         if (
-          Object.prototype.hasOwnProperty.call(g, "description") &&
+          Object.hasOwn(g, "description") &&
           g["description"] === magic_word &&
-          Object.prototype.hasOwnProperty.call(g.files, magic_word)
+          Object.hasOwn(g.files, magic_word)
         ) {
           gist = g.id;
         }
@@ -217,7 +217,7 @@ function start(browser: any): void {
     sendResponse(result);
   }
   function handleMessage(_message: any, _sender: any, _sendResponse: any) {
-    const handler = Object.prototype.hasOwnProperty.call(handlers, _message.action)
+    const handler = Object.hasOwn(handlers, _message.action)
       ? handlers[_message.action]
       : undefined;
     if (handler) {

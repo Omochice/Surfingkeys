@@ -260,11 +260,7 @@ function createOmnibar(front: any, clipboard: any) {
 
   self.expandAlias = (alias: string, val: string) => {
     let eaten = false;
-    if (
-      handler !== searchEngine &&
-      alias.length &&
-      Object.prototype.hasOwnProperty.call(searchEngine.aliases, alias)
-    ) {
+    if (handler !== searchEngine && alias.length && Object.hasOwn(searchEngine.aliases, alias)) {
       lastHandler = handler;
       handler = searchEngine;
       Object.assign(searchEngine, searchEngine.aliases[alias]);
@@ -503,16 +499,16 @@ function createOmnibar(front: any, clipboard: any) {
     let type = "🔥";
     let additional = "";
     let uid = b.uid;
-    if (Object.prototype.hasOwnProperty.call(b, "lastVisitTime")) {
+    if (Object.hasOwn(b, "lastVisitTime")) {
       type = "🕜";
       additional = `<span class=omnibar_timestamp># ${timeStampString(b.lastVisitTime)}</span>`;
       additional += `<span class=omnibar_visitcount> (${b.visitCount})</span>`;
       uid = "H" + b.url;
-    } else if (Object.prototype.hasOwnProperty.call(b, "dateAdded")) {
+    } else if (Object.hasOwn(b, "dateAdded")) {
       type = "⭐";
       additional = `<span class=omnibar_folder>@ ${bookmarkFolders[b.parentId].title || ""}</span> <span class=omnibar_timestamp># ${timeStampString(b.dateAdded)}</span>`;
       uid = "B" + b.id;
-    } else if (Object.prototype.hasOwnProperty.call(b, "width")) {
+    } else if (Object.hasOwn(b, "width")) {
       type = "🔖";
       uid = "T" + b.windowId + ":" + b.id;
       // } else if(b.type && /^\p{Emoji}$/u.test(b.type)) {
@@ -520,7 +516,7 @@ function createOmnibar(front: any, clipboard: any) {
       type = b.type;
     }
     let li: any = createElementWithContent("li", `<div class="icon">${type}</div>`);
-    if (Object.prototype.hasOwnProperty.call(b, "favIconUrl")) {
+    if (Object.hasOwn(b, "favIconUrl")) {
       li = createElementWithContent("li", `<img class="icon"/>`);
       attachFaviconToImgSrc(b, li.querySelector("img"));
     }
@@ -604,9 +600,9 @@ function createOmnibar(front: any, clipboard: any) {
       rxp = regexFromString(query, runtime.getCaseSensitive(query), true);
     }
     self.listResults(_page, (b: any) => {
-      if (Object.prototype.hasOwnProperty.call(b, "html")) {
+      if (Object.hasOwn(b, "html")) {
         return self.createItemFromRawHtml(b);
-      } else if (Object.prototype.hasOwnProperty.call(b, "url") && b.url != null) {
+      } else if (Object.hasOwn(b, "url") && b.url != null) {
         if (getBrowserName() === "Firefox" && /^(place|data):/i.test(b.url)) {
           return null;
         }
@@ -1067,7 +1063,7 @@ function OpenBookmarks(omnibar: any): any {
     let items = response.bookmarks;
     if (folderOnly) {
       items = items.filter((b: any) => {
-        return !Object.prototype.hasOwnProperty.call(b, "url") || b.url == null;
+        return !Object.hasOwn(b, "url") || b.url == null;
       });
     }
     omnibar.listURLs(items, true);
@@ -1523,9 +1519,9 @@ function SearchEngine(omnibar: any, front: any): any {
     const query = encodeURIComponent(omnibar.input.value);
     const rxp = regexFromString(query, runtime.getCaseSensitive(query), true);
     omnibar.listResults(suggestions, (w: any) => {
-      if (Object.prototype.hasOwnProperty.call(w, "html")) {
+      if (Object.hasOwn(w, "html")) {
         return omnibar.createItemFromRawHtml(w);
-      } else if (Object.prototype.hasOwnProperty.call(w, "url")) {
+      } else if (Object.hasOwn(w, "url")) {
         return omnibar.createURLItem(w, rxp);
       } else {
         const li = createElementWithContent("li", `⌕ ${w}`);
@@ -1713,7 +1709,7 @@ function Commands(omnibar: any, front: any): any {
   function execute(cmdline: string) {
     const args = parseCommand(cmdline);
     const cmd = args.shift()!;
-    if (Object.prototype.hasOwnProperty.call(items, cmd)) {
+    if (Object.hasOwn(items, cmd)) {
       const meta = items[cmd];
       meta.code.call(meta.code, args);
     } else {

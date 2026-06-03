@@ -15,14 +15,11 @@ export function createBookmarkHandlers(_response: Respond): Record<string, Messa
   let bookmarkFolders: any[] = [];
   function getFolders(tree: any, root: string) {
     let cd = root;
-    if (
-      tree.title !== "" &&
-      (!Object.prototype.hasOwnProperty.call(tree, "url") || tree.url == null)
-    ) {
+    if (tree.title !== "" && (!Object.hasOwn(tree, "url") || tree.url == null)) {
       cd += "/" + tree.title;
       bookmarkFolders.push({ id: tree.id, title: cd + "/" });
     }
-    if (Object.prototype.hasOwnProperty.call(tree, "children")) {
+    if (Object.hasOwn(tree, "children")) {
       for (let i = 0; i < tree.children.length; ++i) {
         getFolders(tree.children[i], cd);
       }

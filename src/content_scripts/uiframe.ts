@@ -76,7 +76,7 @@ function createUiHost(adapter: BrowserLike, onload: (uiHost: HTMLElement) => voi
           );
         }
       }
-    } else if (_message.action && Object.prototype.hasOwnProperty.call(_actions, _message.action)) {
+    } else if (_message.action && Object.hasOwn(_actions, _message.action)) {
       const action = _actions[_message.action];
       if (action) {
         action(_message);

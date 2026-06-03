@@ -276,14 +276,14 @@ function initSKFunctionListener(
         }
       }
 
-      if (Object.prototype.hasOwnProperty.call(callbacks, fk)) {
+      if (Object.hasOwn(callbacks, fk)) {
         const cb = callbacks[fk];
         if (cb) {
           cb(...args);
         }
         delete callbacks[fk];
       }
-      if (Object.prototype.hasOwnProperty.call(interfaces, fk)) {
+      if (Object.hasOwn(interfaces, fk)) {
         const iface = interfaces[fk];
         if (iface) {
           iface(...args);

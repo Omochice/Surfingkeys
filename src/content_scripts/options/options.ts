@@ -330,7 +330,7 @@ export default function (
         document.querySelector("#searchAliases")!.appendChild(elm);
 
         elm.querySelector<HTMLInputElement>("input")!.onchange = () => {
-          if (Object.prototype.hasOwnProperty.call(disabledSearchAliases, key)) {
+          if (Object.hasOwn(disabledSearchAliases, key)) {
             delete disabledSearchAliases[key];
           } else {
             disabledSearchAliases[key] = prompt;
@@ -353,7 +353,7 @@ export default function (
     initL10n((locale) => {
       const customization = basicMappings.map((w) => {
         let newKey = w.origin;
-        if (rs.basicMappings && Object.prototype.hasOwnProperty.call(rs.basicMappings, w.origin)) {
+        if (rs.basicMappings && Object.hasOwn(rs.basicMappings, w.origin)) {
           newKey = rs.basicMappings[w.origin];
         }
         return `<div>

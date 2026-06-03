@@ -67,7 +67,7 @@ function handleStack(eventName: string, event: StackEvent, cb?: (mode: Mode) => 
     if (event.sk_stopPropagation) {
       break;
     }
-    if (!event.sk_suppressed && Object.prototype.hasOwnProperty.call(m.eventListeners, eventName)) {
+    if (!event.sk_suppressed && Object.hasOwn(m.eventListeners, eventName)) {
       const handler = m.eventListeners[eventName];
       if (handler) {
         handler(event);
@@ -114,7 +114,7 @@ export default class Mode {
   addEventListener(evtName: string, handler: (event: StackEvent) => void): this {
     this.eventListeners[evtName] = handler;
 
-    if (!Object.prototype.hasOwnProperty.call(_listenedEvents, evtName)) {
+    if (!Object.hasOwn(_listenedEvents, evtName)) {
       _listenedEvents[evtName] = (event) => {
         handleStack(evtName, event);
       };

@@ -56,7 +56,7 @@ export function createTabHistory(): TabHistory {
     navigate(message: { index?: any; backward?: boolean }): number | undefined {
       if (tabHistory.length > 0) {
         historyTabAction = true;
-        if (Object.prototype.hasOwnProperty.call(message, "index")) {
+        if (Object.hasOwn(message, "index")) {
           tabHistoryIndex = (parseInt(message.index) + tabHistory.length) % tabHistory.length;
         } else {
           tabHistoryIndex += message.backward ? -1 : 1;

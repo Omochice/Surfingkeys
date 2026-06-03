@@ -621,7 +621,7 @@ export default function (api: SurfingkeysApi, ctx: ModeContext): void {
       const obj: Record<string, any> = {};
 
       formData.forEach((value: any, key) => {
-        if (Object.prototype.hasOwnProperty.call(obj, key)) {
+        if (Object.hasOwn(obj, key)) {
           if (value.length) {
             const p = obj[key];
             if (p.constructor.name === "Array") {
@@ -659,10 +659,10 @@ export default function (api: SurfingkeysApi, ctx: ModeContext): void {
       const formKey = generateFormKey(element);
       clipboard.read((response) => {
         const forms = JSON.parse(response.data.trim());
-        if (Object.prototype.hasOwnProperty.call(forms, formKey)) {
+        if (Object.hasOwn(forms, formKey)) {
           const fd = forms[formKey];
           element.querySelectorAll("input, textarea").forEach((ip: any) => {
-            if (Object.prototype.hasOwnProperty.call(fd, ip.name) && ip.type !== "hidden") {
+            if (Object.hasOwn(fd, ip.name) && ip.type !== "hidden") {
               if (ip.type === "radio") {
                 const op = element.querySelector(
                   `input[name='${ip.name}'][value='${fd[ip.name]}']`,

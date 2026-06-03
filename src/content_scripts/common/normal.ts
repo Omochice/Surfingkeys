@@ -357,7 +357,7 @@ function createNormal(insert: InsertLike): NormalMode {
         },
         (resp) => {
           if (resp.state === "disabled") {
-            if (Object.prototype.hasOwnProperty.call(resp.blocklist, ".*")) {
+            if (Object.hasOwn(resp.blocklist, ".*")) {
               showBanner(
                 "Surfingkeys is globally disabled, please enable it globally from popup menu.",
                 3000,
