@@ -3,10 +3,6 @@
 // this file via overrides in .oxlintrc.json.
 
 declare global {
-  interface String {
-    /** Positional substitution: "{0}/{1}".format(a, b). */
-    format(...args: unknown[]): string;
-  }
   interface RegExp {
     toJSON(): { source: string; flags: string };
   }

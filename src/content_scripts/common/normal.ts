@@ -5,6 +5,7 @@ import Mode from "./mode";
 import { RUNTIME, dispatchSKEvent, runtime } from "./runtime";
 import Trie from "./trie";
 import {
+  format,
   getRealEdit,
   isEditable,
   isElementClickable,
@@ -788,7 +789,7 @@ function createNormal(insert: InsertLike): NormalMode {
   self.appendKeysForRepeat = (mode, keys) => {
     if (lastKeys && lastKeys.length > 0) {
       // keys for normal mode must be pushed.
-      lastKeys.push("{0}\t{1}".format(mode, keys));
+      lastKeys.push(format("{0}\t{1}", mode, keys));
       saveLastKeys();
     }
   };
@@ -802,7 +803,7 @@ function createNormal(insert: InsertLike): NormalMode {
       scrollTop: document.scrollingElement!.scrollTop,
     };
     RUNTIME("addVIMark", { mark: mo });
-    showBanner("Mark '{0}' added for: {1}.".format(mark, url));
+    showBanner(format("Mark '{0}' added for: {1}.", mark, url));
   };
 
   /**
@@ -900,7 +901,7 @@ function createNormal(insert: InsertLike): NormalMode {
           if (lastScrollLeft === elm.scrollLeft) {
             // done
             dispatchSKEvent("front", ["toggleStatus", true]);
-            showPopup("<img src='{0}' />".format(canvas.toDataURL("image/png")));
+            showPopup(format("<img src='{0}' />", canvas.toDataURL("image/png")));
             // restore overflow
             elm.style.overflowY = overflowY;
             elm.style.overflowX = overflowX;

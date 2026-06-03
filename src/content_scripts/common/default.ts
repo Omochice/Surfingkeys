@@ -3,6 +3,7 @@ import KeyboardUtils from "./keyboardUtils";
 import type { ModeContext } from "./modeGraph";
 import { RUNTIME, dispatchSKEvent, runtime } from "./runtime";
 import {
+  format,
   getBrowserName,
   getCssSelectorsOfEditable,
   getLargeElements,
@@ -130,7 +131,7 @@ export default function (api: SurfingkeysApi, ctx: ModeContext): void {
     setTimeout(() => {
       RUNTIME("captureVisibleTab", null, (response) => {
         front.toggleStatus(true);
-        showPopup("<img src='{0}' />".format(response.dataUrl));
+        showPopup(format("<img src='{0}' />", response.dataUrl));
       });
     }, 500);
   });

@@ -9,6 +9,7 @@ import createModeGraph, { type ModeContext } from "../common/modeGraph";
 import { RUNTIME, runtime } from "../common/runtime";
 import {
   attachFaviconToImgSrc,
+  format,
   generateQuickGuid,
   getAnnotations,
   getWordUnderCursor,
@@ -350,7 +351,7 @@ const Front = (() => {
   function localizeAnnotation(locale: (s: string) => string, annotation: any) {
     if (annotation.constructor.name === "Array") {
       const fmt = annotation[0];
-      return locale(fmt).format(...annotation.slice(1));
+      return format(locale(fmt), ...annotation.slice(1));
     } else {
       return locale(annotation);
     }
@@ -386,7 +387,8 @@ const Front = (() => {
         const last = altSKeys[lh - 1];
         if (last != null) {
           firstGroup.push(
-            "<div><span class=kbd-span><kbd>{0}</kbd></span><span class=annotation>{1}</span></div>".format(
+            format(
+              "<div><span class=kbd-span><kbd>{0}</kbd></span><span class=annotation>{1}</span></div>",
               htmlEncode(last),
               locale("Toggle SurfingKeys on current site"),
             ),
@@ -411,7 +413,8 @@ const Front = (() => {
       const groups = help_groups
         .map((g, i) =>
           g.length
-            ? "<div class=feature_name><span>{0}</span></div>{1}".format(
+            ? format(
+                "<div class=feature_name><span>{0}</span></div>{1}",
                 locale(feature_groups[i] ?? ""),
                 g.join(""),
               )

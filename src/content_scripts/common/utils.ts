@@ -133,7 +133,11 @@ function applyUserSettings(delta: { error: string; settings: Record<string, unkn
       showPopup("[SurfingKeys] Error found in settings: " + delta.error);
     } else {
       console.log(
-        "[SurfingKeys] Error found in settings({0}): {1}".format(window.location.href, delta.error),
+        format(
+          "[SurfingKeys] Error found in settings({0}): {1}",
+          window.location.href,
+          delta.error,
+        ),
       );
     }
   }
@@ -365,18 +369,18 @@ function isEditable(element: any): boolean {
 
 function reportIssue(title: string, description: string): void {
   title = encodeURIComponent(title);
-  description =
-    "%23%23+Error+details%0A%0A{0}%0A%0ASurfingKeys%3A+{1}%0A%0AChrome%3A+{2}%0A%0AURL%3A+{3}%0A%0A%23%23+Context%0A%0A%2A%2APlease+replace+this+with+a+description+of+how+you+were+using+SurfingKeys.%2A%2A".format(
-      encodeURIComponent(description),
-      browser.runtime.getManifest().version,
-      encodeURIComponent(navigator.userAgent),
-      encodeURIComponent(window.location.href),
-    );
-  const error =
-    '<h2>Uh-oh! The SurfingKeys extension encountered a bug.</h2> <p>Please click <a href="https://github.com/brookhong/Surfingkeys/issues/new?title={0}&body={1}" target=_blank>here</a> to start filing a new issue, append a description of how you were using SurfingKeys before this message appeared, then submit it.  Thanks for your help!</p>'.format(
-      title,
-      description,
-    );
+  description = format(
+    "%23%23+Error+details%0A%0A{0}%0A%0ASurfingKeys%3A+{1}%0A%0AChrome%3A+{2}%0A%0AURL%3A+{3}%0A%0A%23%23+Context%0A%0A%2A%2APlease+replace+this+with+a+description+of+how+you+were+using+SurfingKeys.%2A%2A",
+    encodeURIComponent(description),
+    browser.runtime.getManifest().version,
+    encodeURIComponent(navigator.userAgent),
+    encodeURIComponent(window.location.href),
+  );
+  const error = format(
+    '<h2>Uh-oh! The SurfingKeys extension encountered a bug.</h2> <p>Please click <a href="https://github.com/brookhong/Surfingkeys/issues/new?title={0}&body={1}" target=_blank>here</a> to start filing a new issue, append a description of how you were using SurfingKeys before this message appeared, then submit it.  Thanks for your help!</p>',
+    title,
+    description,
+  );
 
   showPopup(error);
 }
@@ -866,14 +870,14 @@ function initL10n(cb: (translate: (str: string) => string) => void): void {
   }
 }
 
-String.prototype.format = function (...args: unknown[]): string {
-  let formatted = String(this);
+function format(template: string, ...args: unknown[]): string {
+  let formatted = template;
   for (let i = 0; i < args.length; i++) {
     const regexp = new RegExp("\\{" + i + "\\}", "gi");
     formatted = formatted.replace(regexp, String(args[i]));
   }
   return formatted;
-};
+}
 
 RegExp.prototype.toJSON = function () {
   return { source: this.source, flags: this.flags };
@@ -952,7 +956,7 @@ function getAnnotations(mappings: Trie): {
 
 function constructSearchURL(se: string, word: string): string {
   if (se.indexOf("{0}") > 0) {
-    return se.format(word);
+    return format(se, word);
   } else if (se.indexOf("%s") > 0) {
     return se.replace("%s", word);
   } else {
@@ -1233,6 +1237,7 @@ export {
   filterInvisibleElements,
   filterOverlapElements,
   flashPressedLink,
+  format,
   generateQuickGuid,
   getAnnotations,
   getBrowserName,
