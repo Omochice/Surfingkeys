@@ -160,7 +160,7 @@ export default class KeyboardUtils {
       return "";
     }
     const namedKey = KeyboardUtils.keyNames[event.keyCode];
-    if (namedKey !== undefined) {
+    if (namedKey != null) {
       character = namedKey;
     } else {
       character = event.key || "";
@@ -193,7 +193,7 @@ export default class KeyboardUtils {
         if (event.keyCode < 127) {
           character = String.fromCharCode(event.keyCode);
           character = event.shiftKey ? character : character.toLowerCase();
-        } else if (event.code !== undefined) {
+        } else if (event.code != null) {
           const macCodes = KeyboardUtils.keyCodesMac[event.code];
           if (macCodes) {
             // Alt-/ or Alt-?
@@ -237,7 +237,7 @@ export default class KeyboardUtils {
     let lastIndex = 0;
     while ((mtches = ekp.exec(s)) !== null) {
       const captured = mtches[1];
-      if (captured === undefined) {
+      if (captured == null) {
         continue;
       }
       ret += s.substr(lastIndex, mtches.index - lastIndex);

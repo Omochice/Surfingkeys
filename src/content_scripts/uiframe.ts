@@ -34,7 +34,7 @@ function createUiHost(adapter: BrowserLike, onload: (uiHost: HTMLElement) => voi
 
   function _onWindowMessage(event: MessageEvent): void {
     const _message = event.data && event.data.surfingkeys_uihost_data;
-    if (_message === undefined) {
+    if (_message == null) {
       return;
     }
     if (_message.toFrontend) {
@@ -156,7 +156,7 @@ function createUiHost(adapter: BrowserLike, onload: (uiHost: HTMLElement) => voi
       }
       if (document.body) {
         document.body.style.animationFillMode = "none";
-        if (_origOverflowY === undefined) {
+        if (_origOverflowY == null) {
           _origOverflowY = document.body.style.overflowY;
         }
         document.body.style.overflowY = "visible";

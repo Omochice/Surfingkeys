@@ -557,7 +557,7 @@ div.hint-scrollable {
         setSanitizedContent(hint, "");
         const e = hintLink.get(hint);
         let text = e.innerText;
-        if (text === undefined) {
+        if (text == null) {
           text = e[0] ? e[0].textContent : "";
         }
         return text.indexOf(textFilter) !== -1;
@@ -618,7 +618,7 @@ div.hint-scrollable {
 
   function walkPageUrl(step: number): boolean {
     for (const re of runtime.conf.pageUrlRegex) {
-      if (re === undefined) {
+      if (re == null) {
         continue;
       }
       const numbers = window.location.href.match(re);
@@ -628,7 +628,7 @@ div.hint-scrollable {
       const prefix = numbers[1];
       const middle = numbers[2];
       const suffix = numbers[3];
-      if (prefix === undefined || middle === undefined || suffix === undefined) {
+      if (prefix == null || middle == null || suffix == null) {
         continue;
       }
       const cp = parseInt(middle);
@@ -741,7 +741,7 @@ div.hint-scrollable {
     let offset = 0;
     while (hints.length - offset < total || offset == 0) {
       const p = hints[offset++];
-      if (p === undefined) {
+      if (p == null) {
         break;
       }
       for (const ch of chars) {
@@ -851,11 +851,11 @@ div.hint-scrollable {
     });
     const hints = holder.querySelectorAll("div");
     const firstHint = hints[0];
-    if (firstHint !== undefined) {
+    if (firstHint != null) {
       let bcr = getRealRect(firstHint);
       for (let i = 1; i < hints.length; i++) {
         const h = hints[i];
-        if (h === undefined) {
+        if (h == null) {
           continue;
         }
         const tcr = getRealRect(h);
@@ -972,10 +972,10 @@ div.hint-scrollable {
         }
         const [topMin, leftMin, topMax, leftMax] = caretViewport;
         if (
-          topMin === undefined ||
-          leftMin === undefined ||
-          topMax === undefined ||
-          leftMax === undefined ||
+          topMin == null ||
+          leftMin == null ||
+          topMax == null ||
+          leftMax == null ||
           e[0].data.trim().length === 0 ||
           pos.top < topMin ||
           pos.left < leftMin ||

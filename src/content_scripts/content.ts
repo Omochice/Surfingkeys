@@ -42,7 +42,7 @@ function applyBasicMappings(api: Api, normal: Normal, mappings: Record<string, s
   const originMappings: Record<string, any> = {};
   for (const originKey in mappings) {
     const newKey = mappings[originKey];
-    if (newKey === undefined) {
+    if (newKey == null) {
       continue;
     }
     // current new key is one original key that will be overrode later
@@ -58,7 +58,7 @@ function applyBasicMappings(api: Api, normal: Normal, mappings: Record<string, s
       normal.mappings.remove(originKey);
     } else if (Object.prototype.hasOwnProperty.call(originMappings, originKey)) {
       const meta = originMappings[originKey];
-      if (meta !== undefined) {
+      if (meta != null) {
         normal.mappings.add(newKey, meta);
       }
     } else {

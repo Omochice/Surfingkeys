@@ -22,7 +22,7 @@ function RUNTIME(
 ) {
   const a: Record<string, unknown> = args || {};
   a["action"] = action;
-  a["needResponse"] = callback !== undefined;
+  a["needResponse"] = callback != null;
   if (callback) {
     chrome.runtime.sendMessage(a, callback);
   } else {

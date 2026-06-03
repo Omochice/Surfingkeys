@@ -532,7 +532,7 @@ function createNormal(insert: InsertLike): NormalMode {
     let index = scrollNodes!.lastIndexOf(target);
     for (let i = scrollNodes!.length - 1; i >= 0 && index === -1; i--) {
       const sn = scrollNodes![i];
-      if (sn !== undefined && sn !== document.body && sn.contains(target)) {
+      if (sn != null && sn !== document.body && sn.contains(target)) {
         index = i;
       }
     }
@@ -571,7 +571,7 @@ function createNormal(insert: InsertLike): NormalMode {
     if (scrollNodes.length > 0) {
       scrollIndex = (scrollIndex + 1) % scrollNodes.length;
       const sn = scrollNodes[scrollIndex];
-      if (sn !== undefined) {
+      if (sn != null) {
         scrollIntoViewIfNeeded(sn);
         if (!silent) {
           self.highlightElement(sn);
@@ -740,7 +740,7 @@ function createNormal(insert: InsertLike): NormalMode {
     const current = scrollNodes?.[scrollIndex];
     if (
       !scrollNodes ||
-      ((current === undefined || !elm.contains(current)) && scrollNodes.indexOf(elm) === -1)
+      ((current == null || !elm.contains(current)) && scrollNodes.indexOf(elm) === -1)
     ) {
       initScrollIndex();
       scrollNodes!.push(elm);
@@ -817,7 +817,7 @@ function createNormal(insert: InsertLike): NormalMode {
       if (scrollNodes!.length > 0) {
         const scrollNode = scrollNodes![scrollIndex]!;
         const helpers = scrollHelpers.get(scrollNode);
-        if (helpers?.lastScrollTop !== undefined && helpers.lastScrollLeft !== undefined) {
+        if (helpers?.lastScrollTop != null && helpers.lastScrollLeft != null) {
           const lt = scrollNode.scrollTop;
           const ll = scrollNode.scrollLeft;
           scrollNode.scrollTop = helpers.lastScrollTop;
@@ -978,7 +978,7 @@ function createNormal(insert: InsertLike): NormalMode {
       initScrollIndex();
       if (scrollNodes!.length > 0) {
         const scrollNode = scrollNodes![scrollIndex];
-        if (scrollNode !== undefined) {
+        if (scrollNode != null) {
           self.highlightElement(scrollNode);
         }
       }

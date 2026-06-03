@@ -44,7 +44,7 @@ function createAPI(ctx: ModeContext) {
     }
     if (ag) {
       ag = parseAnnotation(ag);
-      if (ag.feature_group !== undefined) {
+      if (ag.feature_group != null) {
         keybound.feature_group = ag.feature_group;
       }
       keybound.annotation = ag.annotation;
@@ -210,7 +210,7 @@ function createAPI(ctx: ModeContext) {
         const specialKey = Mode.specialKeys[old_keystroke];
         if (
           !mapInMode(normal, new_keystroke, old_keystroke, new_annotation) &&
-          specialKey !== undefined
+          specialKey != null
         ) {
           specialKey.push(new_keystroke);
           dispatchSKEvent("front", ["addMapkey", "Mode", new_keystroke, old_keystroke]);
@@ -239,7 +239,7 @@ function createAPI(ctx: ModeContext) {
       } else {
         for (const k in Mode.specialKeys) {
           const keys = Mode.specialKeys[k];
-          if (keys === undefined) {
+          if (keys == null) {
             continue;
           }
           const idx = keys.indexOf(keystroke);

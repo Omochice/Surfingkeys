@@ -82,7 +82,7 @@ class CursorPrompt {
     this.threshold = threshold || 0;
     this.parentElement = parentElement;
     const probe = parentElement as InputProbe;
-    this.isNativeInput = probe.selectionStart !== undefined && probe.value !== undefined;
+    this.isNativeInput = probe.selectionStart != null && probe.value != null;
     let value = "";
     [value, this.matchStart] = this.#getValueAndSelectionStart();
     this.activator = value[this.matchStart - 1];

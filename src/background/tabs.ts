@@ -395,7 +395,7 @@ export function createTabs(deps: TabsDeps): TabsUnit {
       chrome.tabs.remove(message.tabIds);
     },
     focusTab: (message: any, sender: any, _sendResponse: any) => {
-      if (message.windowId !== undefined && sender.tab.windowId !== message.windowId) {
+      if (message.windowId != null && sender.tab.windowId !== message.windowId) {
         focusTab(message.windowId, message.tabId);
       } else {
         chrome.tabs.update(message.tabId, {
@@ -415,7 +415,7 @@ export function createTabs(deps: TabsDeps): TabsUnit {
     },
     goToLastTab: (_message: any, _sender: any, _sendResponse: any) => {
       const lastTab = tabHistory.previousTab();
-      if (lastTab !== undefined) {
+      if (lastTab != null) {
         chrome.tabs.update(lastTab, {
           active: true,
         });
@@ -423,7 +423,7 @@ export function createTabs(deps: TabsDeps): TabsUnit {
     },
     historyTab: (message: any, _sender?: any, _sendResponse?: any) => {
       const tabId = tabHistory.navigate(message);
-      if (tabId !== undefined) {
+      if (tabId != null) {
         chrome.tabs.update(tabId, {
           active: true,
         });

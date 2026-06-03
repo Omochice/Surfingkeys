@@ -606,7 +606,7 @@ function createOmnibar(front: any, clipboard: any) {
     self.listResults(_page, (b: any) => {
       if (Object.prototype.hasOwnProperty.call(b, "html")) {
         return self.createItemFromRawHtml(b);
-      } else if (Object.prototype.hasOwnProperty.call(b, "url") && b.url !== undefined) {
+      } else if (Object.prototype.hasOwnProperty.call(b, "url") && b.url != null) {
         if (getBrowserName() === "Firefox" && /^(place|data):/i.test(b.url)) {
           return null;
         }
@@ -637,7 +637,7 @@ function createOmnibar(front: any, clipboard: any) {
       ui.append(self.resultsDiv);
     }
 
-    self.tabbed = args.tabbed !== undefined ? args.tabbed : true;
+    self.tabbed = args.tabbed != null ? args.tabbed : true;
     self.input.focus();
     self.enter();
     if (args.pref) {
@@ -1067,7 +1067,7 @@ function OpenBookmarks(omnibar: any): any {
     let items = response.bookmarks;
     if (folderOnly) {
       items = items.filter((b: any) => {
-        return !Object.prototype.hasOwnProperty.call(b, "url") || b.url === undefined;
+        return !Object.prototype.hasOwnProperty.call(b, "url") || b.url == null;
       });
     }
     omnibar.listURLs(items, true);
@@ -1160,7 +1160,7 @@ function AddBookmark(omnibar: any): any {
           break;
         }
       }
-      if (self.page.folder === undefined) {
+      if (self.page.folder == null) {
         self.page.folder = folders[0].id;
         self.page.path = path;
         folderName = `${folders[0].title}${path.join("/")}`;
@@ -1363,7 +1363,7 @@ function OpenWindows(omnibar: any, front: any): any {
   self.onEnter = () => {
     const fi = omnibar.focusedResult();
     let windowId = -1;
-    if (fi && fi.data.windowId !== undefined) {
+    if (fi && fi.data.windowId != null) {
       windowId = fi.data.windowId;
     }
     reportOnFail(RUNTIME("moveToWindow", { windowId }), reportError);
@@ -1748,7 +1748,7 @@ function OmniQuery(omnibar: any, front: any): any {
   }
   let _words: string[];
   self.onOpen = (arg: any) => {
-    if (arg && document.dictEnabled === undefined) {
+    if (arg && document.dictEnabled == null) {
       omnibar.setQuery(arg);
       front.contentCommand({
         action: "omnibar_query_entered",

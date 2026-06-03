@@ -43,8 +43,8 @@ export function buildOmnibarResult(
   // assigning an explicit `undefined` to an optional property.
   return {
     html: li.innerHTML,
-    ...(className !== undefined ? { className } : {}),
-    ...(faviconSrc !== undefined ? { faviconSrc } : {}),
+    ...(className != null ? { className } : {}),
+    ...(faviconSrc != null ? { faviconSrc } : {}),
     data: {
       text: li.textContent ?? "",
       ...(folder !== null ? { folder } : {}),

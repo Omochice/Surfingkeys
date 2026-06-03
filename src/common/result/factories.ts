@@ -28,7 +28,7 @@ export const httpError = (url: string, cause: unknown, status?: number): HttpErr
   kind: "http",
   url,
   cause,
-  ...(status !== undefined ? { status } : {}),
+  ...(status != null ? { status } : {}),
 });
 
 export const domApiError = (op: string, cause: unknown): DomApiError => ({
