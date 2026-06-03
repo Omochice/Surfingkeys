@@ -332,7 +332,7 @@ export function createSettings(deps: SettingsDeps): SettingsUnit {
         ) {
           origin = senderOrigin;
         }
-        if (Object.prototype.hasOwnProperty.call(data.blocklist, origin)) {
+        if (Object.hasOwn(data.blocklist, origin)) {
           delete data.blocklist[origin];
         } else {
           data.blocklist[origin] = 1;
@@ -388,7 +388,7 @@ export function createSettings(deps: SettingsDeps): SettingsUnit {
     jumpVIMark: (message: any, sender: any, sendResponse: any) => {
       loadSettings("marks", (data: any) => {
         const marks = data.marks;
-        if (Object.prototype.hasOwnProperty.call(marks, message.mark)) {
+        if (Object.hasOwn(marks, message.mark)) {
           const markInfo = marks[message.mark];
           chrome.tabs.query({}, (tabs: any[]) => {
             tabs = tabs.filter((t) => {
@@ -460,7 +460,7 @@ export function createSettings(deps: SettingsDeps): SettingsUnit {
         // For settings from snippets, don't broadcast the update
         // neither persist into storage
         for (const k in message.settings) {
-          if (Object.prototype.hasOwnProperty.call(conf, k)) {
+          if (Object.hasOwn(conf, k)) {
             conf[k] = message.settings[k];
           }
         }
@@ -527,7 +527,7 @@ export function createSettings(deps: SettingsDeps): SettingsUnit {
           const tabGroup: Record<string, any[]> = {};
           tabs.forEach((tab) => {
             if (tab && tab.index !== void 0) {
-              if (!Object.prototype.hasOwnProperty.call(tabGroup, tab.windowId)) {
+              if (!Object.hasOwn(tabGroup, tab.windowId)) {
                 tabGroup[tab.windowId] = [];
               }
               const group = tabGroup[tab.windowId];
@@ -556,7 +556,7 @@ export function createSettings(deps: SettingsDeps): SettingsUnit {
     },
     openSession: (message: any, _sender: any, _sendResponse: any) => {
       loadSettings("sessions", (data: any) => {
-        if (Object.prototype.hasOwnProperty.call(data.sessions, message.name)) {
+        if (Object.hasOwn(data.sessions, message.name)) {
           const urls = data.sessions[message.name]["tabs"];
           urls[0].forEach((url: string) => {
             chrome.tabs.create({

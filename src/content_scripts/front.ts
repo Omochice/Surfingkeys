@@ -173,7 +173,7 @@ function createFront(
 
   _actions["getSearchSuggestions"] = (message: any) => {
     let ret = null;
-    if (Object.prototype.hasOwnProperty.call(_listSuggestions, message.url)) {
+    if (Object.hasOwn(_listSuggestions, message.url)) {
       const listSuggestion = _listSuggestions[message.url];
       if (typeof listSuggestion === "function") {
         ret = listSuggestion(message.response, {
@@ -417,7 +417,7 @@ function createFront(
       const conf = runtime.conf as Record<string, any>;
       // overrides local settings from snippets
       for (const k in cloneUS) {
-        if (Object.prototype.hasOwnProperty.call(runtime.conf, k)) {
+        if (Object.hasOwn(runtime.conf, k)) {
           conf[k] = cloneUS[k];
           delete cloneUS[k];
         }
@@ -680,10 +680,7 @@ function createFront(
           if (!f(_message)) {
             delete _callbacks[_message.id];
           }
-        } else if (
-          _message.action &&
-          Object.prototype.hasOwnProperty.call(_actions, _message.action)
-        ) {
+        } else if (_message.action && Object.hasOwn(_actions, _message.action)) {
           const action = _actions[_message.action];
           let ret = action ? action(_message) : undefined;
           if (_message.ack && ret) {

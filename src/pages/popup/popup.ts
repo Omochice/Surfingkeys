@@ -31,7 +31,7 @@ function RUNTIME(
 }
 
 function updateStatus(blocklist: Record<string, unknown>) {
-  const disabled = Object.prototype.hasOwnProperty.call(blocklist, ".*");
+  const disabled = Object.hasOwn(blocklist, ".*");
   disableAll.textContent = (disabled ? "Enable " : "Disable ") + version;
   RUNTIME("setSurfingkeysIcon", {
     status: disabled,

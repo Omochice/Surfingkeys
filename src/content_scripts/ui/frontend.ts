@@ -446,7 +446,7 @@ const Front = (() => {
   _actions["applyUserSettings"] = (message: any) => {
     const conf = runtime.conf as Record<string, any>;
     for (const k in message.userSettings) {
-      if (Object.prototype.hasOwnProperty.call(runtime.conf, k)) {
+      if (Object.hasOwn(runtime.conf, k)) {
         conf[k] = message.userSettings[k];
       }
     }
@@ -461,7 +461,7 @@ const Front = (() => {
     const specialKey = Mode.specialKeys[message.old_keystroke];
     if (specialKey != null) {
       specialKey.push(message.new_keystroke);
-    } else if (Object.prototype.hasOwnProperty.call(modes, message.mode)) {
+    } else if (Object.hasOwn(modes, message.mode)) {
       const mode = modes[message.mode];
       if (mode != null) {
         mapInMode(mode, message.new_keystroke, message.old_keystroke);
@@ -763,10 +763,7 @@ const Front = (() => {
         if (!f(_message)) {
           delete _callbacks[_message.id];
         }
-      } else if (
-        _message.action &&
-        Object.prototype.hasOwnProperty.call(_actions, _message.action)
-      ) {
+      } else if (_message.action && Object.hasOwn(_actions, _message.action)) {
         const action = _actions[_message.action];
         const ret = action ? action(_message) : undefined;
         if (_message.ack) {

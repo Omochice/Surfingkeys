@@ -94,7 +94,7 @@ export function createTabs(deps: TabsDeps): TabsUnit {
   }
   chrome.tabs.onRemoved.addListener(removeTab);
   function _setScrollPos_bg(tabId: number) {
-    if (Object.prototype.hasOwnProperty.call(tabMessages, tabId)) {
+    if (Object.hasOwn(tabMessages, tabId)) {
       const message = tabMessages[tabId];
       sendTabMessage(tabId, 0, {
         subject: "setScrollPos",
@@ -650,7 +650,7 @@ export function createTabs(deps: TabsDeps): TabsUnit {
       if (sender.tab) {
         const tabId = sender.tab.id;
         _setScrollPos_bg(tabId);
-        if (!Object.prototype.hasOwnProperty.call(tabURLs, tabId)) {
+        if (!Object.hasOwn(tabURLs, tabId)) {
           tabURLs[tabId] = {};
         }
         tabURLs[tabId][message.url] = message.title;

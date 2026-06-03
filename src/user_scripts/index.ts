@@ -109,7 +109,7 @@ initSKFunctionListener(
   "user",
   {
     callUserFunction: (keys: string, para: any) => {
-      if (Object.prototype.hasOwnProperty.call(userDefinedFunctions, keys)) {
+      if (Object.hasOwn(userDefinedFunctions, keys)) {
         const fn = userDefinedFunctions[keys];
         if (fn) {
           fn(para);
@@ -117,7 +117,7 @@ initSKFunctionListener(
       }
     },
     executeUserCommand: (name: string, args: any[]) => {
-      if (Object.prototype.hasOwnProperty.call(userDefinedCommands, name)) {
+      if (Object.hasOwn(userDefinedCommands, name)) {
         const cmd = userDefinedCommands[name];
         if (cmd) {
           cmd(...args);
@@ -125,7 +125,7 @@ initSKFunctionListener(
       }
     },
     getSearchSuggestions: async (url: string, response: any, request: any, callbackId: string) => {
-      if (Object.prototype.hasOwnProperty.call(functionsToListSuggestions, url)) {
+      if (Object.hasOwn(functionsToListSuggestions, url)) {
         const fn = functionsToListSuggestions[url];
         if (!fn) return;
         const r = await Result.try({

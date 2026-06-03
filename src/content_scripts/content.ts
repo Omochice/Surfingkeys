@@ -56,7 +56,7 @@ function applyBasicMappings(api: Api, normal: Normal, mappings: Record<string, s
     }
     if (newKey === "") {
       normal.mappings.remove(originKey);
-    } else if (Object.prototype.hasOwnProperty.call(originMappings, originKey)) {
+    } else if (Object.hasOwn(originMappings, originKey)) {
       const meta = originMappings[originKey];
       if (meta != null) {
         normal.mappings.add(newKey, meta);
@@ -126,7 +126,7 @@ const userConfPromise = new Promise<typeof runtime.conf>((resolve) => {
 function applySettings(api: Api, normal: Normal, rs: StoredSettings): void {
   const conf = runtime.conf as Record<string, any>;
   for (const k in rs) {
-    if (Object.prototype.hasOwnProperty.call(runtime.conf, k)) {
+    if (Object.hasOwn(runtime.conf, k)) {
       conf[k] = rs[k];
     }
   }
