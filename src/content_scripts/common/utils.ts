@@ -833,7 +833,7 @@ function getWordUnderCursor(mouseCursor?: boolean): string | null {
       getTextRect(selection.focusNode, range[0], range[0] + range[1]),
       [],
     )[0];
-    const word = selection.focusNode.textContent.substring(range[0], range[1]);
+    const word = selection.focusNode.textContent.substring(range[0], range[0] + range[1]);
     if (selRect && word) {
       if (!mouseCursor || (_clickPos && selRect.has(_clickPos[0], _clickPos[1], 0, 0))) {
         return word.trim();

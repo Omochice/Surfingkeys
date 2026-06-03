@@ -181,12 +181,12 @@ class CursorPrompt {
     let query = "";
     if (this.isNativeInput) {
       const input = this.parentElement as InputLike;
-      query = input.value.substring(this.matchStart, (input.selectionStart ?? 0) - this.matchStart);
+      query = input.value.substring(this.matchStart, input.selectionStart ?? 0);
     } else {
       // for contenteditable div
       const selection = document.getSelection()!;
       const focus = selection.focusNode as Text;
-      query = focus.data.substring(this.matchStart, selection.focusOffset - this.matchStart);
+      query = focus.data.substring(this.matchStart, selection.focusOffset);
     }
     if (query.length < this.threshold || query[0] === " ") {
       this.element.remove();

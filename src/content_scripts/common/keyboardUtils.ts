@@ -240,7 +240,7 @@ export default class KeyboardUtils {
       if (captured == null) {
         continue;
       }
-      ret += s.substring(lastIndex, mtches.index - lastIndex);
+      ret += s.substring(lastIndex, mtches.index);
       ret += encodeOne(mtches[0], captured);
       lastIndex = ekp.lastIndex;
     }
