@@ -119,7 +119,12 @@ export default class Trie {
    * completing word.
    */
   getPrefixWord(): string {
-    if (this.stem === undefined && this.meta === undefined && this.children.size === 0) {
+    // A node without a stem is the trie's root — no character was swallowed to
+    // reach it, so the matched prefix is empty regardless of what descends from
+    // it. The pre-TS JS version reached this case only by accident: it built
+    // `futureWord` from `this.stem` (then `undefined`), and the final
+    // `substr(0, -N)` collapsed to "". Make the root case explicit instead.
+    if (this.stem === undefined) {
       return "";
     }
     let fullWord = "";
