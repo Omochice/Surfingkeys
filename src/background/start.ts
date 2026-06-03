@@ -362,7 +362,7 @@ function start(browser: any): void {
   };
   function _removeURL(uid: string, cb: () => void) {
     const type = uid[0];
-    uid = uid.substr(1);
+    uid = uid.substring(1);
     if (type === "B") {
       chrome.bookmarks.remove(uid, cb);
     } else if (type === "H") {

@@ -42,11 +42,11 @@ export function deleteNextWord(str: string, dir: number, cur: number): [string, 
   const pos = nextNonWord(str, dir, cur);
   let s = str;
   if (pos > cur) {
-    s = str.substr(0, cur) + str.substr(pos);
+    s = str.substring(0, cur) + str.substring(pos);
   } else if (pos < cur) {
-    s = str.substr(0, pos) + str.substr(cur);
+    s = str.substring(0, pos) + str.substring(cur);
   } else {
-    s = str.substr(0, pos) + str.substr(pos + 1);
+    s = str.substring(0, pos) + str.substring(pos + 1);
   }
   return [s, dir > 0 ? cur : pos];
 }
@@ -136,13 +136,13 @@ function createInsert(): InsertMode {
     code: () => {
       const element = getRealEdit();
       if (element.setSelectionRange != null) {
-        element.value = element.value.substr(element.selectionStart);
+        element.value = element.value.substring(element.selectionStart);
         element.setSelectionRange(0, 0);
       } else {
         // for contenteditable div
         const selection = document.getSelection()!;
         const focus = selection.focusNode as Text;
-        focus.data = focus.data.substr(selection.focusOffset);
+        focus.data = focus.data.substring(selection.focusOffset);
       }
     },
   });
@@ -191,7 +191,7 @@ function createInsert(): InsertMode {
         const focus = selection.focusNode as Text;
         const v = focus.data;
         const p1 = selection.focusOffset;
-        focus.data = v.substr(0, p1) + v.substr(p0);
+        focus.data = v.substring(0, p1) + v.substring(p0);
         selection.setPosition(focus, p1);
       }
     },
@@ -213,7 +213,7 @@ function createInsert(): InsertMode {
         const focus = selection.focusNode as Text;
         const v = focus.data;
         const p1 = selection.focusOffset;
-        focus.data = v.substr(0, p0) + v.substr(p1);
+        focus.data = v.substring(0, p0) + v.substring(p1);
         selection.setPosition(focus, p0);
       }
     },
@@ -288,7 +288,7 @@ function createInsert(): InsertMode {
           const str = elm.value;
           let pos = elm.selectionStart;
           if (str != null && pos != null) {
-            elm.value = str.substr(0, elm.selectionStart) + pw + str.substr(elm.selectionEnd);
+            elm.value = str.substring(0, elm.selectionStart) + pw + str.substring(elm.selectionEnd);
             pos += pw.length;
             elm.setSelectionRange(pos, pos);
           } else {
@@ -302,7 +302,7 @@ function createInsert(): InsertMode {
                 elm.setPosition(n, n.length);
               } else {
                 pos = elm.focusOffset;
-                elm.focusNode.data = data.substr(0, pos) + pw + data.substr(pos);
+                elm.focusNode.data = data.substring(0, pos) + pw + data.substring(pos);
                 elm.setPosition(elm.focusNode, pos + pw.length);
               }
             } else {

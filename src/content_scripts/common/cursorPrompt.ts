@@ -129,9 +129,9 @@ class CursorPrompt {
       const input = this.parentElement as InputLike;
       const val = input.value;
       input.value =
-        val.substr(0, this.matchStart + this.insertOffset) +
+        val.substring(0, this.matchStart + this.insertOffset) +
         d +
-        val.substr(input.selectionStart ?? 0);
+        val.substring(input.selectionStart ?? 0);
       input.setSelectionRange(newPos, newPos);
     } else {
       // for contenteditable div
@@ -139,7 +139,9 @@ class CursorPrompt {
       const focus = selection.focusNode as Text;
       const val = focus.data;
       focus.data =
-        val.substr(0, this.matchStart + this.insertOffset) + d + val.substr(selection.focusOffset);
+        val.substring(0, this.matchStart + this.insertOffset) +
+        d +
+        val.substring(selection.focusOffset);
       selection.setPosition(focus, newPos);
     }
 
@@ -179,12 +181,12 @@ class CursorPrompt {
     let query = "";
     if (this.isNativeInput) {
       const input = this.parentElement as InputLike;
-      query = input.value.substr(this.matchStart, (input.selectionStart ?? 0) - this.matchStart);
+      query = input.value.substring(this.matchStart, (input.selectionStart ?? 0) - this.matchStart);
     } else {
       // for contenteditable div
       const selection = document.getSelection()!;
       const focus = selection.focusNode as Text;
-      query = focus.data.substr(this.matchStart, selection.focusOffset - this.matchStart);
+      query = focus.data.substring(this.matchStart, selection.focusOffset - this.matchStart);
     }
     if (query.length < this.threshold || query[0] === " ") {
       this.element.remove();
