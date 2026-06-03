@@ -33,7 +33,7 @@ export default class Trie {
   find(word: string): Trie | undefined {
     let node: Trie | undefined = this;
     for (const c of word) {
-      if (node === undefined) {
+      if (node == null) {
         break;
       }
       node = node.children.get(c);
@@ -46,7 +46,7 @@ export default class Trie {
     let node: Trie = this;
     for (const c of word) {
       let child = node.children.get(c);
-      if (child === undefined) {
+      if (child == null) {
         child = new Trie(c);
         node.children.set(c, child);
       }
@@ -69,16 +69,16 @@ export default class Trie {
       ancestors.push(node);
       node = node.children.get(c);
     }
-    if (node !== undefined) {
+    if (node != null) {
       let i = ancestors.length - 1;
       let parent = ancestors[i];
-      if (parent === undefined) {
+      if (parent == null) {
         return node;
       }
       parent.children.delete(node.stem!);
       while (parent !== this && parent.children.size === 0 && parent.meta === undefined) {
         const grandparent = ancestors[--i];
-        if (grandparent === undefined) {
+        if (grandparent == null) {
           break;
         }
         grandparent.children.delete(parent.stem!);
@@ -92,7 +92,7 @@ export default class Trie {
   getWords(prefix = "", withoutStem = false): string[] {
     const base = prefix + (withoutStem ? "" : (this.stem ?? ""));
     const words: string[] = [];
-    if (this.meta !== undefined) {
+    if (this.meta != null) {
       words.push(base);
     }
     for (const child of this.children.values()) {
@@ -104,7 +104,7 @@ export default class Trie {
   /** Collect every meta at or below this node that satisfies `criterion`. */
   getMetas(criterion: (meta: TrieMeta) => boolean): TrieMeta[] {
     const metas: TrieMeta[] = [];
-    if (this.meta !== undefined && criterion(this.meta)) {
+    if (this.meta != null && criterion(this.meta)) {
       metas.push(this.meta);
     }
     for (const child of this.children.values()) {
@@ -122,19 +122,19 @@ export default class Trie {
     // A node without a stem is the trie's root — no character was swallowed to
     // reach it, so the matched prefix is empty regardless of what descends from
     // it.
-    if (this.stem === undefined) {
+    if (this.stem == null) {
       return "";
     }
     let fullWord = "";
     let suffix = this.stem ?? "";
     let node: Trie = this;
     while (fullWord === "") {
-      if (node.meta !== undefined) {
+      if (node.meta != null) {
         fullWord = node.meta.word;
         break;
       }
       const firstChild = node.children.values().next().value;
-      if (firstChild === undefined) {
+      if (firstChild == null) {
         break;
       }
       suffix += firstChild.stem ?? "";
