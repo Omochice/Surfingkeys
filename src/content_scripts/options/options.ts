@@ -165,7 +165,7 @@ export default function (
     if (fn.length && !/^\w+:\/\/\w+/i.test(fn) && fn.indexOf("file:///") === -1) {
       fn = fn.replace(/\\/g, "/");
       if (fn[0] === "/") {
-        fn = fn.substr(1);
+        fn = fn.substring(1);
       }
       fn = "file:///" + fn;
     }
@@ -401,7 +401,7 @@ export default function (
         self.exit();
       } else if (event.keyCode === 8) {
         let ek = KeyboardUtils.encodeKeystroke(_key);
-        ek = ek.substr(0, ek.length - 1);
+        ek = ek.substring(0, ek.length - 1);
         _key = KeyboardUtils.decodeKeystroke(ek);
         showKey();
       } else if (event.keyCode === 13) {

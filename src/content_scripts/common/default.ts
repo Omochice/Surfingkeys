@@ -138,7 +138,7 @@ export default function (api: SurfingkeysApi, ctx: ModeContext): void {
   mapkey("gu", "#4Go up one path in the URL", () => {
     let pathname = location.pathname;
     if (pathname.length > 1) {
-      pathname = pathname.endsWith("/") ? pathname.substr(0, pathname.length - 1) : pathname;
+      pathname = pathname.endsWith("/") ? pathname.substring(0, pathname.length - 1) : pathname;
       let last = pathname.lastIndexOf("/");
       let repeats = RUNTIME.repeats;
       RUNTIME.repeats = 1;
@@ -150,7 +150,7 @@ export default function (api: SurfingkeysApi, ctx: ModeContext): void {
           last = p;
         }
       }
-      pathname = pathname.substr(0, last);
+      pathname = pathname.substring(0, last);
     }
     window.location.href = location.origin + pathname;
   });
@@ -815,7 +815,7 @@ export default function (api: SurfingkeysApi, ctx: ModeContext): void {
     "s",
     "https://clients1.google.com/complete/search?client=youtube&ds=yt&callback=cb&q=",
     (response: any) => {
-      const res = JSON.parse(response.text.substr(9, response.text.length - 10));
+      const res = JSON.parse(response.text.substring(9, response.text.length - 1));
       return res[1].map((d: any) => {
         return d[0];
       });
