@@ -6,7 +6,6 @@ declare global {
   interface String {
     /** Positional substitution: "{0}/{1}".format(a, b). */
     format(...args: unknown[]): string;
-    reverse(): string;
   }
   interface RegExp {
     toJSON(): { source: string; flags: string };
@@ -20,12 +19,6 @@ declare global {
     show(): void;
     hide(): void;
     removeAttributes(): void;
-    containsWithShadow(e: Node): boolean;
-  }
-  interface NodeList {
-    remove(): void;
-    show(): void;
-    hide(): void;
   }
   interface Event {
     sk_keyName?: string;

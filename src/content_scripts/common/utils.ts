@@ -875,10 +875,6 @@ String.prototype.format = function (...args: unknown[]): string {
   return formatted;
 };
 
-String.prototype.reverse = function (): string {
-  return this.split("").reverse().join("");
-};
-
 RegExp.prototype.toJSON = function () {
   return { source: this.source, flags: this.flags };
 };
@@ -1091,39 +1087,6 @@ HTMLElement.prototype.removeAttributes = function () {
     }
     this.removeAttribute(first.name);
   }
-};
-HTMLElement.prototype.containsWithShadow = function (e) {
-  const roots: Element[] = [this];
-  while (roots.length) {
-    const root = roots.shift()!;
-    if (root.contains(e)) {
-      return true;
-    }
-    roots.push(...root.children);
-    if (root.shadowRoot) {
-      if (root.shadowRoot.contains(e)) {
-        return true;
-      }
-      roots.push(...root.shadowRoot.children);
-    }
-  }
-  return false;
-};
-
-NodeList.prototype.remove = function () {
-  this.forEach((node) => {
-    (node as ChildNode).remove();
-  });
-};
-NodeList.prototype.show = function () {
-  this.forEach((node) => {
-    (node as HTMLElement).show();
-  });
-};
-NodeList.prototype.hide = function () {
-  this.forEach((node) => {
-    (node as HTMLElement).hide();
-  });
 };
 
 function httpRequest(args: Record<string, unknown>, onSuccess: (response: any) => void): void {
