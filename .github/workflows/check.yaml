@@ -13,6 +13,8 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: read
+      pull-requests: write
+      actions: write
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
@@ -24,7 +26,8 @@ jobs:
           node-version: 24.14.1
           cache: pnpm
       - run: pnpm ci
-      - run: pnpm run test
+      - run: pnpm run test --coverage
+      - uses: k1LoW/octocov-action@b3b6ee60482a667950f87553abf1df63217235d9 # v1.5.1
 
   check:
     runs-on: ubuntu-latest
