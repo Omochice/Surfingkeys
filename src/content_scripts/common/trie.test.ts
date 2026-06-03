@@ -48,6 +48,33 @@ describe("Trie", () => {
     expect(trie.find("ab")?.getPrefixWord()).toBe("ab");
   });
 
+  it("returns an empty string when getPrefixWord is called on an empty root", () => {
+    // No char was swallowed by a partial match, so the prefix to re-insert is
+    // empty. Insert-mode's fallback (insert.ts) relies on this: when a key
+    // from the mappings root fails to match, last.getPrefixWord() must be ""
+    // so the fallback inserts nothing.
+    expect(new Trie().getPrefixWord()).toBe("");
+  });
+
+  it("returns an empty string when getPrefixWord is called on a root with one mapping", () => {
+    // The first mapping registered under the root would otherwise leak its
+    // encoded keystroke (the first child's meta.word) back through the
+    // fallback — e.g. insert mode registers <Ctrl-e> first, which encodes to
+    // U+2651 (♑), and every unmapped key would prepend ♑ to the input.
+    const trie = new Trie();
+    trie.add("abc", {});
+
+    expect(trie.getPrefixWord()).toBe("");
+  });
+
+  it("returns an empty string when getPrefixWord is called on a root with multiple mappings", () => {
+    const trie = new Trie();
+    trie.add("abc", {});
+    trie.add("xyz", {});
+
+    expect(trie.getPrefixWord()).toBe("");
+  });
+
   it("removes a stored word and prunes empty branches", () => {
     const trie = new Trie();
     trie.add("abc", {});
