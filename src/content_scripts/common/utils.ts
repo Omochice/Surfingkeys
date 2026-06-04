@@ -879,9 +879,14 @@ function format(template: string, ...args: unknown[]): string {
   return formatted;
 }
 
-RegExp.prototype.toJSON = function () {
-  return { source: this.source, flags: this.flags };
-};
+/**
+ * JSON.stringify replacer that serializes RegExp values to { source, flags }. Settings may carry
+ * RegExp instances (e.g. nextLinkRegex); this preserves them across JSON serialization so
+ * ensureRegex can rehydrate them on the other side.
+ */
+function regExpReplacer(_key: string, value: unknown): unknown {
+  return value instanceof RegExp ? { source: value.source, flags: value.flags } : value;
+}
 
 function parseAnnotation(ag: { annotation: string | string[]; feature_group?: number }): {
   annotation: string | string[];
@@ -1270,6 +1275,7 @@ export {
   once,
   parseAnnotation,
   refreshHints,
+  regExpReplacer,
   removeAttributes,
   reportIssue,
   requireElement,

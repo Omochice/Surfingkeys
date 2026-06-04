@@ -6,6 +6,7 @@ import {
   hintLink,
   parseAnnotation,
   refreshHints,
+  regExpReplacer,
   requireElement,
 } from "./utils";
 
@@ -98,11 +99,11 @@ describe("refreshHints (characterization)", () => {
 // Settings may contain RegExp values (e.g. nextLinkRegex). They are serialized
 // to { source, flags } when persisted/cloned and rehydrated via
 // `new RegExp(source, flags)` by ensureRegex. These tests pin that round-trip
-// so it survives dropping the RegExp.prototype.toJSON augmentation.
+// through the regExpReplacer used at the JSON.stringify call sites.
 describe("RegExp settings serialization", () => {
   it("serializes a RegExp to its source and flags", () => {
     const settings = { pat: /foo\d+/gi, n: 1 };
-    expect(JSON.parse(JSON.stringify(settings))).toEqual({
+    expect(JSON.parse(JSON.stringify(settings, regExpReplacer))).toEqual({
       pat: { source: "foo\\d+", flags: "gi" },
       n: 1,
     });
@@ -110,7 +111,7 @@ describe("RegExp settings serialization", () => {
 
   it("round-trips a serialized RegExp back into an equivalent RegExp", () => {
     const original = /bar/i;
-    const clone = JSON.parse(JSON.stringify({ pat: original })).pat;
+    const clone = JSON.parse(JSON.stringify({ pat: original }, regExpReplacer)).pat;
     const restored = new RegExp(clone.source, clone.flags);
     expect(restored.source).toBe(original.source);
     expect(restored.flags).toBe(original.flags);

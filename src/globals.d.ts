@@ -3,9 +3,6 @@
 // this file via overrides in .oxlintrc.json.
 
 declare global {
-  interface RegExp {
-    toJSON(): { source: string; flags: string };
-  }
   interface Event {
     sk_keyName?: string;
     sk_stopPropagation?: boolean;

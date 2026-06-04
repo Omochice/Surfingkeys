@@ -10,6 +10,7 @@ import {
   getTextNodePos,
   getWordUnderCursor,
   htmlEncode,
+  regExpReplacer,
   removeAttributes,
   setSanitizedContent,
   showBanner,
@@ -573,7 +574,7 @@ export default function (api: SurfingkeysApi, ctx: ModeContext): void {
         key: "RAW",
       },
       (response) => {
-        clipboard.write(JSON.stringify(response.settings, null, 4));
+        clipboard.write(JSON.stringify(response.settings, regExpReplacer, 4));
       },
     );
   });
