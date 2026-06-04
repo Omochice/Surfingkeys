@@ -311,6 +311,51 @@ describe("directly-wired keys reference the mode method", () => {
   });
 });
 
+describe("more mode delegations", () => {
+  it("Q opens the omniquery for the word under the cursor", () => {
+    fire("Q");
+    expect(ctx.front.openOmniquery).toHaveBeenCalled();
+  });
+
+  it("gi opens the input hint layer", () => {
+    fire("gi");
+    expect(ctx.hints.createInputLayer).toHaveBeenCalled();
+  });
+
+  it(";m mouses out the last element", () => {
+    fire(";m");
+    expect(ctx.hints.mouseoutLastElement).toHaveBeenCalled();
+  });
+
+  it("v toggles visual mode", () => {
+    fire("v");
+    expect(ctx.visual.toggle).toHaveBeenCalled();
+  });
+
+  it("i creates hints over editable elements wired to the click dispatcher", () => {
+    fire("i");
+    expect(ctx.hints.create).toHaveBeenLastCalledWith("input", ctx.hints.dispatchMouseClick);
+  });
+
+  it("q creates hints over images and buttons", () => {
+    fire("q");
+    expect(ctx.hints.create).toHaveBeenLastCalledWith("img, button", ctx.hints.dispatchMouseClick);
+  });
+
+  it("oi opens an incognito window for the current URL", () => {
+    fire("oi");
+    expect(seam.RUNTIME).toHaveBeenLastCalledWith("openIncognito", { url: window.location.href });
+  });
+
+  it("af opens a link in an active new tab", () => {
+    fire("af");
+    expect(ctx.hints.create).toHaveBeenLastCalledWith("", ctx.hints.dispatchMouseClick, {
+      tabbed: true,
+      active: true,
+    });
+  });
+});
+
 describe("hint-yank keys copy the picked element's text", () => {
   // Each fires the mapping, captures the per-hint callback passed to
   // hints.create, then drives it with a stand-in element to assert what the
