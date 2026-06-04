@@ -143,6 +143,15 @@ describe("RUNTIME-delegating keys", () => {
     [">>", "moveTab", { step: 1 }],
     ["gxx", "tabOnly"],
     [";gw", "gatherWindows"],
+    ["gxt", "closeTabLeft"],
+    ["gxT", "closeTabRight"],
+    ["gx0", "closeTabsToLeft"],
+    ["gx$", "closeTabsToRight"],
+    ["gxp", "closeAudibleTab"],
+    [";cq", "clearQueueURLs"],
+    [";j", "closeDownloadsShelf", { clearHistory: true }],
+    [";dh", "deleteHistoryOlderThan", { days: 30 }],
+    [";db", "removeBookmark"],
   ];
 
   it.each(cases)("%s sends the %s message", (key, subject, arg) => {
@@ -175,6 +184,9 @@ describe("front-delegating keys", () => {
     ["b", { type: "Bookmarks" }],
     ["oh", { type: "History" }],
     ["W", { type: "Windows" }],
+    ["ox", { type: "RecentlyClosed" }],
+    [";x", { type: "CloseTabs" }],
+    [";gt", { type: "Tabs", extra: { action: "gather" } }],
   ];
 
   it.each(omnibar)("%s opens the omnibar with the right type", (key, arg) => {
@@ -240,11 +252,44 @@ describe("tabOpenLink keys (Chrome)", () => {
     ["on", "chrome://newtab/"],
     ["ga", "chrome://help/"],
     ["gb", "chrome://bookmarks/"],
+    ["gc", "chrome://cache/"],
+    ["gd", "chrome://downloads/"],
     ["gh", "chrome://history/"],
+    ["gk", "chrome://settings/cookies"],
+    ["ge", "chrome://extensions/"],
+    [";i", "chrome://inspect/#devices"],
     [";e", "/options.html"],
   ])("%s opens %s", (key, url) => {
     fire(key);
     expect(seam.utils.tabOpenLink).toHaveBeenLastCalledWith(url);
+  });
+});
+
+describe("hint-yank keys copy the picked element's text", () => {
+  // Each fires the mapping, captures the per-hint callback passed to
+  // hints.create, then drives it with a stand-in element to assert what the
+  // callback writes to the clipboard.
+  const lastHintCallback = () => {
+    const calls = ctx.hints.create.mock.calls;
+    return calls[calls.length - 1][1] as (el: any) => void;
+  };
+
+  it("ya copies a link's href", () => {
+    fire("ya");
+    lastHintCallback()({ href: "https://example.com/page" });
+    expect(ctx.clipboard.write).toHaveBeenLastCalledWith("https://example.com/page");
+  });
+
+  it("yi copies an input's value", () => {
+    fire("yi");
+    lastHintCallback()({ value: "typed text" });
+    expect(ctx.clipboard.write).toHaveBeenLastCalledWith("typed text");
+  });
+
+  it("yq copies a pre element's text", () => {
+    fire("yq");
+    lastHintCallback()({ innerText: "code block" });
+    expect(ctx.clipboard.write).toHaveBeenLastCalledWith("code block");
   });
 });
 
