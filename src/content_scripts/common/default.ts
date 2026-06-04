@@ -10,6 +10,7 @@ import {
   getTextNodePos,
   getWordUnderCursor,
   htmlEncode,
+  removeAttributes,
   setSanitizedContent,
   showBanner,
   showPopup,
@@ -162,8 +163,8 @@ export default function (api: SurfingkeysApi, ctx: ModeContext): void {
 
   mapkey(";pp", "#7Paste html on current page", () => {
     clipboard.read((response) => {
-      document.documentElement.removeAttributes();
-      document.body.removeAttributes();
+      removeAttributes(document.documentElement);
+      removeAttributes(document.body);
       setSanitizedContent(
         document.head,
         "<title>" + new Date() + " updated by Surfingkeys</title>",

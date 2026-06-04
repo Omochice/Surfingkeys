@@ -1066,32 +1066,31 @@ function htmlEncode(str: string): string {
   return _divForHtmlEncoder.innerHTML;
 }
 
-HTMLElement.prototype.one = function (evt, handler) {
-  const self = this;
+function once(el: HTMLElement, evt: string, handler: (this: HTMLElement) => void): void {
   function _onceHandler(this: HTMLElement) {
     handler.call(this);
-    self.removeEventListener(evt, _onceHandler);
+    el.removeEventListener(evt, _onceHandler);
   }
-  this.addEventListener(evt, _onceHandler);
-};
+  el.addEventListener(evt, _onceHandler);
+}
 
-HTMLElement.prototype.show = function () {
-  this.style.display = "";
-};
+function show(el: HTMLElement): void {
+  el.style.display = "";
+}
 
-HTMLElement.prototype.hide = function () {
-  this.style.display = "none";
-};
+function hide(el: HTMLElement): void {
+  el.style.display = "none";
+}
 
-HTMLElement.prototype.removeAttributes = function () {
-  while (this.attributes.length > 0) {
-    const first = this.attributes[0];
+function removeAttributes(el: HTMLElement): void {
+  while (el.attributes.length > 0) {
+    const first = el.attributes[0];
     if (first == null) {
       break;
     }
-    this.removeAttribute(first.name);
+    el.removeAttribute(first.name);
   }
-};
+}
 
 function httpRequest(args: Record<string, unknown>, onSuccess: (response: any) => void): void {
   args["method"] = "get";
@@ -1253,6 +1252,7 @@ export {
   getTextRect,
   getVisibleElements,
   getWordUnderCursor,
+  hide,
   hintLabel,
   hintLink,
   htmlEncode,
@@ -1267,8 +1267,10 @@ export {
   listElements,
   locateFocusNode,
   mapInMode,
+  once,
   parseAnnotation,
   refreshHints,
+  removeAttributes,
   reportIssue,
   requireElement,
   rotateInput,
@@ -1276,6 +1278,7 @@ export {
   tryDecodeURIComponent,
   scrollIntoViewIfNeeded,
   setSanitizedContent,
+  show,
   showBanner,
   showPopup,
   tabOpenLink,

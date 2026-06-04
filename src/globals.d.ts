@@ -10,12 +10,6 @@ declare global {
     /** Hit test of (x, y) with tolerances ex/ey on each axis. */
     has(x: number, y: number, ex: number, ey: number): boolean;
   }
-  interface HTMLElement {
-    one(evt: string, handler: (this: HTMLElement) => void): void;
-    show(): void;
-    hide(): void;
-    removeAttributes(): void;
-  }
   interface Event {
     sk_keyName?: string;
     sk_stopPropagation?: boolean;
