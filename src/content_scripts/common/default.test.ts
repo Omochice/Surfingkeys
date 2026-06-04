@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 // default.ts wires the built-in key map onto an api/ctx pair. These tests pin
 // that contract: which keys are bound, and where each key's action delegates
@@ -353,6 +353,104 @@ describe("more mode delegations", () => {
       tabbed: true,
       active: true,
     });
+  });
+
+  it("gf opens a link in a non-active new tab", () => {
+    fire("gf");
+    expect(ctx.hints.create).toHaveBeenLastCalledWith("", ctx.hints.dispatchMouseClick, {
+      tabbed: true,
+      active: false,
+    });
+  });
+
+  it("cf opens multiple links in new tabs", () => {
+    fire("cf");
+    expect(ctx.hints.create).toHaveBeenLastCalledWith("", ctx.hints.dispatchMouseClick, {
+      multipleHits: true,
+    });
+  });
+
+  it("<Ctrl-j> creates mouse-out hints", () => {
+    fire("<Ctrl-j>");
+    expect(ctx.hints.create).toHaveBeenLastCalledWith("", ctx.hints.dispatchMouseClick, {
+      mouseEvents: ["mouseout"],
+    });
+  });
+
+  it("L enters regional hints over the large elements", () => {
+    fire("L");
+    expect(ctx.hints.create).toHaveBeenLastCalledWith([], expect.any(Function), {
+      regionalHints: true,
+    });
+  });
+
+  it("O creates hints over the clickable pattern with a status line", () => {
+    fire("O");
+    expect(ctx.hints.create).toHaveBeenLastCalledWith(
+      seam.runtimeConf.clickablePat,
+      expect.any(Function),
+      { statusLine: "Open detected links from text" },
+    );
+  });
+
+  it(";fs hints the refreshed scrollable elements", () => {
+    fire(";fs");
+    expect(ctx.normal.refreshScrollableElements).toHaveBeenCalled();
+    expect(ctx.hints.create).toHaveBeenLastCalledWith(
+      expect.anything(),
+      ctx.hints.dispatchMouseClick,
+    );
+  });
+
+  it("<Ctrl-u>/<Ctrl-d> feed 20-line jumps to visual mode", () => {
+    fire("<Ctrl-u>");
+    expect(ctx.visual.feedkeys).toHaveBeenLastCalledWith("20k");
+    fire("<Ctrl-d>");
+    expect(ctx.visual.feedkeys).toHaveBeenLastCalledWith("20j");
+  });
+});
+
+describe(". repeats the last action", () => {
+  const saved = seam.runtimeConf.lastKeys;
+  afterEach(() => {
+    seam.runtimeConf.lastKeys = saved;
+    vi.useRealTimers();
+  });
+
+  it("feeds the first recorded key back to normal mode", () => {
+    seam.runtimeConf.lastKeys = ["se"];
+    fire(".");
+    expect(ctx.normal.feedkeys).toHaveBeenLastCalledWith("se");
+  });
+
+  it("replays a recorded Hints sub-sequence after its delay", () => {
+    vi.useFakeTimers();
+    seam.runtimeConf.lastKeys = ["f", "Hints\tBA"];
+    fire(".");
+    expect(ctx.normal.feedkeys).toHaveBeenLastCalledWith("f");
+    vi.advanceTimersByTime(300);
+    expect(ctx.hints.feedkeys).toHaveBeenLastCalledWith("BA");
+  });
+});
+
+describe("yf copies form data as JSON", () => {
+  afterEach(() => document.body.replaceChildren());
+
+  it("serializes each form's fields keyed by method::path", () => {
+    const form = document.createElement("form");
+    form.method = "get";
+    form.action = "https://example.com/submit";
+    const input = document.createElement("input");
+    input.name = "alpha";
+    input.value = "1";
+    form.appendChild(input);
+    document.body.appendChild(form);
+
+    fire("yf");
+
+    const written = ctx.clipboard.write.mock.calls.at(-1)![0];
+    expect(written).toContain("get::/submit");
+    expect(written).toContain('"alpha": "1"');
   });
 });
 
