@@ -250,7 +250,10 @@ function createOmnibar(front: any, clipboard: any) {
   let bookmarkFolders: any;
 
   let lastInput = "";
-  let handler: any;
+  // Initialised to an empty object so that listResults can safely read
+  // handler.focusFirstCandidate before onShow assigns the real handler. The
+  // value is always overwritten by ui.onShow before any user-facing operation.
+  let handler: any = {};
   let lastHandler: any = null;
   const ui: any = document.getElementById("sk_omnibar");
 
@@ -1685,29 +1688,8 @@ function Commands(omnibar: any, front: any): any {
     return ret;
   };
 
-  function parseCommand(cmdline: string) {
-    cmdline = cmdline.trim();
-    const tokens: string[] = [];
-    let pendingToken = false;
-    let part = "";
-    for (let i = 0; i < cmdline.length; i++) {
-      if (cmdline.charAt(i) === " " && !pendingToken) {
-        tokens.push(part);
-        part = "";
-      } else {
-        if (cmdline.charAt(i) === '"') {
-          pendingToken = !pendingToken;
-        } else {
-          part += cmdline.charAt(i);
-        }
-      }
-    }
-    tokens.push(part);
-    return tokens;
-  }
-
   function execute(cmdline: string) {
-    const args = parseCommand(cmdline);
+    const args = parseCommandLine(cmdline);
     const cmd = args.shift()!;
     if (Object.hasOwn(items, cmd)) {
       const meta = items[cmd];
@@ -1809,6 +1791,35 @@ function OpenUserURLs(omnibar: any): any {
     omnibar.listURLs(urls, false);
   };
   return self;
+}
+
+/**
+ * Parse a command line into tokens, treating double-quoted spans as a single token and dropping the
+ * quote characters themselves.
+ *
+ * WHY exported: the tokeniser is pure and has enough edge-case behaviour (quoted arguments,
+ * leading/trailing spaces) to warrant isolated unit tests without having to instantiate the full
+ * omnibar DOM.
+ */
+export function parseCommandLine(cmdline: string): string[] {
+  cmdline = cmdline.trim();
+  const tokens: string[] = [];
+  let pendingToken = false;
+  let part = "";
+  for (let i = 0; i < cmdline.length; i++) {
+    if (cmdline.charAt(i) === " " && !pendingToken) {
+      tokens.push(part);
+      part = "";
+    } else {
+      if (cmdline.charAt(i) === '"') {
+        pendingToken = !pendingToken;
+      } else {
+        part += cmdline.charAt(i);
+      }
+    }
+  }
+  tokens.push(part);
+  return tokens;
 }
 
 export default createOmnibar;
