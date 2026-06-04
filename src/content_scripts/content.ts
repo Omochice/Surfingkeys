@@ -352,4 +352,4 @@ function start(adapter?: BrowserAdapter): void {
   }
 }
 
-export { start };
+export { applyBasicMappings, applySettings, ensureRegex, start };
