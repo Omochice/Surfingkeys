@@ -265,6 +265,52 @@ describe("tabOpenLink keys (Chrome)", () => {
   });
 });
 
+describe("RUNTIME keys that pass a response handler", () => {
+  // These call RUNTIME(subject, arg, responseCallback); the mock never invokes
+  // the callback, so we assert only the outgoing message (subject + arg).
+  const cases: Array<[string, string, unknown]> = [
+    ["yj", "getSettings", { key: "RAW" }],
+    ["yY", "getTabs", null],
+    ["yQ", "getSettings", { key: "OmniQueryHistory" }],
+    ["gp", "getTabs", { queryInfo: { audible: true } }],
+    ["yd", "getDownloads", { query: { state: "in_progress" } }],
+    [";yh", "getHistory", {}],
+  ];
+
+  it.each(cases)("%s sends %s with the expected payload", (key, subject, arg) => {
+    fire(key);
+    expect(seam.RUNTIME.mock.lastCall!.slice(0, 2)).toEqual([subject, arg]);
+  });
+});
+
+describe("history navigation keys", () => {
+  it("S goes one entry back", () => {
+    const go = vi.spyOn(window.history, "go").mockImplementation(() => {});
+    fire("S");
+    expect(go).toHaveBeenLastCalledWith(-1);
+    go.mockRestore();
+  });
+
+  it("D goes one entry forward", () => {
+    const go = vi.spyOn(window.history, "go").mockImplementation(() => {});
+    fire("D");
+    expect(go).toHaveBeenLastCalledWith(1);
+    go.mockRestore();
+  });
+});
+
+describe("directly-wired keys reference the mode method", () => {
+  it("[[ and ]] are bound straight to the page-nav helpers", () => {
+    expect(registry.get("[[")!.cb).toBe(ctx.hints.previousPage);
+    expect(registry.get("]]")!.cb).toBe(ctx.hints.nextPage);
+  });
+
+  it("m and ' are bound straight to the VIMark helpers", () => {
+    expect(registry.get("m")!.cb).toBe(ctx.normal.addVIMark);
+    expect(registry.get("'")!.cb).toBe(ctx.normal.jumpVIMark);
+  });
+});
+
 describe("hint-yank keys copy the picked element's text", () => {
   // Each fires the mapping, captures the per-hint callback passed to
   // hints.create, then drives it with a stand-in element to assert what the
