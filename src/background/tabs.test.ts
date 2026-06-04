@@ -582,7 +582,7 @@ describe("getWindows", () => {
     handler({}, {}, sendResponse);
 
     expect(_response).toHaveBeenCalled();
-    const args = _response.mock.calls[0];
+    const args = _response.mock.calls[0]!;
     const result = args[2] as {
       windows: Array<{ id: string; tabs: any[]; isPreviousChoice: boolean }>;
     };
@@ -700,7 +700,7 @@ describe("getTabs", () => {
     expectDefined(handler);
     handler({ filter: "example", tabsThreshold: 100, queryInfo: {} }, { tab: { id: 99 } }, vi.fn());
     expect(_response).toHaveBeenCalled();
-    const result = _response.mock.calls[0][2] as { tabs: any[] };
+    const result = _response.mock.calls[0]![2] as { tabs: any[] };
     expect(result.tabs).toHaveLength(1);
     expect(result.tabs[0].id).toBe(1);
   });
@@ -739,7 +739,7 @@ describe("getTabs", () => {
     // threshold=2: 3 non-sender tabs > 2 so MRU sort kicks in
     handler({ filter: "", tabsThreshold: 2, queryInfo: {} }, { tab: { id: 99 } }, vi.fn());
     expect(_response).toHaveBeenCalled();
-    const result = _response.mock.calls[0][2] as { tabs: any[] };
+    const result = _response.mock.calls[0]![2] as { tabs: any[] };
     // sender tab excluded; sorted descending by lastAccessed: 300, 200, 100
     expect(result.tabs.map((t) => t.id)).toEqual([2, 3, 1]);
   });
@@ -784,10 +784,9 @@ describe("goToLastTab", () => {
     });
 
     // simulate activating tabs 5 then 6 to populate history
-    if (onActivatedCb) {
-      onActivatedCb({ tabId: 5 });
-      onActivatedCb({ tabId: 6 });
-    }
+    // onActivatedCb is assigned inside the addListener closure above; assert non-null
+    onActivatedCb!({ tabId: 5 });
+    onActivatedCb!({ tabId: 6 });
 
     const handler = unit.handlers["goToLastTab"];
     expectDefined(handler);
@@ -952,7 +951,7 @@ describe("openUrlInNewTab — newTabPosition config", () => {
       makeOpenLinkSender(3),
       vi.fn(),
     );
-    const callArgs = create.mock.calls[0][0];
+    const callArgs = create.mock.calls[0]![0];
     expect(callArgs.index).toBeUndefined();
   });
 });

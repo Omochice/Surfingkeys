@@ -289,7 +289,7 @@ describe("extendObject", () => {
   it("overwrites existing keys on target", () => {
     const target: Record<string, any> = { x: "old" };
     extendObject(target, { x: "new" });
-    expect(target.x).toBe("new");
+    expect(target["x"]).toBe("new");
   });
 });
 

@@ -562,7 +562,7 @@ describe("createAPI searchSelectedWith", () => {
       (args: any[]) => args[0]?.action === "openLink",
     );
     expect(openLinkCalls).toHaveLength(1);
-    expect(openLinkCalls[0][0].url).toBe(
+    expect(openLinkCalls[0]![0].url).toBe(
       `https://www.google.com/search?q=${encodeURIComponent("surfingkeys")}`,
     );
 
@@ -588,7 +588,7 @@ describe("createAPI searchSelectedWith", () => {
       (args: any[]) => args[0]?.action === "openLink",
     );
     expect(openLinkCalls).toHaveLength(1);
-    const url = openLinkCalls[0][0].url as string;
+    const url = openLinkCalls[0]![0].url as string;
     // URL should contain the encoded "site:<hostname> test query"
     expect(url).toContain("site%3A");
     expect(url).toContain("test%20query");
@@ -634,7 +634,7 @@ describe("createAPI searchSelectedWith", () => {
     const openLinkCalls = sendMessage.mock.calls.filter(
       (args: any[]) => args[0]?.action === "openLink",
     );
-    expect(openLinkCalls[0][0].url).toBe(
+    expect(openLinkCalls[0]![0].url).toBe(
       `https://www.google.com/search?q=${encodeURIComponent("clipboard text")}`,
     );
 
@@ -659,7 +659,7 @@ describe("createAPI searchSelectedWith", () => {
     const openLinkCalls = sendMessage.mock.calls.filter(
       (args: any[]) => args[0]?.action === "openLink",
     );
-    expect(openLinkCalls[0][0].url).toBe(
+    expect(openLinkCalls[0]![0].url).toBe(
       `https://example.com/search?q=${encodeURIComponent("hello")}&lang=en`,
     );
 

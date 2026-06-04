@@ -555,7 +555,7 @@ describe("createNormal jumpVIMark", () => {
 
     const calls = sendMessage.mock.calls.filter((args: any[]) => args[0]?.action === "jumpVIMark");
     expect(calls).toHaveLength(1);
-    expect(calls[0][0].mark).toBe("a");
+    expect(calls[0]![0].mark).toBe("a");
     (globalThis as any).chrome.runtime.sendMessage = () => {};
   });
 });
@@ -572,7 +572,7 @@ describe("createNormal moveTab", () => {
 
     const calls = sendMessage.mock.calls.filter((args: any[]) => args[0]?.action === "moveTab");
     expect(calls).toHaveLength(1);
-    expect(calls[0][0].position).toBe(3);
+    expect(calls[0]![0].position).toBe(3);
     (globalThis as any).chrome.runtime.sendMessage = () => {};
   });
 });
@@ -593,14 +593,14 @@ describe("createNormal addVIMark", () => {
 
     const calls = sendMessage.mock.calls.filter((args: any[]) => args[0]?.action === "addVIMark");
     expect(calls).toHaveLength(1);
-    const markPayload = calls[0][0].mark as Record<
+    const markPayload = calls[0]![0].mark as Record<
       string,
       { url: string; scrollLeft: number; scrollTop: number }
     >;
     expect(markPayload["a"]).toBeDefined();
-    expect(markPayload["a"].url).toBe("https://example.com/");
-    expect(typeof markPayload["a"].scrollTop).toBe("number");
-    expect(typeof markPayload["a"].scrollLeft).toBe("number");
+    expect(markPayload["a"]!.url).toBe("https://example.com/");
+    expect(typeof markPayload["a"]!.scrollTop).toBe("number");
+    expect(typeof markPayload["a"]!.scrollLeft).toBe("number");
 
     (globalThis as any).chrome.runtime.sendMessage = () => {};
     Reflect.deleteProperty(document, "scrollingElement");
@@ -618,8 +618,8 @@ describe("createNormal addVIMark", () => {
     normal.addVIMark("b");
 
     const calls = sendMessage.mock.calls.filter((args: any[]) => args[0]?.action === "addVIMark");
-    const markPayload = calls[0][0].mark as Record<string, { url: string }>;
-    expect(markPayload["b"].url).toBe(window.location.href);
+    const markPayload = calls[0]![0].mark as Record<string, { url: string }>;
+    expect(markPayload["b"]!.url).toBe(window.location.href);
 
     (globalThis as any).chrome.runtime.sendMessage = () => {};
     Reflect.deleteProperty(document, "scrollingElement");

@@ -130,7 +130,7 @@ describe("options page initialization", () => {
     // Check the toggler, then click it.
     const toggler = document.getElementById("advancedToggler") as HTMLInputElement;
     toggler.checked = true;
-    toggler.onclick!(new MouseEvent("click"));
+    toggler.onclick!(new MouseEvent("click") as unknown as PointerEvent);
 
     expect(RUNTIME).toHaveBeenCalledWith(
       "updateSettings",
@@ -143,7 +143,7 @@ describe("options page initialization", () => {
     const RUNTIME = initOptions();
     const toggler = document.getElementById("advancedToggler") as HTMLInputElement;
     toggler.checked = false;
-    toggler.onclick!(new MouseEvent("click"));
+    toggler.onclick!(new MouseEvent("click") as unknown as PointerEvent);
 
     expect(RUNTIME).toHaveBeenCalledWith(
       "updateSettings",
@@ -186,7 +186,7 @@ describe("showAdvanced toggle behavior", () => {
 
     const toggler = document.getElementById("advancedToggler") as HTMLInputElement;
     toggler.checked = true;
-    toggler.onclick!(new MouseEvent("click"));
+    toggler.onclick!(new MouseEvent("click") as unknown as PointerEvent);
 
     expect(showBanner).toHaveBeenCalledWith("something went wrong", 3000);
   });
@@ -205,7 +205,7 @@ describe("resetSettings button", () => {
     initOptions();
     const btn = document.getElementById("resetSettings") as HTMLElement;
     btn.innerText = "Reset";
-    btn.onclick!(new MouseEvent("click"));
+    btn.onclick!(new MouseEvent("click") as unknown as PointerEvent);
     expect(btn.innerText).toContain("WARNING");
   });
 
@@ -214,11 +214,11 @@ describe("resetSettings button", () => {
     const btn = document.getElementById("resetSettings") as HTMLElement;
     btn.innerText = "Reset";
     // First click shows warning.
-    btn.onclick!(new MouseEvent("click"));
+    btn.onclick!(new MouseEvent("click") as unknown as PointerEvent);
     expect(RUNTIME).not.toHaveBeenCalledWith("resetSettings", expect.anything(), expect.anything());
 
     // Second click fires the reset.
-    btn.onclick!(new MouseEvent("click"));
+    btn.onclick!(new MouseEvent("click") as unknown as PointerEvent);
     expect(RUNTIME).toHaveBeenCalledWith("resetSettings", null, expect.any(Function));
   });
 });
@@ -238,7 +238,7 @@ describe("infoPointer toggle", () => {
     const target = document.getElementById("infoTarget") as HTMLElement;
     target.style.display = "none";
 
-    pointer.onclick!(new MouseEvent("click"));
+    pointer.onclick!(new MouseEvent("click") as unknown as PointerEvent);
 
     expect(target.style.display).toBe("");
   });
@@ -249,7 +249,7 @@ describe("infoPointer toggle", () => {
     const target = document.getElementById("infoTarget") as HTMLElement;
     target.style.display = "";
 
-    pointer.onclick!(new MouseEvent("click"));
+    pointer.onclick!(new MouseEvent("click") as unknown as PointerEvent);
 
     expect(target.style.display).toBe("none");
   });
@@ -311,7 +311,7 @@ describe("saveSettings via save_button", () => {
     textarea.value = "api.mapkey('x', 'test', function(){});";
 
     const saveBtn = document.getElementById("save_button") as HTMLInputElement;
-    saveBtn.onclick!(new MouseEvent("click"));
+    saveBtn.onclick!(new MouseEvent("click") as unknown as PointerEvent);
 
     expect(RUNTIME).toHaveBeenCalledWith("updateSettings", {
       settings: {
@@ -329,7 +329,7 @@ describe("saveSettings via save_button", () => {
     localPathInput.value = "https://example.com/settings.js";
 
     const saveBtn = document.getElementById("save_button") as HTMLInputElement;
-    saveBtn.onclick!(new MouseEvent("click"));
+    saveBtn.onclick!(new MouseEvent("click") as unknown as PointerEvent);
 
     expect(RUNTIME).toHaveBeenCalledWith(
       "loadSettingsFromUrl",
@@ -357,7 +357,7 @@ describe("getURIPath (via saveSettings)", () => {
     localPathInput.value = "/home/user/settings.js";
 
     const saveBtn = document.getElementById("save_button") as HTMLInputElement;
-    saveBtn.onclick!(new MouseEvent("click"));
+    saveBtn.onclick!(new MouseEvent("click") as unknown as PointerEvent);
 
     expect(RUNTIME).toHaveBeenCalledWith(
       "loadSettingsFromUrl",
@@ -374,7 +374,7 @@ describe("getURIPath (via saveSettings)", () => {
     localPathInput.value = "http://example.com/settings.js";
 
     const saveBtn = document.getElementById("save_button") as HTMLInputElement;
-    saveBtn.onclick!(new MouseEvent("click"));
+    saveBtn.onclick!(new MouseEvent("click") as unknown as PointerEvent);
 
     expect(RUNTIME).toHaveBeenCalledWith(
       "loadSettingsFromUrl",
@@ -392,7 +392,7 @@ describe("getURIPath (via saveSettings)", () => {
     localPathInput.value = "C:\\Users\\user\\settings.js";
 
     const saveBtn = document.getElementById("save_button") as HTMLInputElement;
-    saveBtn.onclick!(new MouseEvent("click"));
+    saveBtn.onclick!(new MouseEvent("click") as unknown as PointerEvent);
 
     expect(RUNTIME).toHaveBeenCalledWith(
       "loadSettingsFromUrl",
