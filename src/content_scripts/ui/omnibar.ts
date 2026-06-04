@@ -1164,7 +1164,7 @@ function AddBookmark(omnibar: any): any {
     }
     reportOnFail(
       RUNTIME("createBookmark", { page: self.page }, () => {
-        showBanner("Bookmark created at {0}.".format(folderName), 3000);
+        showBanner(`Bookmark created at ${folderName}.`, 3000);
       }),
       reportError,
     );

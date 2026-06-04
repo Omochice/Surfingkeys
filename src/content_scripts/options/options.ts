@@ -3,7 +3,7 @@ import { Result } from "@praha/byethrow";
 import { type ChromeRuntimeError, reportOnFail } from "../../common/result";
 import { reportError } from "../common/report";
 import type { StoredSettings } from "../common/runtime";
-import { requireElement } from "../common/utils";
+import { hide, requireElement, show } from "../common/utils";
 
 type RuntimeFn = (
   action: string,
@@ -76,12 +76,12 @@ export default function (
   const advancedToggler = requireElement<HTMLInputElement>("#advancedToggler");
   function showAdvanced(flag?: boolean): void {
     if (flag) {
-      basicSettingsDiv.hide();
-      advancedSettingDiv.show();
+      hide(basicSettingsDiv);
+      show(advancedSettingDiv);
       advancedToggler.setAttribute("checked", "checked");
     } else {
-      basicSettingsDiv.show();
-      advancedSettingDiv.hide();
+      show(basicSettingsDiv);
+      hide(advancedSettingDiv);
       advancedToggler.removeAttribute("checked");
     }
   }
@@ -397,7 +397,7 @@ export default function (
     const keyPickerDiv = requireElement("#keyPicker");
     self.addEventListener("keydown", (event: any) => {
       if (event.keyCode === 27) {
-        keyPickerDiv.hide();
+        hide(keyPickerDiv);
         self.exit();
       } else if (event.keyCode === 8) {
         let ek = KeyboardUtils.encodeKeystroke(_key);
@@ -405,7 +405,7 @@ export default function (
         _key = KeyboardUtils.decodeKeystroke(ek);
         showKey();
       } else if (event.keyCode === 13) {
-        keyPickerDiv.hide();
+        hide(keyPickerDiv);
         self.exit();
         setSanitizedContent(_elm, _key !== "" ? htmlEncode(_key) : "🚫");
         _elm.dataset["custom"] = _key;
@@ -460,7 +460,7 @@ export default function (
       }
 
       showKey();
-      keyPickerDiv.show();
+      show(keyPickerDiv);
       _elm = elm;
     };
 

@@ -9,6 +9,8 @@ import {
   getTextNodePos,
   getWordUnderCursor,
   htmlEncode,
+  regExpReplacer,
+  removeAttributes,
   setSanitizedContent,
   showBanner,
   showPopup,
@@ -130,7 +132,7 @@ export default function (api: SurfingkeysApi, ctx: ModeContext): void {
     setTimeout(() => {
       RUNTIME("captureVisibleTab", null, (response) => {
         front.toggleStatus(true);
-        showPopup("<img src='{0}' />".format(response.dataUrl));
+        showPopup(`<img src='${response.dataUrl}' />`);
       });
     }, 500);
   });
@@ -161,8 +163,8 @@ export default function (api: SurfingkeysApi, ctx: ModeContext): void {
 
   mapkey(";pp", "#7Paste html on current page", () => {
     clipboard.read((response) => {
-      document.documentElement.removeAttributes();
-      document.body.removeAttributes();
+      removeAttributes(document.documentElement);
+      removeAttributes(document.body);
       setSanitizedContent(
         document.head,
         "<title>" + new Date() + " updated by Surfingkeys</title>",
@@ -571,7 +573,7 @@ export default function (api: SurfingkeysApi, ctx: ModeContext): void {
         key: "RAW",
       },
       (response) => {
-        clipboard.write(JSON.stringify(response.settings, null, 4));
+        clipboard.write(JSON.stringify(response.settings, regExpReplacer, 4));
       },
     );
   });

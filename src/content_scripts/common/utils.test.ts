@@ -1,13 +1,26 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  format,
   getColor,
   hintLabel,
   hintLink,
   parseAnnotation,
   refreshHints,
+  regExpReplacer,
+  removeAttributes,
   requireElement,
 } from "./utils";
+
+describe("format", () => {
+  it("substitutes positional placeholders", () => {
+    expect(format("{0} and {1}", "a", "b")).toBe("a and b");
+  });
+
+  it("treats $ sequences in arguments as literal text", () => {
+    expect(format("q={0}", "a$&b")).toBe("q=a$&b");
+  });
+});
 
 describe("getColor", () => {
   it("returns a CSS color string for valid indices", () => {
@@ -92,6 +105,39 @@ describe("refreshHints (characterization)", () => {
     expect(result).toEqual({ candidates: 2 });
     expect(a.style.opacity).toBe("1");
     expect(a.innerHTML).toBe("ab");
+  });
+});
+
+// Settings may contain RegExp values (e.g. nextLinkRegex). They are serialized
+// to { source, flags } when persisted/cloned and rehydrated via
+// `new RegExp(source, flags)` by ensureRegex. These tests pin that round-trip
+// through the regExpReplacer used at the JSON.stringify call sites.
+describe("RegExp settings serialization", () => {
+  it("serializes a RegExp to its source and flags", () => {
+    const settings = { pat: /foo\d+/gi, n: 1 };
+    expect(JSON.parse(JSON.stringify(settings, regExpReplacer))).toEqual({
+      pat: { source: "foo\\d+", flags: "gi" },
+      n: 1,
+    });
+  });
+
+  it("round-trips a serialized RegExp back into an equivalent RegExp", () => {
+    const original = /bar/i;
+    const clone = JSON.parse(JSON.stringify({ pat: original }, regExpReplacer)).pat;
+    const restored = new RegExp(clone.source, clone.flags);
+    expect(restored.source).toBe(original.source);
+    expect(restored.flags).toBe(original.flags);
+  });
+});
+
+describe("removeAttributes", () => {
+  it("removes every attribute from the element", () => {
+    const el = document.createElement("div");
+    el.setAttribute("id", "x");
+    el.setAttribute("class", "y");
+    el.setAttribute("data-z", "1");
+    removeAttributes(el);
+    expect(el.attributes.length).toBe(0);
   });
 });
 

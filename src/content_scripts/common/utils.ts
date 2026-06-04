@@ -132,9 +132,7 @@ function applyUserSettings(delta: { error: string; settings: Record<string, unkn
     if (window === top) {
       showPopup("[SurfingKeys] Error found in settings: " + delta.error);
     } else {
-      console.log(
-        "[SurfingKeys] Error found in settings({0}): {1}".format(window.location.href, delta.error),
-      );
+      console.log(`[SurfingKeys] Error found in settings(${window.location.href}): ${delta.error}`);
     }
   }
   if (!isEmptyObject(delta.settings)) {
@@ -365,18 +363,8 @@ function isEditable(element: any): boolean {
 
 function reportIssue(title: string, description: string): void {
   title = encodeURIComponent(title);
-  description =
-    "%23%23+Error+details%0A%0A{0}%0A%0ASurfingKeys%3A+{1}%0A%0AChrome%3A+{2}%0A%0AURL%3A+{3}%0A%0A%23%23+Context%0A%0A%2A%2APlease+replace+this+with+a+description+of+how+you+were+using+SurfingKeys.%2A%2A".format(
-      encodeURIComponent(description),
-      browser.runtime.getManifest().version,
-      encodeURIComponent(navigator.userAgent),
-      encodeURIComponent(window.location.href),
-    );
-  const error =
-    '<h2>Uh-oh! The SurfingKeys extension encountered a bug.</h2> <p>Please click <a href="https://github.com/brookhong/Surfingkeys/issues/new?title={0}&body={1}" target=_blank>here</a> to start filing a new issue, append a description of how you were using SurfingKeys before this message appeared, then submit it.  Thanks for your help!</p>'.format(
-      title,
-      description,
-    );
+  description = `%23%23+Error+details%0A%0A${encodeURIComponent(description)}%0A%0ASurfingKeys%3A+${browser.runtime.getManifest().version}%0A%0AChrome%3A+${encodeURIComponent(navigator.userAgent)}%0A%0AURL%3A+${encodeURIComponent(window.location.href)}%0A%0A%23%23+Context%0A%0A%2A%2APlease+replace+this+with+a+description+of+how+you+were+using+SurfingKeys.%2A%2A`;
+  const error = `<h2>Uh-oh! The SurfingKeys extension encountered a bug.</h2> <p>Please click <a href="https://github.com/brookhong/Surfingkeys/issues/new?title=${title}&body=${description}" target=_blank>here</a> to start filing a new issue, append a description of how you were using SurfingKeys before this message appeared, then submit it.  Thanks for your help!</p>`;
 
   showPopup(error);
 }
@@ -835,7 +823,7 @@ function getWordUnderCursor(mouseCursor?: boolean): string | null {
     )[0];
     const word = selection.focusNode.textContent.substring(range[0], range[0] + range[1]);
     if (selRect && word) {
-      if (!mouseCursor || (_clickPos && selRect.has(_clickPos[0], _clickPos[1], 0, 0))) {
+      if (!mouseCursor || (_clickPos && rectContains(selRect, _clickPos[0], _clickPos[1], 0, 0))) {
         return word.trim();
       }
     }
@@ -843,10 +831,10 @@ function getWordUnderCursor(mouseCursor?: boolean): string | null {
   return null;
 }
 
-DOMRect.prototype.has = function (x, y, ex, ey) {
-  // allow some errors of x and y as ex and ey respectively.
-  return y > this.top - ey && y < this.bottom + ey && x > this.left - ex && x < this.right + ex;
-};
+// allow some errors of x and y as ex and ey respectively.
+function rectContains(rect: DOMRect, x: number, y: number, ex: number, ey: number): boolean {
+  return y > rect.top - ey && y < rect.bottom + ey && x > rect.left - ex && x < rect.right + ex;
+}
 
 function initL10n(cb: (translate: (str: string) => string) => void): void {
   const lang = runtime.conf.language || window.navigator.language;
@@ -866,22 +854,23 @@ function initL10n(cb: (translate: (str: string) => string) => void): void {
   }
 }
 
-String.prototype.format = function (...args: unknown[]): string {
-  let formatted = String(this);
+function format(template: string, ...args: unknown[]): string {
+  let formatted = template;
   for (let i = 0; i < args.length; i++) {
     const regexp = new RegExp("\\{" + i + "\\}", "gi");
-    formatted = formatted.replace(regexp, String(args[i]));
+    formatted = formatted.replace(regexp, () => String(args[i]));
   }
   return formatted;
-};
+}
 
-String.prototype.reverse = function (): string {
-  return this.split("").reverse().join("");
-};
-
-RegExp.prototype.toJSON = function () {
-  return { source: this.source, flags: this.flags };
-};
+/**
+ * JSON.stringify replacer that serializes RegExp values to { source, flags }. Settings may carry
+ * RegExp instances (e.g. nextLinkRegex); this preserves them across JSON serialization so
+ * ensureRegex can rehydrate them on the other side.
+ */
+function regExpReplacer(_key: string, value: unknown): unknown {
+  return value instanceof RegExp ? { source: value.source, flags: value.flags } : value;
+}
 
 function parseAnnotation(ag: { annotation: string | string[]; feature_group?: number }): {
   annotation: string | string[];
@@ -956,7 +945,7 @@ function getAnnotations(mappings: Trie): {
 
 function constructSearchURL(se: string, word: string): string {
   if (se.indexOf("{0}") > 0) {
-    return se.format(word);
+    return format(se, word);
   } else if (se.indexOf("%s") > 0) {
     return se.replace("%s", word);
   } else {
@@ -1066,65 +1055,27 @@ function htmlEncode(str: string): string {
   return _divForHtmlEncoder.innerHTML;
 }
 
-HTMLElement.prototype.one = function (evt, handler) {
-  const self = this;
+function once(el: HTMLElement, evt: string, handler: (this: HTMLElement) => void): void {
   function _onceHandler(this: HTMLElement) {
     handler.call(this);
-    self.removeEventListener(evt, _onceHandler);
+    el.removeEventListener(evt, _onceHandler);
   }
-  this.addEventListener(evt, _onceHandler);
-};
+  el.addEventListener(evt, _onceHandler);
+}
 
-HTMLElement.prototype.show = function () {
-  this.style.display = "";
-};
+function show(el: HTMLElement): void {
+  el.style.display = "";
+}
 
-HTMLElement.prototype.hide = function () {
-  this.style.display = "none";
-};
+function hide(el: HTMLElement): void {
+  el.style.display = "none";
+}
 
-HTMLElement.prototype.removeAttributes = function () {
-  while (this.attributes.length > 0) {
-    const first = this.attributes[0];
-    if (first == null) {
-      break;
-    }
-    this.removeAttribute(first.name);
+function removeAttributes(el: HTMLElement): void {
+  for (const attr of Array.from(el.attributes)) {
+    el.removeAttribute(attr.name);
   }
-};
-HTMLElement.prototype.containsWithShadow = function (e) {
-  const roots: Element[] = [this];
-  while (roots.length) {
-    const root = roots.shift()!;
-    if (root.contains(e)) {
-      return true;
-    }
-    roots.push(...root.children);
-    if (root.shadowRoot) {
-      if (root.shadowRoot.contains(e)) {
-        return true;
-      }
-      roots.push(...root.shadowRoot.children);
-    }
-  }
-  return false;
-};
-
-NodeList.prototype.remove = function () {
-  this.forEach((node) => {
-    (node as ChildNode).remove();
-  });
-};
-NodeList.prototype.show = function () {
-  this.forEach((node) => {
-    (node as HTMLElement).show();
-  });
-};
-NodeList.prototype.hide = function () {
-  this.forEach((node) => {
-    (node as HTMLElement).hide();
-  });
-};
+}
 
 function httpRequest(args: Record<string, unknown>, onSuccess: (response: any) => void): void {
   args["method"] = "get";
@@ -1270,6 +1221,7 @@ export {
   filterInvisibleElements,
   filterOverlapElements,
   flashPressedLink,
+  format,
   generateQuickGuid,
   getAnnotations,
   getBrowserName,
@@ -1285,6 +1237,7 @@ export {
   getTextRect,
   getVisibleElements,
   getWordUnderCursor,
+  hide,
   hintLabel,
   hintLink,
   htmlEncode,
@@ -1299,8 +1252,11 @@ export {
   listElements,
   locateFocusNode,
   mapInMode,
+  once,
   parseAnnotation,
   refreshHints,
+  regExpReplacer,
+  removeAttributes,
   reportIssue,
   requireElement,
   rotateInput,
@@ -1308,6 +1264,7 @@ export {
   tryDecodeURIComponent,
   scrollIntoViewIfNeeded,
   setSanitizedContent,
+  show,
   showBanner,
   showPopup,
   tabOpenLink,

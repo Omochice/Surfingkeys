@@ -887,7 +887,7 @@ function createVisual(clipboard: ClipboardLike, hints: HintsLike): VisualMode {
     } else {
       dispatchSKEvent("front", [
         "showStatus",
-        [undefined, undefined, "Pattern not found: {0}".format(query)],
+        [undefined, undefined, `Pattern not found: ${query}`],
         1000,
       ]);
     }

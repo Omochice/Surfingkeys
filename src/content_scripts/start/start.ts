@@ -2,7 +2,7 @@ import { reportOnFail } from "../../common/result";
 import browser from "../common/browser";
 import { reportError } from "../common/report";
 import { RUNTIME } from "../common/runtime";
-import { setSanitizedContent } from "../common/utils";
+import { hide, once, setSanitizedContent, show } from "../common/utils";
 
 reportOnFail(
   RUNTIME("getTopSites", null, (response) => {
@@ -13,7 +13,7 @@ reportOnFail(
     setSanitizedContent(document.querySelector("#topSites>ul")!, urls.join("\n"));
 
     const screen1 = document.querySelector<HTMLElement>("#screen1")!;
-    screen1.show();
+    show(screen1);
     screen1.classList.add("fadeIn");
 
     const screen2 = document.querySelector<HTMLElement>("#screen2")!;
@@ -23,9 +23,9 @@ reportOnFail(
       cl.remove("fadeOut");
       cl.remove("fadeIn");
       cl.add("fadeOut");
-      screen2.one("animationend", () => {
-        screen2.hide();
-        screen1.show();
+      once(screen2, "animationend", () => {
+        hide(screen2);
+        show(screen1);
         screen1.classList.add("fadeIn");
       });
     };
@@ -35,9 +35,9 @@ reportOnFail(
       cl.remove("fadeOut");
       cl.remove("fadeIn");
       cl.add("fadeOut");
-      screen1.one("animationend", () => {
-        screen1.hide();
-        screen2.show();
+      once(screen1, "animationend", () => {
+        hide(screen1);
+        show(screen2);
         screen2.classList.add("fadeIn");
       });
     };
@@ -64,7 +64,7 @@ document.addEventListener("surfingkeys:userSettingsLoaded", (evt) => {
       if (tip == null) {
         return;
       }
-      randomTip.one("animationend", function (this: HTMLElement) {
+      once(randomTip, "animationend", function (this: HTMLElement) {
         setSanitizedContent(this, tip.innerHTML);
         this.classList.add("fadeIn");
       });

@@ -1,17 +1,6 @@
 // Standalone popup bundle (not part of the module graph beyond this file).
 export {};
 
-// String.prototype.format is globally declared in content_scripts/common/utils.ts;
-// the popup is a standalone bundle, so it carries its own implementation.
-String.prototype.format = function (...args: unknown[]): string {
-  let formatted = String(this);
-  for (let i = 0; i < args.length; i++) {
-    const regexp = new RegExp("\\{" + i + "\\}", "gi");
-    formatted = formatted.replace(regexp, String(args[i]));
-  }
-  return formatted;
-};
-
 const disableAll = document.getElementById("disableAll")!;
 const version = "Surfingkeys " + chrome.runtime.getManifest().version;
 
@@ -62,17 +51,8 @@ disableAll.addEventListener("click", () => {
 
 document.getElementById("reportIssue")!.addEventListener("click", () => {
   window.close();
-  const description =
-    "%23%23+Error+details%0A%0A{0}%0A%0ASurfingKeys%3A+{1}%0A%0ABrowser%3A+{2}%0A%0AURL%3A+{3}%0A%0A%23%23+Context%0A%0A%2A%2APlease+replace+this+with+a+description+of+how+you+were+using+SurfingKeys.%2A%2A".format(
-      encodeURIComponent(""),
-      chrome.runtime.getManifest().version,
-      encodeURIComponent(navigator.userAgent),
-      encodeURIComponent("<The_URL_Where_You_Find_The_Issue>"),
-    );
+  const description = `%23%23+Error+details%0A%0A${encodeURIComponent("")}%0A%0ASurfingKeys%3A+${chrome.runtime.getManifest().version}%0A%0ABrowser%3A+${encodeURIComponent(navigator.userAgent)}%0A%0AURL%3A+${encodeURIComponent("<The_URL_Where_You_Find_The_Issue>")}%0A%0A%23%23+Context%0A%0A%2A%2APlease+replace+this+with+a+description+of+how+you+were+using+SurfingKeys.%2A%2A`;
   window.open(
-    "https://github.com/brookhong/Surfingkeys/issues/new?title={0}&body={1}".format(
-      encodeURIComponent(""),
-      description,
-    ),
+    `https://github.com/brookhong/Surfingkeys/issues/new?title=${encodeURIComponent("")}&body=${description}`,
   );
 });

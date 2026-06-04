@@ -12,6 +12,7 @@ import {
   getDocumentOrigin,
   initSKFunctionListener,
   isInUIFrame,
+  regExpReplacer,
   requireElement,
   tabOpenLink,
 } from "./common/utils";
@@ -413,7 +414,7 @@ function createFront(
         action: "applyUserSettings",
         userSettings: us,
       });
-      const cloneUS = JSON.parse(JSON.stringify(us));
+      const cloneUS = JSON.parse(JSON.stringify(us, regExpReplacer));
       const conf = runtime.conf as Record<string, any>;
       // overrides local settings from snippets
       for (const k in cloneUS) {
