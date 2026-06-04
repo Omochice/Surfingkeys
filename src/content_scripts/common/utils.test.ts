@@ -8,6 +8,7 @@ import {
   parseAnnotation,
   refreshHints,
   regExpReplacer,
+  removeAttributes,
   requireElement,
 } from "./utils";
 
@@ -126,6 +127,17 @@ describe("RegExp settings serialization", () => {
     const restored = new RegExp(clone.source, clone.flags);
     expect(restored.source).toBe(original.source);
     expect(restored.flags).toBe(original.flags);
+  });
+});
+
+describe("removeAttributes", () => {
+  it("removes every attribute from the element", () => {
+    const el = document.createElement("div");
+    el.setAttribute("id", "x");
+    el.setAttribute("class", "y");
+    el.setAttribute("data-z", "1");
+    removeAttributes(el);
+    expect(el.attributes.length).toBe(0);
   });
 });
 
