@@ -1230,6 +1230,7 @@ export {
   getCssSelectorsOfEditable,
   getDocumentOrigin,
   getLargeElements,
+  getNearestWord,
   getRealEdit,
   getRealRect,
   getTextNodePos,
