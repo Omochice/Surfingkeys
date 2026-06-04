@@ -132,13 +132,7 @@ function applyUserSettings(delta: { error: string; settings: Record<string, unkn
     if (window === top) {
       showPopup("[SurfingKeys] Error found in settings: " + delta.error);
     } else {
-      console.log(
-        format(
-          "[SurfingKeys] Error found in settings({0}): {1}",
-          window.location.href,
-          delta.error,
-        ),
-      );
+      console.log(`[SurfingKeys] Error found in settings(${window.location.href}): ${delta.error}`);
     }
   }
   if (!isEmptyObject(delta.settings)) {
@@ -369,18 +363,8 @@ function isEditable(element: any): boolean {
 
 function reportIssue(title: string, description: string): void {
   title = encodeURIComponent(title);
-  description = format(
-    "%23%23+Error+details%0A%0A{0}%0A%0ASurfingKeys%3A+{1}%0A%0AChrome%3A+{2}%0A%0AURL%3A+{3}%0A%0A%23%23+Context%0A%0A%2A%2APlease+replace+this+with+a+description+of+how+you+were+using+SurfingKeys.%2A%2A",
-    encodeURIComponent(description),
-    browser.runtime.getManifest().version,
-    encodeURIComponent(navigator.userAgent),
-    encodeURIComponent(window.location.href),
-  );
-  const error = format(
-    '<h2>Uh-oh! The SurfingKeys extension encountered a bug.</h2> <p>Please click <a href="https://github.com/brookhong/Surfingkeys/issues/new?title={0}&body={1}" target=_blank>here</a> to start filing a new issue, append a description of how you were using SurfingKeys before this message appeared, then submit it.  Thanks for your help!</p>',
-    title,
-    description,
-  );
+  description = `%23%23+Error+details%0A%0A${encodeURIComponent(description)}%0A%0ASurfingKeys%3A+${browser.runtime.getManifest().version}%0A%0AChrome%3A+${encodeURIComponent(navigator.userAgent)}%0A%0AURL%3A+${encodeURIComponent(window.location.href)}%0A%0A%23%23+Context%0A%0A%2A%2APlease+replace+this+with+a+description+of+how+you+were+using+SurfingKeys.%2A%2A`;
+  const error = `<h2>Uh-oh! The SurfingKeys extension encountered a bug.</h2> <p>Please click <a href="https://github.com/brookhong/Surfingkeys/issues/new?title=${title}&body=${description}" target=_blank>here</a> to start filing a new issue, append a description of how you were using SurfingKeys before this message appeared, then submit it.  Thanks for your help!</p>`;
 
   showPopup(error);
 }

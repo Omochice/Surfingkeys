@@ -14,7 +14,6 @@ import {
   attachFaviconToImgSrc,
   constructSearchURL,
   createElementWithContent,
-  format,
   getBrowserName,
   htmlEncode,
   parseAnnotation,
@@ -1165,7 +1164,7 @@ function AddBookmark(omnibar: any): any {
     }
     reportOnFail(
       RUNTIME("createBookmark", { page: self.page }, () => {
-        showBanner(format("Bookmark created at {0}.", folderName), 3000);
+        showBanner(`Bookmark created at ${folderName}.`, 3000);
       }),
       reportError,
     );

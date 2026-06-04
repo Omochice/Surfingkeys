@@ -387,11 +387,7 @@ const Front = (() => {
         const last = altSKeys[lh - 1];
         if (last != null) {
           firstGroup.push(
-            format(
-              "<div><span class=kbd-span><kbd>{0}</kbd></span><span class=annotation>{1}</span></div>",
-              htmlEncode(last),
-              locale("Toggle SurfingKeys on current site"),
-            ),
+            `<div><span class=kbd-span><kbd>${htmlEncode(last)}</kbd></span><span class=annotation>${locale("Toggle SurfingKeys on current site")}</span></div>`,
           );
         }
       }
@@ -413,11 +409,7 @@ const Front = (() => {
       const groups = help_groups
         .map((g, i) =>
           g.length
-            ? format(
-                "<div class=feature_name><span>{0}</span></div>{1}",
-                locale(feature_groups[i] ?? ""),
-                g.join(""),
-              )
+            ? `<div class=feature_name><span>${locale(feature_groups[i] ?? "")}</span></div>${g.join("")}`
             : "",
         )
         .filter((s) => s.length);
