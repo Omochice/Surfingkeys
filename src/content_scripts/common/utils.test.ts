@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  format,
   getColor,
   hintLabel,
   hintLink,
@@ -9,6 +10,16 @@ import {
   regExpReplacer,
   requireElement,
 } from "./utils";
+
+describe("format", () => {
+  it("substitutes positional placeholders", () => {
+    expect(format("{0} and {1}", "a", "b")).toBe("a and b");
+  });
+
+  it("treats $ sequences in arguments as literal text", () => {
+    expect(format("q={0}", "a$&b")).toBe("q=a$&b");
+  });
+});
 
 describe("getColor", () => {
   it("returns a CSS color string for valid indices", () => {
