@@ -1072,12 +1072,8 @@ function hide(el: HTMLElement): void {
 }
 
 function removeAttributes(el: HTMLElement): void {
-  while (el.attributes.length > 0) {
-    const first = el.attributes[0];
-    if (first == null) {
-      break;
-    }
-    el.removeAttribute(first.name);
+  for (const attr of Array.from(el.attributes)) {
+    el.removeAttribute(attr.name);
   }
 }
 
