@@ -334,3 +334,136 @@ describe("start — requestImage", () => {
     expect(sendResponse.mock.calls.at(-1)?.[0]).toEqual({ text: "" });
   });
 });
+
+/**
+ * Boots `start` with a chrome stub whose listed namespaces are the supplied recording mocks (every
+ * other chrome.* access falls back to the deep noop), and returns the captured dispatcher. Lets a
+ * test assert the chrome API a message handler delegates to.
+ */
+function bootWith(namespaces: Record<string, any>): MessageHandler {
+  let dispatch: MessageHandler | undefined;
+  const base = deepNoop();
+  g.chrome = new Proxy(base, {
+    get(_t, prop) {
+      if (prop === "runtime") {
+        return {
+          getManifest: () => ({ version: "0.0.0", manifest_version: 2 }),
+          onMessage: {
+            addListener: (fn: MessageHandler) => (dispatch = fn),
+            removeListener: () => {},
+          },
+          setUninstallURL: () => {},
+        };
+      }
+      if (typeof prop === "string" && prop in namespaces) {
+        const ns = namespaces[prop];
+        // Fall back to the deep noop for namespace members the test did not
+        // stub, so boot-time wiring (e.g. chrome.tabs.onRemoved) still works.
+        return new Proxy(ns, {
+          get(_n, key) {
+            if (typeof key === "string" && key in ns) return ns[key];
+            return base[key];
+          },
+        });
+      }
+      return base[prop];
+    },
+  });
+  const browser = {
+    _getContainerName: () => () => {},
+    _setNewTabUrl: () => "about:newtab",
+    loadRawSettings: (_keys: any, cb: any) => cb({}),
+    detectTabTitleChange: false,
+    getLatestHistoryItem: () => {},
+  };
+  start(browser);
+  expectDefined(dispatch);
+  return dispatch;
+}
+
+describe("start — tab/window/download handlers delegate to chrome", () => {
+  it("openIncognito opens an incognito window for the URL", () => {
+    const create = vi.fn();
+    const dispatch = bootWith({ windows: { create } });
+    dispatch({ action: "openIncognito", url: "https://example.com" }, {}, vi.fn());
+    expect(create).toHaveBeenCalledWith({ url: "https://example.com", incognito: true });
+  });
+
+  it("download forwards url/filename/saveAs to chrome.downloads", () => {
+    const download = vi.fn();
+    const dispatch = bootWith({ downloads: { download } });
+    dispatch(
+      { action: "download", url: "https://x/y.zip", filename: "y.zip", saveAs: true },
+      {},
+      vi.fn(),
+    );
+    expect(download).toHaveBeenCalledWith({
+      url: "https://x/y.zip",
+      filename: "y.zip",
+      saveAs: true,
+    });
+  });
+
+  it("closeDownloadsShelf erases history when clearHistory is set", () => {
+    const erase = vi.fn();
+    const dispatch = bootWith({ downloads: { erase, setShelfEnabled: vi.fn() } });
+    dispatch({ action: "closeDownloadsShelf", clearHistory: true }, {}, vi.fn());
+    expect(erase).toHaveBeenCalledWith({ urlRegex: ".*" });
+  });
+
+  it("closeDownloadsShelf toggles the shelf off then on without clearHistory", () => {
+    const setShelfEnabled = vi.fn();
+    const dispatch = bootWith({ downloads: { setShelfEnabled, erase: vi.fn() } });
+    dispatch({ action: "closeDownloadsShelf" }, {}, vi.fn());
+    expect(setShelfEnabled).toHaveBeenNthCalledWith(1, false);
+    expect(setShelfEnabled).toHaveBeenNthCalledWith(2, true);
+  });
+
+  it("getDownloads searches and responds with the found items", () => {
+    const items = [{ url: "https://a/1" }];
+    const search = vi.fn((_query: any, cb: any) => cb(items));
+    const dispatch = bootWith({ downloads: { search } });
+    const sendResponse = vi.fn();
+    dispatch(
+      { action: "getDownloads", query: { state: "in_progress" }, needResponse: true },
+      {},
+      sendResponse,
+    );
+    expect(search).toHaveBeenCalledWith({ state: "in_progress" }, expect.any(Function));
+    expect(sendResponse).toHaveBeenCalledWith({ downloads: items });
+  });
+
+  it("captureVisibleTab responds with the captured data URL", () => {
+    const captureVisibleTab = vi.fn((_opts: any, cb: any) => cb("data:image/png;base64,AAA"));
+    const dispatch = bootWith({ tabs: { captureVisibleTab } });
+    const sendResponse = vi.fn();
+    dispatch({ action: "captureVisibleTab", needResponse: true }, {}, sendResponse);
+    expect(captureVisibleTab).toHaveBeenCalledWith({ format: "png" }, expect.any(Function));
+    expect(sendResponse).toHaveBeenCalledWith({ dataUrl: "data:image/png;base64,AAA" });
+  });
+
+  it("setSurfingkeysIcon picks the disabled icon and targets the sender tab", () => {
+    const setIcon = vi.fn();
+    const dispatch = bootWith({ browserAction: { setIcon } });
+    dispatch({ action: "setSurfingkeysIcon", status: "disabled" }, { tab: { id: 7 } }, vi.fn());
+    expect(setIcon).toHaveBeenCalledWith({ path: "icons/48-x.png", tabId: 7 });
+  });
+
+  it("request responds with the fetched body on success", async () => {
+    mockRequest.mockResolvedValue(Result.succeed("BODY"));
+    const dispatch = bootWith({});
+    const sendResponse = vi.fn();
+    dispatch({ action: "request", url: "https://x", needResponse: true }, {}, sendResponse);
+    await vi.waitFor(() => expect(sendResponse).toHaveBeenCalled());
+    expect(sendResponse).toHaveBeenLastCalledWith({ text: "BODY" });
+  });
+
+  it("request responds with an error string on failure", async () => {
+    mockRequest.mockResolvedValue(Result.fail(httpError("https://x", "boom", 500)));
+    const dispatch = bootWith({});
+    const sendResponse = vi.fn();
+    dispatch({ action: "request", url: "https://x", needResponse: true }, {}, sendResponse);
+    await vi.waitFor(() => expect(sendResponse).toHaveBeenCalled());
+    expect(sendResponse.mock.calls.at(-1)?.[0]).toHaveProperty("error");
+  });
+});
