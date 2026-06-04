@@ -1,11 +1,15 @@
 import { Result } from "@praha/byethrow";
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 
+import KeyboardUtils from "./keyboardUtils";
+import Trie from "./trie";
 import {
   attachFaviconToImgSrc,
   constructSearchURL,
   createElementWithContent,
   format,
+  generateQuickGuid,
+  getAnnotations,
   getBrowserName,
   getColor,
   getNearestWord,
@@ -14,6 +18,9 @@ import {
   hintLink,
   isEditable,
   isElementClickable,
+  listElements,
+  mapInMode,
+  once,
   parseAnnotation,
   refreshHints,
   regExpReplacer,
@@ -432,5 +439,95 @@ describe("toggleQuote", () => {
 
     toggleQuote();
     expect(input.value).toBe("hello");
+  });
+});
+
+describe("getAnnotations", () => {
+  it("collects words with non-empty annotations and their feature groups", () => {
+    const trie = new Trie();
+    trie.add("x", { annotation: "do x", feature_group: 1 });
+    trie.add("y", { annotation: "", feature_group: 2 });
+    trie.add("z", { annotation: ["a", "b"], feature_group: 3 });
+
+    const result = getAnnotations(trie);
+
+    expect(result).toContainEqual({ word: "x", feature_group: 1, annotation: "do x" });
+    expect(result).toContainEqual({ word: "z", feature_group: 3, annotation: ["a", "b"] });
+    // "y" has an empty annotation and is filtered out.
+    expect(result.some((m) => m.word === "y")).toBe(false);
+  });
+});
+
+describe("mapInMode", () => {
+  it("rebinds new keys to the meta of an existing mapping", () => {
+    const mode = { name: "normal", mappings: new Trie() };
+    const code = () => {};
+    mode.mappings.add(KeyboardUtils.encodeKeystroke("j"), { annotation: "down", code });
+
+    const old = mapInMode(mode, "x", "j");
+
+    expect(old).toBeDefined();
+    const rebound = mode.mappings.find(KeyboardUtils.encodeKeystroke("x"));
+    expect(rebound?.meta?.annotation).toBe("down");
+    expect(rebound?.meta?.code).toBe(code);
+  });
+
+  it("applies a replacement annotation when given one", () => {
+    const mode = { name: "normal", mappings: new Trie() };
+    mode.mappings.add(KeyboardUtils.encodeKeystroke("j"), { annotation: "down" });
+
+    mapInMode(mode, "x", "j", "#5Custom");
+
+    const rebound = mode.mappings.find(KeyboardUtils.encodeKeystroke("x"));
+    expect(rebound?.meta?.feature_group).toBe(5);
+    expect(rebound?.meta?.annotation).toEqual(["Custom"]);
+  });
+
+  it("returns undefined when the source mapping does not exist", () => {
+    const mode = { name: "normal", mappings: new Trie() };
+    expect(mapInMode(mode, "x", "nonexistent")).toBeUndefined();
+  });
+});
+
+describe("listElements", () => {
+  afterEach(() => document.body.replaceChildren());
+
+  it("descends into shadow roots while collecting matching elements", () => {
+    const host = document.createElement("div");
+    document.body.appendChild(host);
+    const shadow = host.attachShadow({ mode: "open" });
+    const inner = document.createElement("span");
+    inner.id = "inner";
+    shadow.appendChild(inner);
+
+    const found = listElements(
+      document.body,
+      NodeFilter.SHOW_ELEMENT,
+      (n) => (n as HTMLElement).id === "inner",
+    );
+
+    expect(found).toContain(inner);
+  });
+});
+
+describe("once", () => {
+  it("invokes the handler only for the first occurrence of the event", () => {
+    const el = document.createElement("button");
+    const handler = vi.fn();
+    once(el, "click", handler);
+
+    el.dispatchEvent(new Event("click"));
+    el.dispatchEvent(new Event("click"));
+
+    expect(handler).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe("generateQuickGuid", () => {
+  it("produces a non-empty alphanumeric string that differs between calls", () => {
+    const a = generateQuickGuid();
+    const b = generateQuickGuid();
+    expect(a).toMatch(/^[a-z0-9]+$/);
+    expect(a).not.toBe(b);
   });
 });
