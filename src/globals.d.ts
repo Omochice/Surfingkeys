@@ -6,10 +6,6 @@ declare global {
   interface RegExp {
     toJSON(): { source: string; flags: string };
   }
-  interface DOMRect {
-    /** Hit test of (x, y) with tolerances ex/ey on each axis. */
-    has(x: number, y: number, ex: number, ey: number): boolean;
-  }
   interface Event {
     sk_keyName?: string;
     sk_stopPropagation?: boolean;

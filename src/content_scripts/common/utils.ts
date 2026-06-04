@@ -839,7 +839,7 @@ function getWordUnderCursor(mouseCursor?: boolean): string | null {
     )[0];
     const word = selection.focusNode.textContent.substring(range[0], range[0] + range[1]);
     if (selRect && word) {
-      if (!mouseCursor || (_clickPos && selRect.has(_clickPos[0], _clickPos[1], 0, 0))) {
+      if (!mouseCursor || (_clickPos && rectContains(selRect, _clickPos[0], _clickPos[1], 0, 0))) {
         return word.trim();
       }
     }
@@ -847,10 +847,10 @@ function getWordUnderCursor(mouseCursor?: boolean): string | null {
   return null;
 }
 
-DOMRect.prototype.has = function (x, y, ex, ey) {
-  // allow some errors of x and y as ex and ey respectively.
-  return y > this.top - ey && y < this.bottom + ey && x > this.left - ex && x < this.right + ex;
-};
+// allow some errors of x and y as ex and ey respectively.
+function rectContains(rect: DOMRect, x: number, y: number, ex: number, ey: number): boolean {
+  return y > rect.top - ey && y < rect.bottom + ey && x > rect.left - ex && x < rect.right + ex;
+}
 
 function initL10n(cb: (translate: (str: string) => string) => void): void {
   const lang = runtime.conf.language || window.navigator.language;
