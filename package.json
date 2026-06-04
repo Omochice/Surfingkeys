@@ -52,7 +52,7 @@
     "@types/chrome": "0.1.42",
     "@types/firefox-webext-browser": "143.0.0",
     "@types/webextension-polyfill": "0.12.5",
-    "@vitest/coverage-v8": "4.1.7",
+    "@vitest/coverage-v8": "4.1.8",
     "@wxt-dev/module-solid": "1.1.4",
     "jsdom": "29.1.1",
     "knip": "6.15.0",
@@ -63,7 +63,7 @@
     "sort-package-json": "3.7.0",
     "typescript": "6.0.3",
     "vite-plugin-solid": "2.11.12",
-    "vitest": "4.1.7",
+    "vitest": "4.1.8",
     "wxt": "0.20.26"
   },
   "devEngines": {
