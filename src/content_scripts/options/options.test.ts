@@ -542,3 +542,493 @@ describe("surfingkeys:defaultSettingsLoaded event", () => {
     expect(mappingsDiv.innerHTML).toContain("scroll down");
   });
 });
+
+// A Mode factory that records every created instance so tests can retrieve
+// named instances (e.g. "KeyPicker") without reaching into module internals.
+function makeTrackingMode() {
+  const instances: Map<string, any> = new Map();
+
+  const ModeClass = class TrackingFakeMode {
+    name: string;
+    container?: unknown;
+    eventListeners: Record<string, (...args: any[]) => void> = {};
+    #keydownHandler?: (...args: any[]) => void;
+    #enterOverride?: (...args: any[]) => void;
+
+    constructor(name: string) {
+      this.name = name;
+      instances.set(name, this);
+    }
+
+    addEventListener(evt: string, fn: (...args: any[]) => void) {
+      this.eventListeners[evt] = fn;
+      if (evt === "keydown") this.#keydownHandler = fn;
+      return this;
+    }
+
+    // The base enter that KeyPicker captures as _enter.
+    enter(..._args: unknown[]) {}
+
+    exit(..._args: unknown[]) {}
+
+    fireKeydown(event: Record<string, unknown>) {
+      (this.#enterOverride ? this.eventListeners["keydown"] : this.#keydownHandler)?.(event);
+    }
+  };
+
+  return { ModeClass, instances };
+}
+
+// Helper to fire userSettingsLoaded with an explicit frontCommand.
+function fireUserSettingsLoadedWith(
+  settings: Record<string, unknown>,
+  frontCommand: (req: unknown, cb: (r: any) => void) => void,
+) {
+  document.dispatchEvent(
+    new CustomEvent("surfingkeys:userSettingsLoaded", {
+      detail: {
+        settings,
+        disabledSearchAliases: {},
+        frontCommand,
+      },
+    }),
+  );
+}
+
+describe("KeyPicker keydown: Escape hides the picker", () => {
+  beforeEach(() => {
+    buildDOM();
+  });
+
+  afterEach(() => {
+    document.body.innerHTML = "";
+  });
+
+  it("hides the keyPicker div when Escape is pressed", () => {
+    const { ModeClass, instances } = makeTrackingMode();
+
+    optionsMain(
+      makeRUNTIME() as any,
+      makeKeyboardUtils(),
+      ModeClass as any,
+      makeCreateElementWithContent(),
+      () => "Chrome",
+      (s: string) => s,
+      (cb: (locale: (s: string) => string) => void) => cb((s) => s),
+      (_title: string, _desc: string) => {},
+      (elm: Element, str: string) => {
+        elm.innerHTML = str;
+      },
+      (_msg: string, _timeout?: number) => {},
+    );
+
+    const kp = instances.get("KeyPicker");
+    expect(kp).toBeDefined();
+
+    const keyPickerDiv = document.getElementById("keyPicker") as HTMLElement;
+    keyPickerDiv.style.display = "";
+
+    const event: Record<string, unknown> = { keyCode: 27, sk_keyName: "<Esc>" };
+    kp.eventListeners["keydown"]?.(event);
+
+    // hide() should have set display to "none".
+    expect(keyPickerDiv.style.display).toBe("none");
+    expect(event["sk_stopPropagation"]).toBe(true);
+  });
+});
+
+describe("KeyPicker keydown: regular character appends to key", () => {
+  beforeEach(() => {
+    buildDOM();
+  });
+
+  afterEach(() => {
+    document.body.innerHTML = "";
+  });
+
+  it("appends a character to the key display when a regular key is pressed", () => {
+    const { ModeClass, instances } = makeTrackingMode();
+
+    optionsMain(
+      makeRUNTIME() as any,
+      makeKeyboardUtils(),
+      ModeClass as any,
+      makeCreateElementWithContent(),
+      () => "Chrome",
+      (s: string) => s,
+      (cb: (locale: (s: string) => string) => void) => cb((s) => s),
+      (_title: string, _desc: string) => {},
+      (elm: Element, str: string) => {
+        elm.innerHTML = str;
+      },
+      (_msg: string, _timeout?: number) => {},
+    );
+
+    const kp = instances.get("KeyPicker");
+    // Press 'a' — sk_keyName length is 1 so it goes to the char-append branch.
+    const event: Record<string, unknown> = { keyCode: 65, sk_keyName: "a" };
+    kp.eventListeners["keydown"]?.(event);
+
+    const inputKey = document.getElementById("inputKey") as HTMLElement;
+    // htmlEncode("a") = "a", setSanitizedContent puts it in innerHTML.
+    expect(inputKey.innerHTML).toBe("a");
+    expect(event["sk_stopPropagation"]).toBe(true);
+  });
+});
+
+describe("KeyPicker enter: show keyPicker and populate from kbd element", () => {
+  beforeEach(() => {
+    buildDOM();
+  });
+
+  afterEach(() => {
+    document.body.innerHTML = "";
+  });
+
+  it("shows the keyPicker div and sets the displayed key from the clicked kbd", () => {
+    const { ModeClass, instances } = makeTrackingMode();
+
+    optionsMain(
+      makeRUNTIME() as any,
+      makeKeyboardUtils(),
+      ModeClass as any,
+      makeCreateElementWithContent(),
+      () => "Chrome",
+      (s: string) => s,
+      (cb: (locale: (s: string) => string) => void) => cb((s) => s),
+      (_title: string, _desc: string) => {},
+      (elm: Element, str: string) => {
+        elm.innerHTML = str;
+      },
+      (_msg: string, _timeout?: number) => {},
+    );
+
+    const kp = instances.get("KeyPicker");
+    const keyPickerDiv = document.getElementById("keyPicker") as HTMLElement;
+    keyPickerDiv.style.display = "none";
+
+    // Build a fake kbd element as enter() expects.
+    const kbd = document.createElement("kbd");
+    kbd.innerText = "j";
+    kbd.dataset["origin"] = "j";
+    kbd.dataset["custom"] = "j";
+
+    // Enter is replaced inside options.ts; call it directly.
+    kp.enter(kbd);
+
+    expect(keyPickerDiv.style.display).toBe("");
+    const inputKey = document.getElementById("inputKey") as HTMLElement;
+    // "j" is the key text from kbd.innerText.
+    expect(inputKey.innerHTML).toBe("j");
+  });
+
+  it("clears the key when the kbd innerText is the disabled-placeholder '🚫'", () => {
+    const { ModeClass, instances } = makeTrackingMode();
+
+    optionsMain(
+      makeRUNTIME() as any,
+      makeKeyboardUtils(),
+      ModeClass as any,
+      makeCreateElementWithContent(),
+      () => "Chrome",
+      (s: string) => s,
+      (cb: (locale: (s: string) => string) => void) => cb((s) => s),
+      (_title: string, _desc: string) => {},
+      (elm: Element, str: string) => {
+        elm.innerHTML = str;
+      },
+      (_msg: string, _timeout?: number) => {},
+    );
+
+    const kp = instances.get("KeyPicker");
+
+    const kbd = document.createElement("kbd");
+    kbd.innerText = "🚫";
+    kbd.dataset["origin"] = "j";
+    kbd.dataset["custom"] = "";
+
+    kp.enter(kbd);
+
+    // After clearing, showKey() with empty _key sets innerHTML to "&nbsp;"
+    const inputKey = document.getElementById("inputKey") as HTMLElement;
+    expect(inputKey.innerHTML).toBe("&nbsp;");
+  });
+});
+
+describe("KeyPicker keydown: Enter saves the mapping", () => {
+  beforeEach(() => {
+    buildDOM();
+  });
+
+  afterEach(() => {
+    document.body.innerHTML = "";
+  });
+
+  it("calls RUNTIME updateSettings with basicMappings when Enter is pressed after picking a key", () => {
+    const RUNTIME = makeRUNTIME();
+    const { ModeClass, instances } = makeTrackingMode();
+
+    optionsMain(
+      RUNTIME as any,
+      makeKeyboardUtils(),
+      ModeClass as any,
+      makeCreateElementWithContent(),
+      () => "Chrome",
+      (s: string) => s,
+      (cb: (locale: (s: string) => string) => void) => cb((s) => s),
+      (_title: string, _desc: string) => {},
+      (elm: Element, str: string) => {
+        elm.innerHTML = str;
+      },
+      (_msg: string, _timeout?: number) => {},
+    );
+
+    const kp = instances.get("KeyPicker");
+
+    // Build a kbd with a different custom key from origin so a mapping is recorded.
+    const basicMappingsDiv = document.getElementById("basicMappings") as HTMLElement;
+    const kbd = document.createElement("kbd");
+    kbd.innerText = "k";
+    kbd.dataset["origin"] = "j";
+    kbd.dataset["custom"] = "j";
+    basicMappingsDiv.appendChild(kbd);
+
+    kp.enter(kbd);
+
+    // Simulate pressing 'k'.
+    kp.eventListeners["keydown"]?.({ keyCode: 65, sk_keyName: "k" });
+    // kbd.dataset.custom is "j" but we pressed "k" — now enter Enter.
+    kp.eventListeners["keydown"]?.({ keyCode: 13, sk_keyName: "<Enter>" });
+
+    // RUNTIME should have been called with updateSettings containing basicMappings.
+    expect(RUNTIME).toHaveBeenCalledWith(
+      "updateSettings",
+      expect.objectContaining({
+        settings: expect.objectContaining({ basicMappings: expect.any(Object) }),
+      }),
+    );
+  });
+});
+
+describe("KeyPicker keydown: Backspace removes last character", () => {
+  beforeEach(() => {
+    buildDOM();
+  });
+
+  afterEach(() => {
+    document.body.innerHTML = "";
+  });
+
+  it("removes the last character of the accumulated key on Backspace", () => {
+    const { ModeClass, instances } = makeTrackingMode();
+
+    optionsMain(
+      makeRUNTIME() as any,
+      makeKeyboardUtils(),
+      ModeClass as any,
+      makeCreateElementWithContent(),
+      () => "Chrome",
+      (s: string) => s,
+      (cb: (locale: (s: string) => string) => void) => cb((s) => s),
+      (_title: string, _desc: string) => {},
+      (elm: Element, str: string) => {
+        elm.innerHTML = str;
+      },
+      (_msg: string, _timeout?: number) => {},
+    );
+
+    const kp = instances.get("KeyPicker");
+
+    // Type two characters: 'a' then 'b'.
+    kp.eventListeners["keydown"]?.({ keyCode: 65, sk_keyName: "a" });
+    kp.eventListeners["keydown"]?.({ keyCode: 66, sk_keyName: "b" });
+
+    let inputKey = document.getElementById("inputKey") as HTMLElement;
+    expect(inputKey.innerHTML).toBe("ab");
+
+    // Backspace should remove the last character.
+    kp.eventListeners["keydown"]?.({ keyCode: 8, sk_keyName: "<BS>" });
+
+    inputKey = document.getElementById("inputKey") as HTMLElement;
+    expect(inputKey.innerHTML).toBe("a");
+  });
+});
+
+describe("renderSettings with snippets", () => {
+  beforeEach(() => {
+    buildDOM();
+  });
+
+  afterEach(() => {
+    document.body.innerHTML = "";
+  });
+
+  it("populates the mappings textarea with snippets from settings", () => {
+    initOptions();
+    fireUserSettingsLoaded({ snippets: "// my custom settings" });
+
+    const textarea = document.getElementById("mappings") as HTMLTextAreaElement;
+    expect(textarea.value).toBe("// my custom settings");
+  });
+
+  it("falls back to the sample snippet when settings.snippets is empty", () => {
+    initOptions();
+    fireUserSettingsLoaded({ snippets: "" });
+
+    const textarea = document.getElementById("mappings") as HTMLTextAreaElement;
+    // The sample element contains "sample snippet".
+    expect(textarea.value).toBe("sample snippet");
+  });
+});
+
+describe("renderSearchAlias: aliases with object prompt", () => {
+  beforeEach(() => {
+    buildDOM();
+  });
+
+  afterEach(() => {
+    document.body.innerHTML = "";
+  });
+
+  it("uses alias.prompt.html when prompt is an object with an html property", async () => {
+    initOptions();
+
+    // Fire settings loaded with a frontCommand that returns an alias with an object prompt.
+    fireUserSettingsLoadedWith({}, (_req: unknown, cb: (r: any) => void) => {
+      cb({
+        aliases: {
+          g: { prompt: { html: "<img src='google.png'/>" } },
+        },
+      });
+    });
+
+    // renderSearchAlias resolves a promise asynchronously.
+    await new Promise((r) => setTimeout(r, 0));
+
+    // jsdom normalizes the HTML (single → double quotes, no self-closing slash);
+    // assert via the parsed DOM instead.
+    const searchAliases = document.getElementById("searchAliases") as HTMLElement;
+    const img = searchAliases.querySelector("img");
+    expect(img).not.toBeNull();
+    expect(img!.getAttribute("src")).toBe("google.png");
+  });
+
+  it("uses alias.prompt string directly when prompt is a plain string", async () => {
+    initOptions();
+
+    fireUserSettingsLoadedWith({}, (_req: unknown, cb: (r: any) => void) => {
+      cb({
+        aliases: {
+          b: { prompt: "Bing" },
+        },
+      });
+    });
+
+    await new Promise((r) => setTimeout(r, 0));
+
+    const searchAliases = document.getElementById("searchAliases") as HTMLElement;
+    expect(searchAliases.innerHTML).toContain("Bing");
+  });
+
+  it("toggling a search alias checkbox calls RUNTIME to update disabledSearchAliases", async () => {
+    // Directly invoke renderSearchAlias by capturing the frontCommand from the
+    // userSettingsLoaded event, bypassing the cross-test listener accumulation issue.
+    //
+    // We wire a RUNTIME spy and a frontCommand that delivers one alias, then
+    // trigger the module by calling optionsMain + fireUserSettingsLoadedWith.
+    // Because multiple optionsMain listeners may exist from prior tests, the
+    // searchAliases container is cleared first so only this test's appended
+    // checkboxes are present.
+    const RUNTIME = makeRUNTIME();
+
+    optionsMain(
+      RUNTIME as any,
+      makeKeyboardUtils(),
+      makeMode() as any,
+      makeCreateElementWithContent(),
+      () => "Chrome",
+      (s: string) => s,
+      (cb: (locale: (s: string) => string) => void) => cb((s) => s),
+      (_title: string, _desc: string) => {},
+      (elm: Element, str: string) => {
+        elm.innerHTML = str;
+      },
+      (_msg: string, _timeout?: number) => {},
+    );
+
+    // Clear the container so only aliases from this optionsMain instance appear.
+    document.getElementById("searchAliases")!.innerHTML = "";
+
+    // Deliver one alias via the event; the module appends it after the promise resolves.
+    fireUserSettingsLoadedWith({}, (_req: unknown, cb: (r: any) => void) => {
+      cb({
+        aliases: {
+          g: { prompt: "Google" },
+        },
+      });
+    });
+
+    await new Promise((r) => setTimeout(r, 0));
+
+    // Pick the last checkbox added (from our optionsMain, which appended after the clear).
+    const checkboxes = Array.from(
+      document.querySelectorAll("#searchAliases input"),
+    ) as HTMLInputElement[];
+    expect(checkboxes.length).toBeGreaterThan(0);
+    // Trigger the last one — that's the one registered by our RUNTIME-spy optionsMain.
+    const lastCheckbox = checkboxes[checkboxes.length - 1]!;
+    lastCheckbox.onchange!(new Event("change") as unknown as Event);
+
+    expect(RUNTIME).toHaveBeenCalledWith(
+      "updateSettings",
+      expect.objectContaining({
+        settings: expect.objectContaining({ disabledSearchAliases: expect.any(Object) }),
+      }),
+    );
+  });
+});
+
+describe("saveSettings: loadSettingsFromUrl callback updates snippets", () => {
+  beforeEach(() => {
+    buildDOM();
+  });
+
+  afterEach(() => {
+    document.body.innerHTML = "";
+  });
+
+  it("updates the textarea with snippets returned from loadSettingsFromUrl", () => {
+    const RUNTIME = vi.fn((action: string, _args: any, cb?: (r: any) => void) => {
+      if (action === "loadSettingsFromUrl") {
+        cb?.({ status: "200 OK", snippets: "// remote settings", renderKeyMappings: () => {} });
+      }
+      return Result.succeed(undefined);
+    });
+
+    optionsMain(
+      RUNTIME as any,
+      makeKeyboardUtils(),
+      makeMode() as any,
+      makeCreateElementWithContent(),
+      () => "Chrome",
+      (s: string) => s,
+      (cb: (locale: (s: string) => string) => void) => cb((s) => s),
+      (_title: string, _desc: string) => {},
+      (elm: Element, str: string) => {
+        elm.innerHTML = str;
+      },
+      (_msg: string, _timeout?: number) => {},
+    );
+
+    fireUserSettingsLoaded({});
+
+    const localPathInput = document.getElementById("localPath") as HTMLInputElement;
+    localPathInput.value = "https://example.com/remote-settings.js";
+
+    const saveBtn = document.getElementById("save_button") as HTMLInputElement;
+    saveBtn.onclick!(new MouseEvent("click") as unknown as PointerEvent);
+
+    const textarea = document.getElementById("mappings") as HTMLTextAreaElement;
+    expect(textarea.value).toBe("// remote settings");
+  });
+});

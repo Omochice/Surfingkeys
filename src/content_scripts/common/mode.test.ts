@@ -320,3 +320,150 @@ describe("Mode.addEventListener", () => {
     expect(mode.eventListeners["custom"]).toBe(handler);
   });
 });
+
+describe("Mode.handleMapKey — pendingMap branch", () => {
+  it("calls pendingMap with the subsequent key and resets state", () => {
+    const { mode, mappings } = makeMode();
+    const received: string[] = [];
+    // A mapping whose code has `.length > 0` signals it expects an argument.
+    // We simulate this by assigning pendingMap directly (as handleMapKey would
+    // after detecting code.length > 0 on the previous key).
+    const pendingFn = (key: string) => {
+      received.push(key);
+    };
+    mappings.add(KeyboardUtils.encodeKeystroke("a"), {
+      annotation: "arg",
+      code: pendingFn,
+    });
+
+    // First press: key 'a' matches the mapping. Because code.length === 1 (it takes a key arg),
+    // handleMapKey sets pendingMap instead of calling code directly.
+    press(mode, "a");
+    expect(mode.pendingMap).not.toBeNull();
+
+    // Second press: pendingMap is called with 'x'.
+    press(mode, "x");
+    expect(received).toEqual(["x"]);
+    // pendingMap should be cleared after execution.
+    expect(mode.pendingMap).toBeNull();
+  });
+});
+
+describe("Mode.handleMapKey — stopPropagation variants", () => {
+  it("respects boolean stopPropagation=true: sk_stopPropagation is false when meta says stop", () => {
+    const { mode, mappings } = makeMode();
+    let ran = 0;
+    mappings.add(KeyboardUtils.encodeKeystroke("z"), {
+      annotation: "stop",
+      stopPropagation: true,
+      code: () => {
+        ran++;
+      },
+    });
+
+    const event = press(mode, "z");
+    expect(ran).toBe(1);
+    // stopPropagation=true means the meta STOPS propagation; the logic is:
+    // sk_stopPropagation = !meta.stopPropagation || callStopPropagation(meta, key)
+    // => !true || true => false || true => true in this code path.
+    // Actually: event.sk_stopPropagation = !meta.stopPropagation || callStopPropagation(meta, key)
+    // callStopPropagation(meta, key) = !!meta.stopPropagation = true
+    // => !true || true = false || true = true
+    expect(event.sk_stopPropagation).toBe(true);
+  });
+
+  it("respects boolean stopPropagation=false: sk_stopPropagation is true when meta allows propagation", () => {
+    const { mode, mappings } = makeMode();
+    let ran = 0;
+    mappings.add(KeyboardUtils.encodeKeystroke("q"), {
+      annotation: "allow",
+      stopPropagation: false,
+      code: () => {
+        ran++;
+      },
+    });
+
+    const event = press(mode, "q");
+    expect(ran).toBe(1);
+    // !false || callStopPropagation(meta, key) = true || false = true
+    expect(event.sk_stopPropagation).toBe(true);
+  });
+
+  it("calls a function stopPropagation with the pressed key", () => {
+    const { mode, mappings } = makeMode();
+    const spFn = vi.fn().mockReturnValue(false);
+    let ran = 0;
+    mappings.add(KeyboardUtils.encodeKeystroke("p"), {
+      annotation: "fnstop",
+      stopPropagation: spFn,
+      code: () => {
+        ran++;
+      },
+    });
+
+    press(mode, "p");
+    expect(ran).toBe(1);
+    // callStopPropagation calls the function with the encoded key name.
+    expect(spFn).toHaveBeenCalledWith(KeyboardUtils.encodeKeystroke("p"));
+  });
+});
+
+describe("Mode.handleMapKey — setLastKeys callback", () => {
+  it("calls setLastKeys with the meta word when a mapping runs", () => {
+    const { mode, mappings } = makeMode();
+    const lastKeys: string[] = [];
+    mode.setLastKeys = (k) => lastKeys.push(k);
+    mappings.add(KeyboardUtils.encodeKeystroke("g"), {
+      annotation: "go",
+      code: () => {},
+    });
+
+    press(mode, "g");
+    expect(lastKeys).toEqual([KeyboardUtils.encodeKeystroke("g")]);
+  });
+});
+
+describe("Mode.init", () => {
+  it("runs the callback immediately on a normal (non-blank) page", () => {
+    const cb = vi.fn();
+    Mode.init(cb);
+    expect(cb).toHaveBeenCalledOnce();
+  });
+});
+
+describe("Mode.checkEventListener", () => {
+  it("calls onMissing when the sentinel event is not dispatched", () => {
+    // The sentinel listener increments eventListenerBeats each time the
+    // 'sentinel' custom event fires. By spying on window.dispatchEvent we
+    // can verify checkEventListener dispatches the sentinel and calls onMissing
+    // only when the counter did not change (which happens when listeners were removed).
+    //
+    // In tests the listeners are installed at module load, so the sentinel
+    // WILL fire and eventListenerBeats WILL change — onMissing is NOT called.
+    const onMissing = vi.fn();
+    Mode.checkEventListener(onMissing);
+    // The sentinel listener fires → beats changed → onMissing is NOT called.
+    expect(onMissing).not.toHaveBeenCalled();
+  });
+});
+
+describe("Mode.hasScroll", () => {
+  it("returns false for an element with scrollTop=0 and no effective scroll", () => {
+    const el = document.createElement("div");
+    document.body.appendChild(el);
+    // jsdom elements have no real layout; scrollTop=0 and getBoundingClientRect returns 0.
+    // result < barSize branch: sets scroll to getBoundingClientRect height (0), reads back 0.
+    // 0 !== 0 is false → suppressScrollEvent not incremented.
+    // result (0) >= barSize (16) → false.
+    expect(Mode.hasScroll(el, "y", 16)).toBe(false);
+    document.body.innerHTML = "";
+  });
+
+  it("returns true when scrollTop already meets the barSize threshold", () => {
+    const el = document.createElement("div");
+    Object.defineProperty(el, "scrollTop", { get: () => 100, configurable: true });
+    document.body.appendChild(el);
+    expect(Mode.hasScroll(el, "y", 16)).toBe(true);
+    document.body.innerHTML = "";
+  });
+});

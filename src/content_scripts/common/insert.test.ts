@@ -2,6 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import createInsert, { deleteNextWord, nextNonWord } from "./insert";
 import KeyboardUtils from "./keyboardUtils";
+import { runtime } from "./runtime";
 
 describe("nextNonWord", () => {
   it("moves forward to the first non-word character after the cursor", () => {
@@ -332,5 +333,157 @@ describe("createInsert mapping codes", () => {
       const node = insert.mappings.find(KeyboardUtils.encodeKeystroke("<Esc>"));
       expect(node?.meta?.annotation).toBe("Exit insert mode");
     });
+  });
+});
+
+// Helper to retrieve the keydown handler registered via addEventListener.
+function getKeydownHandler(insert: ReturnType<typeof createInsert>): (event: any) => void {
+  return (insert as any).eventListeners["keydown"];
+}
+
+// Helper to retrieve the focus handler registered via addEventListener.
+function getFocusHandler(insert: ReturnType<typeof createInsert>): (event: any) => void {
+  return (insert as any).eventListeners["focus"];
+}
+
+describe("createInsert keydown event listener", () => {
+  let insert: ReturnType<typeof createInsert>;
+
+  beforeEach(() => {
+    insert = createInsert();
+  });
+
+  afterEach(() => {
+    document.body.innerHTML = "";
+  });
+
+  it("sets sk_suppressed when the key has charCode > 127 (IME open)", () => {
+    // A Japanese character has charCode > 127; this simulates an IME composition key.
+    const input = makeInput("hello", 0);
+    const handler = getKeydownHandler(insert);
+    const event: any = { key: "あ", target: input, sk_keyName: "" };
+    handler(event);
+    expect(event.sk_suppressed).toBe(true);
+  });
+
+  it("exits insert mode when the focused element is not editable", () => {
+    // A non-editable element (e.g. document.body) causes exit.
+    const div = document.createElement("div");
+    document.body.appendChild(div);
+    div.focus();
+    const exitSpy = vi.spyOn(insert, "exit");
+    const handler = getKeydownHandler(insert);
+    const event: any = { key: "a", target: div, sk_keyName: "a" };
+    handler(event);
+    expect(exitSpy).toHaveBeenCalledOnce();
+  });
+
+  it("sets sk_suppressed=true at end of handler for a mapped editable key", () => {
+    const input = makeInput("hello", 0);
+    const handler = getKeydownHandler(insert);
+    const event: any = {
+      key: "a",
+      target: input,
+      sk_keyName: KeyboardUtils.encodeKeystroke("<Ctrl-e>"),
+      isTrusted: false,
+    };
+    handler(event);
+    // The handler always sets sk_suppressed=true at the bottom of the keydown branch.
+    expect(event.sk_suppressed).toBe(true);
+  });
+
+  it("does not set sk_suppressed from IME branch when key is ASCII", () => {
+    const input = makeInput("hello", 0);
+    const handler = getKeydownHandler(insert);
+    // Regular ASCII key should NOT trigger the IME early-return branch.
+    const event: any = { key: "a", target: input, sk_keyName: "" };
+    handler(event);
+    // The IME guard does not fire; sk_suppressed is set by the bottom of the handler.
+    // (sk_keyName is empty so handleMapKey is not called, but sk_suppressed is still set)
+    expect(event.sk_suppressed).toBe(true);
+  });
+});
+
+describe("createInsert focus event listener", () => {
+  let insert: ReturnType<typeof createInsert>;
+
+  beforeEach(() => {
+    insert = createInsert();
+  });
+
+  afterEach(() => {
+    document.body.innerHTML = "";
+  });
+
+  it("exits insert mode when a non-editable element receives focus", () => {
+    const div = document.createElement("div");
+    document.body.appendChild(div);
+    const exitSpy = vi.spyOn(insert, "exit");
+    const handler = getFocusHandler(insert);
+    // target is div (not window), and div is not editable → exit.
+    const event: any = { target: div };
+    handler(event);
+    expect(exitSpy).toHaveBeenCalledOnce();
+  });
+
+  it("sets sk_suppressed when an editable element receives focus", () => {
+    const input = makeInput("hello", 0);
+    const handler = getFocusHandler(insert);
+    const event: any = { target: input };
+    handler(event);
+    expect(event.sk_suppressed).toBe(true);
+  });
+
+  it("sets sk_suppressed when target is window (window-lost-focus event)", () => {
+    // When event.target === window, getRealEdit returns document.body.
+    // isEditable(document.body) is false, but the guard is target !== window,
+    // so the else branch fires and sk_suppressed is set.
+    const handler = getFocusHandler(insert);
+    const event: any = { target: window };
+    handler(event);
+    expect(event.sk_suppressed).toBe(true);
+  });
+});
+
+describe("createInsert enter override", () => {
+  let insert: ReturnType<typeof createInsert>;
+
+  afterEach(() => {
+    document.body.innerHTML = "";
+    runtime.conf.showModeStatus = false;
+    runtime.conf.cursorAtEndOfInput = true;
+  });
+
+  beforeEach(() => {
+    insert = createInsert();
+  });
+
+  it("sets showModeStatus=false when the element is document.body", () => {
+    runtime.conf.showModeStatus = true;
+    insert.enter(document.body);
+    expect(runtime.conf.showModeStatus).toBe(false);
+  });
+
+  it("moves the cursor to end of input when entering a new element with cursorAtEndOfInput", () => {
+    runtime.conf.cursorAtEndOfInput = true;
+    const input = makeInput("hello world", 0);
+    insert.enter(input);
+    // moveCursorEOL should have moved the caret to position 11.
+    expect(input.selectionStart).toBe(11);
+  });
+
+  it("does not move cursor when keepCursor is true", () => {
+    runtime.conf.cursorAtEndOfInput = true;
+    const input = makeInput("hello world", 0);
+    insert.enter(input, true);
+    // cursor should remain at 0 because keepCursor=true suppresses moveCursorEOL.
+    expect(input.selectionStart).toBe(0);
+  });
+
+  it("does not move cursor when cursorAtEndOfInput is false", () => {
+    runtime.conf.cursorAtEndOfInput = false;
+    const input = makeInput("hello world", 0);
+    insert.enter(input);
+    expect(input.selectionStart).toBe(0);
   });
 });
