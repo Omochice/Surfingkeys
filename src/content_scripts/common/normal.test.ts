@@ -2,6 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { markAutoFocus, markNewlyCreated } from "./domFlags";
 import KeyboardUtils from "./keyboardUtils";
+import Mode from "./mode";
 import createNormal from "./normal";
 import { RUNTIME, runtime } from "./runtime";
 
@@ -1497,5 +1498,396 @@ describe("createNormal scroll — scrollFallback falls back when element cannot 
     });
 
     inner.remove();
+  });
+});
+
+// ─── smartPageBoundary — top and bottom boundary events ───────────────────────
+
+describe("createNormal scroll — smartPageBoundary fires boundary events", () => {
+  let savedSmoothScroll: boolean;
+  let savedSmartPageBoundary: boolean;
+  let savedRepeats: number;
+  let scrollBy: ReturnType<typeof vi.fn>;
+
+  beforeEach(() => {
+    savedSmoothScroll = runtime.conf.smoothScroll;
+    savedSmartPageBoundary = runtime.conf.smartPageBoundary;
+    savedRepeats = RUNTIME.repeats;
+    runtime.conf.smoothScroll = false;
+    runtime.conf.smartPageBoundary = true;
+    RUNTIME.repeats = 1;
+    Object.defineProperty(document, "scrollingElement", {
+      value: document.documentElement,
+      configurable: true,
+    });
+    scrollBy = vi.fn();
+    Object.defineProperty(document.documentElement, "scrollBy", {
+      value: scrollBy,
+      configurable: true,
+    });
+    Object.defineProperty(document.documentElement, "scrollHeight", {
+      value: 2000,
+      configurable: true,
+    });
+    Object.defineProperty(document.documentElement, "scrollTop", {
+      value: 0,
+      writable: true,
+      configurable: true,
+    });
+    Object.defineProperty(document.documentElement, "scrollLeft", {
+      value: 0,
+      writable: true,
+      configurable: true,
+    });
+    Object.defineProperty(document.documentElement, "clientHeight", {
+      value: 800,
+      configurable: true,
+    });
+  });
+
+  afterEach(() => {
+    runtime.conf.smoothScroll = savedSmoothScroll;
+    runtime.conf.smartPageBoundary = savedSmartPageBoundary;
+    RUNTIME.repeats = savedRepeats;
+    document.documentElement.style.scrollBehavior = "";
+    Reflect.deleteProperty(document, "scrollingElement");
+    Reflect.deleteProperty(document.documentElement, "scrollBy");
+    Reflect.deleteProperty(document.documentElement, "scrollHeight");
+    Reflect.deleteProperty(document.documentElement, "scrollTop");
+    Reflect.deleteProperty(document.documentElement, "scrollLeft");
+    Reflect.deleteProperty(document.documentElement, "clientHeight");
+  });
+
+  it("dispatches topBoundaryHit when scrollTop is 0 and scrolling up", () => {
+    // scrollTop=0, y<0 → topBoundaryHit
+    const events: CustomEvent[] = [];
+    const capture = (e: Event): void => {
+      events.push(e as CustomEvent);
+    };
+    document.addEventListener("surfingkeys:hints", capture);
+
+    const normal = createNormal(insertStub);
+    normal.scroll("up");
+
+    document.removeEventListener("surfingkeys:hints", capture);
+
+    const boundary = events.filter(
+      (e) => Array.isArray(e.detail) && e.detail[0] === "topBoundaryHit",
+    );
+    expect(boundary.length).toBeGreaterThan(0);
+    // skScrollBy returned early → scrollBy was never called.
+    expect(scrollBy).not.toHaveBeenCalled();
+  });
+
+  it("dispatches bottomBoundaryHit when already at the bottom and scrolling down", () => {
+    // Set scrollTop so that scrollHeight - scrollTop <= clientHeight + 1 → bottom boundary.
+    // scrollHeight=2000, clientHeight=800 → scrollTop must be >= 1199 for bottom boundary.
+    (document.documentElement as any).scrollTop = 1200;
+
+    const events: CustomEvent[] = [];
+    const capture = (e: Event): void => {
+      events.push(e as CustomEvent);
+    };
+    document.addEventListener("surfingkeys:hints", capture);
+
+    const normal = createNormal(insertStub);
+    normal.scroll("down");
+
+    document.removeEventListener("surfingkeys:hints", capture);
+
+    const boundary = events.filter(
+      (e) => Array.isArray(e.detail) && e.detail[0] === "bottomBoundaryHit",
+    );
+    expect(boundary.length).toBeGreaterThan(0);
+    expect(scrollBy).not.toHaveBeenCalled();
+  });
+});
+
+// ─── scroll bottom / rightmost ────────────────────────────────────────────────
+
+describe("createNormal scroll — bottom and rightmost scroll types", () => {
+  let savedSmoothScroll: boolean;
+  let savedSmartPageBoundary: boolean;
+  let savedRepeats: number;
+  let scrollBy: ReturnType<typeof vi.fn>;
+
+  beforeEach(() => {
+    savedSmoothScroll = runtime.conf.smoothScroll;
+    savedSmartPageBoundary = runtime.conf.smartPageBoundary;
+    savedRepeats = RUNTIME.repeats;
+    runtime.conf.smoothScroll = false;
+    runtime.conf.smartPageBoundary = false;
+    RUNTIME.repeats = 1;
+    Object.defineProperty(document, "scrollingElement", {
+      value: document.documentElement,
+      configurable: true,
+    });
+    scrollBy = vi.fn();
+    Object.defineProperty(document.documentElement, "scrollBy", {
+      value: scrollBy,
+      configurable: true,
+    });
+    Object.defineProperty(document.documentElement, "scrollHeight", {
+      value: 2000,
+      configurable: true,
+    });
+    Object.defineProperty(document.documentElement, "scrollWidth", {
+      value: 3000,
+      configurable: true,
+    });
+    Object.defineProperty(document.documentElement, "scrollTop", {
+      value: 100,
+      writable: true,
+      configurable: true,
+    });
+    Object.defineProperty(document.documentElement, "scrollLeft", {
+      value: 50,
+      writable: true,
+      configurable: true,
+    });
+  });
+
+  afterEach(() => {
+    runtime.conf.smoothScroll = savedSmoothScroll;
+    runtime.conf.smartPageBoundary = savedSmartPageBoundary;
+    RUNTIME.repeats = savedRepeats;
+    document.documentElement.style.scrollBehavior = "";
+    Reflect.deleteProperty(document, "scrollingElement");
+    Reflect.deleteProperty(document.documentElement, "scrollBy");
+    Reflect.deleteProperty(document.documentElement, "scrollHeight");
+    Reflect.deleteProperty(document.documentElement, "scrollWidth");
+    Reflect.deleteProperty(document.documentElement, "scrollTop");
+    Reflect.deleteProperty(document.documentElement, "scrollLeft");
+  });
+
+  it("bottom scrolls to scrollHeight minus scrollTop (bringing element to bottom)", () => {
+    // skScrollBy(scrollLeft, scrollHeight - scrollTop) = skScrollBy(50, 2000 - 100) = skScrollBy(50, 1900)
+    const normal = createNormal(insertStub);
+
+    normal.scroll("bottom");
+
+    expect(scrollBy).toHaveBeenCalledWith({ behavior: "instant", left: 50, top: 1900 });
+  });
+
+  it("rightmost scrolls right by scrollWidth minus scrollLeft minus viewport width plus 20", () => {
+    // size[0] = window.innerWidth (jsdom default 1024)
+    // delta = scrollWidth - scrollLeft - size[0] + 20 = 3000 - 50 - 1024 + 20 = 1946
+    const normal = createNormal(insertStub);
+    const expected = 3000 - 50 - window.innerWidth + 20;
+
+    normal.scroll("rightmost");
+
+    expect(scrollBy).toHaveBeenCalledWith({ behavior: "instant", left: expected, top: 0 });
+  });
+});
+
+// ─── addScrollableElement — duplicate / contains guard ───────────────────────
+
+describe("createNormal addScrollableElement — duplicate guard", () => {
+  let savedSmoothScroll: boolean;
+  let savedSmartPageBoundary: boolean;
+
+  beforeEach(() => {
+    savedSmoothScroll = runtime.conf.smoothScroll;
+    savedSmartPageBoundary = runtime.conf.smartPageBoundary;
+    runtime.conf.smoothScroll = false;
+    runtime.conf.smartPageBoundary = false;
+    Object.defineProperty(document, "scrollingElement", {
+      value: document.documentElement,
+      configurable: true,
+    });
+    Object.defineProperty(document.documentElement, "scrollBy", {
+      value: vi.fn(),
+      configurable: true,
+    });
+  });
+
+  afterEach(() => {
+    runtime.conf.smoothScroll = savedSmoothScroll;
+    runtime.conf.smartPageBoundary = savedSmartPageBoundary;
+    Reflect.deleteProperty(document, "scrollingElement");
+    Reflect.deleteProperty(document.documentElement, "scrollBy");
+  });
+
+  it("does not add a duplicate element to the scroll list", () => {
+    const savedScrollFallback = runtime.conf.scrollFallback;
+    runtime.conf.scrollFallback = false;
+    // Suppress auto-detection so addScrollableElement is the only source of scroll nodes;
+    // otherwise jsdom reports the freshly-built divs as already-scrollable and skips the push.
+    const getScrollable = vi.spyOn(Mode, "getScrollableElements").mockReturnValue([]);
+
+    const makeTarget = (): { el: HTMLElement; scrollBy: ReturnType<typeof vi.fn> } => {
+      const el = document.createElement("div");
+      const scrollBy = vi.fn();
+      document.body.appendChild(el);
+      Object.defineProperty(el, "scrollHeight", { value: 500, configurable: true });
+      Object.defineProperty(el, "scrollTop", { value: 0, writable: true, configurable: true });
+      Object.defineProperty(el, "scrollLeft", { value: 0, writable: true, configurable: true });
+      Object.defineProperty(el, "scrollBy", { value: scrollBy, configurable: true });
+      el.getBoundingClientRect = () =>
+        ({ left: 0, top: 0, right: 100, bottom: 100, width: 100, height: 100 }) as DOMRect;
+      return { el, scrollBy };
+    };
+    const first = makeTarget();
+    const second = makeTarget();
+
+    const normal = createNormal(insertStub);
+    normal.addScrollableElement(first.el);
+    normal.addScrollableElement(second.el); // scrollIndex now points at `second`
+    normal.addScrollableElement(first.el); // duplicate: indexOf(first) !== -1 → no push, index unchanged
+
+    normal.scroll("down");
+
+    // If the duplicate guard failed, `first` would have been re-pushed and become the
+    // current scroll target. Because it is a no-op, `second` stays the target.
+    expect(second.scrollBy).toHaveBeenCalledWith({
+      behavior: "instant",
+      left: 0,
+      top: runtime.conf.scrollStepSize,
+    });
+    expect(first.scrollBy).not.toHaveBeenCalled();
+
+    getScrollable.mockRestore();
+    runtime.conf.scrollFallback = savedScrollFallback;
+    first.el.remove();
+    second.el.remove();
+  });
+});
+
+// ─── jumpVIMark — empty scrollNodes on "'" mark ───────────────────────────────
+
+describe("createNormal jumpVIMark — no scrollable elements on '\\' mark", () => {
+  it("does nothing when scrollNodes is empty on the backtick mark", () => {
+    Object.defineProperty(document, "scrollingElement", {
+      value: document.documentElement,
+      configurable: true,
+    });
+    // Force an empty scroll list so the `scrollNodes.length > 0` guard is false.
+    const getScrollable = vi.spyOn(Mode, "getScrollableElements").mockReturnValue([]);
+    // Seed a sentinel scroll position; the empty-list branch must not restore/swap it.
+    Object.defineProperty(document.documentElement, "scrollTop", {
+      value: 123,
+      writable: true,
+      configurable: true,
+    });
+    const normal = createNormal(insertStub);
+
+    normal.jumpVIMark("'");
+
+    expect(document.documentElement.scrollTop).toBe(123);
+
+    getScrollable.mockRestore();
+    Reflect.deleteProperty(document.documentElement, "scrollTop");
+    Reflect.deleteProperty(document, "scrollingElement");
+  });
+});
+
+// ─── keydown handler — non-editable key with no matching mapping ──────────────
+
+describe("createNormal keydown handler — non-editable key dispatches handleMapKey", () => {
+  it("dispatches handleMapKey and leaves the event un-suppressed when key has length", () => {
+    const normal = createNormal(insertStub);
+    const div = document.createElement("div");
+    document.body.appendChild(div);
+
+    const base = new Event("keydown");
+    Object.defineProperty(base, "target", { value: div });
+    Object.defineProperty(base, "key", { value: "z" });
+    base.sk_keyName = "z";
+    const event = new Proxy(base, {
+      get(t, p) {
+        if (p === "isTrusted") return false;
+        const value = Reflect.get(t, p, t);
+        return typeof value === "function" ? value.bind(t) : value;
+      },
+    });
+
+    // The non-editable, keyName.length branch must route the key through handleMapKey
+    // (returning false for an unmatched key) rather than entering insert mode.
+    const handleMapKey = vi.spyOn(Mode, "handleMapKey").mockReturnValue(false);
+
+    const handler = normal.eventListeners["keydown"]!;
+    handler(event);
+
+    expect(handleMapKey).toHaveBeenCalledTimes(1);
+    expect(handleMapKey.mock.instances[0]).toBe(normal);
+    expect(handleMapKey.mock.calls[0]?.[0]).toBe(event);
+    // Normal mode does not flag the event as suppressed (only Disabled mode does).
+    expect(base.sk_suppressed).toBeFalsy();
+
+    handleMapKey.mockRestore();
+    div.remove();
+  });
+});
+
+// ─── _once flag: exits normal after an action is done ─────────────────────────
+
+describe("createNormal once", () => {
+  it("sets _once so the mode exits after one action completes via the keydown handler", () => {
+    const normal = createNormal(insertStub);
+    let ran = 0;
+    normal.mappings.add("z", {
+      annotation: "once-test",
+      feature_group: 0,
+      code: () => {
+        ran++;
+      },
+    });
+
+    // once() sets _once=true and enters the mode.
+    normal.once();
+
+    // Drive through the real keydown handler so the _once closure is evaluated.
+    const handler = normal.eventListeners["keydown"]!;
+    const div = document.createElement("div"); // non-editable target
+    document.body.appendChild(div);
+    const base = new Event("keydown");
+    Object.defineProperty(base, "target", { value: div });
+    Object.defineProperty(base, "key", { value: "z" });
+    base.sk_keyName = "z";
+    // Proxy isTrusted=false so the editable branch is not taken.
+    const evt = new Proxy(base, {
+      get(t, p) {
+        if (p === "isTrusted") return false;
+        const value = Reflect.get(t, p, t);
+        return typeof value === "function" ? value.bind(t) : value;
+      },
+    });
+
+    handler(evt);
+
+    expect(ran).toBe(1);
+    // After the action, _once causes normal.exit() — mode is no longer at the top.
+    expect(Mode.getCurrent()).not.toBe(normal);
+
+    div.remove();
+  });
+});
+
+// ─── createDisabled keydown handler branches ─────────────────────────────────
+
+describe("createNormal disable — disabled mode keydown branches", () => {
+  it("disabled mode sets sk_suppressed for any key", () => {
+    const normal = createNormal(insertStub);
+    normal.disable();
+
+    // Get the disabled mode's keydown handler via the mode stack's first entry.
+    const disabled = Mode.getCurrent();
+    if (disabled == null) throw new Error("no current mode after disable");
+
+    const handler = disabled.eventListeners["keydown"];
+    if (handler == null) throw new Error("disabled mode has no keydown handler");
+
+    const event = new Event("keydown") as Event & {
+      sk_keyName?: string;
+      sk_suppressed?: boolean;
+      sk_stopPropagation?: boolean;
+    };
+    event.sk_keyName = "a";
+    handler(event);
+
+    expect(event.sk_suppressed).toBe(true);
+
+    normal.enable();
   });
 });
