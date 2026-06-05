@@ -901,6 +901,237 @@ describe("cq queries word under cursor via hint callback", () => {
   });
 });
 
+describe("vmapkey q translates word under cursor in visual mode", () => {
+  it("calls visual.getCursorPixelPos and front.performInlineQuery", () => {
+    const vmapBinding = allRegs.find((r) => r.keys === "q" && r.mode === "visual");
+    expect(vmapBinding).toBeDefined();
+    ctx.visual.getCursorPixelPos.mockReturnValueOnce({ top: 5, left: 10, height: 20, width: 80 });
+    seam.utils.getWordUnderCursor.mockReturnValueOnce("cursor-word");
+    vmapBinding!.cb();
+    expect(ctx.front.performInlineQuery).toHaveBeenCalledWith(
+      "cursor-word",
+      expect.objectContaining({ top: 5, left: 10 }),
+      expect.any(Function),
+    );
+  });
+
+  it("the vmapkey q showBubble callback dispatches with isVisual=true", () => {
+    const vmapBinding = allRegs.find((r) => r.keys === "q" && r.mode === "visual");
+    ctx.visual.getCursorPixelPos.mockReturnValueOnce({ top: 0, left: 0, height: 0, width: 0 });
+    vmapBinding!.cb();
+    const queryCallback = ctx.front.performInlineQuery.mock.calls.at(-1)![2] as (
+      pos: unknown,
+      result: unknown,
+    ) => void;
+    queryCallback({ x: 1 }, "translation");
+    expect(seam.dispatchSKEvent).toHaveBeenLastCalledWith("front", [
+      "showBubble",
+      { x: 1 },
+      "translation",
+      true,
+    ]);
+  });
+});
+
+describe("getFormData branches via yf and yp", () => {
+  afterEach(() => document.body.replaceChildren());
+
+  it("yf: duplicate key with string value merges into an array", () => {
+    const form = document.createElement("form");
+    form.method = "get";
+    form.action = "https://example.com/submit";
+    // Two inputs with the same name but non-empty values.
+    for (const val of ["alpha", "beta"]) {
+      const input = document.createElement("input");
+      input.name = "tags";
+      input.value = val;
+      form.appendChild(input);
+    }
+    document.body.appendChild(form);
+    fire("yf");
+    const written = ctx.clipboard.write.mock.calls.at(-1)![0] as string;
+    const parsed = JSON.parse(written) as Record<string, Record<string, unknown>>;
+    const key = Object.keys(parsed)[0]!;
+    const tagsValue = (parsed[key] as any).tags;
+    expect(Array.isArray(tagsValue)).toBe(true);
+    expect(tagsValue).toContain("alpha");
+    expect(tagsValue).toContain("beta");
+  });
+
+  it("yf: duplicate key when value is already an array appends to it", () => {
+    const form = document.createElement("form");
+    form.method = "get";
+    form.action = "https://example.com/arr";
+    for (const val of ["x", "y", "z"]) {
+      const input = document.createElement("input");
+      input.name = "multi";
+      input.value = val;
+      form.appendChild(input);
+    }
+    document.body.appendChild(form);
+    fire("yf");
+    const written = ctx.clipboard.write.mock.calls.at(-1)![0] as string;
+    const parsed = JSON.parse(written) as Record<string, Record<string, unknown>>;
+    const key = Object.keys(parsed)[0]!;
+    const multiValue = (parsed[key] as any).multi;
+    expect(Array.isArray(multiValue)).toBe(true);
+    expect(multiValue).toHaveLength(3);
+  });
+
+  it("yf: duplicate key with empty value is skipped (else branch not taken)", () => {
+    const form = document.createElement("form");
+    form.method = "get";
+    form.action = "https://example.com/skip";
+    // First input gives a value; second is empty (length 0).
+    const input1 = document.createElement("input");
+    input1.name = "field";
+    input1.value = "filled";
+    const input2 = document.createElement("input");
+    input2.name = "field";
+    input2.value = "";
+    form.appendChild(input1);
+    form.appendChild(input2);
+    document.body.appendChild(form);
+    fire("yf");
+    const written = ctx.clipboard.write.mock.calls.at(-1)![0] as string;
+    const parsed = JSON.parse(written) as Record<string, Record<string, unknown>>;
+    const key = Object.keys(parsed)[0]!;
+    // Empty second value must not promote to array
+    expect((parsed[key] as any).field).toBe("filled");
+  });
+});
+
+describe(";pf fills form from clipboard", () => {
+  afterEach(() => document.body.replaceChildren());
+
+  it("sets a string field value in the form", () => {
+    const form = document.createElement("form");
+    form.method = "get";
+    form.action = "https://example.com/submit";
+    const input = document.createElement("input");
+    input.name = "username";
+    input.type = "text";
+    input.value = "";
+    form.appendChild(input);
+    document.body.appendChild(form);
+
+    const formKey = "get::/submit";
+    const clipData = JSON.stringify({ [formKey]: { username: "alice" } });
+
+    let capturedFormCb: ((el: HTMLFormElement) => void) | null = null;
+    ctx.hints.create.mockImplementationOnce((_sel: any, cb: any) => {
+      capturedFormCb = cb;
+      return Promise.resolve(1);
+    });
+    fire(";pf");
+    let clipCb: ((r: { data: string }) => void) | null = null;
+    ctx.clipboard.read.mockImplementationOnce((cb: (r: { data: string }) => void) => {
+      clipCb = cb;
+    });
+    capturedFormCb!(form);
+    clipCb!({ data: clipData });
+
+    expect(input.value).toBe("alice");
+  });
+
+  it("shows banner when no form data matches the key", () => {
+    const form = document.createElement("form");
+    form.method = "get";
+    form.action = "https://example.com/other";
+    document.body.appendChild(form);
+
+    const clipData = JSON.stringify({ "get::/different": { field: "val" } });
+
+    let capturedFormCb: ((el: HTMLFormElement) => void) | null = null;
+    ctx.hints.create.mockImplementationOnce((_sel: any, cb: any) => {
+      capturedFormCb = cb;
+      return Promise.resolve(1);
+    });
+    fire(";pf");
+    let clipCb: ((r: { data: string }) => void) | null = null;
+    ctx.clipboard.read.mockImplementationOnce((cb: (r: { data: string }) => void) => {
+      clipCb = cb;
+    });
+    capturedFormCb!(form);
+    clipCb!({ data: clipData });
+
+    expect(seam.utils.showBanner).toHaveBeenCalledWith(
+      "No form data found for your selection from clipboard.",
+    );
+  });
+
+  it("sets a radio input checked state from clipboard data", () => {
+    const form = document.createElement("form");
+    form.method = "get";
+    form.action = "https://example.com/radio";
+    const radio1 = document.createElement("input");
+    radio1.type = "radio";
+    radio1.name = "choice";
+    radio1.value = "a";
+    const radio2 = document.createElement("input");
+    radio2.type = "radio";
+    radio2.name = "choice";
+    radio2.value = "b";
+    form.appendChild(radio1);
+    form.appendChild(radio2);
+    document.body.appendChild(form);
+
+    const formKey = "get::/radio";
+    const clipData = JSON.stringify({ [formKey]: { choice: "b" } });
+
+    let capturedFormCb: ((el: HTMLFormElement) => void) | null = null;
+    ctx.hints.create.mockImplementationOnce((_sel: any, cb: any) => {
+      capturedFormCb = cb;
+      return Promise.resolve(1);
+    });
+    fire(";pf");
+    let clipCb: ((r: { data: string }) => void) | null = null;
+    ctx.clipboard.read.mockImplementationOnce((cb: (r: { data: string }) => void) => {
+      clipCb = cb;
+    });
+    capturedFormCb!(form);
+    clipCb!({ data: clipData });
+
+    expect(radio2.checked).toBe(true);
+  });
+
+  it("sets multiple checkboxes from an array value in clipboard data", () => {
+    const form = document.createElement("form");
+    form.method = "get";
+    form.action = "https://example.com/checks";
+    const cb1 = document.createElement("input");
+    cb1.type = "checkbox";
+    cb1.name = "opts";
+    cb1.value = "x";
+    const cb2 = document.createElement("input");
+    cb2.type = "checkbox";
+    cb2.name = "opts";
+    cb2.value = "y";
+    form.appendChild(cb1);
+    form.appendChild(cb2);
+    document.body.appendChild(form);
+
+    const formKey = "get::/checks";
+    const clipData = JSON.stringify({ [formKey]: { opts: ["x", "y"] } });
+
+    let capturedFormCb: ((el: HTMLFormElement) => void) | null = null;
+    ctx.hints.create.mockImplementationOnce((_sel: any, cb: any) => {
+      capturedFormCb = cb;
+      return Promise.resolve(1);
+    });
+    fire(";pf");
+    let clipCbFn: ((r: { data: string }) => void) | null = null;
+    ctx.clipboard.read.mockImplementationOnce((cb: (r: { data: string }) => void) => {
+      clipCbFn = cb;
+    });
+    capturedFormCb!(form);
+    clipCbFn!({ data: clipData });
+
+    expect(cb1.checked).toBe(true);
+    expect(cb2.checked).toBe(true);
+  });
+});
+
 describe("search alias suggestion parsers", () => {
   const getParser = (alias: string) => {
     const call = api.addSearchAlias.mock.calls.find((c: unknown[]) => c[0] === alias);
@@ -993,6 +1224,125 @@ describe("<Ctrl-h> mouse-over hint callback falls back to dispatchMouseClick", (
     const fakeEl = { getClientRects: () => [{ x: 0, y: 0, width: 10, height: 10 }] };
     cb(fakeEl);
     expect(ctx.hints.dispatchMouseClick).toHaveBeenLastCalledWith(fakeEl);
+  });
+});
+
+describe(";t translates selected text or current page", () => {
+  afterEach(() => vi.restoreAllMocks());
+
+  it("calls chrome.surfingkeys.translateCurrentPage when chrome.surfingkeys is present", () => {
+    const translateCurrentPage = vi.fn();
+    (globalThis as any).chrome = { surfingkeys: { translateCurrentPage } };
+    fire(";t");
+    expect(translateCurrentPage).toHaveBeenCalled();
+    delete (globalThis as any).chrome;
+  });
+
+  it("calls searchSelectedWith when selection is non-empty and chrome.surfingkeys is absent", () => {
+    (globalThis as any).chrome = {};
+    const sel = { toString: () => "some text" };
+    vi.spyOn(window, "getSelection").mockReturnValue(sel as unknown as Selection);
+    fire(";t");
+    expect(api.searchSelectedWith).toHaveBeenCalledWith(
+      "https://translate.google.com/?hl=en#auto/en/",
+      false,
+      false,
+      "",
+    );
+    delete (globalThis as any).chrome;
+  });
+
+  it("opens translate URL for the current page when selection is empty and chrome.surfingkeys is absent", () => {
+    (globalThis as any).chrome = {};
+    const sel = { toString: () => "" };
+    vi.spyOn(window, "getSelection").mockReturnValue(sel as unknown as Selection);
+    fire(";t");
+    expect(seam.utils.tabOpenLink).toHaveBeenCalledWith(
+      expect.stringContaining("https://translate.google.com/translate"),
+    );
+    delete (globalThis as any).chrome;
+  });
+});
+
+describe("<Ctrl-h> mouse-over hint callback uses sendMouseEvent when chrome.surfingkeys is present", () => {
+  it("calls chrome.surfingkeys.sendMouseEvent instead of dispatchMouseClick", () => {
+    const sendMouseEvent = vi.fn();
+    (globalThis as any).chrome = { surfingkeys: { sendMouseEvent } };
+    fire("<Ctrl-h>");
+    const calls = ctx.hints.create.mock.calls;
+    const cb = calls[calls.length - 1][1] as (el: any) => void;
+    const fakeEl = {
+      getClientRects: () => [{ x: 10, y: 20, width: 100, height: 40 }],
+    };
+    cb(fakeEl);
+    expect(sendMouseEvent).toHaveBeenCalledWith(2, 60, 40, 0);
+    expect(ctx.hints.dispatchMouseClick).not.toHaveBeenCalled();
+    delete (globalThis as any).chrome;
+  });
+});
+
+describe("w switches frames when window !== top", () => {
+  it("calls normal.rotateFrame directly when window is not the top frame", () => {
+    // In jsdom, window === top, so we patch top to a different object.
+    const originalTop = window.top;
+    Object.defineProperty(window, "top", { value: {}, configurable: true });
+    vi.clearAllMocks();
+    registerDefaultMappings(api, ctx);
+    fire("w");
+    expect(ctx.normal.rotateFrame).toHaveBeenCalled();
+    // The ensureFrontEnd dispatch also happens regardless of frame position.
+    expect(seam.dispatchSKEvent).toHaveBeenCalledWith("ensureFrontEnd");
+    Object.defineProperty(window, "top", { value: originalTop, configurable: true });
+  });
+});
+
+describe("gu navigates up URL path", () => {
+  afterEach(() => vi.restoreAllMocks());
+
+  it("does not mutate href when pathname is already root '/'", () => {
+    // With pathname === "/", the `pathname.length > 1` guard is skipped so no path
+    // segment is trimmed; href is rewritten to origin + the untouched "/" pathname.
+    let writtenHref: string | undefined;
+    const locationStub = {
+      pathname: "/",
+      origin: "https://example.com",
+      get href() {
+        return "https://example.com/";
+      },
+      set href(value: string) {
+        writtenHref = value;
+      },
+    };
+    const locationSpy = vi
+      .spyOn(window, "location", "get")
+      .mockReturnValue(locationStub as unknown as Location);
+
+    fire("gu");
+
+    // The root pathname is preserved: href stays at origin + "/" rather than walking up.
+    expect(writtenHref).toBe("https://example.com/");
+    locationSpy.mockRestore();
+  });
+});
+
+describe("gu with multiple repeats", () => {
+  afterEach(() => vi.restoreAllMocks());
+
+  it("walks up multiple path segments when RUNTIME.repeats > 1", () => {
+    // jsdom default location.pathname is "/" (length 1), which is guarded by
+    // `if (pathname.length > 1)`.  Mock a deeper path so the guard is entered
+    // and `RUNTIME.repeats` is consumed and reset to 1.
+    vi.spyOn(window, "location", "get").mockReturnValue({
+      ...window.location,
+      pathname: "/a/b/c",
+      origin: "https://example.com",
+      href: "https://example.com/a/b/c",
+    } as unknown as Location);
+
+    seam.RUNTIME.repeats = 3;
+    fire("gu");
+    // repeats must be reset to 1 after gu consumes it
+    expect(seam.RUNTIME.repeats).toBe(1);
   });
 });
 
