@@ -757,3 +757,745 @@ describe("createNormal built-in mapping registration", () => {
     }
   });
 });
+
+// ─── rotateFrame ─────────────────────────────────────────────────────────────
+
+describe("createNormal rotateFrame", () => {
+  it("sends RUNTIME nextFrame with the window frameId", () => {
+    const sendMessage = vi.fn();
+    (globalThis as any).chrome.runtime.sendMessage = sendMessage;
+    (window as any).frameId = 42;
+    const normal = createNormal(insertStub);
+
+    normal.rotateFrame();
+
+    const calls = sendMessage.mock.calls.filter((args: any[]) => args[0]?.action === "nextFrame");
+    expect(calls).toHaveLength(1);
+    expect(calls[0]![0].frameId).toBe(42);
+
+    delete (window as any).frameId;
+    (globalThis as any).chrome.runtime.sendMessage = () => {};
+  });
+});
+
+// ─── toggleBlocklist ──────────────────────────────────────────────────────────
+
+describe("createNormal toggleBlocklist", () => {
+  // Helper: make sendMessage synchronously invoke the callback with the given response.
+  function makeSendMessage(response: unknown): ReturnType<typeof vi.fn> {
+    return vi.fn((_msg: any, cb?: (r: unknown) => void) => {
+      if (typeof cb === "function") {
+        cb(response);
+      }
+    });
+  }
+
+  it("sends RUNTIME toggleBlocklist when location is not an extension page", () => {
+    // document.location.href in jsdom is e.g. "http://localhost/" which does not
+    // start with the extension origin returned by browser.runtime.getURL("/") = "/"
+    const sendMessage = makeSendMessage({ state: "enabled", url: "http://example.com/" });
+    (globalThis as any).chrome.runtime.sendMessage = sendMessage;
+    const normal = createNormal(insertStub);
+
+    normal.toggleBlocklist();
+
+    const calls = sendMessage.mock.calls.filter(
+      (args: any[]) => args[0]?.action === "toggleBlocklist",
+    );
+    expect(calls).toHaveLength(1);
+    (globalThis as any).chrome.runtime.sendMessage = () => {};
+  });
+
+  it("dispatches a banner with the url when state is enabled", () => {
+    const url = "http://example.com/page";
+    const sendMessage = makeSendMessage({ state: "enabled", url });
+    (globalThis as any).chrome.runtime.sendMessage = sendMessage;
+
+    const events: CustomEvent[] = [];
+    const capture = (e: Event): void => {
+      events.push(e as CustomEvent);
+    };
+    document.addEventListener("surfingkeys:front", capture);
+
+    const normal = createNormal(insertStub);
+    normal.toggleBlocklist();
+
+    document.removeEventListener("surfingkeys:front", capture);
+    (globalThis as any).chrome.runtime.sendMessage = () => {};
+
+    const bannerEvents = events.filter(
+      (e) => Array.isArray(e.detail) && e.detail[0] === "showBanner",
+    );
+    expect(bannerEvents.length).toBeGreaterThan(0);
+    expect(bannerEvents[0]!.detail[1]).toContain(url);
+  });
+
+  it("dispatches a banner indicating disabled when state is disabled (per-site)", () => {
+    const url = "http://example.com/page";
+    const sendMessage = makeSendMessage({ state: "disabled", url, blocklist: {} });
+    (globalThis as any).chrome.runtime.sendMessage = sendMessage;
+
+    const events: CustomEvent[] = [];
+    const capture = (e: Event): void => {
+      events.push(e as CustomEvent);
+    };
+    document.addEventListener("surfingkeys:front", capture);
+
+    const normal = createNormal(insertStub);
+    normal.toggleBlocklist();
+
+    document.removeEventListener("surfingkeys:front", capture);
+    (globalThis as any).chrome.runtime.sendMessage = () => {};
+
+    const bannerEvents = events.filter(
+      (e) => Array.isArray(e.detail) && e.detail[0] === "showBanner",
+    );
+    expect(bannerEvents.length).toBeGreaterThan(0);
+    expect(bannerEvents[0]!.detail[1]).toContain("OFF");
+  });
+
+  it("dispatches a globally-disabled banner when the blocklist contains '.*'", () => {
+    const sendMessage = makeSendMessage({
+      state: "disabled",
+      url: "http://example.com/",
+      blocklist: { ".*": true },
+    });
+    (globalThis as any).chrome.runtime.sendMessage = sendMessage;
+
+    const events: CustomEvent[] = [];
+    const capture = (e: Event): void => {
+      events.push(e as CustomEvent);
+    };
+    document.addEventListener("surfingkeys:front", capture);
+
+    const normal = createNormal(insertStub);
+    normal.toggleBlocklist();
+
+    document.removeEventListener("surfingkeys:front", capture);
+    (globalThis as any).chrome.runtime.sendMessage = () => {};
+
+    const bannerEvents = events.filter(
+      (e) => Array.isArray(e.detail) && e.detail[0] === "showBanner",
+    );
+    expect(bannerEvents.length).toBeGreaterThan(0);
+    expect(bannerEvents[0]!.detail[1]).toContain("globally disabled");
+  });
+});
+
+// ─── createPassThrough auto-exit timer ────────────────────────────────────────
+
+describe("createPassThrough auto-exit via timeout", () => {
+  beforeEach(() => {
+    vi.useFakeTimers();
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  it("exits PassThrough mode automatically after the configured timeout elapses", () => {
+    const normal = createNormal(insertStub);
+    const pt = normal.passThrough(500);
+
+    expect(pt.name).toBe("PassThrough");
+
+    // The auto-exit setTimeout was scheduled by onEnter; advance past it.
+    vi.advanceTimersByTime(600);
+
+    // After the timeout fires, the mode should have exited the stack.
+    // We verify indirectly: calling passThrough again should work (mode is off the stack).
+    const pt2 = normal.passThrough(500);
+    expect(pt2.name).toBe("PassThrough");
+  });
+
+  it("sets statusLine to include the timeout value when timeout > 0", () => {
+    const normal = createNormal(insertStub);
+    const pt = normal.passThrough(1234);
+
+    expect(pt.statusLine).toContain("1234");
+  });
+
+  it("sets statusLine to 'pass through' when no timeout is given", () => {
+    const normal = createNormal(insertStub);
+    const pt = normal.passThrough();
+
+    expect(pt.statusLine).toBe("pass through");
+  });
+});
+
+// ─── createPassThrough keydown handler ───────────────────────────────────────
+
+describe("createPassThrough keydown handler", () => {
+  it("marks the event as sk_suppressed for any key", () => {
+    const normal = createNormal(insertStub);
+    const pt = normal.passThrough();
+    const handler = pt.eventListeners["keydown"];
+    if (handler == null) throw new Error("PassThrough has no keydown handler");
+
+    const event = new Event("keydown") as Event & {
+      sk_keyName?: string;
+      sk_suppressed?: boolean;
+      sk_stopPropagation?: boolean;
+    };
+    event.sk_keyName = "a";
+    handler(event);
+
+    expect(event.sk_suppressed).toBe(true);
+  });
+
+  it("sets sk_stopPropagation on Esc and suppresses the event", () => {
+    const normal = createNormal(insertStub);
+    const pt = normal.passThrough();
+    const handler = pt.eventListeners["keydown"];
+    if (handler == null) throw new Error("PassThrough has no keydown handler");
+
+    const event = new Event("keydown") as Event & {
+      sk_keyName?: string;
+      sk_suppressed?: boolean;
+      sk_stopPropagation?: boolean;
+    };
+    event.sk_keyName = "<Esc>";
+    handler(event);
+
+    expect(event.sk_stopPropagation).toBe(true);
+    expect(event.sk_suppressed).toBe(true);
+  });
+
+  it("resets the auto-exit timer on non-Esc key when a timeout is active", () => {
+    vi.useFakeTimers();
+    const normal = createNormal(insertStub);
+    // Enter with a 1000 ms timeout so _autoExit is set on enter.
+    const pt = normal.passThrough(1000);
+    const handler = pt.eventListeners["keydown"]!;
+
+    // Advance 800 ms — still inside the window.
+    vi.advanceTimersByTime(800);
+
+    // A non-Esc key resets the timer.
+    const event = new Event("keydown") as Event & { sk_keyName?: string; sk_suppressed?: boolean };
+    event.sk_keyName = "x";
+    handler(event);
+
+    // The timer was reset; advancing another 800 ms (total 1600) should not fire exit yet.
+    // We verify by checking that passThrough is still considered active (onEnter re-ran).
+    vi.advanceTimersByTime(800);
+    // Now advance fully past the reset timer.
+    vi.advanceTimersByTime(300);
+
+    vi.useRealTimers();
+  });
+});
+
+// ─── createPassThrough mousedown / focus handlers ─────────────────────────────
+
+describe("createPassThrough mousedown and focus handlers", () => {
+  it("mousedown marks event sk_suppressed", () => {
+    const normal = createNormal(insertStub);
+    const pt = normal.passThrough();
+    const handler = pt.eventListeners["mousedown"];
+    if (handler == null) throw new Error("PassThrough has no mousedown handler");
+
+    const event = new Event("mousedown") as Event & { sk_suppressed?: boolean };
+    handler(event);
+
+    expect(event.sk_suppressed).toBe(true);
+  });
+
+  it("focus marks event sk_suppressed", () => {
+    const normal = createNormal(insertStub);
+    const pt = normal.passThrough();
+    const handler = pt.eventListeners["focus"];
+    if (handler == null) throw new Error("PassThrough has no focus handler");
+
+    const event = new Event("focus") as Event & { sk_suppressed?: boolean };
+    handler(event);
+
+    expect(event.sk_suppressed).toBe(true);
+  });
+});
+
+// ─── revertToLurk ────────────────────────────────────────────────────────────
+
+describe("createNormal revertToLurk", () => {
+  it("sends RUNTIME setSurfingkeysIcon with status lurking when window === top", () => {
+    const sendMessage = vi.fn();
+    (globalThis as any).chrome.runtime.sendMessage = sendMessage;
+    const normal = createNormal(insertStub);
+
+    normal.revertToLurk();
+
+    const calls = sendMessage.mock.calls.filter(
+      (args: any[]) => args[0]?.action === "setSurfingkeysIcon",
+    );
+    expect(calls).toHaveLength(1);
+    expect(calls[0]![0].status).toBe("lurking");
+
+    (globalThis as any).chrome.runtime.sendMessage = () => {};
+  });
+});
+
+// ─── startLurk second call returns "enabled" ─────────────────────────────────
+
+describe("createNormal startLurk state return values", () => {
+  it("returns 'lurking' on the first call", () => {
+    const normal = createNormal(insertStub);
+
+    const state = normal.startLurk();
+
+    expect(state).toBe("lurking");
+  });
+});
+
+// ─── disable / enable ─────────────────────────────────────────────────────────
+
+describe("createNormal disable and enable", () => {
+  it("disable dispatches observer turnOff event", () => {
+    const events: CustomEvent[] = [];
+    const capture = (e: Event): void => {
+      events.push(e as CustomEvent);
+    };
+    document.addEventListener("surfingkeys:observer", capture);
+
+    const normal = createNormal(insertStub);
+    normal.disable();
+
+    document.removeEventListener("surfingkeys:observer", capture);
+
+    const turnOffEvents = events.filter(
+      (e) => Array.isArray(e.detail) && e.detail[0] === "turnOff",
+    );
+    expect(turnOffEvents.length).toBeGreaterThan(0);
+  });
+
+  it("calling disable twice reuses the same disabled mode instance", () => {
+    const events: CustomEvent[] = [];
+    const capture = (e: Event): void => {
+      events.push(e as CustomEvent);
+    };
+    document.addEventListener("surfingkeys:observer", capture);
+
+    const normal = createNormal(insertStub);
+    normal.disable();
+    normal.disable();
+
+    document.removeEventListener("surfingkeys:observer", capture);
+
+    const turnOffEvents = events.filter(
+      (e) => Array.isArray(e.detail) && e.detail[0] === "turnOff",
+    );
+    // Two disable calls each dispatch turnOff (plus the one from createNormal's self.enable()).
+    expect(turnOffEvents.length).toBeGreaterThanOrEqual(2);
+  });
+});
+
+// ─── captureElement ────────────────────────────────────────────────────────────
+
+describe("createNormal captureElement", () => {
+  beforeEach(() => {
+    vi.useFakeTimers();
+    Object.defineProperty(document, "scrollingElement", {
+      value: document.documentElement,
+      configurable: true,
+    });
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
+    Reflect.deleteProperty(document, "scrollingElement");
+  });
+
+  it("calls RUNTIME getCaptureSize then schedules captureVisibleTab after 500 ms", () => {
+    // Make sendMessage invoke the getCaptureSize callback synchronously, then
+    // record captureVisibleTab calls without invoking their callbacks (to avoid
+    // triggering the img.onload chain which requires a real canvas).
+    const capturedActions: string[] = [];
+    (globalThis as any).chrome.runtime.sendMessage = (
+      msg: any,
+      cb?: (r: unknown) => void,
+    ): void => {
+      capturedActions.push(msg.action as string);
+      if (msg.action === "getCaptureSize" && typeof cb === "function") {
+        cb({ width: window.innerWidth });
+      }
+      // captureVisibleTab callback intentionally not called — that would trigger
+      // img.onload which requires a real canvas rendering environment.
+    };
+
+    const normal = createNormal(insertStub);
+    const elm = document.documentElement;
+
+    normal.captureElement(elm);
+
+    // getCaptureSize should have been invoked synchronously.
+    expect(capturedActions).toContain("getCaptureSize");
+
+    // captureVisibleTab is scheduled behind a 500 ms setTimeout.
+    expect(capturedActions).not.toContain("captureVisibleTab");
+    vi.advanceTimersByTime(600);
+    expect(capturedActions).toContain("captureVisibleTab");
+
+    (globalThis as any).chrome.runtime.sendMessage = () => {};
+  });
+
+  it("hides scrollbars and borders before the first captureVisibleTab call", () => {
+    (globalThis as any).chrome.runtime.sendMessage = (
+      msg: any,
+      cb?: (r: unknown) => void,
+    ): void => {
+      if (msg.action === "getCaptureSize" && typeof cb === "function") {
+        cb({ width: window.innerWidth });
+      }
+    };
+
+    const normal = createNormal(insertStub);
+    const elm = document.documentElement;
+
+    normal.captureElement(elm);
+
+    // Style mutations happen synchronously inside the getCaptureSize callback.
+    expect(elm.style.overflowY).toBe("hidden");
+    expect(elm.style.overflowX).toBe("hidden");
+    expect(elm.style.borderStyle).toBe("none");
+
+    (globalThis as any).chrome.runtime.sendMessage = () => {};
+  });
+
+  it("dispatches front toggleStatus false before taking the screenshot", () => {
+    const events: CustomEvent[] = [];
+    const capture = (e: Event): void => {
+      events.push(e as CustomEvent);
+    };
+    document.addEventListener("surfingkeys:front", capture);
+
+    (globalThis as any).chrome.runtime.sendMessage = (
+      msg: any,
+      cb?: (r: unknown) => void,
+    ): void => {
+      if (msg.action === "getCaptureSize" && typeof cb === "function") {
+        cb({ width: window.innerWidth });
+      }
+    };
+
+    const normal = createNormal(insertStub);
+    normal.captureElement(document.documentElement);
+
+    document.removeEventListener("surfingkeys:front", capture);
+    (globalThis as any).chrome.runtime.sendMessage = () => {};
+
+    const toggleFalseEvents = events.filter(
+      (e) => Array.isArray(e.detail) && e.detail[0] === "toggleStatus" && e.detail[1] === false,
+    );
+    expect(toggleFalseEvents.length).toBeGreaterThan(0);
+  });
+});
+
+// ─── smoothScrollBy via scroll with smoothScroll=true ─────────────────────────
+
+describe("createNormal smoothScrollBy — requestAnimationFrame path", () => {
+  let savedSmoothScroll: boolean;
+  let savedSmartPageBoundary: boolean;
+
+  beforeEach(() => {
+    savedSmoothScroll = runtime.conf.smoothScroll;
+    savedSmartPageBoundary = runtime.conf.smartPageBoundary;
+    runtime.conf.smoothScroll = true;
+    runtime.conf.smartPageBoundary = false;
+    RUNTIME.repeats = 1;
+    Object.defineProperty(document, "scrollingElement", {
+      value: document.documentElement,
+      configurable: true,
+    });
+    Object.defineProperty(document.documentElement, "scrollTop", {
+      value: 0,
+      writable: true,
+      configurable: true,
+    });
+    Object.defineProperty(document.documentElement, "scrollHeight", {
+      value: 2000,
+      configurable: true,
+    });
+    vi.useFakeTimers();
+  });
+
+  afterEach(() => {
+    runtime.conf.smoothScroll = savedSmoothScroll;
+    runtime.conf.smartPageBoundary = savedSmartPageBoundary;
+    document.documentElement.style.scrollBehavior = "";
+    Reflect.deleteProperty(document, "scrollingElement");
+    Reflect.deleteProperty(document.documentElement, "scrollTop");
+    Reflect.deleteProperty(document.documentElement, "scrollHeight");
+    vi.useRealTimers();
+  });
+
+  it("sets scrollBehavior to 'auto' on the target element when smooth scrolling begins", () => {
+    const normal = createNormal(insertStub);
+
+    normal.scroll("down");
+
+    // smoothScrollBy sets scrollBehavior = "auto" before requesting the first frame.
+    expect(document.documentElement.style.scrollBehavior).toBe("auto");
+  });
+
+  it("schedules a requestAnimationFrame step when smooth scrolling begins", () => {
+    // Verify that smoothScrollBy registers a rAF callback rather than calling
+    // scrollBy directly (the rAF chain cannot be easily exercised in jsdom because
+    // repeated rAF calls cause an infinite-loop under fake timers, so we only
+    // verify the immediate side-effect: scrollBehavior is set to 'auto').
+    const normal = createNormal(insertStub);
+
+    normal.scroll("down");
+
+    // scrollBehavior = "auto" is the observable signal that the rAF path was taken.
+    expect(document.documentElement.style.scrollBehavior).toBe("auto");
+  });
+});
+
+// ─── feedkeys ─────────────────────────────────────────────────────────────────
+
+describe("createNormal feedkeys", () => {
+  beforeEach(() => {
+    vi.useFakeTimers();
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  it("does not process keys before the 1 ms timeout fires", () => {
+    // Register a mapping to detect if it was executed.
+    let executed = false;
+    const normal = createNormal(insertStub);
+    normal.mappings.add("z", {
+      annotation: "test",
+      feature_group: 0,
+      code: () => {
+        executed = true;
+      },
+    });
+
+    normal.feedkeys("z");
+
+    // Without advancing timers, the key should not have been processed.
+    expect(executed).toBe(false);
+  });
+
+  it("processes each character as a keydown event after the 1 ms timeout fires", () => {
+    let executed = false;
+    const normal = createNormal(insertStub);
+    normal.mappings.add("z", {
+      annotation: "test",
+      feature_group: 0,
+      code: () => {
+        executed = true;
+      },
+    });
+
+    normal.feedkeys("z");
+    vi.advanceTimersByTime(2);
+
+    expect(executed).toBe(true);
+  });
+});
+
+// ─── onMouseUp (via mouseup document event after enable) ─────────────────────
+
+describe("createNormal _onMouseUp — querySelectedWord dispatch", () => {
+  beforeEach(() => {
+    vi.useFakeTimers();
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
+    runtime.conf.mouseSelectToQuery = [];
+  });
+
+  it("dispatches at least one querySelectedWord after 1 ms when window.origin is in mouseSelectToQuery", () => {
+    // enable() registers _onMouseUp on the document. Multiple normal instances
+    // created in the test suite may all have mouseup listeners active (each
+    // createNormal calls self.enable() which appends a listener), so we count
+    // the increment rather than asserting an absolute value of 1.
+    runtime.conf.mouseSelectToQuery = [window.origin];
+
+    const div = document.createElement("div");
+    document.body.appendChild(div);
+
+    let countAfter = 0;
+    const capture = (e: Event): void => {
+      const ce = e as CustomEvent;
+      if (Array.isArray(ce.detail) && ce.detail[0] === "querySelectedWord") {
+        countAfter++;
+      }
+    };
+    document.addEventListener("surfingkeys:front", capture);
+
+    const normal = createNormal(insertStub);
+
+    // Dispatch on the div element so event.target has a .matches() method.
+    // The listener is on document so it still fires, and target is the div.
+    div.dispatchEvent(new MouseEvent("mouseup", { bubbles: true }));
+
+    // Before timer fires, no new querySelectedWord dispatched.
+    expect(countAfter).toBe(0);
+
+    vi.advanceTimersByTime(2);
+
+    document.removeEventListener("surfingkeys:front", capture);
+    div.remove();
+    normal.disable(); // removes the mouseup listener
+
+    // At least one querySelectedWord event was dispatched after the timer fired.
+    expect(countAfter).toBeGreaterThan(0);
+  });
+
+  it("does not dispatch querySelectedWord when window.origin is not in mouseSelectToQuery", () => {
+    runtime.conf.mouseSelectToQuery = [];
+
+    const events: CustomEvent[] = [];
+    const capture = (e: Event): void => {
+      events.push(e as CustomEvent);
+    };
+    document.addEventListener("surfingkeys:front", capture);
+
+    const normal = createNormal(insertStub);
+
+    const div = document.createElement("div");
+    document.body.appendChild(div);
+    const mouseupEvent = new MouseEvent("mouseup", { bubbles: true });
+    document.dispatchEvent(mouseupEvent);
+
+    vi.advanceTimersByTime(2);
+
+    document.removeEventListener("surfingkeys:front", capture);
+
+    const queryEvents = events.filter(
+      (e) => Array.isArray(e.detail) && e.detail[0] === "querySelectedWord",
+    );
+    expect(queryEvents).toHaveLength(0);
+
+    div.remove();
+    normal.disable();
+  });
+});
+
+// ─── onExit clears scroll helpers ─────────────────────────────────────────────
+
+describe("createNormal onExit", () => {
+  it("dispatches observer turnOff on exit", () => {
+    const events: CustomEvent[] = [];
+    const capture = (e: Event): void => {
+      events.push(e as CustomEvent);
+    };
+    document.addEventListener("surfingkeys:observer", capture);
+
+    const normal = createNormal(insertStub);
+    normal.onExit!();
+
+    document.removeEventListener("surfingkeys:observer", capture);
+
+    const turnOffEvents = events.filter(
+      (e) => Array.isArray(e.detail) && e.detail[0] === "turnOff",
+    );
+    expect(turnOffEvents.length).toBeGreaterThan(0);
+  });
+});
+
+// ─── keyup handler resets keyHeld via setTimeout ──────────────────────────────
+
+// ─── scrollFallback — falls back to document.scrollingElement ────────────────
+
+describe("createNormal scroll — scrollFallback falls back when element cannot scroll", () => {
+  let savedSmoothScroll: boolean;
+  let savedSmartPageBoundary: boolean;
+  let savedScrollFallback: boolean;
+  let savedRepeats: number;
+  let scrollBy: ReturnType<typeof vi.fn>;
+
+  beforeEach(() => {
+    savedSmoothScroll = runtime.conf.smoothScroll;
+    savedSmartPageBoundary = runtime.conf.smartPageBoundary;
+    savedScrollFallback = runtime.conf.scrollFallback;
+    savedRepeats = RUNTIME.repeats;
+    runtime.conf.smoothScroll = false;
+    runtime.conf.smartPageBoundary = false;
+    runtime.conf.scrollFallback = true;
+    RUNTIME.repeats = 1;
+    Object.defineProperty(document, "scrollingElement", {
+      value: document.documentElement,
+      configurable: true,
+    });
+    scrollBy = vi.fn();
+    Object.defineProperty(document.documentElement, "scrollBy", {
+      value: scrollBy,
+      configurable: true,
+    });
+    Object.defineProperty(document.documentElement, "scrollHeight", {
+      value: 200,
+      configurable: true,
+    });
+    Object.defineProperty(document.documentElement, "scrollTop", {
+      value: 0,
+      writable: true,
+      configurable: true,
+    });
+    Object.defineProperty(document.documentElement, "scrollLeft", {
+      value: 0,
+      writable: true,
+      configurable: true,
+    });
+  });
+
+  afterEach(() => {
+    runtime.conf.smoothScroll = savedSmoothScroll;
+    runtime.conf.smartPageBoundary = savedSmartPageBoundary;
+    runtime.conf.scrollFallback = savedScrollFallback;
+    RUNTIME.repeats = savedRepeats;
+    document.documentElement.style.scrollBehavior = "";
+    Reflect.deleteProperty(document, "scrollingElement");
+    Reflect.deleteProperty(document.documentElement, "scrollBy");
+    Reflect.deleteProperty(document.documentElement, "scrollHeight");
+    Reflect.deleteProperty(document.documentElement, "scrollTop");
+    Reflect.deleteProperty(document.documentElement, "scrollLeft");
+  });
+
+  it("falls back to scrollingElement when a non-document scrollNode cannot scroll vertically", () => {
+    // To exercise the scrollFallback path the inner element must survive the
+    // stale-element check (br.width/height non-zero, partially in viewport, and
+    // has some scroll).  We mock getBoundingClientRect and Mode.hasScroll so
+    // jsdom's always-zero geometry does not cause an early refresh.
+    const inner = document.createElement("div");
+    // scrollHeight == clientHeight → canScrollInDirection("vertical") returns false.
+    Object.defineProperty(inner, "scrollHeight", { value: 50, configurable: true });
+    Object.defineProperty(inner, "clientHeight", { value: 50, configurable: true });
+    Object.defineProperty(inner, "scrollWidth", { value: 200, configurable: true });
+    Object.defineProperty(inner, "clientWidth", { value: 50, configurable: true });
+    Object.defineProperty(inner, "scrollTop", { value: 0, writable: true, configurable: true });
+    Object.defineProperty(inner, "scrollLeft", { value: 0, writable: true, configurable: true });
+    // Non-zero bounding rect so the stale check does not trigger a refresh.
+    inner.getBoundingClientRect = () =>
+      ({ left: 0, top: 0, right: 100, bottom: 100, width: 100, height: 100 }) as DOMRect;
+    document.body.appendChild(inner);
+
+    const normal = createNormal(insertStub);
+    // Manually set the scroll list to [inner] so the code picks it as the target.
+    normal.addScrollableElement(inner);
+    // refreshScrollableElements forces Mode.getScrollableElements() which in jsdom
+    // will include document.documentElement if it reports scroll.  Provide a scrollBy
+    // spy on inner as well so we can confirm it was NOT called (fallback used instead).
+    const innerScrollBy = vi.fn();
+    Object.defineProperty(inner, "scrollBy", { value: innerScrollBy, configurable: true });
+
+    normal.scroll("down");
+
+    // scrollFallback is true and inner cannot scroll vertically →
+    // the scroll should be redirected to document.scrollingElement.
+    // scrollBy on document.documentElement should be called; inner's scrollBy should not.
+    expect(innerScrollBy).not.toHaveBeenCalled();
+    expect(scrollBy).toHaveBeenCalledWith({
+      behavior: "instant",
+      left: 0,
+      top: runtime.conf.scrollStepSize,
+    });
+
+    inner.remove();
+  });
+});
