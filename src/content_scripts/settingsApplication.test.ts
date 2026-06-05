@@ -1,14 +1,13 @@
 /**
- * Tests for the pure helpers exported from content.ts.
- *
- * The `start()` boot path wires many event listeners and spawns async RUNTIME calls that are hard
- * to assert meaningfully in jsdom — those paths are intentionally left uncovered here.
+ * Tests for the settings-application logic (apply stored/user settings onto the live runtime
+ * config, basic remaps, and search aliases). The RUNTIME-driven applyRuntimeConf side effects are
+ * exercised indirectly through applySettings.
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { runtime } from "./common/runtime";
 import Trie from "./common/trie";
-import { applyBasicMappings, applySettings, ensureRegex } from "./content";
+import { applyBasicMappings, applySettings, ensureRegex } from "./settingsApplication";
 
 // ---------------------------------------------------------------------------
 // Minimal fake Api / Normal that only expose what the helpers actually call.
