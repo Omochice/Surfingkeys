@@ -2584,9 +2584,10 @@ describe("createOmnibar — _listResultPage total display", () => {
     }));
     // 3 items == omnibarHistoryCacheSize=3 → total shown as "3+"
     omnibar.listURLs(items, false);
-    // The resultPage span is updated reactively; verify via the resultPage signal
-    // We check that results are populated (indirect: no throw, results count is correct)
     expect(omnibar.results().length).toBe(2); // maxResults=2, page 1
+    // The total reaching the cache-size cap is rendered with a trailing "+".
+    const resultPageSpan = document.querySelector("#sk_omnibarSearchArea>span.resultPage");
+    expect(resultPageSpan?.textContent).toContain("3+");
   });
 });
 
