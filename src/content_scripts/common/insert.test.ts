@@ -486,4 +486,58 @@ describe("createInsert enter override", () => {
     insert.enter(input);
     expect(input.selectionStart).toBe(0);
   });
+
+  it("does not move cursor when the element is a SELECT element", () => {
+    runtime.conf.cursorAtEndOfInput = true;
+    const sel = document.createElement("select");
+    document.body.appendChild(sel);
+    sel.focus();
+    // Install a setSelectionRange spy: if the nodeName!=="SELECT" guard were absent,
+    // moveCursorEOL would reach it (getRealEdit returns the focused SELECT). The guard
+    // must short-circuit so the spy is never invoked.
+    const setSelectionRange = vi.fn();
+    (sel as unknown as { setSelectionRange: () => void }).setSelectionRange = setSelectionRange;
+
+    insert.enter(sel);
+
+    expect(setSelectionRange).not.toHaveBeenCalled();
+  });
+
+  it("entering the same element twice does not move cursor on the second call (not changed)", () => {
+    runtime.conf.cursorAtEndOfInput = true;
+    const input = makeInput("hello world", 0);
+    insert.enter(input); // first call: changed=true, moves cursor to 11
+    // Move the cursor manually back to position 3 to detect if it moves again.
+    input.setSelectionRange(3, 3);
+    insert.enter(input); // second call: _element === elm → changed=false → cursor stays
+    expect(input.selectionStart).toBe(3);
+  });
+});
+
+describe("nextNonWord — boundary conditions", () => {
+  it("stops immediately when the first scanned character is non-word (char is undefined via out-of-bounds)", () => {
+    // Scanning forward from position 2 in "ab" (length 2): cur becomes 3, which
+    // is >= str.length → clamps to 2.
+    expect(nextNonWord("ab", 1, 1)).toBe(2);
+  });
+
+  it("moves backward and stops at the first non-word character encountered", () => {
+    // "a.b": scanning backward from 2 → cur becomes 1 → ch='.' (non-word) → stops at 1.
+    expect(nextNonWord("a.b", -1, 2)).toBe(1);
+  });
+});
+
+describe("deleteNextWord — pos === cur fallthrough (single-char deletion)", () => {
+  it("deletes forward when pos equals cur (character under cursor is non-word)", () => {
+    // nextNonWord(".", 1, 0) → cur becomes 1 (>=length) → pos=1; pos > cur → delete right.
+    // Wait: nextNonWord starts at cur+dir=1 → 1 >= 1 (length of ".") → clamps to 1.
+    // pos=1 > cur=0 → s = "".substring(0,0) + ".".substring(1) = "".
+    expect(deleteNextWord(".", 1, 0)).toEqual(["", 0]);
+  });
+
+  it("deletes backward when pos equals cur at start of string", () => {
+    // nextNonWord(".", -1, 0) → cur becomes -1 → clamps to 0; pos=0 === cur=0.
+    // pos === cur: deletes str[pos..pos+1] → "".substring(0,0) + ".".substring(1) = "".
+    expect(deleteNextWord(".", -1, 0)).toEqual(["", 0]);
+  });
 });
