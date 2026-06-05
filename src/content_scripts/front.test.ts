@@ -245,20 +245,23 @@ describe("createFront window message handler — action dispatch", () => {
 
   it("visual.visualClear cancels a pending visualUpdate timer", async () => {
     vi.useFakeTimers();
-    const visual = makeVisual();
-    const { handler, restore } = captureMessageHandler();
-    createFront(makeInsert(), makeNormal(), null, visual, makeBrowser());
-    restore();
-    const messageHandler = handler()!;
+    try {
+      const visual = makeVisual();
+      const { handler, restore } = captureMessageHandler();
+      createFront(makeInsert(), makeNormal(), null, visual, makeBrowser());
+      restore();
+      const messageHandler = handler()!;
 
-    messageHandler(makeContentEvent({ action: "visualUpdate", query: "search" }));
-    messageHandler(makeContentEvent({ action: "visualClear" }));
+      messageHandler(makeContentEvent({ action: "visualUpdate", query: "search" }));
+      messageHandler(makeContentEvent({ action: "visualClear" }));
 
-    await vi.runAllTimersAsync();
+      await vi.runAllTimersAsync();
 
-    expect(visual.visualUpdate).not.toHaveBeenCalled();
-    expect(visual.visualClear).toHaveBeenCalledOnce();
-    vi.useRealTimers();
+      expect(visual.visualUpdate).not.toHaveBeenCalled();
+      expect(visual.visualClear).toHaveBeenCalledOnce();
+    } finally {
+      vi.useRealTimers();
+    }
   });
 
   it("deactivated/activated actions toggle the _active flag", () => {
