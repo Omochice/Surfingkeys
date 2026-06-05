@@ -425,7 +425,9 @@ describe("_actions['addCommand']", () => {
     const { default: createOmnibar } = await import("./omnibar");
     const mockOmnibar = (createOmnibar as ReturnType<typeof vi.fn>).mock.results[0]?.value;
     const commandSpy = mockOmnibar?.command as ReturnType<typeof vi.fn>;
-    if (commandSpy == null) return; // guard: mock not wired
+    // Fail loudly if the omnibar mock's command spy is not wired, instead of
+    // silently passing on a broken setup.
+    expect(commandSpy).toBeDefined();
 
     commandSpy.mockClear();
 
@@ -441,7 +443,7 @@ describe("_actions['addCommand']", () => {
     const { default: createOmnibar } = await import("./omnibar");
     const mockOmnibar = (createOmnibar as ReturnType<typeof vi.fn>).mock.results[0]?.value;
     const commandSpy = mockOmnibar?.command as ReturnType<typeof vi.fn>;
-    if (commandSpy == null) return;
+    expect(commandSpy).toBeDefined();
 
     commandSpy.mockClear();
     Front.topOrigin = "https://proxy-cmd-test.example.com";
