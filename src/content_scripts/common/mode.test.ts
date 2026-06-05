@@ -220,19 +220,17 @@ describe("Mode enter / exit / getCurrent", () => {
     mode.exit();
   });
 
-  it("getCurrent returns undefined when the stack is empty", () => {
-    // Ensure stack is empty by calling Mode.init equivalent — just don't enter anything.
-    // We rely on the previous test to have exited cleanly.
-    // Nothing entered here:
-    const { mode } = makeMode("B");
-    mode.enter(1);
-    mode.exit();
-    // After exit with no other modes, getCurrent should be undefined (or whatever was before).
-    // We can only assert this is safe to call:
-    const current = Mode.getCurrent();
-    // If something else is in the stack from prior tests, current could be anything.
-    // The key contract: getCurrent() returns the first element of the stack.
-    expect(current === undefined || current instanceof Mode).toBe(true);
+  it("getCurrent returns undefined once the stack is fully cleared", () => {
+    // Deterministically drain any modes left on the shared stack by prior tests,
+    // then assert the empty-stack contract. exit() removes the current mode and
+    // every mode above it, so this loop terminates; the final assertion fails
+    // loudly if any mode is still present.
+    let guard = 0;
+    while (Mode.getCurrent() !== undefined && guard < 100) {
+      Mode.getCurrent()!.exit();
+      guard++;
+    }
+    expect(Mode.getCurrent()).toBeUndefined();
   });
 
   it("exit with peek removes only the targeted mode, leaving modes above it", () => {
