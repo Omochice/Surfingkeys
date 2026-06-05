@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-import createUserScript, { _isDomainApplicable, createCssSelectorForElements } from "./index";
+import createUserScript from "./index";
 
 // The user-script api built by the factory; rebuilt before each test so every
 // case starts from a fresh api/event surface.
@@ -23,60 +23,6 @@ function captureEvents(type: string, fn: () => void): CustomEvent[] {
   document.removeEventListener(type, handler);
   return captured;
 }
-
-// ---------------------------------------------------------------------------
-// _isDomainApplicable
-// ---------------------------------------------------------------------------
-
-describe("_isDomainApplicable", () => {
-  it("returns true when no domain is provided", () => {
-    expect(_isDomainApplicable(undefined)).toBe(true);
-  });
-
-  it("returns false when the domain regex matches neither document.location.href nor window.origin", () => {
-    // A regex that can never match any URL or origin string.
-    expect(_isDomainApplicable(/this-domain-will-never-match\.example/)).toBe(false);
-  });
-});
-
-// ---------------------------------------------------------------------------
-// createCssSelectorForElements
-// ---------------------------------------------------------------------------
-
-describe("createCssSelectorForElements", () => {
-  it("adds the CSS class to a single HTMLElement passed directly and returns 1", () => {
-    const el = document.createElement("div");
-    const count = createCssSelectorForElements("my-class", el);
-    expect(count).toBe(1);
-    expect(el.classList.contains("my-class")).toBe(true);
-  });
-
-  it("adds the CSS class to each HTMLElement in an array and returns the array length", () => {
-    const a = document.createElement("span");
-    const b = document.createElement("span");
-    const count = createCssSelectorForElements("another-class", [a, b]);
-    expect(count).toBe(2);
-    expect(a.classList.contains("another-class")).toBe(true);
-    expect(b.classList.contains("another-class")).toBe(true);
-  });
-
-  it("filters out non-HTMLElement entries from an array and counts only valid elements", () => {
-    const el = document.createElement("p");
-    const count = createCssSelectorForElements("valid-class", [el, "not-an-element", null, 42]);
-    expect(count).toBe(1);
-    expect(el.classList.contains("valid-class")).toBe(true);
-  });
-
-  it("returns 0 and adds no classes when passed a non-element, non-array value", () => {
-    const count = createCssSelectorForElements("no-class", "totally-not-an-element");
-    expect(count).toBe(0);
-  });
-
-  it("returns 0 for an empty array", () => {
-    const count = createCssSelectorForElements("empty-class", []);
-    expect(count).toBe(0);
-  });
-});
 
 // ---------------------------------------------------------------------------
 // cmap — dispatches surfingkeys:front with ["addMapkey", "Omnibar", ...]

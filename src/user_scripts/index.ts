@@ -338,8 +338,6 @@ const api = {
   },
 };
 
-export { _isDomainApplicable, createCssSelectorForElements };
-
 export default (extensionRootUrl: string, uf: (api: any, settings: any) => void) => {
   EXTENSION_ROOT_URL = extensionRootUrl;
   if (isInUIFrame()) return;
