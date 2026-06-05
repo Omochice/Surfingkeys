@@ -507,3 +507,520 @@ describe("remaps", () => {
     expect(remaps).toContainEqual(["cmap", "<ArrowDown>", "<Ctrl-n>"]);
   });
 });
+
+describe(";ql shows last action via showPopup", () => {
+  it("passes the decoded keystroke(s) through htmlEncode and showPopup", () => {
+    seam.runtimeConf.lastKeys = ["se"];
+    seam.utils.htmlEncode.mockReturnValueOnce("se-encoded");
+    fire(";ql");
+    expect(seam.utils.showPopup).toHaveBeenLastCalledWith("se-encoded");
+    expect(seam.utils.htmlEncode).toHaveBeenCalled();
+  });
+});
+
+describe("yv copies element text via hint callback", () => {
+  const lastHintCallback = () => {
+    const calls = ctx.hints.create.mock.calls;
+    return calls[calls.length - 1][1] as (el: any) => void;
+  };
+
+  it("takes element[2].trim() when element[1] is not 0", () => {
+    fire("yv");
+    lastHintCallback()([{}, 1, "  trimmed text  "]);
+    expect(ctx.clipboard.write).toHaveBeenLastCalledWith("trimmed text");
+  });
+
+  it("takes element[0].data.trim() when element[1] is 0", () => {
+    fire("yv");
+    lastHintCallback()([{ data: "  node data  " }, 0, ""]);
+    expect(ctx.clipboard.write).toHaveBeenLastCalledWith("node data");
+  });
+});
+
+describe("ymv accumulates multiple element texts", () => {
+  const lastHintCallback = () => {
+    const calls = ctx.hints.create.mock.calls;
+    return calls[calls.length - 1][1] as (el: any) => void;
+  };
+
+  it("joins picked texts with newlines as more are selected", () => {
+    fire("ymv");
+    const cb = lastHintCallback();
+    cb([{}, 1, "  first  "]);
+    expect(ctx.clipboard.write).toHaveBeenLastCalledWith("first");
+    cb([{ data: "  second  " }, 0, ""]);
+    expect(ctx.clipboard.write).toHaveBeenLastCalledWith("first\nsecond");
+  });
+});
+
+describe("<Ctrl-'> jumps to a VIMark in a new tab", () => {
+  it("delegates to normal.jumpVIMark with the given mark", () => {
+    registry.get("<Ctrl-'>")!.cb("a");
+    expect(ctx.normal.jumpVIMark).toHaveBeenLastCalledWith("a");
+  });
+});
+
+describe("yma accumulates multiple link URLs", () => {
+  const lastHintCallback = () => {
+    const calls = ctx.hints.create.mock.calls;
+    return calls[calls.length - 1][1] as (el: any) => void;
+  };
+
+  it("joins collected hrefs with newlines as links are picked", () => {
+    fire("yma");
+    const cb = lastHintCallback();
+    cb({ href: "https://one.example.com" });
+    expect(ctx.clipboard.write).toHaveBeenLastCalledWith("https://one.example.com");
+    cb({ href: "https://two.example.com" });
+    expect(ctx.clipboard.write).toHaveBeenLastCalledWith(
+      "https://one.example.com\nhttps://two.example.com",
+    );
+  });
+});
+
+/** Jsdom does not implement innerText; patch each cell element so the table handlers read real text. */
+function buildTable(data: string[][]): HTMLTableElement {
+  const table = document.createElement("table");
+  for (const rowData of data) {
+    const tr = document.createElement("tr");
+    for (const cellText of rowData) {
+      const td = document.createElement("td");
+      Object.defineProperty(td, "innerText", { get: () => cellText, configurable: true });
+      tr.appendChild(td);
+    }
+    table.appendChild(tr);
+  }
+  document.body.appendChild(table);
+  return table;
+}
+
+describe("yc copies a table column", () => {
+  afterEach(() => document.body.replaceChildren());
+
+  it("writes newline-joined cell text for the selected column header", () => {
+    const table = buildTable([
+      ["Name", "Age"],
+      ["Alice", "30"],
+      ["Bob", "25"],
+    ]);
+    fire("yc");
+    const calls = ctx.hints.create.mock.calls;
+    const cb = calls[calls.length - 1][1] as (el: any) => void;
+    // Pick the first cell (column 0, cellIndex 0)
+    const header = table.rows[0]!.cells[0]!;
+    cb(header);
+    expect(ctx.clipboard.write).toHaveBeenLastCalledWith("Name\nAlice\nBob");
+  });
+});
+
+describe("ymc copies multiple columns of a table", () => {
+  afterEach(() => document.body.replaceChildren());
+
+  it("merges columns with tabs when a second header is picked", () => {
+    const table = buildTable([
+      ["Name", "Age"],
+      ["Alice", "30"],
+      ["Bob", "25"],
+    ]);
+    fire("ymc");
+    const calls = ctx.hints.create.mock.calls;
+    const cb = calls[calls.length - 1][1] as (el: any) => void;
+    cb(table.rows[0]!.cells[0]!);
+    expect(ctx.clipboard.write).toHaveBeenLastCalledWith("Name\nAlice\nBob");
+    cb(table.rows[0]!.cells[1]!);
+    expect(ctx.clipboard.write).toHaveBeenLastCalledWith("Name\tAge\nAlice\t30\nBob\t25");
+  });
+});
+
+describe(";pp pastes HTML via clipboard callback", () => {
+  it("calls removeAttributes on html/body and setSanitizedContent on head/body", () => {
+    let capturedCb: ((r: { data: string }) => void) | null = null;
+    ctx.clipboard.read.mockImplementationOnce((cb: (r: { data: string }) => void) => {
+      capturedCb = cb;
+    });
+    fire(";pp");
+    capturedCb!({ data: "<p>hello</p>" });
+    expect(seam.utils.removeAttributes).toHaveBeenCalledWith(document.documentElement);
+    expect(seam.utils.removeAttributes).toHaveBeenCalledWith(document.body);
+    expect(seam.utils.setSanitizedContent).toHaveBeenCalledWith(document.body, "<p>hello</p>");
+    expect(seam.utils.setSanitizedContent).toHaveBeenCalledWith(
+      document.head,
+      expect.stringMatching(/updated by Surfingkeys/),
+    );
+  });
+});
+
+describe("yj response callback writes JSON settings to clipboard", () => {
+  it("passes response.settings through JSON.stringify with regExpReplacer and writes to clipboard", () => {
+    let capturedCb: ((r: { settings: unknown }) => void) | null = null;
+    seam.RUNTIME.mockImplementationOnce(
+      (_subj: string, _arg: unknown, cb: (r: { settings: unknown }) => void) => {
+        capturedCb = cb;
+      },
+    );
+    fire("yj");
+    // Leave regExpReplacer returning its second argument (the identity default) so JSON is preserved.
+    seam.utils.regExpReplacer.mockImplementation((_k: string, v: unknown) => v);
+    capturedCb!({ settings: { foo: "bar" } });
+    const written = ctx.clipboard.write.mock.calls.at(-1)![0] as string;
+    expect(written).toContain('"foo"');
+    expect(written).toContain('"bar"');
+    expect(seam.utils.regExpReplacer).toHaveBeenCalled();
+  });
+});
+
+describe(";pj restores settings from clipboard", () => {
+  it("parses clipboard JSON and sends updateSettings", () => {
+    let capturedCb: ((r: { data: string }) => void) | null = null;
+    ctx.clipboard.read.mockImplementationOnce((cb: (r: { data: string }) => void) => {
+      capturedCb = cb;
+    });
+    fire(";pj");
+    capturedCb!({ data: '{"theme":"dark"}' });
+    expect(seam.RUNTIME).toHaveBeenLastCalledWith("updateSettings", {
+      settings: { theme: "dark" },
+    });
+  });
+});
+
+describe("yY response callback writes tab URLs to clipboard", () => {
+  it("joins tab URLs with newlines", () => {
+    let capturedCb: ((r: { tabs: { url: string }[] }) => void) | null = null;
+    seam.RUNTIME.mockImplementationOnce(
+      (_subj: string, _arg: unknown, cb: (r: { tabs: { url: string }[] }) => void) => {
+        capturedCb = cb;
+      },
+    );
+    fire("yY");
+    capturedCb!({ tabs: [{ url: "https://a.com" }, { url: "https://b.com" }] });
+    expect(ctx.clipboard.write).toHaveBeenLastCalledWith("https://a.com\nhttps://b.com");
+  });
+});
+
+describe("yQ response callback writes query history to clipboard", () => {
+  it("joins OmniQueryHistory entries with newlines", () => {
+    let capturedCb: ((r: { settings: { OmniQueryHistory: string[] } }) => void) | null = null;
+    seam.RUNTIME.mockImplementationOnce(
+      (
+        _subj: string,
+        _arg: unknown,
+        cb: (r: { settings: { OmniQueryHistory: string[] } }) => void,
+      ) => {
+        capturedCb = cb;
+      },
+    );
+    fire("yQ");
+    capturedCb!({ settings: { OmniQueryHistory: ["query1", "query2"] } });
+    expect(ctx.clipboard.write).toHaveBeenLastCalledWith("query1\nquery2");
+  });
+});
+
+describe("gp response callback focuses the playing tab", () => {
+  it("sends focusTab when an audible tab is present", () => {
+    let capturedCb: ((r: { tabs?: { windowId: number; id: number }[] }) => void) | null = null;
+    seam.RUNTIME.mockImplementationOnce(
+      (
+        _subj: string,
+        _arg: unknown,
+        cb: (r: { tabs?: { windowId: number; id: number }[] }) => void,
+      ) => {
+        capturedCb = cb;
+      },
+    );
+    fire("gp");
+    capturedCb!({ tabs: [{ windowId: 1, id: 42 }] });
+    expect(seam.RUNTIME).toHaveBeenLastCalledWith("focusTab", { windowId: 1, tabId: 42 });
+  });
+
+  it("does not call focusTab when no audible tab is present", () => {
+    let capturedCb: ((r: { tabs?: unknown[] }) => void) | null = null;
+    seam.RUNTIME.mockImplementationOnce(
+      (_subj: string, _arg: unknown, cb: (r: { tabs?: unknown[] }) => void) => {
+        capturedCb = cb;
+      },
+    );
+    fire("gp");
+    const callsBefore = seam.RUNTIME.mock.calls.length;
+    capturedCb!({ tabs: [] });
+    expect(seam.RUNTIME.mock.calls.length).toBe(callsBefore);
+  });
+});
+
+describe("yd response callback writes download URLs to clipboard", () => {
+  it("joins in-progress download URLs with commas", () => {
+    let capturedCb: ((r: { downloads: { url: string }[] }) => void) | null = null;
+    seam.RUNTIME.mockImplementationOnce(
+      (_subj: string, _arg: unknown, cb: (r: { downloads: { url: string }[] }) => void) => {
+        capturedCb = cb;
+      },
+    );
+    fire("yd");
+    capturedCb!({ downloads: [{ url: "https://file1.zip" }, { url: "https://file2.zip" }] });
+    expect(ctx.clipboard.write).toHaveBeenLastCalledWith("https://file1.zip,https://file2.zip");
+  });
+});
+
+describe(";yh response callback writes history URLs to clipboard", () => {
+  it("joins history URLs with newlines", () => {
+    let capturedCb: ((r: { history: { url: string }[] }) => void) | null = null;
+    seam.RUNTIME.mockImplementationOnce(
+      (_subj: string, _arg: unknown, cb: (r: { history: { url: string }[] }) => void) => {
+        capturedCb = cb;
+      },
+    );
+    fire(";yh");
+    capturedCb!({ history: [{ url: "https://visited.com" }, { url: "https://other.com" }] });
+    expect(ctx.clipboard.write).toHaveBeenLastCalledWith("https://visited.com\nhttps://other.com");
+  });
+});
+
+describe(";ph puts histories from clipboard", () => {
+  it("splits clipboard text by newline and sends addHistories", () => {
+    let capturedCb: ((r: { data: string }) => void) | null = null;
+    ctx.clipboard.read.mockImplementationOnce((cb: (r: { data: string }) => void) => {
+      capturedCb = cb;
+    });
+    fire(";ph");
+    capturedCb!({ data: "https://a.com\nhttps://b.com" });
+    expect(seam.RUNTIME).toHaveBeenLastCalledWith("addHistories", {
+      history: ["https://a.com", "https://b.com"],
+    });
+  });
+});
+
+describe(";di downloads an image via hint callback", () => {
+  it("sends a download RUNTIME message with the element src", () => {
+    fire(";di");
+    const calls = ctx.hints.create.mock.calls;
+    const cb = calls[calls.length - 1][1] as (el: any) => void;
+    cb({ src: "https://example.com/image.png" });
+    expect(seam.RUNTIME).toHaveBeenLastCalledWith("download", {
+      url: "https://example.com/image.png",
+    });
+  });
+});
+
+describe("yp copies POST form data", () => {
+  afterEach(() => document.body.replaceChildren());
+
+  it("serializes form fields as URL-encoded strings keyed by method::action", () => {
+    const form = document.createElement("form");
+    form.method = "post";
+    form.action = "https://example.com/submit";
+    const input = document.createElement("input");
+    input.name = "field";
+    input.value = "value";
+    form.appendChild(input);
+    document.body.appendChild(form);
+
+    fire("yp");
+
+    const written = ctx.clipboard.write.mock.calls.at(-1)![0];
+    const parsed = JSON.parse(written) as Array<Record<string, string>>;
+    const entry = parsed[0]!;
+    const key = Object.keys(entry)[0]!;
+    expect(key).toContain("post::");
+    expect(entry[key]).toContain("field=value");
+  });
+});
+
+describe("ab bookmarks the current page", () => {
+  it("opens AddBookmark omnibar with current URL and title", () => {
+    document.title = "My Page";
+    fire("ab");
+    expect(ctx.front.openOmnibar).toHaveBeenLastCalledWith({
+      type: "AddBookmark",
+      extra: { url: window.location.href, title: "My Page" },
+    });
+  });
+});
+
+describe(";w focuses the top window", () => {
+  it("calls top.focus()", () => {
+    // In jsdom top === window, so top.focus() is observable as window.focus().
+    const spy = vi.spyOn(window, "focus").mockImplementation(() => {});
+    fire(";w");
+    expect(spy).toHaveBeenCalled();
+    spy.mockRestore();
+  });
+});
+
+describe("cc opens selected text or clipboard URL in a new tab", () => {
+  it("opens the selected text as a URL when selection is non-empty", () => {
+    const sel = { toString: () => "https://selected.example.com" };
+    vi.spyOn(window, "getSelection").mockReturnValue(sel as unknown as Selection);
+    fire("cc");
+    expect(seam.utils.tabOpenLink).toHaveBeenLastCalledWith("https://selected.example.com");
+    vi.restoreAllMocks();
+  });
+
+  it("reads from clipboard and opens the URL when selection is empty", () => {
+    const sel = { toString: () => "" };
+    vi.spyOn(window, "getSelection").mockReturnValue(sel as unknown as Selection);
+    let capturedCb: ((r: { data: string }) => void) | null = null;
+    ctx.clipboard.read.mockImplementationOnce((cb: (r: { data: string }) => void) => {
+      capturedCb = cb;
+    });
+    fire("cc");
+    capturedCb!({ data: "https://clipboard.example.com" });
+    expect(seam.utils.tabOpenLink).toHaveBeenLastCalledWith("https://clipboard.example.com");
+    vi.restoreAllMocks();
+  });
+});
+
+describe("cq queries word under cursor via hint callback", () => {
+  it("calls front.performInlineQuery with the trimmed word", () => {
+    fire("cq");
+    const calls = ctx.hints.create.mock.calls;
+    const cb = calls[calls.length - 1][1] as (el: any) => void;
+    // element[2] is the text fragment; element[0] is the text node; element[1] is offset
+    cb([{}, 0, "  hello  "]);
+    expect(ctx.front.performInlineQuery).toHaveBeenCalledWith(
+      "hello",
+      expect.objectContaining({ top: 0, left: 0 }),
+      expect.any(Function),
+    );
+  });
+
+  it("the showBubble callback dispatches a front event", () => {
+    fire("cq");
+    const calls = ctx.hints.create.mock.calls;
+    const cb = calls[calls.length - 1][1] as (el: any) => void;
+    cb([{}, 0, "hello"]);
+    const queryCallback = ctx.front.performInlineQuery.mock.calls.at(-1)![2] as (
+      pos: unknown,
+      result: unknown,
+    ) => void;
+    queryCallback({ x: 0 }, "translation result");
+    expect(seam.dispatchSKEvent).toHaveBeenLastCalledWith("front", [
+      "showBubble",
+      { x: 0 },
+      "translation result",
+      false,
+    ]);
+  });
+});
+
+describe("search alias suggestion parsers", () => {
+  const getParser = (alias: string) => {
+    const call = api.addSearchAlias.mock.calls.find((c: unknown[]) => c[0] === alias);
+    return call![5] as (response: { text: string }) => unknown;
+  };
+
+  it("duckduckgo parser returns phrase from each result", () => {
+    const parse = getParser("d");
+    expect(parse({ text: JSON.stringify([{ phrase: "alpha" }, { phrase: "beta" }]) })).toEqual([
+      "alpha",
+      "beta",
+    ]);
+  });
+
+  it("baidu parser extracts the suggestion array from the response text", () => {
+    const parse = getParser("b");
+    expect(parse({ text: ',s:["foo","bar"]}' })).toEqual(["foo", "bar"]);
+  });
+
+  it("baidu parser returns empty array when no match", () => {
+    const parse = getParser("b");
+    expect(parse({ text: "no match here" })).toEqual([]);
+  });
+
+  it("wikipedia parser returns the completions array at index 1", () => {
+    const parse = getParser("e");
+    expect(parse({ text: JSON.stringify([null, ["TypeScript", "Telnet"]]) })).toEqual([
+      "TypeScript",
+      "Telnet",
+    ]);
+  });
+
+  it("bing parser returns completions from index 1", () => {
+    const parse = getParser("w");
+    expect(parse({ text: JSON.stringify([null, ["bing1", "bing2"]]) })).toEqual(["bing1", "bing2"]);
+  });
+
+  it("github parser maps items to title/url objects", () => {
+    const parse = getParser("h");
+    const items = [
+      { description: "A lib", html_url: "https://github.com/a/lib" },
+      { description: "B tool", html_url: "https://github.com/b/tool" },
+    ];
+    expect(parse({ text: JSON.stringify({ items }) })).toEqual([
+      { title: "A lib", url: "https://github.com/a/lib" },
+      { title: "B tool", url: "https://github.com/b/tool" },
+    ]);
+  });
+
+  it("github parser returns empty array when items is null", () => {
+    const parse = getParser("h");
+    expect(parse({ text: JSON.stringify({ items: null }) })).toEqual([]);
+  });
+
+  it("youtube parser extracts suggestion strings from the JSONP payload", () => {
+    const parse = getParser("y");
+    const inner = [null, [["suggestion1"], ["suggestion2"]]];
+    const text = "callback(" + JSON.stringify(inner) + ")";
+    expect(parse({ text })).toEqual(["suggestion1", "suggestion2"]);
+  });
+});
+
+describe("w switches frames", () => {
+  it("dispatches ensureFrontEnd and calls hints.create for iframes", () => {
+    fire("w");
+    expect(seam.dispatchSKEvent).toHaveBeenCalledWith("ensureFrontEnd");
+    expect(ctx.hints.create).toHaveBeenLastCalledWith("iframe", expect.any(Function));
+  });
+
+  it("rotates frame when hints.create resolves with 0 total hints", async () => {
+    ctx.hints.create.mockResolvedValueOnce(0);
+    fire("w");
+    await Promise.resolve();
+    expect(ctx.normal.rotateFrame).toHaveBeenCalled();
+  });
+
+  it("does not rotate frame when at least one iframe hint was shown", async () => {
+    ctx.hints.create.mockResolvedValueOnce(1);
+    fire("w");
+    await Promise.resolve();
+    expect(ctx.normal.rotateFrame).not.toHaveBeenCalled();
+  });
+});
+
+describe("<Ctrl-h> mouse-over hint callback falls back to dispatchMouseClick", () => {
+  it("calls hints.dispatchMouseClick when chrome.surfingkeys is absent", () => {
+    fire("<Ctrl-h>");
+    const calls = ctx.hints.create.mock.calls;
+    const cb = calls[calls.length - 1][1] as (el: any) => void;
+    const fakeEl = { getClientRects: () => [{ x: 0, y: 0, width: 10, height: 10 }] };
+    cb(fakeEl);
+    expect(ctx.hints.dispatchMouseClick).toHaveBeenLastCalledWith(fakeEl);
+  });
+});
+
+describe("yg captures the visible tab", () => {
+  afterEach(() => vi.useRealTimers());
+
+  it("toggles status off then sends captureVisibleTab after 500ms", () => {
+    vi.useFakeTimers();
+    fire("yg");
+    expect(ctx.front.toggleStatus).toHaveBeenLastCalledWith(false);
+    vi.advanceTimersByTime(500);
+    expect(seam.RUNTIME).toHaveBeenLastCalledWith("captureVisibleTab", null, expect.any(Function));
+  });
+
+  it("the captureVisibleTab callback toggles status back on and shows the image", () => {
+    vi.useFakeTimers();
+    let capturedCb: ((r: { dataUrl: string }) => void) | null = null;
+    seam.RUNTIME.mockImplementationOnce(
+      (_s: string, _a: unknown, cb: (r: { dataUrl: string }) => void) => {
+        capturedCb = cb;
+      },
+    );
+    fire("yg");
+    vi.advanceTimersByTime(500);
+    capturedCb!({ dataUrl: "data:image/png;base64,abc" });
+    expect(ctx.front.toggleStatus).toHaveBeenLastCalledWith(true);
+    expect(seam.utils.showPopup).toHaveBeenLastCalledWith(
+      expect.stringContaining("data:image/png;base64,abc"),
+    );
+  });
+});
