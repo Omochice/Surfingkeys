@@ -1031,4 +1031,96 @@ describe("saveSettings: loadSettingsFromUrl callback updates snippets", () => {
     const textarea = document.getElementById("mappings") as HTMLTextAreaElement;
     expect(textarea.value).toBe("// remote settings");
   });
+
+  it("falls back to the sample snippet when the remote response has no snippets and the editor is empty", () => {
+    const RUNTIME = vi.fn((action: string, _args: any, cb?: (r: any) => void) => {
+      if (action === "loadSettingsFromUrl") {
+        // No snippets in the response, and the editor was left empty → the
+        // `else if (settingsCode === "")` arm restores the sample snippet.
+        cb?.({ status: "200 OK", renderKeyMappings: () => {} });
+      }
+      return Result.succeed(undefined);
+    });
+
+    optionsMain(
+      RUNTIME as any,
+      makeKeyboardUtils(),
+      makeMode() as any,
+      makeCreateElementWithContent(),
+      () => "Chrome",
+      (s: string) => s,
+      (cb: (locale: (s: string) => string) => void) => cb((s) => s),
+      (_title: string, _desc: string) => {},
+      (elm: Element, str: string) => {
+        elm.innerHTML = str;
+      },
+      (_msg: string, _timeout?: number) => {},
+    );
+
+    fireUserSettingsLoaded({});
+    const textarea = document.getElementById("mappings") as HTMLTextAreaElement;
+    textarea.value = ""; // empty editor
+
+    const localPathInput = document.getElementById("localPath") as HTMLInputElement;
+    localPathInput.value = "https://example.com/empty-settings.js";
+
+    const saveBtn = document.getElementById("save_button") as HTMLInputElement;
+    saveBtn.onclick!(new MouseEvent("click") as unknown as PointerEvent);
+
+    // The sample snippet (from #sample in buildDOM) is restored.
+    expect(textarea.value).toBe("sample snippet");
+  });
+});
+
+describe("advancedToggler onclick — success arm shows/hides the advanced panels", () => {
+  beforeEach(() => {
+    buildDOM();
+  });
+
+  afterEach(() => {
+    document.body.innerHTML = "";
+  });
+
+  it("reveals the advanced panel and marks the toggler checked when the update succeeds", () => {
+    const RUNTIME = vi.fn((_action: string, _args: any, cb?: (r: any) => void) => {
+      // No error in the response → the success arm calls showAdvanced(newFlag).
+      cb?.({});
+      return Result.succeed(undefined);
+    });
+    initOptions(RUNTIME);
+
+    const toggler = document.getElementById("advancedToggler") as HTMLInputElement;
+    toggler.checked = true;
+    toggler.onclick!(new MouseEvent("click") as unknown as PointerEvent);
+
+    const advancedDiv = document.getElementById("advancedSetting") as HTMLElement;
+    const basicDiv = document.getElementById("basicSettings") as HTMLElement;
+    expect(advancedDiv.style.display).toBe("");
+    expect(basicDiv.style.display).toBe("none");
+    expect(toggler.getAttribute("checked")).toBe("checked");
+  });
+});
+
+describe("infoPointer onclick — missing target is a no-op", () => {
+  beforeEach(() => {
+    buildDOM();
+  });
+
+  afterEach(() => {
+    document.body.innerHTML = "";
+  });
+
+  it("does nothing when the 'for' target element does not exist", () => {
+    initOptions();
+    const pointer = document.querySelector(".infoPointer") as HTMLElement;
+    // Point at a non-existent id → getElementById returns null → early return,
+    // no toggling and no exception.
+    pointer.setAttribute("for", "does-not-exist");
+
+    pointer.onclick!(new MouseEvent("click") as unknown as PointerEvent);
+
+    // The real infoTarget is untouched (still hidden as built).
+    const target = document.getElementById("infoTarget") as HTMLElement;
+    expect(target.style.display).toBe("none");
+  });
 });
