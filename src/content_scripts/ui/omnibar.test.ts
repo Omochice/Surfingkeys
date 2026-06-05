@@ -2,7 +2,7 @@ import { Result } from "@praha/byethrow";
 import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { RUNTIME, runtime } from "../common/runtime";
-import createOmnibar, { parseCommandLine } from "./omnibar";
+import createOmnibar from "./omnibar";
 
 // ---------------------------------------------------------------------------
 // RUNTIME mock — intercept all background-service calls so handler code that
@@ -50,48 +50,6 @@ function makeFront() {
 function makeClipboard() {
   return { write: vi.fn(), read: vi.fn() };
 }
-
-// ---------------------------------------------------------------------------
-// parseCommandLine — pure tokeniser, no DOM required
-// ---------------------------------------------------------------------------
-describe("parseCommandLine", () => {
-  it("splits a simple space-separated command into tokens", () => {
-    expect(parseCommandLine("tabopen https://example.com")).toEqual([
-      "tabopen",
-      "https://example.com",
-    ]);
-  });
-
-  it("trims leading and trailing spaces before tokenising", () => {
-    expect(parseCommandLine("  open foo  ")).toEqual(["open", "foo"]);
-  });
-
-  it("treats a double-quoted span as a single token, dropping the quotes", () => {
-    expect(parseCommandLine('search "hello world"')).toEqual(["search", "hello world"]);
-  });
-
-  it("handles a quoted argument that contains multiple spaces", () => {
-    expect(parseCommandLine('cmd "a  b  c"')).toEqual(["cmd", "a  b  c"]);
-  });
-
-  it("returns a single-element array for a command with no arguments", () => {
-    expect(parseCommandLine("quit")).toEqual(["quit"]);
-  });
-
-  it("returns an empty string token for an empty input", () => {
-    expect(parseCommandLine("")).toEqual([""]);
-  });
-
-  it("handles consecutive spaces between tokens", () => {
-    // Each space without an open quote is a separator → two empty tokens between a and b
-    expect(parseCommandLine("a  b")).toEqual(["a", "", "b"]);
-  });
-
-  it("handles a quote that opens mid-token", () => {
-    // 'cmd arg"with space"end' → cmd, argwith spaceend (quotes stripped, content merged)
-    expect(parseCommandLine('cmd arg"with space"end')).toEqual(["cmd", "argwith spaceend"]);
-  });
-});
 
 // ---------------------------------------------------------------------------
 // Full omnibar — each describe block calls createOmnibar once.

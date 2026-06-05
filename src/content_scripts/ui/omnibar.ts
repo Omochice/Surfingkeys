@@ -24,6 +24,7 @@ import {
   tryDecodeURI,
   tryDecodeURIComponent,
 } from "../common/utils";
+import { parseCommandLine } from "./commandLine";
 import { Prompt } from "./components/Prompt";
 import type { PromptValue } from "./components/Prompt";
 import { ResultList } from "./components/ResultList";
@@ -1792,34 +1793,4 @@ function OpenUserURLs(omnibar: any): any {
   };
   return self;
 }
-
-/**
- * Parse a command line into tokens, treating double-quoted spans as a single token and dropping the
- * quote characters themselves.
- *
- * WHY exported: the tokeniser is pure and has enough edge-case behaviour (quoted arguments,
- * leading/trailing spaces) to warrant isolated unit tests without having to instantiate the full
- * omnibar DOM.
- */
-export function parseCommandLine(cmdline: string): string[] {
-  cmdline = cmdline.trim();
-  const tokens: string[] = [];
-  let pendingToken = false;
-  let part = "";
-  for (let i = 0; i < cmdline.length; i++) {
-    if (cmdline.charAt(i) === " " && !pendingToken) {
-      tokens.push(part);
-      part = "";
-    } else {
-      if (cmdline.charAt(i) === '"') {
-        pendingToken = !pendingToken;
-      } else {
-        part += cmdline.charAt(i);
-      }
-    }
-  }
-  tokens.push(part);
-  return tokens;
-}
-
 export default createOmnibar;
