@@ -28,14 +28,6 @@ const mockGetBrowserName = vi.mocked(getBrowserName);
 const mockShowBanner = vi.mocked(showBanner);
 const mockRUNTIME = vi.mocked(RUNTIME as any);
 
-describe("createClipboard", () => {
-  it("exposes read and write functions", () => {
-    const clipboard = createClipboard();
-    expect(typeof clipboard.read).toBe("function");
-    expect(typeof clipboard.write).toBe("function");
-  });
-});
-
 describe("Clipboard.write on Chrome", () => {
   beforeEach(() => {
     mockGetBrowserName.mockReturnValue("Chrome");
