@@ -20,7 +20,7 @@ const seam = vi.hoisted(() => {
       getCssSelectorsOfEditable: vi.fn(() => "input"),
       getLargeElements: vi.fn(() => []),
       getTextNodePos: vi.fn(() => ({ top: 0, left: 0 })),
-      getWordUnderCursor: vi.fn(() => "word"),
+      getWordUnderCursor: vi.fn((): string | null => "word"),
       htmlEncode: vi.fn((s: string) => s),
       regExpReplacer: vi.fn((_k: string, v: unknown) => v),
       removeAttributes: vi.fn(),
@@ -1343,6 +1343,308 @@ describe("gu with multiple repeats", () => {
     fire("gu");
     // repeats must be reset to 1 after gu consumes it
     expect(seam.RUNTIME.repeats).toBe(1);
+  });
+});
+
+describe("gu goes up one path segment", () => {
+  // jsdom does not navigate on `location.href = ...`, so intercept the href
+  // setter while proxying the reads `gu` performs (pathname/origin). This lets
+  // the computed go-up URL be asserted as the observable contract.
+  function withInterceptedHref(path: string, run: () => void): string | undefined {
+    const real = window.location;
+    window.history.replaceState(null, "", path);
+    let assigned: string | undefined;
+    const proxy = {
+      get href() {
+        return real.href;
+      },
+      set href(v: string) {
+        assigned = v;
+      },
+      get pathname() {
+        return real.pathname;
+      },
+      get origin() {
+        return real.origin;
+      },
+    };
+    Object.defineProperty(window, "location", { value: proxy, configurable: true });
+    try {
+      run();
+    } finally {
+      Object.defineProperty(window, "location", { value: real, configurable: true });
+    }
+    return assigned;
+  }
+
+  it("strips a trailing slash before dropping the last segment", () => {
+    const assigned = withInterceptedHref("/a/b/c/", () => fire("gu"));
+    expect(assigned).toBe(window.location.origin + "/a/b");
+  });
+
+  it("drops the last segment when there is no trailing slash", () => {
+    const assigned = withInterceptedHref("/a/b/c", () => fire("gu"));
+    expect(assigned).toBe(window.location.origin + "/a/b");
+  });
+
+  it("breaks out and goes to the root when repeats exceed the path depth", () => {
+    seam.RUNTIME.repeats = 5; // more levels than the path has
+    const assigned = withInterceptedHref("/only/", () => fire("gu"));
+    seam.RUNTIME.repeats = 1;
+    // The lastIndexOf("/", last-1) search returns -1 and breaks, leaving the
+    // root path "".
+    expect(assigned).toBe(window.location.origin + "");
+  });
+});
+
+describe(". repeat — non-Hints and empty sub-sequence arms", () => {
+  const saved = seam.runtimeConf.lastKeys;
+  afterEach(() => {
+    seam.runtimeConf.lastKeys = saved;
+    vi.useRealTimers();
+  });
+
+  it("ignores a recorded sub-sequence whose mode is not Hints", () => {
+    vi.useFakeTimers();
+    seam.runtimeConf.lastKeys = ["f", "Visual\tBA"];
+    fire(".");
+    expect(ctx.normal.feedkeys).toHaveBeenLastCalledWith("f");
+    vi.advanceTimersByTime(300);
+    // Only the Hints branch schedules a hints.feedkeys replay; a Visual entry
+    // must not.
+    expect(ctx.hints.feedkeys).not.toHaveBeenCalled();
+  });
+
+  it("does not feed any first key when lastKeys is empty", () => {
+    seam.runtimeConf.lastKeys = [];
+    fire(".");
+    expect(ctx.normal.feedkeys).not.toHaveBeenCalled();
+  });
+
+  it("schedules no hints replay for a Hints entry that carries no key part", () => {
+    vi.useFakeTimers();
+    // "Hints" with no tab-separated key → modeKey[1] is undefined, so the
+    // `hintKeys != null` guard takes its false arm and feedkeys is never called.
+    seam.runtimeConf.lastKeys = ["f", "Hints"];
+    fire(".");
+    vi.advanceTimersByTime(300);
+    expect(ctx.hints.feedkeys).not.toHaveBeenCalled();
+  });
+});
+
+describe("vmapkey q with no word under the cursor", () => {
+  it("queries with an empty string when getWordUnderCursor returns null", () => {
+    ctx.visual.getCursorPixelPos.mockReturnValueOnce({ top: 0, left: 0, height: 0, width: 0 });
+    seam.utils.getWordUnderCursor.mockReturnValueOnce(null);
+    const vmapBinding = allRegs.find((r) => r.keys === "q" && r.mode === "visual");
+    vmapBinding!.cb();
+    expect(ctx.front.performInlineQuery).toHaveBeenLastCalledWith(
+      "",
+      expect.any(Object),
+      expect.any(Function),
+    );
+  });
+});
+
+describe("yc / ymc table-column edge arms", () => {
+  afterEach(() => document.body.replaceChildren());
+
+  const lastHintCallback = () => {
+    const calls = ctx.hints.create.mock.calls;
+    return calls[calls.length - 1][1] as (el: any) => void;
+  };
+
+  it("yc offers no column heads when a table has no row", () => {
+    const table = document.createElement("table");
+    document.body.appendChild(table);
+    fire("yc");
+    // getTableColumnHeads skips the table (the `if (tr)` arm is false), so the
+    // heads passed to hints.create are empty.
+    expect(ctx.hints.create).toHaveBeenLastCalledWith([], expect.any(Function));
+  });
+
+  it("yc yields empty cells for rows shorter than the picked column", () => {
+    const table = document.createElement("table");
+    const head = document.createElement("tr");
+    for (const t of ["A", "B"]) {
+      const td = document.createElement("td");
+      Object.defineProperty(td, "innerText", { get: () => t, configurable: true });
+      head.appendChild(td);
+    }
+    const shortRow = document.createElement("tr");
+    const onlyCell = document.createElement("td");
+    Object.defineProperty(onlyCell, "innerText", { get: () => "x", configurable: true });
+    shortRow.appendChild(onlyCell); // only one cell → index 1 is out of range
+    table.append(head, shortRow);
+    document.body.appendChild(table);
+
+    fire("yc");
+    // Pick the second header (cellIndex 1); the short row has no cell 1 → "".
+    lastHintCallback()(head.cells[1]!);
+    expect(ctx.clipboard.write).toHaveBeenLastCalledWith("B\n");
+  });
+
+  it("ymc yields empty cells for rows shorter than the picked column", () => {
+    const table = document.createElement("table");
+    const head = document.createElement("tr");
+    for (const t of ["A", "B"]) {
+      const td = document.createElement("td");
+      Object.defineProperty(td, "innerText", { get: () => t, configurable: true });
+      head.appendChild(td);
+    }
+    const shortRow = document.createElement("tr");
+    const onlyCell = document.createElement("td");
+    Object.defineProperty(onlyCell, "innerText", { get: () => "x", configurable: true });
+    shortRow.appendChild(onlyCell);
+    table.append(head, shortRow);
+    document.body.appendChild(table);
+
+    fire("ymc");
+    // Picking the out-of-range column header drives the ternary's "" arm.
+    lastHintCallback()(head.cells[1]!);
+    expect(ctx.clipboard.write).toHaveBeenLastCalledWith("B\n");
+  });
+});
+
+describe("getFormData duplicate key where the first value is empty", () => {
+  afterEach(() => document.body.replaceChildren());
+
+  it("yf: does not keep the empty first value when a later same-name value is non-empty", () => {
+    const form = document.createElement("form");
+    form.method = "get";
+    form.action = "https://example.com/firstempty";
+    const empty = document.createElement("input");
+    empty.name = "field";
+    empty.value = ""; // first occurrence empty
+    const filled = document.createElement("input");
+    filled.name = "field";
+    filled.value = "later"; // second occurrence non-empty
+    form.append(empty, filled);
+    document.body.appendChild(form);
+
+    fire("yf");
+    const written = ctx.clipboard.write.mock.calls.at(-1)![0] as string;
+    const parsed = JSON.parse(written) as Record<string, Record<string, unknown>>;
+    const key = Object.keys(parsed)[0]!;
+    // obj[key] is reset to [] and the empty first value is NOT pushed (p.length
+    // is 0), so only the later value survives.
+    expect((parsed[key] as any).field).toEqual(["later"]);
+  });
+});
+
+describe(";pf fill-form skip arms", () => {
+  afterEach(() => document.body.replaceChildren());
+
+  function runFill(form: HTMLFormElement, data: unknown): void {
+    let formCb: ((el: HTMLFormElement) => void) | null = null;
+    ctx.hints.create.mockImplementationOnce((_sel: any, cb: any) => {
+      formCb = cb;
+      return Promise.resolve(1);
+    });
+    fire(";pf");
+    let clipCb: ((r: { data: string }) => void) | null = null;
+    ctx.clipboard.read.mockImplementationOnce((cb: (r: { data: string }) => void) => {
+      clipCb = cb;
+    });
+    formCb!(form);
+    clipCb!({ data: JSON.stringify(data) });
+  }
+
+  it("does not write to a hidden input even when matching data exists", () => {
+    const form = document.createElement("form");
+    form.method = "get";
+    form.action = "https://example.com/hidden";
+    const hidden = document.createElement("input");
+    hidden.type = "hidden";
+    hidden.name = "token";
+    hidden.value = "orig";
+    form.appendChild(hidden);
+    document.body.appendChild(form);
+
+    runFill(form, { "get::/hidden": { token: "new" } });
+    // The `ip.type !== "hidden"` guard skips hidden inputs.
+    expect(hidden.value).toBe("orig");
+  });
+
+  it("leaves radios unchanged when no option matches the stored value", () => {
+    const form = document.createElement("form");
+    form.method = "get";
+    form.action = "https://example.com/nomatch";
+    const radio = document.createElement("input");
+    radio.type = "radio";
+    radio.name = "choice";
+    radio.value = "a";
+    form.appendChild(radio);
+    document.body.appendChild(form);
+
+    runFill(form, { "get::/nomatch": { choice: "z" } });
+    // No option has value "z", so the `if (op)` arm is false and nothing checks.
+    expect(radio.checked).toBe(false);
+  });
+
+  it("leaves checkboxes unchecked when an array value matches no option", () => {
+    const form = document.createElement("form");
+    form.method = "get";
+    form.action = "https://example.com/cbnomatch";
+    const cb = document.createElement("input");
+    cb.type = "checkbox";
+    cb.name = "opts";
+    cb.value = "x";
+    form.appendChild(cb);
+    document.body.appendChild(form);
+
+    runFill(form, { "get::/cbnomatch": { opts: ["zzz"] } });
+    // The array branch clears all then re-checks matches; "zzz" matches nothing,
+    // so the inner `if (op)` arm stays false.
+    expect(cb.checked).toBe(false);
+  });
+
+  it("ignores a non-string, non-array value (e.g. a number)", () => {
+    const form = document.createElement("form");
+    form.method = "get";
+    form.action = "https://example.com/number";
+    const text = document.createElement("input");
+    text.type = "text";
+    text.name = "count";
+    text.value = "orig";
+    form.appendChild(text);
+    document.body.appendChild(form);
+
+    runFill(form, { "get::/number": { count: 42 } });
+    // 42 is neither radio, array, nor string, so none of the assignment arms run.
+    expect(text.value).toBe("orig");
+  });
+});
+
+describe("Firefox-only mappings", () => {
+  afterEach(() => {
+    seam.utils.getBrowserName.mockReturnValue("Chrome");
+  });
+
+  it("binds 'on' to open about:blank when the browser is Firefox", () => {
+    seam.utils.getBrowserName.mockReturnValue("Firefox");
+    const firefoxRegistry = new Map<string, Registration>();
+    const ffApi = {
+      ...api,
+      mapkey: (keys: string, annotation: any, cb: any, options: any) =>
+        firefoxRegistry.set(keys, { mode: "normal", annotation, cb, options }),
+    };
+    registerDefaultMappings(ffApi as any, ctx);
+    firefoxRegistry.get("on")!.cb();
+    expect(seam.utils.tabOpenLink).toHaveBeenLastCalledWith("about:blank");
+  });
+
+  it("binds neither the Firefox nor the Chrome 'on' mapping for another browser", () => {
+    seam.utils.getBrowserName.mockReturnValue("Safari");
+    const otherRegistry = new Map<string, Registration>();
+    const otherApi = {
+      ...api,
+      mapkey: (keys: string, annotation: any, cb: any, options: any) =>
+        otherRegistry.set(keys, { mode: "normal", annotation, cb, options }),
+    };
+    registerDefaultMappings(otherApi as any, ctx);
+    // Neither the Firefox arm nor the Chrome else-if arm runs, so 'on' is absent.
+    expect(otherRegistry.has("on")).toBe(false);
   });
 });
 
