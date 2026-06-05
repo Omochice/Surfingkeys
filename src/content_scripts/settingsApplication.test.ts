@@ -128,15 +128,13 @@ describe("applyBasicMappings", () => {
 
     applyBasicMappings(api, normal, { a: "b", b: "a" });
 
-    // "a" -> "b": target "b" is also an origin key, so its meta is snapshotted.
-    // api.map is NOT called for it because "b" is a key in originKeys.
-    // "b" -> "a": originKey is "b", which was snapshotted, so normal.mappings.add is
-    // called with the saved meta instead of api.map.
-    // api.map is called exactly once for the first entry (a -> b path goes through
-    // api.map when the originKey has no snapshotted meta yet).
-    // The exact call count depends on iteration order; assert the concrete effect:
-    // after the swap, "b" should be present in the trie (added from snapshotted metaB).
-    expect(trie.find("a")).toBeDefined();
+    // "a" -> "b" snapshots metaB (target "b" is itself an origin key) and routes
+    // through api.map("b","a"). "b" -> "a" then re-adds the snapshotted metaB under
+    // "a", so the overwritten key's meta is preserved onto the swapped slot.
+    // Trie.add stores a copy ({...meta, word}); the annotation must come from metaB
+    // (the overwritten "b"), not metaA, proving the snapshot was carried to slot "a".
+    expect(trie.find("a")?.meta?.annotation).toBe(metaB.annotation);
+    expect(api.map).toHaveBeenCalledWith("b", "a");
   });
 
   it("skips entries where the new key is null/undefined", () => {
