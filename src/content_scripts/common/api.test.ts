@@ -713,4 +713,292 @@ describe("createAPI Hints.setCharacters", () => {
     expect(ctx.hints.setCharacters).toHaveBeenCalledWith("asdfghjkl");
     expect(ctx.front.setHintsCharacters).toHaveBeenCalledWith("asdfghjkl");
   });
+
+  it("skips front.setHintsCharacters when front lacks it", () => {
+    const ctx = makeCtx();
+    ctx.front.setHintsCharacters = undefined;
+    const api = createAPI(ctx as any);
+    // The `if (front.setHintsCharacters)` guard takes its false arm; hints still
+    // receives the update and nothing throws.
+    api.Hints.setCharacters("qwerty");
+    expect(ctx.hints.setCharacters).toHaveBeenCalledWith("qwerty");
+  });
+});
+
+// ---------------------------------------------------------------------------
+// mapkey override + prefix-precedence guard arms
+// ---------------------------------------------------------------------------
+
+describe("createAPI mapkey override and precedence", () => {
+  it("rebinds a key to the newest code when the same key is mapped twice", () => {
+    const ctx = makeCtx();
+    const api = createAPI(ctx as any);
+
+    const first = vi.fn();
+    const second = vi.fn();
+    api.mapkey("g", "first", first);
+    api.mapkey("g", "second", second);
+
+    const node = ctx.normal.mappings.find(KeyboardUtils.encodeKeystroke("g"));
+    // The override arm removes the old mapping and binds the new code.
+    expect(node?.meta?.code).toBe(second);
+    expect(node?.meta?.annotation).toContain("second");
+  });
+
+  it("refuses to add a longer key whose prefix is already a leaf mapping", () => {
+    const ctx = makeCtx();
+    const api = createAPI(ctx as any);
+
+    api.mapkey("a", "leaf", vi.fn());
+    // 'ab' would shadow the existing leaf 'a', so the precedence guard returns
+    // early and 'ab' is never registered.
+    api.mapkey("ab", "longer", vi.fn());
+
+    let node: any = ctx.normal.mappings;
+    for (const ch of "ab") {
+      node = node?.find(ch);
+    }
+    expect(node?.meta).toBeUndefined();
+  });
+
+  it("overrides a branch node (no own meta) that has descendant mappings", () => {
+    const ctx = makeCtx();
+    const api = createAPI(ctx as any);
+
+    // 'ab' makes 'a' a branch node without its own meta. Mapping 'a' then removes
+    // that branch (exercising the `old.meta` false arm that reports child metas)
+    // and binds 'a' as a leaf.
+    api.mapkey("ab", "deep", vi.fn());
+    const aLeaf = vi.fn();
+    api.mapkey("a", "now-a-leaf", aLeaf);
+
+    const node = ctx.normal.mappings.find(KeyboardUtils.encodeKeystroke("a"));
+    expect(node?.meta?.code).toBe(aLeaf);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// map — special-key and not-found arms
+// ---------------------------------------------------------------------------
+
+describe("createAPI map special-key and not-found arms", () => {
+  it("registers a new alias for an <Esc> special key and notifies front", () => {
+    const ctx = makeCtx();
+    const dispatched: unknown[][] = [];
+    document.addEventListener("surfingkeys:front", (e) => {
+      dispatched.push((e as CustomEvent).detail);
+    });
+    const api = createAPI(ctx as any);
+
+    api.map("w", "<Esc>");
+
+    expect(
+      dispatched.some(
+        (d) => Array.isArray(d) && d[0] === "addMapkey" && d[1] === "Mode" && d[2] === "w",
+      ),
+    ).toBe(true);
+  });
+
+  it("does nothing observable in normal.mappings when the source keystroke is unknown", () => {
+    const ctx = makeCtx();
+    const api = createAPI(ctx as any);
+
+    api.map("w", "totally-unknown-keystroke");
+
+    // The else arm only logs a warning; no normal mapping is created for 'w'.
+    expect(ctx.normal.mappings.find(KeyboardUtils.encodeKeystroke("w"))).toBeUndefined();
+  });
+
+  it("uses the supplied annotation for a command-line ':' mapping", () => {
+    const ctx = makeCtx();
+    const api = createAPI(ctx as any);
+
+    api.map("e", ":echo", undefined, "#3Echo it");
+
+    const node = ctx.normal.mappings.find(KeyboardUtils.encodeKeystroke("e"));
+    expect(node?.meta?.annotation).toContain("Echo it");
+  });
+
+  it("binds a ':' mapping with a plain annotation that carries no feature group", () => {
+    const ctx = makeCtx();
+    const api = createAPI(ctx as any);
+
+    // No "#N" prefix → parseAnnotation yields no feature_group, exercising the
+    // `ag.feature_group != null` false arm of createKeyTarget.
+    api.map("e", ":echo", undefined, "plain label");
+
+    const node = ctx.normal.mappings.find(KeyboardUtils.encodeKeystroke("e"));
+    expect(node?.meta?.annotation).toContain("plain label");
+    expect(node?.meta?.feature_group).toBeUndefined();
+  });
+
+  it("does not register the mapping when the domain does not match", () => {
+    const ctx = makeCtx();
+    const api = createAPI(ctx as any);
+
+    api.map("e", ":echo", /this-domain-will-never-match\.example/);
+
+    expect(ctx.normal.mappings.find(KeyboardUtils.encodeKeystroke("e"))).toBeUndefined();
+  });
+});
+
+// ---------------------------------------------------------------------------
+// unmap — special-key removal arm
+// ---------------------------------------------------------------------------
+
+describe("createAPI unmap special-key arm", () => {
+  it("removes a previously mapped special-key alias from the special-key list", () => {
+    const ctx = makeCtx();
+    const api = createAPI(ctx as any);
+
+    // Bind an alias to the <Esc> special key, then unmap it. The alias is not in
+    // normal.mappings, so unmap walks specialKeys and splices it out.
+    api.map("w", "<Esc>");
+    const dispatched: unknown[][] = [];
+    document.addEventListener("surfingkeys:front", (e) => {
+      dispatched.push((e as CustomEvent).detail);
+    });
+    // Re-mapping after unmap should re-add the alias (proving it was removed).
+    api.unmap("w");
+    api.map("w", "<Esc>");
+    const addCount = dispatched.filter(
+      (d) => Array.isArray(d) && d[0] === "addMapkey" && d[2] === "w",
+    ).length;
+    expect(addCount).toBe(1);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// imap / vmap / iunmap / cmap / vunmap — registration + domain-guard arms
+// ---------------------------------------------------------------------------
+
+describe("createAPI imap / vmap", () => {
+  it("imap maps a source insert mapping onto a new insert keystroke", () => {
+    const ctx = makeCtx();
+    const api = createAPI(ctx as any);
+
+    api.imapkey("i", "insert source", vi.fn());
+    api.imap("p", "i");
+
+    expect(ctx.insert.mappings.find(KeyboardUtils.encodeKeystroke("p"))?.meta).not.toBeUndefined();
+  });
+
+  it("vmap maps a source visual mapping onto a new visual keystroke", () => {
+    const ctx = makeCtx();
+    const api = createAPI(ctx as any);
+
+    api.vmapkey("v", "visual source", vi.fn());
+    api.vmap("p", "v");
+
+    expect(ctx.visual.mappings.find(KeyboardUtils.encodeKeystroke("p"))?.meta).not.toBeUndefined();
+  });
+
+  it("imap does nothing when the domain does not match", () => {
+    const ctx = makeCtx();
+    const api = createAPI(ctx as any);
+    api.imapkey("i", "insert source", vi.fn());
+    api.imap("p", "i", /this-domain-will-never-match\.example/);
+    expect(ctx.insert.mappings.find(KeyboardUtils.encodeKeystroke("p"))).toBeUndefined();
+  });
+
+  it("vmap does nothing when the domain does not match", () => {
+    const ctx = makeCtx();
+    const api = createAPI(ctx as any);
+    api.vmapkey("v", "visual source", vi.fn());
+    api.vmap("p", "v", /this-domain-will-never-match\.example/);
+    expect(ctx.visual.mappings.find(KeyboardUtils.encodeKeystroke("p"))).toBeUndefined();
+  });
+});
+
+describe("createAPI unmapAllExcept domain guard", () => {
+  it("keeps all mappings when the domain does not match", () => {
+    const ctx = makeCtx();
+    const api = createAPI(ctx as any);
+    api.mapkey("a", "first", vi.fn());
+    api.mapkey("b", "second", vi.fn());
+
+    api.unmapAllExcept(["a"], /this-domain-will-never-match\.example/);
+
+    // Domain guard short-circuits, so even the un-listed 'b' survives.
+    expect(ctx.normal.mappings.find(KeyboardUtils.encodeKeystroke("b"))?.meta).not.toBeUndefined();
+  });
+});
+
+describe("createAPI unmap-family domain guard (no-op when domain mismatches)", () => {
+  const noMatch = /this-domain-will-never-match\.example/;
+
+  it("iunmap keeps the insert mapping when the domain does not match", () => {
+    const ctx = makeCtx();
+    const api = createAPI(ctx as any);
+    api.imapkey("j", "insert", vi.fn());
+    api.iunmap("j", noMatch);
+    expect(ctx.insert.mappings.find(KeyboardUtils.encodeKeystroke("j"))?.meta).not.toBeUndefined();
+  });
+
+  it("vunmap keeps the visual mapping when the domain does not match", () => {
+    const ctx = makeCtx();
+    const api = createAPI(ctx as any);
+    api.vmapkey("b", "visual", vi.fn());
+    api.vunmap("b", noMatch);
+    expect(ctx.visual.mappings.find(KeyboardUtils.encodeKeystroke("b"))?.meta).not.toBeUndefined();
+  });
+
+  it("cmap dispatches nothing when the domain does not match", () => {
+    const ctx = makeCtx();
+    const dispatched: unknown[][] = [];
+    document.addEventListener("surfingkeys:front", (e) => {
+      dispatched.push((e as CustomEvent).detail);
+    });
+    const api = createAPI(ctx as any);
+    api.cmap("ctrl-n", "ctrl-j", noMatch);
+    const omnibarAdds = dispatched.filter((d) => Array.isArray(d) && d[1] === "Omnibar");
+    expect(omnibarAdds).toHaveLength(0);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// addSearchAlias / removeSearchAlias — defensive front + uppercase-alias arms
+// ---------------------------------------------------------------------------
+
+describe("createAPI search-alias defensive arms", () => {
+  beforeEach(() => {
+    Object.defineProperty(window, "location", {
+      value: {
+        href: "https://example.com/",
+        hostname: "example.com",
+        origin: "https://example.com",
+      },
+      configurable: true,
+    });
+  });
+
+  it("addSearchAlias still registers key mappings when front lacks addSearchAlias", () => {
+    const ctx = makeCtx();
+    ctx.front.addSearchAlias = undefined;
+    const api = createAPI(ctx as any);
+
+    // The `&& front.addSearchAlias` short-circuit takes its false arm; local key
+    // mappings are still created.
+    api.addSearchAlias("g", "Google", "https://www.google.com/search?q=");
+    let node: any = ctx.normal.mappings;
+    for (const ch of "sg") {
+      node = node?.find(ch);
+    }
+    expect(node?.meta).not.toBeUndefined();
+  });
+
+  it("removeSearchAlias does not unmap capital variants for an already-uppercase alias", () => {
+    const ctx = makeCtx();
+    const api = createAPI(ctx as any);
+
+    api.addSearchAlias("G", "Google", "https://www.google.com/search?q=");
+    // capitalAlias === alias ("G"), so the `if (capitalAlias !== alias)` arm is
+    // false and the base 'sG' mapping is the one removed.
+    api.removeSearchAlias("G");
+    let node: any = ctx.normal.mappings;
+    for (const ch of "sG") {
+      node = node?.find(ch);
+    }
+    expect(node?.meta).toBeUndefined();
+  });
 });
