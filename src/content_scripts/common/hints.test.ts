@@ -116,21 +116,20 @@ describe("createHints — genLabels", () => {
     expect(labels).toEqual(["J", "K"]);
   });
 
-  it("uses numeric characters when setNumeric() is called (via create path)", () => {
-    // After setNumeric(), the character set becomes "1234567890" when create()
-    // is first invoked. Here we call setNumeric and then call genLabels directly;
-    // note that the numeric override only happens inside create(), so genLabels
-    // itself still uses the current stored characters. We verify the setNumeric
-    // flag is wired to characters inside create() by checking genLabels after
-    // setCharacters("1234567890") explicitly.
+  it("switches the charset to digits through the real create() path after setNumeric()", async () => {
     const hints = createHints(makeInsert(), makeNormal(), makeClipboard());
+    // The default charset is alphabetic; create() is what consults the numeric
+    // flag and swaps the charset. Drive that real wiring (not a hand-set
+    // charset): the selector matches nothing in jsdom, so create() resolves
+    // without geometry, but the `if (numeric)` swap still runs.
+    expect(hints.getCharacters()).toBe("asdfgqwertzxcvb");
     hints.setNumeric();
-    // Without a call to create(), genLabels still uses the default charset.
-    // Calling setCharacters("1234567890") replicates what create() would do.
-    hints.setCharacters("1234567890");
+    await hints.create("a.no-such-element", () => {});
+
+    expect(hints.getCharacters()).toBe("1234567890");
     const labels = hints.genLabels(10);
     for (const label of labels) {
-      expect(/^[0-9]+$/.test(label)).toBe(true);
+      expect(/^[0-9]$/.test(label)).toBe(true);
     }
   });
 });
