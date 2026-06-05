@@ -49,33 +49,7 @@ function deepNoop(): any {
  * for the private handler map.
  */
 function bootDispatch(): MessageHandler {
-  let dispatch: MessageHandler | undefined;
-  const base = deepNoop();
-  g.chrome = new Proxy(base, {
-    get(_t, prop) {
-      if (prop === "runtime") {
-        return {
-          getManifest: () => ({ version: "0.0.0", manifest_version: 2 }),
-          onMessage: {
-            addListener: (fn: MessageHandler) => (dispatch = fn),
-            removeListener: () => {},
-          },
-          setUninstallURL: () => {},
-        };
-      }
-      return base[prop];
-    },
-  });
-  const browser = {
-    _getContainerName: () => () => {},
-    _setNewTabUrl: () => "about:newtab",
-    loadRawSettings: (_keys: any, cb: any) => cb({}),
-    detectTabTitleChange: false,
-    getLatestHistoryItem: () => {},
-  };
-  start(browser);
-  expectDefined(dispatch);
-  return dispatch;
+  return bootWith({});
 }
 
 const gistsFail = () => Result.fail(httpError("https://api.github.com/gists", "boom", 500));

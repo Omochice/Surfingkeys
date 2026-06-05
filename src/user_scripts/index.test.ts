@@ -1,6 +1,15 @@
-import { describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import createUserScript, { _isDomainApplicable, createCssSelectorForElements } from "./index";
+
+// The user-script api built by the factory; rebuilt before each test so every
+// case starts from a fresh api/event surface.
+let capturedApi: any;
+beforeEach(() => {
+  createUserScript("chrome-extension://test/", (api) => {
+    capturedApi = api;
+  });
+});
 
 // ---------------------------------------------------------------------------
 // Helpers to capture CustomEvents dispatched on document
@@ -75,11 +84,6 @@ describe("createCssSelectorForElements", () => {
 
 describe("cmap (via api returned by factory)", () => {
   it("dispatches a surfingkeys:front event with addMapkey / Omnibar args", () => {
-    let capturedApi: any;
-    createUserScript("chrome-extension://test/", (api) => {
-      capturedApi = api;
-    });
-
     const events = captureEvents("surfingkeys:front", () => {
       capturedApi.cmap("ctrl-n", "ctrl-j");
     });
@@ -96,11 +100,6 @@ describe("cmap (via api returned by factory)", () => {
   });
 
   it("does not dispatch when domain regex does not match", () => {
-    let capturedApi: any;
-    createUserScript("chrome-extension://test/", (api) => {
-      capturedApi = api;
-    });
-
     const events = captureEvents("surfingkeys:front", () => {
       capturedApi.cmap("ctrl-n", "ctrl-j", /this-domain-will-never-match\.example/);
     });
@@ -118,11 +117,6 @@ describe("cmap (via api returned by factory)", () => {
 
 describe("mapkey (via api returned by factory)", () => {
   it("dispatches a surfingkeys:api event with ['mapkey', keys, annotation, opts]", () => {
-    let capturedApi: any;
-    createUserScript("chrome-extension://test/", (api) => {
-      capturedApi = api;
-    });
-
     const jscode = vi.fn();
     const events = captureEvents("surfingkeys:api", () => {
       capturedApi.mapkey("g", "Go somewhere", jscode);
@@ -139,11 +133,6 @@ describe("mapkey (via api returned by factory)", () => {
   });
 
   it("does not dispatch when domain option regex does not match", () => {
-    let capturedApi: any;
-    createUserScript("chrome-extension://test/", (api) => {
-      capturedApi = api;
-    });
-
     const events = captureEvents("surfingkeys:api", () => {
       capturedApi.mapkey("z", "unreachable", vi.fn(), {
         domain: /this-domain-will-never-match\.example/,
@@ -161,11 +150,6 @@ describe("mapkey (via api returned by factory)", () => {
 
 describe("imapkey (via api returned by factory)", () => {
   it("dispatches a surfingkeys:api event with ['imapkey', keys, annotation, opts]", () => {
-    let capturedApi: any;
-    createUserScript("chrome-extension://test/", (api) => {
-      capturedApi = api;
-    });
-
     const events = captureEvents("surfingkeys:api", () => {
       capturedApi.imapkey("i", "Insert mode action", vi.fn());
     });
@@ -181,11 +165,6 @@ describe("imapkey (via api returned by factory)", () => {
   });
 
   it("does not dispatch when domain option regex does not match", () => {
-    let capturedApi: any;
-    createUserScript("chrome-extension://test/", (api) => {
-      capturedApi = api;
-    });
-
     const events = captureEvents("surfingkeys:api", () => {
       capturedApi.imapkey("i", "unreachable", vi.fn(), {
         domain: /this-domain-will-never-match\.example/,
@@ -205,11 +184,6 @@ describe("imapkey (via api returned by factory)", () => {
 
 describe("vmapkey (via api returned by factory)", () => {
   it("dispatches a surfingkeys:api event with ['vmapkey', keys, annotation, opts]", () => {
-    let capturedApi: any;
-    createUserScript("chrome-extension://test/", (api) => {
-      capturedApi = api;
-    });
-
     const events = captureEvents("surfingkeys:api", () => {
       capturedApi.vmapkey("v", "Visual mode action", vi.fn());
     });
@@ -231,11 +205,6 @@ describe("vmapkey (via api returned by factory)", () => {
 
 describe("addCommand (via api returned by factory)", () => {
   it("dispatches a surfingkeys:front event with ['addCommand', name, description]", () => {
-    let capturedApi: any;
-    createUserScript("chrome-extension://test/", (api) => {
-      capturedApi = api;
-    });
-
     const events = captureEvents("surfingkeys:front", () => {
       capturedApi.addCommand("myCmd", "My command description", vi.fn());
     });
@@ -257,11 +226,6 @@ describe("addCommand (via api returned by factory)", () => {
 
 describe("map (via api returned by factory)", () => {
   it("dispatches a surfingkeys:api event with ['map', new_keystroke, old_keystroke, domain, annotation]", () => {
-    let capturedApi: any;
-    createUserScript("chrome-extension://test/", (api) => {
-      capturedApi = api;
-    });
-
     const events = captureEvents("surfingkeys:api", () => {
       capturedApi.map("e", "E", undefined, "my map");
     });
@@ -280,11 +244,6 @@ describe("map (via api returned by factory)", () => {
 
 describe("imap (via api returned by factory)", () => {
   it("dispatches a surfingkeys:api event with ['imap', ...]", () => {
-    let capturedApi: any;
-    createUserScript("chrome-extension://test/", (api) => {
-      capturedApi = api;
-    });
-
     const events = captureEvents("surfingkeys:api", () => {
       capturedApi.imap("ctrl-a", "ctrl-b");
     });
@@ -302,11 +261,6 @@ describe("imap (via api returned by factory)", () => {
 
 describe("lmap (via api returned by factory)", () => {
   it("dispatches a surfingkeys:api event with ['lmap', ...]", () => {
-    let capturedApi: any;
-    createUserScript("chrome-extension://test/", (api) => {
-      capturedApi = api;
-    });
-
     const events = captureEvents("surfingkeys:api", () => {
       capturedApi.lmap("x", "<Alt-i>");
     });
@@ -321,11 +275,6 @@ describe("lmap (via api returned by factory)", () => {
 
 describe("vmap (via api returned by factory)", () => {
   it("dispatches a surfingkeys:api event with ['vmap', ...]", () => {
-    let capturedApi: any;
-    createUserScript("chrome-extension://test/", (api) => {
-      capturedApi = api;
-    });
-
     const events = captureEvents("surfingkeys:api", () => {
       capturedApi.vmap("n", "N");
     });
@@ -343,11 +292,6 @@ describe("vmap (via api returned by factory)", () => {
 
 describe("addSearchAlias (via api returned by factory)", () => {
   it("dispatches a surfingkeys:api event containing the alias and search_url", () => {
-    let capturedApi: any;
-    createUserScript("chrome-extension://test/", (api) => {
-      capturedApi = api;
-    });
-
     const events = captureEvents("surfingkeys:api", () => {
       capturedApi.addSearchAlias("g", "Google", "https://www.google.com/search?q=");
     });
@@ -363,11 +307,6 @@ describe("addSearchAlias (via api returned by factory)", () => {
   });
 
   it("includes 'user' as the source in the dispatched event detail", () => {
-    let capturedApi: any;
-    createUserScript("chrome-extension://test/", (api) => {
-      capturedApi = api;
-    });
-
     const events = captureEvents("surfingkeys:api", () => {
       capturedApi.addSearchAlias("d", "DDG", "https://duckduckgo.com/?q=");
     });
@@ -379,22 +318,12 @@ describe("addSearchAlias (via api returned by factory)", () => {
   });
 
   it("throws for a non-ASCII alias character", () => {
-    let capturedApi: any;
-    createUserScript("chrome-extension://test/", (api) => {
-      capturedApi = api;
-    });
-
     expect(() => {
       capturedApi.addSearchAlias("日", "Japanese", "https://example.com/?q=");
     }).toThrow();
   });
 
   it("passes suggestion_url through to the dispatch detail", () => {
-    let capturedApi: any;
-    createUserScript("chrome-extension://test/", (api) => {
-      capturedApi = api;
-    });
-
     const events = captureEvents("surfingkeys:api", () => {
       capturedApi.addSearchAlias(
         "b",
@@ -417,11 +346,6 @@ describe("addSearchAlias (via api returned by factory)", () => {
 
 describe("unmap (via api returned by factory)", () => {
   it("dispatches a surfingkeys:api event with ['unmap', keystroke, domain]", () => {
-    let capturedApi: any;
-    createUserScript("chrome-extension://test/", (api) => {
-      capturedApi = api;
-    });
-
     const domain = /example\.com/;
     const events = captureEvents("surfingkeys:api", () => {
       capturedApi.unmap("g", domain);
@@ -437,11 +361,6 @@ describe("unmap (via api returned by factory)", () => {
 
 describe("iunmap (via api returned by factory)", () => {
   it("dispatches a surfingkeys:api event with ['iunmap', keystroke]", () => {
-    let capturedApi: any;
-    createUserScript("chrome-extension://test/", (api) => {
-      capturedApi = api;
-    });
-
     const events = captureEvents("surfingkeys:api", () => {
       capturedApi.iunmap("i");
     });
@@ -455,11 +374,6 @@ describe("iunmap (via api returned by factory)", () => {
 
 describe("vunmap (via api returned by factory)", () => {
   it("dispatches a surfingkeys:api event with ['vunmap', keystroke]", () => {
-    let capturedApi: any;
-    createUserScript("chrome-extension://test/", (api) => {
-      capturedApi = api;
-    });
-
     const events = captureEvents("surfingkeys:api", () => {
       capturedApi.vunmap("v");
     });
@@ -473,11 +387,6 @@ describe("vunmap (via api returned by factory)", () => {
 
 describe("unmapAllExcept (via api returned by factory)", () => {
   it("dispatches a surfingkeys:api event with ['unmapAllExcept', keystrokes, domain]", () => {
-    let capturedApi: any;
-    createUserScript("chrome-extension://test/", (api) => {
-      capturedApi = api;
-    });
-
     const domain = /example\.com/;
     const events = captureEvents("surfingkeys:api", () => {
       capturedApi.unmapAllExcept(["a", "b"], domain);
@@ -496,11 +405,6 @@ describe("unmapAllExcept (via api returned by factory)", () => {
 
 describe("removeSearchAlias (via api returned by factory)", () => {
   it("dispatches a surfingkeys:api event with ['removeSearchAlias', alias, ...]", () => {
-    let capturedApi: any;
-    createUserScript("chrome-extension://test/", (api) => {
-      capturedApi = api;
-    });
-
     const events = captureEvents("surfingkeys:api", () => {
       capturedApi.removeSearchAlias("g", "s", "o");
     });
@@ -520,11 +424,6 @@ describe("removeSearchAlias (via api returned by factory)", () => {
 
 describe("Clipboard.write (via api returned by factory)", () => {
   it("dispatches a surfingkeys:api event with ['clipboard:write', text]", () => {
-    let capturedApi: any;
-    createUserScript("chrome-extension://test/", (api) => {
-      capturedApi = api;
-    });
-
     const events = captureEvents("surfingkeys:api", () => {
       capturedApi.Clipboard.write("hello world");
     });
@@ -541,11 +440,6 @@ describe("Clipboard.write (via api returned by factory)", () => {
 
 describe("Clipboard.read (via api returned by factory)", () => {
   it("dispatches a surfingkeys:api event with ['clipboard:read']", () => {
-    let capturedApi: any;
-    createUserScript("chrome-extension://test/", (api) => {
-      capturedApi = api;
-    });
-
     const events = captureEvents("surfingkeys:api", () => {
       capturedApi.Clipboard.read(vi.fn());
     });
@@ -561,11 +455,6 @@ describe("Clipboard.read (via api returned by factory)", () => {
 
 describe("Hints.click (via api returned by factory)", () => {
   it("does nothing when no valid HTMLElement is in the links argument", () => {
-    let capturedApi: any;
-    createUserScript("chrome-extension://test/", (api) => {
-      capturedApi = api;
-    });
-
     const events = captureEvents("surfingkeys:api", () => {
       capturedApi.Hints.click([]);
     });
@@ -577,11 +466,6 @@ describe("Hints.click (via api returned by factory)", () => {
   });
 
   it("dispatches hints:click with the CSS selector string when passed a string", () => {
-    let capturedApi: any;
-    createUserScript("chrome-extension://test/", (api) => {
-      capturedApi = api;
-    });
-
     const events = captureEvents("surfingkeys:api", () => {
       capturedApi.Hints.click("a.link", true);
     });
@@ -594,11 +478,6 @@ describe("Hints.click (via api returned by factory)", () => {
   });
 
   it("adds the internal class to the element and dispatches hints:click with the class selector", () => {
-    let capturedApi: any;
-    createUserScript("chrome-extension://test/", (api) => {
-      capturedApi = api;
-    });
-
     const el = document.createElement("a");
     const events = captureEvents("surfingkeys:api", () => {
       capturedApi.Hints.click(el);
@@ -622,21 +501,11 @@ describe("Hints.click (via api returned by factory)", () => {
 
 describe("Hints.create (via api returned by factory)", () => {
   it("returns false when no valid HTMLElement is in the cssSelector argument", () => {
-    let capturedApi: any;
-    createUserScript("chrome-extension://test/", (api) => {
-      capturedApi = api;
-    });
-
     const result = capturedApi.Hints.create([], vi.fn());
     expect(result).toBe(false);
   });
 
   it("dispatches hints:create with the selector string when passed a string", () => {
-    let capturedApi: any;
-    createUserScript("chrome-extension://test/", (api) => {
-      capturedApi = api;
-    });
-
     const events = captureEvents("surfingkeys:api", () => {
       capturedApi.Hints.create("a", vi.fn());
     });
@@ -654,11 +523,6 @@ describe("Hints.create (via api returned by factory)", () => {
 
 describe("Normal.feedkeys (via api returned by factory)", () => {
   it("dispatches a surfingkeys:api event with ['normal:feedkeys', keys]", () => {
-    let capturedApi: any;
-    createUserScript("chrome-extension://test/", (api) => {
-      capturedApi = api;
-    });
-
     const events = captureEvents("surfingkeys:api", () => {
       capturedApi.Normal.feedkeys("gg");
     });
@@ -672,11 +536,6 @@ describe("Normal.feedkeys (via api returned by factory)", () => {
 
 describe("Visual.style (via api returned by factory)", () => {
   it("dispatches a surfingkeys:api event with ['visual:style', element, style]", () => {
-    let capturedApi: any;
-    createUserScript("chrome-extension://test/", (api) => {
-      capturedApi = api;
-    });
-
     const events = captureEvents("surfingkeys:api", () => {
       capturedApi.Visual.style("marks", "color: red;");
     });
@@ -694,11 +553,6 @@ describe("Visual.style (via api returned by factory)", () => {
 
 describe("Front.openOmnibar (via api returned by factory)", () => {
   it("dispatches a surfingkeys:api event with ['front:openOmnibar', args]", () => {
-    let capturedApi: any;
-    createUserScript("chrome-extension://test/", (api) => {
-      capturedApi = api;
-    });
-
     const args = { type: "SearchEngine" };
     const events = captureEvents("surfingkeys:api", () => {
       capturedApi.Front.openOmnibar(args);

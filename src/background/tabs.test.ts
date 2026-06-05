@@ -127,34 +127,8 @@ function tabUnitOver(tabs: any[], conf: Record<string, any> = {}, extra: Partial
 // ---------------------------------------------------------------------------
 
 describe("createTabs — tab navigation index math", () => {
-  /** Builds a tab unit over a chrome stub whose query returns `tabs`. */
-  function tabUnitOverLegacy(tabs: any[]) {
-    const noopListener = { addListener: () => {} };
-    const update = vi.fn();
-    g.chrome.tabs = {
-      onRemoved: noopListener,
-      onUpdated: noopListener,
-      onCreated: noopListener,
-      onMoved: noopListener,
-      onActivated: noopListener,
-      onDetached: noopListener,
-      onAttached: noopListener,
-      query: (_q: any, cb: (t: any[]) => void) => cb(tabs),
-      update,
-    };
-    g.chrome.windows = { onFocusChanged: noopListener };
-    g.chrome.commands = { onCommand: noopListener };
-    const unit = createTabs({
-      _response: vi.fn(),
-      conf: {},
-      browser: { _setNewTabUrl: () => "about:newtab" },
-      handlers: {},
-    });
-    return { unit, update };
-  }
-
   it("previousTab from the first tab wraps to the last", () => {
-    const { unit, update } = tabUnitOverLegacy([{ id: 1 }, { id: 2 }, { id: 3 }]);
+    const { unit, update } = tabUnitOver([{ id: 1 }, { id: 2 }, { id: 3 }]);
     const previousTab = unit.handlers["previousTab"];
     expectDefined(previousTab);
     previousTab({ repeats: 1 }, { tab: { index: 0, windowId: 5 } }, vi.fn());
@@ -162,7 +136,7 @@ describe("createTabs — tab navigation index math", () => {
   });
 
   it("nextTab from the last tab wraps to the first", () => {
-    const { unit, update } = tabUnitOverLegacy([{ id: 1 }, { id: 2 }, { id: 3 }]);
+    const { unit, update } = tabUnitOver([{ id: 1 }, { id: 2 }, { id: 3 }]);
     const nextTab = unit.handlers["nextTab"];
     expectDefined(nextTab);
     nextTab({ repeats: 1 }, { tab: { index: 2, windowId: 5 } }, vi.fn());
@@ -170,7 +144,7 @@ describe("createTabs — tab navigation index math", () => {
   });
 
   it("nextTab steps forward without wrapping inside the range", () => {
-    const { unit, update } = tabUnitOverLegacy([{ id: 1 }, { id: 2 }, { id: 3 }]);
+    const { unit, update } = tabUnitOver([{ id: 1 }, { id: 2 }, { id: 3 }]);
     const nextTab = unit.handlers["nextTab"];
     expectDefined(nextTab);
     nextTab({ repeats: 1 }, { tab: { index: 0, windowId: 5 } }, vi.fn());
@@ -178,13 +152,7 @@ describe("createTabs — tab navigation index math", () => {
   });
 
   it("previousTab with repeats > 1 steps back multiple positions", () => {
-    const { unit, update } = tabUnitOverLegacy([
-      { id: 1 },
-      { id: 2 },
-      { id: 3 },
-      { id: 4 },
-      { id: 5 },
-    ]);
+    const { unit, update } = tabUnitOver([{ id: 1 }, { id: 2 }, { id: 3 }, { id: 4 }, { id: 5 }]);
     const previousTab = unit.handlers["previousTab"];
     expectDefined(previousTab);
     // index 3, step -3 -> index 0 -> id 1
