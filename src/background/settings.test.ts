@@ -11,7 +11,7 @@ import { _save, createSettings, extendObject, getSubSettings } from "./settings"
 const { mockRequest } = vi.hoisted(() => ({ mockRequest: vi.fn() }));
 vi.mock("./request.js", () => ({ request: mockRequest }));
 
-type AnyChrome = { runtime?: any; storage?: any; tabs?: any; userScripts?: any };
+type AnyChrome = { runtime?: any; storage?: any; tabs?: any; userScripts?: any; windows?: any };
 const g = globalThis as unknown as { chrome: AnyChrome };
 const defaultStorage = g.chrome.storage;
 
@@ -19,6 +19,7 @@ afterEach(() => {
   g.chrome.storage = defaultStorage;
   delete g.chrome.tabs;
   delete g.chrome.userScripts;
+  delete g.chrome.windows;
   mockRequest.mockReset();
 });
 
@@ -821,5 +822,363 @@ describe("createSettings — deleteSession", () => {
       }),
       expect.anything(),
     );
+  });
+});
+
+// ---------------------------------------------------------------------------
+// getState — url-is-null path
+// ---------------------------------------------------------------------------
+
+describe("createSettings — getState with no sender tab", () => {
+  it("returns enabled when there is no sender tab (url branch skipped)", () => {
+    const _response = vi.fn();
+    const { unit } = makeUnit({
+      _response,
+      browser: { loadRawSettings: (_keys: any, cb: any) => cb({ blocklist: {} }) },
+    });
+    const getState = unit.handlers["getState"];
+    expectDefined(getState);
+    // sender has no tab → the handler does nothing (skips _response call)
+    getState({}, { url: "https://example.com/", frameId: 0 }, vi.fn());
+    // Without a sender.tab the handler bails before calling _response
+    expect(_response).not.toHaveBeenCalled();
+  });
+});
+
+// ---------------------------------------------------------------------------
+// getSenderUrl — frame with blank URL uses tab URL
+// ---------------------------------------------------------------------------
+
+describe("createSettings — getSenderUrl via toggleBlocklist", () => {
+  it("uses the tab URL when the sender frame URL is about:blank", () => {
+    const localSet = vi.fn((_d: any, cb?: () => void) => cb && cb());
+    g.chrome.storage = { local: { set: localSet }, sync: { set: vi.fn() } };
+    g.chrome.tabs = { query: (_q: any, cb: (t: any[]) => void) => cb([]) };
+
+    const sendResponse = vi.fn();
+    const { unit } = makeUnit({
+      browser: {
+        loadRawSettings: (_keys: any, cb: any) => cb({ blocklist: {} }),
+      },
+    });
+
+    const toggleBlocklist = unit.handlers["toggleBlocklist"];
+    expectDefined(toggleBlocklist);
+    // frameId !== 0 and url === "about:blank" → getSenderUrl returns tab.url
+    toggleBlocklist(
+      {},
+      {
+        frameId: 1,
+        url: "about:blank",
+        tab: { id: 1, url: "https://example.com/page" },
+        origin: "https://example.com",
+      },
+      sendResponse,
+    );
+
+    expect(sendResponse).toHaveBeenCalledWith(
+      expect.objectContaining({ blocklist: { "https://example.com": 1 } }),
+    );
+  });
+});
+
+// ---------------------------------------------------------------------------
+// appendNonce — non-http URL left unchanged; URL with existing query gets &nonce
+// ---------------------------------------------------------------------------
+
+describe("createSettings — appendNonce via loadSettingsFromUrl", () => {
+  it("appends ?nonce to an http URL with no existing query string", async () => {
+    mockRequest.mockResolvedValue(
+      Result.fail(httpError("http://example.com/settings.js", new Error("net"), 500)),
+    );
+    const _response = vi.fn();
+    const { unit } = makeUnit({ _response });
+
+    const loadSettingsFromUrl = unit.handlers["loadSettingsFromUrl"];
+    expectDefined(loadSettingsFromUrl);
+    loadSettingsFromUrl({ url: "http://example.com/settings.js" }, {}, vi.fn());
+
+    await vi.waitFor(() => expect(mockRequest).toHaveBeenCalled());
+    const calledUrl: string = mockRequest.mock.calls.at(-1)?.[0];
+    expect(calledUrl).toMatch(/\?nonce=\d+$/);
+  });
+
+  it("appends &nonce to an http URL that already has a query string", async () => {
+    mockRequest.mockResolvedValue(
+      Result.fail(httpError("http://example.com/settings.js?foo=1", new Error("net"), 500)),
+    );
+    const _response = vi.fn();
+    const { unit } = makeUnit({ _response });
+
+    const loadSettingsFromUrl = unit.handlers["loadSettingsFromUrl"];
+    expectDefined(loadSettingsFromUrl);
+    loadSettingsFromUrl({ url: "http://example.com/settings.js?foo=1" }, {}, vi.fn());
+
+    await vi.waitFor(() => expect(mockRequest).toHaveBeenCalled());
+    const calledUrl: string = mockRequest.mock.calls.at(-1)?.[0];
+    expect(calledUrl).toMatch(/&nonce=\d+$/);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// getSettings with key === null — calls onFullSettingsRequested
+// ---------------------------------------------------------------------------
+
+describe("createSettings — getSettings with null key", () => {
+  it("calls _response with the full settings when key is null", () => {
+    const _response = vi.fn();
+    const { unit } = makeUnit({
+      _response,
+      browser: { loadRawSettings: (_keys: any, cb: any) => cb({ theme: "dark" }) },
+    });
+
+    const getSettings = unit.handlers["getSettings"];
+    expectDefined(getSettings);
+    getSettings({ key: null }, {}, vi.fn());
+
+    expect(_response).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.anything(),
+      expect.objectContaining({ settings: expect.objectContaining({ theme: "dark" }) }),
+    );
+  });
+});
+
+// ---------------------------------------------------------------------------
+// openSession — session not found (no-op) and multi-window path
+// ---------------------------------------------------------------------------
+
+describe("createSettings — openSession", () => {
+  it("does nothing when the named session does not exist", () => {
+    const tabCreate = vi.fn();
+    g.chrome.tabs = {
+      create: tabCreate,
+      query: (_q: any, cb: (t: any[]) => void) => cb([]),
+      remove: vi.fn(),
+    };
+    g.chrome.windows = { create: vi.fn() };
+
+    const { unit } = makeUnit({
+      browser: { loadRawSettings: (_keys: any, cb: any) => cb({ sessions: {} }) },
+    });
+
+    const openSession = unit.handlers["openSession"];
+    expectDefined(openSession);
+    openSession({ name: "missing" }, {}, vi.fn());
+
+    expect(tabCreate).not.toHaveBeenCalled();
+  });
+
+  it("creates tabs in additional windows when the session has multiple window groups", () => {
+    const tabCreate = vi.fn();
+    const windowCreate = vi.fn((_opts: any, cb?: (win: any) => void) => cb && cb({ id: 99 }));
+    const tabRemove = vi.fn();
+    g.chrome.tabs = {
+      create: tabCreate,
+      query: (_q: any, cb: (t: any[]) => void) => cb([]),
+      remove: tabRemove,
+    };
+    g.chrome.windows = { create: windowCreate };
+
+    const { unit } = makeUnit({
+      browser: {
+        loadRawSettings: (_keys: any, cb: any) =>
+          cb({
+            sessions: {
+              work: {
+                tabs: [
+                  ["https://a.com", "https://b.com"], // window 1
+                  ["https://c.com"], // window 2
+                ],
+              },
+            },
+          }),
+      },
+    });
+
+    const openSession = unit.handlers["openSession"];
+    expectDefined(openSession);
+    openSession({ name: "work" }, {}, vi.fn());
+
+    // First window tabs are created directly (no callback)
+    expect(tabCreate).toHaveBeenCalledWith(expect.objectContaining({ url: "https://a.com" }));
+    expect(tabCreate).toHaveBeenCalledWith(expect.objectContaining({ url: "https://b.com" }));
+    // Second window: windowCreate is called and then a tab is created in it
+    expect(windowCreate).toHaveBeenCalled();
+    expect(tabCreate).toHaveBeenCalledWith(
+      expect.objectContaining({ url: "https://c.com", windowId: 99 }),
+    );
+  });
+});
+
+// ---------------------------------------------------------------------------
+// createSession — tab whose URL equals newTabUrl is excluded
+// ---------------------------------------------------------------------------
+
+describe("createSettings — createSession excludes newTab URLs", () => {
+  it("omits tabs whose URL matches newTabUrl from the saved session", () => {
+    const localSet = vi.fn();
+    g.chrome.storage = { local: { set: localSet }, sync: { set: vi.fn() } };
+    g.chrome.tabs = {
+      query: (_q: any, cb: (tabs: any[]) => void) =>
+        cb([
+          { id: 1, windowId: 10, index: 0, url: "https://a.com" },
+          { id: 2, windowId: 10, index: 1, url: "about:newtab" }, // should be excluded
+        ]),
+    };
+
+    const { unit } = makeUnit({
+      browser: { loadRawSettings: (_keys: any, cb: any) => cb({ sessions: {} }) },
+    });
+
+    const createSession = unit.handlers["createSession"];
+    expectDefined(createSession);
+    createSession({ name: "filtered", quitAfterSaved: false }, {}, vi.fn());
+
+    expect(localSet).toHaveBeenCalledWith(
+      expect.objectContaining({
+        sessions: expect.objectContaining({
+          filtered: { tabs: [["https://a.com"]] },
+        }),
+      }),
+      expect.anything(),
+    );
+  });
+});
+
+// ---------------------------------------------------------------------------
+// registerUserScript — existing script with same code skips re-register
+// ---------------------------------------------------------------------------
+
+describe("createSettings — registerUserScript branch: existing script same code", () => {
+  it("invokes callback without re-registering when the stored script code is identical", () => {
+    mockRequest.mockResolvedValue(Result.succeed("LOADED_SNIPPETS"));
+    const register = vi.fn();
+    const unregister = vi.fn();
+    const getURL = vi.fn(() => "chrome-extension://abc/");
+    // Build the expected code so we can put it in the stub
+    const snippets = "LOADED_SNIPPETS";
+    const codeBuilt = `import('./api.js').then((module) => {module.default("chrome-extension://abc/", (api, settings) => {${snippets}\n})});`;
+    g.chrome.userScripts = {
+      configureWorld: vi.fn(),
+      getScripts: (_q: any, cb: (r: any[]) => void) => cb([{ js: [{ code: codeBuilt }] }]),
+      register,
+      unregister,
+    };
+    g.chrome.storage = {
+      local: { set: (_d: any, cb?: () => void) => cb && cb() },
+      sync: { set: vi.fn() },
+    };
+    g.chrome.tabs = { query: (_q: any, cb: (t: any[]) => void) => cb([]) };
+    g.chrome.runtime = {
+      ...g.chrome.runtime,
+      getManifest: () => ({ manifest_version: 2 }),
+      getURL,
+    };
+
+    const localSet = vi.fn((_d: any, cb?: () => void) => cb && cb());
+    g.chrome.storage = { local: { set: localSet }, sync: { set: vi.fn() } };
+
+    const _response = vi.fn();
+    const { unit } = makeUnit({ _response });
+
+    const updateSettings = unit.handlers["updateSettings"];
+    expectDefined(updateSettings);
+    // Non-showAdvanced path to trigger loadSettingsFromUrl → registerUserScript(snippets)
+    const loadSettingsFromUrl = unit.handlers["loadSettingsFromUrl"];
+    expectDefined(loadSettingsFromUrl);
+    loadSettingsFromUrl({ url: "http://example.com/settings.js" }, {}, vi.fn());
+
+    // register should NOT be called because the code is already identical
+    expect(register).not.toHaveBeenCalled();
+  });
+});
+
+// ---------------------------------------------------------------------------
+// toggleMouseQuery — sender tab URL starts with chrome.runtime.getURL (skipped)
+// ---------------------------------------------------------------------------
+
+describe("createSettings — toggleMouseQuery skips extension pages", () => {
+  it("does not update mouseSelectToQuery when the sender tab URL is the extension itself", () => {
+    const localSet = vi.fn();
+    g.chrome.storage = { local: { set: localSet }, sync: { set: vi.fn() } };
+    g.chrome.tabs = { query: (_q: any, cb: (t: any[]) => void) => cb([]) };
+
+    const { unit } = makeUnit({
+      browser: { loadRawSettings: (_keys: any, cb: any) => cb({ mouseSelectToQuery: [] }) },
+    });
+
+    const toggleMouseQuery = unit.handlers["toggleMouseQuery"];
+    expectDefined(toggleMouseQuery);
+    // The tab URL begins with chrome.runtime.getURL("/") which is "chrome-extension://..."
+    // In the jsdom environment chrome.runtime.getURL returns "chrome-extension://..."
+    const extUrl = (g.chrome.runtime as any)?.getURL?.("/") ?? "chrome-extension://abc/";
+    toggleMouseQuery(
+      { origin: "https://example.com" },
+      { tab: { url: extUrl + "frontend.html", id: 1 } },
+      vi.fn(),
+    );
+
+    expect(localSet).not.toHaveBeenCalled();
+  });
+});
+
+// ---------------------------------------------------------------------------
+// jumpVIMark — scrollLeft/scrollTop stored in tabMessages when tab differs
+// ---------------------------------------------------------------------------
+
+describe("createSettings — jumpVIMark stores scroll position for other tab", () => {
+  it("stores scroll position in tabMessages when the mark tab differs from the sender", () => {
+    const tabsUpdate = vi.fn();
+    g.chrome.tabs = {
+      query: (_q: any, cb: (tabs: any[]) => void) => cb([{ id: 7, url: "https://target.com" }]),
+      update: tabsUpdate,
+    };
+    const tabMessages: Record<string, any> = {};
+    const { unit } = makeUnit({
+      tabMessages,
+      browser: {
+        loadRawSettings: (_keys: any, cb: any) =>
+          cb({ marks: { q: { url: "https://target.com", scrollTop: 300, scrollLeft: 50 } } }),
+      },
+    });
+
+    const jumpVIMark = unit.handlers["jumpVIMark"];
+    expectDefined(jumpVIMark);
+    jumpVIMark({ mark: "q" }, { tab: { id: 99 } }, vi.fn());
+
+    expect(tabMessages[7]).toEqual({ scrollLeft: 50, scrollTop: 300 });
+    expect(tabsUpdate).toHaveBeenCalledWith(7, { active: true });
+  });
+});
+
+// ---------------------------------------------------------------------------
+// updateSettings — non-showAdvanced path updates settings without userScripts
+// ---------------------------------------------------------------------------
+
+describe("createSettings — updateSettings non-showAdvanced path", () => {
+  it("broadcasts and persists settings when showAdvanced is false", () => {
+    const sendTabMessage = vi.fn();
+    const localSet = vi.fn((_d: any, cb?: () => void) => cb && cb());
+    g.chrome.storage = { local: { set: localSet }, sync: { set: vi.fn() } };
+    g.chrome.tabs = { query: (_q: any, cb: (t: any[]) => void) => cb([{ id: 5 }]) };
+
+    const { unit } = makeUnit({ sendTabMessage });
+
+    const updateSettings = unit.handlers["updateSettings"];
+    expectDefined(updateSettings);
+    const result = updateSettings(
+      { settings: { showAdvanced: false, theme: "dark" } },
+      {},
+      vi.fn(),
+    );
+
+    expect(sendTabMessage).toHaveBeenCalledWith(
+      5,
+      -1,
+      expect.objectContaining({ subject: "settingsUpdated" }),
+    );
+    expect(localSet).toHaveBeenCalled();
+    expect(result).toEqual({ error: "" });
   });
 });
