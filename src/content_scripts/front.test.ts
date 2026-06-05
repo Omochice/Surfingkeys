@@ -224,18 +224,23 @@ describe("createFront window message handler — action dispatch", () => {
 
   it("calls visual.visualUpdate via setTimeout for visualUpdate action", async () => {
     vi.useFakeTimers();
-    const visual = makeVisual();
-    const { handler, restore } = captureMessageHandler();
-    createFront(makeInsert(), makeNormal(), null, visual, makeBrowser());
-    restore();
-    const messageHandler = handler()!;
+    try {
+      const visual = makeVisual();
+      const { handler, restore } = captureMessageHandler();
+      createFront(makeInsert(), makeNormal(), null, visual, makeBrowser());
+      restore();
+      const messageHandler = handler()!;
 
-    messageHandler(makeContentEvent({ action: "visualUpdate", query: "search" }));
+      messageHandler(makeContentEvent({ action: "visualUpdate", query: "search" }));
 
-    await vi.runAllTimersAsync();
+      await vi.runAllTimersAsync();
 
-    expect(visual.visualUpdate).toHaveBeenCalledWith("search");
-    vi.useRealTimers();
+      expect(visual.visualUpdate).toHaveBeenCalledWith("search");
+    } finally {
+      // Restore real timers even if an assertion throws, so a failure here does
+      // not leak fake timers into sibling tests.
+      vi.useRealTimers();
+    }
   });
 
   it("visual.visualClear cancels a pending visualUpdate timer", async () => {
