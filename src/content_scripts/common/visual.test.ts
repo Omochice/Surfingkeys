@@ -572,3 +572,108 @@ describe("createVisual — 'o' mapping swaps anchor and focus", () => {
     expect(sel.focusOffset).toBe(0);
   });
 });
+
+// ─── 'y' yank modeAfterYank branches (state=2 "Copy selected text") ───────────
+
+describe("createVisual — 'y' yank honours modeAfterYank", () => {
+  let savedMode: string;
+
+  beforeEach(() => {
+    savedMode = runtime.conf.modeAfterYank;
+  });
+
+  afterEach(() => {
+    runtime.conf.modeAfterYank = savedMode;
+    document.body.replaceChildren();
+  });
+
+  function selectRange(text: string) {
+    const p = document.createElement("p");
+    p.textContent = text;
+    document.body.appendChild(p);
+    const sel = document.getSelection()!;
+    const range = document.createRange();
+    range.selectNodeContents(p);
+    sel.removeAllRanges();
+    sel.addRange(range);
+  }
+
+  it("drops to Caret state (status 'Caret') after yank when modeAfterYank is 'Caret'", () => {
+    runtime.conf.modeAfterYank = "Caret";
+    const clipboard = makeClipboard();
+    const visual = createVisual(clipboard, makeHints());
+    visual.onEnter!();
+    visual.onEnter!(); // state=2 (Range)
+    selectRange("yank me");
+
+    visual.mappings.find("y")?.meta?.code?.();
+
+    expect(clipboard.write).toHaveBeenCalledWith("yank me");
+    // modeAfterYank "Caret" → state=1, _onStateChange refreshes the status line.
+    expect(visual.statusLine).toBe("Visual - Caret");
+  });
+
+  it("toggles out via self.toggle (exit) after yank when modeAfterYank is 'Normal'", () => {
+    runtime.conf.modeAfterYank = "Normal";
+    const clipboard = makeClipboard();
+    const visual = createVisual(clipboard, makeHints());
+    visual.onEnter!();
+    visual.onEnter!(); // state=2 (Range)
+    selectRange("take this");
+    const exitSpy = vi.spyOn(visual, "exit");
+
+    visual.mappings.find("y")?.meta?.code?.();
+
+    expect(clipboard.write).toHaveBeenCalledWith("take this");
+    // modeAfterYank "Normal" → state=2 then self.toggle(); toggle's case 2 exits.
+    expect(exitSpy).toHaveBeenCalled();
+  });
+});
+
+// ─── keydown handler — visualf seek / Esc arms ───────────────────────────────
+
+describe("createVisual — keydown while visualf is active", () => {
+  afterEach(() => {
+    document.body.replaceChildren();
+  });
+
+  function enterFindMode(visual: ReturnType<typeof createVisual>) {
+    visual.onEnter!(); // state=1
+    // The 'f' mapping sets visualf=1 (forward find pending).
+    visual.mappings.find("f")?.meta?.code?.();
+    expect(visual.statusLine).toContain("forward");
+  }
+
+  it("a word character while finding resets the status line and suppresses the event", () => {
+    const visual = createVisual(makeClipboard(), makeHints());
+    enterFindMode(visual);
+
+    // window.find is unimplemented in jsdom; stub it to false (as the next() test
+    // does) so visualSeek runs without throwing. The branch under test is the
+    // exitf=true status reset / suppression, which is pure non-geometry logic.
+    const origFind = (window as any).find;
+    (window as any).find = () => false;
+    try {
+      // keyCode 97 = 'a' is what KeyboardUtils.isWordChar reads to take the seek arm.
+      const event = fireEvent(visual, "keydown", { sk_keyName: "a", keyCode: 97 });
+
+      expect(visual.statusLine).toBe("Visual - Caret");
+      expect((event as any).sk_stopPropagation).toBe(true);
+      expect((event as any).sk_suppressed).toBe(true);
+    } finally {
+      (window as any).find = origFind;
+    }
+  });
+
+  it("Esc while finding cancels find without throwing and restores the status line", () => {
+    const visual = createVisual(makeClipboard(), makeHints());
+    enterFindMode(visual);
+
+    const escKey = KeyboardUtils.encodeKeystroke("<Esc>");
+    const event = fireEvent(visual, "keydown", { sk_keyName: escKey });
+
+    // Esc takes the exitf arm (no seek) and resets the status line back to Caret.
+    expect(visual.statusLine).toBe("Visual - Caret");
+    expect((event as any).sk_suppressed).toBe(true);
+  });
+});
