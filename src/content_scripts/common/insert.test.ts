@@ -84,6 +84,21 @@ function makeTextarea(value: string, cursorPos: number): HTMLTextAreaElement {
   return ta;
 }
 
+// Helper: create a focused editable container that takes the contenteditable
+// code paths. The default editableSelector matches `div.CodeMirror-scroll`, so a
+// div with that class makes isEditable() true without relying on jsdom's
+// (unimplemented) isContentEditable; tabIndex makes it the activeElement so
+// getRealEdit() resolves to it; and it has no setSelectionRange, forcing the
+// editable branch.
+function makeEditableDiv(): HTMLDivElement {
+  const div = document.createElement("div");
+  div.className = "CodeMirror-scroll";
+  div.tabIndex = 0;
+  document.body.appendChild(div);
+  div.focus();
+  return div;
+}
+
 describe("createInsert mapping codes", () => {
   let insert: ReturnType<typeof createInsert>;
 
@@ -333,6 +348,118 @@ describe("createInsert mapping codes", () => {
       const node = insert.mappings.find(KeyboardUtils.encodeKeystroke("<Esc>"));
       expect(node?.meta?.annotation).toBe("Exit insert mode");
     });
+  });
+});
+
+describe("createInsert mapping codes — contenteditable (no setSelectionRange) branch", () => {
+  let insert: ReturnType<typeof createInsert>;
+
+  beforeEach(() => {
+    insert = createInsert();
+  });
+
+  afterEach(() => {
+    document.body.innerHTML = "";
+  });
+
+  it("moveCursorEOL places the caret at the end of a trailing text node", () => {
+    const div = makeEditableDiv();
+    const text = document.createTextNode("hello");
+    div.appendChild(text);
+    getCode(insert, "<Ctrl-e>")!();
+    const sel = document.getSelection();
+    expect(sel?.focusNode).toBe(text);
+    expect(sel?.focusOffset).toBe(5);
+  });
+
+  it("moveCursorEOL places the caret after the last child node when it is an element", () => {
+    const div = makeEditableDiv();
+    const span = document.createElement("span");
+    span.append(document.createTextNode("a"), document.createTextNode("b"));
+    div.appendChild(span);
+    getCode(insert, "<Ctrl-e>")!();
+    const sel = document.getSelection();
+    // The else arm targets the element node itself at childNodes.length (2).
+    expect(sel?.focusNode).toBe(span);
+    expect(sel?.focusOffset).toBe(2);
+  });
+
+  it("moveCursorEOL collapses the selection to the end for a CodeMirror line child", () => {
+    const div = makeEditableDiv();
+    // The branch checks `node.querySelector(".CodeMirror-line")` on the last
+    // child, so the CodeMirror line must be a descendant of that child, not the
+    // child itself.
+    const wrapper = document.createElement("div");
+    const cmLine = document.createElement("div");
+    cmLine.className = "CodeMirror-line";
+    cmLine.textContent = "code";
+    wrapper.appendChild(cmLine);
+    div.appendChild(wrapper);
+    getCode(insert, "<Ctrl-e>")!();
+    const sel = document.getSelection();
+    // setEndOfContenteditable selects the div contents then collapses to end.
+    expect(sel?.isCollapsed).toBe(true);
+  });
+
+  it("moveCursorEOL does nothing for an empty editable (no child nodes)", () => {
+    makeEditableDiv(); // focused editable with no children → getRealEdit resolves to it
+    document.getSelection()?.removeAllRanges();
+    getCode(insert, "<Ctrl-e>")!();
+    // The `childNodes.length > 0` guard is false, so no caret position is set.
+    expect(document.getSelection()?.rangeCount).toBe(0);
+  });
+
+  it("move-to-BOL sets the caret to offset 0 of the focus node", () => {
+    const div = makeEditableDiv();
+    const text = document.createTextNode("hello");
+    div.appendChild(text);
+    document.getSelection()?.setPosition(text, 5);
+    const keyToBOL = KeyboardUtils.platform === "Windows" ? "<Ctrl-f>" : "<Ctrl-a>";
+    getCode(insert, keyToBOL)!();
+    const sel = document.getSelection();
+    expect(sel?.focusNode).toBe(text);
+    expect(sel?.focusOffset).toBe(0);
+  });
+
+  it("delete-to-beginning (<Ctrl-u>) trims the focus text node up to the caret", () => {
+    const div = makeEditableDiv();
+    const text = document.createTextNode("hello world");
+    div.appendChild(text);
+    document.getSelection()?.setPosition(text, 6);
+    getCode(insert, "<Ctrl-u>")!();
+    // focus.data becomes data.substring(focusOffset) → "world".
+    expect(text.data).toBe("world");
+  });
+});
+
+describe("createInsert moveCursorEOL — setSelectionRange failure handling", () => {
+  let insert: ReturnType<typeof createInsert>;
+
+  beforeEach(() => {
+    insert = createInsert();
+  });
+
+  afterEach(() => {
+    document.body.innerHTML = "";
+  });
+
+  it("swallows an InvalidStateError thrown by setSelectionRange", () => {
+    const input = makeInput("abc", 0);
+    input.setSelectionRange = () => {
+      throw new DOMException("not applicable", "InvalidStateError");
+    };
+    // The InvalidStateError arm is swallowed, so invoking the code must not throw.
+    expect(() => getCode(insert, "<Ctrl-e>")!()).not.toThrow();
+    expect(input.value).toBe("abc");
+  });
+
+  it("rethrows any non-InvalidStateError from setSelectionRange", () => {
+    const input = makeInput("abc", 0);
+    const boom = new DOMException("nope", "IndexSizeError");
+    input.setSelectionRange = () => {
+      throw boom;
+    };
+    expect(() => getCode(insert, "<Ctrl-e>")!()).toThrow(boom);
   });
 });
 
