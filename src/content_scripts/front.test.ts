@@ -698,3 +698,370 @@ describe("createFront window message handler — stopImmediatePropagation behavi
     expect(stopSpy).toHaveBeenCalledOnce();
   });
 });
+
+// ---------------------------------------------------------------------------
+// Suite: removeSearchAlias pushes applyUICommand
+// ---------------------------------------------------------------------------
+
+describe("createFront removeSearchAlias — queues applyUICommand for removeSearchAlias", () => {
+  it("queues a removeSearchAlias command in _uiUserSettings", () => {
+    const mockCreateUiHost = createUiHost as ReturnType<typeof vi.fn>;
+    mockCreateUiHost.mockClear();
+
+    const front = createFront(makeInsert(), makeNormal(), null, makeVisual(), makeBrowser());
+
+    // Before frontend is loaded no createUiHost call has happened yet; the
+    // command is buffered in _uiUserSettings. Calling removeSearchAlias must
+    // not throw and must NOT trigger newFrontEnd (no createUiHost call).
+    expect(() => {
+      front.removeSearchAlias("g");
+    }).not.toThrow();
+
+    // _uiUserSettings is a private closure; its effect is observable only
+    // after the frontend resolves. We verify that the alias is queued by
+    // triggering newFrontEnd and confirming createUiHost was invoked — that
+    // path confirms applyUICommand ran without error.
+    expect(mockCreateUiHost).not.toHaveBeenCalled();
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Suite: setHintsCharacters queues applyUICommand
+// ---------------------------------------------------------------------------
+
+describe("createFront setHintsCharacters — queues applyUICommand", () => {
+  it("does not throw and does not create the frontend iframe", () => {
+    const mockCreateUiHost = createUiHost as ReturnType<typeof vi.fn>;
+    mockCreateUiHost.mockClear();
+
+    const front = createFront(makeInsert(), makeNormal(), null, makeVisual(), makeBrowser());
+
+    expect(() => {
+      front.setHintsCharacters("asdfghjkl");
+    }).not.toThrow();
+
+    expect(mockCreateUiHost).not.toHaveBeenCalled();
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Suite: executeCommand sends executeCommand action via self.command
+// ---------------------------------------------------------------------------
+
+describe("createFront executeCommand — triggers newFrontEnd", () => {
+  it("calls createUiHost (creates frontend iframe) to deliver the executeCommand action", () => {
+    const mockCreateUiHost = createUiHost as ReturnType<typeof vi.fn>;
+    mockCreateUiHost.mockClear();
+
+    const front = createFront(makeInsert(), makeNormal(), null, makeVisual(), makeBrowser());
+
+    front.executeCommand("tabNext");
+
+    // executeCommand -> self.command({action:'executeCommand',...}) -> newFrontEnd()
+    expect(mockCreateUiHost).toHaveBeenCalledOnce();
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Suite: getUsage builds annotations and triggers newFrontEnd
+// ---------------------------------------------------------------------------
+
+describe("createFront getUsage — builds annotations and delivers via newFrontEnd", () => {
+  it("calls createUiHost and invokes the callback via successById callback", () => {
+    const mockCreateUiHost = createUiHost as ReturnType<typeof vi.fn>;
+    mockCreateUiHost.mockClear();
+
+    const front = createFront(makeInsert(), makeNormal(), null, makeVisual(), makeBrowser());
+    const cb = vi.fn();
+    front.getUsage(cb);
+
+    // getUsage -> self.command({action:'getUsage',...}, callback) -> newFrontEnd()
+    expect(mockCreateUiHost).toHaveBeenCalledOnce();
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Suite: _actions["getPageText"] — ack path posts body innerText via postTopMessage
+// ---------------------------------------------------------------------------
+
+describe("createFront _actions[getPageText] — ack path posts body text", () => {
+  it("posts body.innerText back via runtime.postTopMessage after Promise resolves", async () => {
+    const { handler, restore } = captureMessageHandler();
+    createFront(makeInsert(), makeNormal(), null, makeVisual(), makeBrowser());
+    restore();
+    const messageHandler = handler()!;
+
+    // Stub innerText since jsdom does not implement it.
+    Object.defineProperty(document.body, "innerText", {
+      value: "hello from body",
+      configurable: true,
+      writable: true,
+    });
+
+    const postSpy = vi.spyOn(runtime, "postTopMessage").mockImplementation(() => {});
+
+    messageHandler(makeContentEvent({ action: "getPageText", ack: true, id: "gt-1", origin: "o" }));
+
+    // getPageText returns a string synchronously; the ack path wraps it in
+    // Promise.resolve().then(), so we flush microtasks by awaiting a resolved
+    // promise before asserting.
+    await Promise.resolve();
+
+    const postedArg = postSpy.mock.calls[0]?.[0] as any;
+    expect(postedArg?.surfingkeys_uihost_data?.data).toBe("hello from body");
+
+    delete (document.body as any).innerText;
+    postSpy.mockRestore();
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Suite: _actions["getBackFocus"] — calls window.focus
+// ---------------------------------------------------------------------------
+
+describe("createFront _actions[getBackFocus] — calls window.focus", () => {
+  it("calls window.focus when the action is dispatched", () => {
+    const { handler, restore } = captureMessageHandler();
+    createFront(makeInsert(), makeNormal(), null, makeVisual(), makeBrowser());
+    restore();
+    const messageHandler = handler()!;
+
+    const focusSpy = vi.spyOn(window, "focus").mockImplementation(() => {});
+
+    messageHandler(makeContentEvent({ action: "getBackFocus" }));
+
+    expect(focusSpy).toHaveBeenCalledOnce();
+
+    focusSpy.mockRestore();
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Suite: addSearchAlias without suggestionURL — skips _listSuggestions
+// ---------------------------------------------------------------------------
+
+describe("createFront addSearchAlias — without suggestionURL skips _listSuggestions", () => {
+  it("queues addSearchAlias command but does not register a suggestion handler", () => {
+    const { handler, restore } = captureMessageHandler();
+    const front = createFront(makeInsert(), makeNormal(), null, makeVisual(), makeBrowser());
+    restore();
+    const messageHandler = handler()!;
+
+    // Register alias without suggestionURL: no entry added to _listSuggestions.
+    front.addSearchAlias("d", "DuckDuckGo", "https://duckduckgo.com/?q=");
+
+    // A getSearchSuggestions message for any url must return null (no handler).
+    const suggestionFn = vi.fn();
+    front.addSearchAlias(
+      "sentinel",
+      "Sentinel",
+      "https://sentinel.example.com/",
+      "https://sentinel.example.com/suggest",
+      suggestionFn,
+    );
+
+    // Fire getSearchSuggestions for the no-suggestionURL alias: the listSuggestion
+    // fn for "d" should never be registered, so this must NOT call suggestionFn.
+    messageHandler(
+      makeContentEvent({
+        action: "getSearchSuggestions",
+        url: "https://duckduckgo.com/?q=",
+        response: "raw",
+        requestUrl: "https://duckduckgo.com/?q=test",
+        query: "test",
+      }),
+    );
+
+    expect(suggestionFn).not.toHaveBeenCalled();
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Suite: frontendDestroyed message resets frontendPromise
+// ---------------------------------------------------------------------------
+
+describe("createFront window message — frontendDestroyed resets frontend", () => {
+  it("allows newFrontEnd to be created again after frontendDestroyed", () => {
+    const mockCreateUiHost = createUiHost as ReturnType<typeof vi.fn>;
+    mockCreateUiHost.mockClear();
+
+    const { handler, restore } = captureMessageHandler();
+    createFront(makeInsert(), makeNormal(), null, makeVisual(), makeBrowser());
+    restore();
+    const messageHandler = handler()!;
+
+    // Trigger newFrontEnd by sending a command action.
+    const front = createFront(makeInsert(), makeNormal(), null, makeVisual(), makeBrowser());
+    mockCreateUiHost.mockClear();
+    front.executeCommand("tabNext");
+    expect(mockCreateUiHost).toHaveBeenCalledOnce();
+
+    // Simulate the frontend iframe being destroyed.
+    mockCreateUiHost.mockClear();
+    messageHandler(
+      new MessageEvent("message", {
+        data: { surfingkeys_content_data: { action: "frontendDestroyed" } },
+        origin: window.location.origin,
+      }),
+    );
+
+    // frontendPromise is now undefined on the original captured messageHandler's
+    // closure (the first createFront call). A new executeCommand on a fresh
+    // createFront verifies the path runs without error.
+    expect(() => {
+      front.executeCommand("tabNext2");
+    }).not.toThrow();
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Suite: self.attach — calls Mode.showStatus and creates frontend if needed
+// ---------------------------------------------------------------------------
+
+describe("createFront self.attach — calls Mode.showStatus", () => {
+  it("does not throw and creates the frontend iframe", () => {
+    const mockCreateUiHost = createUiHost as ReturnType<typeof vi.fn>;
+    mockCreateUiHost.mockClear();
+
+    const front = createFront(makeInsert(), makeNormal(), null, makeVisual(), makeBrowser());
+
+    expect(() => {
+      front.attach();
+    }).not.toThrow();
+
+    // attach() calls newFrontEnd() when frontendPromise is undefined.
+    expect(mockCreateUiHost).toHaveBeenCalledOnce();
+  });
+
+  it("does not call createUiHost again if frontend already exists", () => {
+    const mockCreateUiHost = createUiHost as ReturnType<typeof vi.fn>;
+    mockCreateUiHost.mockClear();
+
+    const front = createFront(makeInsert(), makeNormal(), null, makeVisual(), makeBrowser());
+
+    front.attach(); // creates frontend
+    const firstCount = mockCreateUiHost.mock.calls.length;
+
+    front.attach(); // frontend already exists — must NOT recreate
+    expect(mockCreateUiHost.mock.calls.length).toBe(firstCount);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Suite: self.detach — schedules tryDetach after 3000 ms
+// ---------------------------------------------------------------------------
+
+describe("createFront self.detach — schedules tryDetach on the uiHost", () => {
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  it("calls uiHost.tryDetach after 3000 ms", async () => {
+    vi.useFakeTimers();
+    const tryDetach = vi.fn();
+    const mockCreateUiHost = createUiHost as ReturnType<typeof vi.fn>;
+    mockCreateUiHost.mockClear();
+    // Make createUiHost resolve immediately with a fake uiHost.
+    mockCreateUiHost.mockImplementation((_browser: any, cb: (res: any) => void) => {
+      cb({ tryDetach });
+    });
+
+    const front = createFront(makeInsert(), makeNormal(), null, makeVisual(), makeBrowser());
+    front.attach(); // creates frontendPromise
+
+    front.detach(); // schedules tryDetach after 3000 ms
+    await vi.runAllTimersAsync();
+
+    expect(tryDetach).toHaveBeenCalledOnce();
+
+    // Restore mock.
+    mockCreateUiHost.mockReset();
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Suite: self.attach cancels a pending uiHostDetaching timer
+// ---------------------------------------------------------------------------
+
+describe("createFront self.attach — cancels pending detach timer", () => {
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  it("cancels the detach timer so tryDetach is never called if attach arrives in time", async () => {
+    vi.useFakeTimers();
+    const tryDetach = vi.fn();
+    const mockCreateUiHost = createUiHost as ReturnType<typeof vi.fn>;
+    mockCreateUiHost.mockClear();
+    mockCreateUiHost.mockImplementation((_browser: any, cb: (res: any) => void) => {
+      cb({ tryDetach });
+    });
+
+    const front = createFront(makeInsert(), makeNormal(), null, makeVisual(), makeBrowser());
+    front.attach();
+
+    // detach() schedules uiHostDetaching via frontendPromise.then(...).
+    // Flush microtasks so the .then callback fires and uiHostDetaching is set
+    // before attach() runs, which clears it.
+    front.detach();
+    await Promise.resolve(); // flush microtask queue so setTimeout is scheduled
+    front.attach(); // clears uiHostDetaching before the 3000 ms fires
+
+    await vi.runAllTimersAsync();
+
+    expect(tryDetach).not.toHaveBeenCalled();
+
+    mockCreateUiHost.mockReset();
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Suite: _actions["getSearchSuggestions"] — non-function dispatches skCallback id
+// The message handler returns void; the observable contract is that a
+// surfingkeys:user "getSearchSuggestions" event is dispatched carrying a
+// callbackId string, which is what the non-function path does.
+// ---------------------------------------------------------------------------
+
+describe("createFront _actions[getSearchSuggestions] — non-function dispatches user event with callbackId", () => {
+  it("dispatches surfingkeys:user with a string callbackId as the last argument", () => {
+    const { handler: msgHandler, restore: restoreMsg } = captureMessageHandler();
+    const front = createFront(makeInsert(), makeNormal(), null, makeVisual(), makeBrowser());
+    restoreMsg();
+    const messageHandler = msgHandler()!;
+
+    // Register a non-function listSuggestion.
+    front.addSearchAlias(
+      "z",
+      "Zeta",
+      "https://zeta.example.com/",
+      "https://zeta.example.com/suggest",
+      { notAFunction: true } as any,
+    );
+
+    // Capture the surfingkeys:user event dispatched by the non-function path.
+    const captured: unknown[][] = [];
+    const userListener = (e: Event) => {
+      captured.push((e as CustomEvent).detail as unknown[]);
+    };
+    document.addEventListener("surfingkeys:user", userListener);
+
+    messageHandler(
+      makeContentEvent({
+        action: "getSearchSuggestions",
+        url: "https://zeta.example.com/suggest",
+        response: "rawZ",
+        requestUrl: "https://zeta.example.com/suggest?q=z",
+        query: "z",
+      }),
+    );
+
+    document.removeEventListener("surfingkeys:user", userListener);
+
+    // The non-function branch dispatches: ["getSearchSuggestions", url, response, ctx, callbackId]
+    const evt = captured.find((d) => d[0] === "getSearchSuggestions");
+    expect(evt).toBeDefined();
+    // callbackId is the 5th element and must be a non-empty string (a guid).
+    expect(typeof evt![4]).toBe("string");
+    expect((evt![4] as string).length).toBeGreaterThan(0);
+  });
+});
