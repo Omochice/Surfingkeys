@@ -640,3 +640,31 @@ describe("_actions['showStatus'] — StatusBar duration auto-clear", () => {
     expect(Front.statusBar.style.display).not.toBe("none");
   });
 });
+
+// ---------------------------------------------------------------------------
+// Window message handler — callback that returns true is retained
+// ---------------------------------------------------------------------------
+describe("window message handler — persistent callback (returns true)", () => {
+  it("keeps a callback registered when it returns true and fires it for each response", () => {
+    Front.topOrigin = "https://stay-test.example.com";
+    let capturedId: string | undefined;
+    const spy = vi.spyOn(window.top!, "postMessage").mockImplementation((data: any) => {
+      capturedId = data?.surfingkeys_uihost_data?.id;
+    });
+
+    const seen: unknown[] = [];
+    // Returning true takes the `if (!f(...))` false arm, so the callback is NOT
+    // deleted and fires again on the next response with the same id.
+    Front.contentCommand({ action: "ping" }, (msg: any) => {
+      seen.push(msg.data);
+      return true;
+    });
+    expect(capturedId).toBeDefined();
+
+    dispatchFrontendMessage({ id: capturedId, data: "one" });
+    dispatchFrontendMessage({ id: capturedId, data: "two" });
+
+    expect(seen).toEqual(["one", "two"]);
+    spy.mockRestore();
+  });
+});
