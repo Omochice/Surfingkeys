@@ -539,3 +539,94 @@ describe("default export factory", () => {
     expect(receivedSettings).toBeDefined();
   });
 });
+
+// ---------------------------------------------------------------------------
+// surfingkeys:user listener — the capture-phase interface registered at module
+// load. initSKFunctionListener shifts the action name off detail and, because
+// capture is true, appends evt.target as the final arg.
+// ---------------------------------------------------------------------------
+
+function fireUser(detail: unknown[], target: EventTarget = document): void {
+  target.dispatchEvent(new CustomEvent("surfingkeys:user", { detail, bubbles: true }));
+}
+
+describe("surfingkeys:user — callUserFunction", () => {
+  it("invokes the registered user function with the passed parameter", () => {
+    const jscode = vi.fn();
+    capturedApi.mapkey("gx", "run", jscode);
+
+    fireUser(["callUserFunction", "normal:gx", { foo: 1 }]);
+
+    expect(jscode).toHaveBeenCalledWith({ foo: 1 });
+  });
+
+  it("does nothing for a key that was never registered", () => {
+    const jscode = vi.fn();
+    capturedApi.mapkey("gy", "run", jscode);
+
+    fireUser(["callUserFunction", "normal:never-registered", {}]);
+
+    expect(jscode).not.toHaveBeenCalled();
+  });
+
+  it("does not register the user function when the mapkey domain does not match", () => {
+    const jscode = vi.fn();
+    // domain mismatch → the !options || domain-match guard is false, so the
+    // function is never stored under normal:gz.
+    capturedApi.mapkey("gz", "run", jscode, { domain: /never-match\.example/ });
+
+    fireUser(["callUserFunction", "normal:gz", {}]);
+
+    expect(jscode).not.toHaveBeenCalled();
+  });
+});
+
+describe("surfingkeys:user — executeUserCommand", () => {
+  it("invokes the registered command with its spread args", () => {
+    const action = vi.fn();
+    capturedApi.addCommand("greet", "say hi", action);
+
+    fireUser(["executeUserCommand", "greet", ["alice", "bob"]]);
+
+    expect(action).toHaveBeenCalledWith("alice", "bob");
+  });
+
+  it("does nothing for an unknown command name", () => {
+    const action = vi.fn();
+    capturedApi.addCommand("known", "", action);
+
+    fireUser(["executeUserCommand", "unknown-cmd", []]);
+
+    expect(action).not.toHaveBeenCalled();
+  });
+});
+
+describe("surfingkeys:user — onClipboardRead", () => {
+  it("delivers the response to the callback registered via Clipboard.read", () => {
+    const cb = vi.fn();
+    capturedApi.Clipboard.read(cb);
+
+    fireUser(["onClipboardRead", { data: "pasted text" }]);
+
+    expect(cb).toHaveBeenCalledWith({ data: "pasted text" });
+  });
+});
+
+describe("surfingkeys:user — onHintClicked", () => {
+  it("calls the hints callback with (element, shiftKey) when one was registered via Hints.create", () => {
+    const onHintKey = vi.fn();
+    // Hints.create with a string selector registers hintsFunction = onHintKey.
+    capturedApi.Hints.create("a", onHintKey);
+    const element = document.createElement("a");
+    // The listener is registered capture-phase on document, so the target must be
+    // attached for the event to propagate down to it.
+    document.body.appendChild(element);
+
+    // capture-phase listener appends evt.target as the element argument.
+    fireUser(["onHintClicked", true], element);
+
+    expect(onHintKey).toHaveBeenCalledWith(element, true);
+
+    element.remove();
+  });
+});
