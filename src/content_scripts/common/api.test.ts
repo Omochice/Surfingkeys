@@ -358,17 +358,24 @@ describe("createAPI addSearchAlias key mappings", () => {
     });
   });
 
-  it("registers the search leader key in normal.mappings", () => {
+  it("registers the composed 'sg' search alias in normal.mappings", () => {
     const ctx = makeCtx();
     const api = createAPI(ctx as any);
 
     api.addSearchAlias("g", "Google", "https://www.google.com/search?q=");
 
-    // default leader key is 's', so 'sg' should be mapped
-    const encoded = KeyboardUtils.encodeKeystroke("s");
-    // 'sg' is a two-character sequence; walk manually
-    const sNode = ctx.normal.mappings.find(encoded);
-    expect(sNode).not.toBeUndefined();
+    // Default leader key is 's', so the alias is the composed sequence 'sg'.
+    // Walking only to the 's' root would pass even if the 'g' child were never
+    // registered, so assert the leaf node carries the alias annotation + code.
+    let node: any = ctx.normal.mappings;
+    for (const ch of "sg") {
+      node = node?.find(ch);
+    }
+    // The "#6" prefix is parsed off into feature_group, leaving the prompt
+    // interpolated with the engine name in the annotation array.
+    expect(node?.meta?.annotation).toEqual(["Search selected with {0}", "Google"]);
+    expect(node?.meta?.feature_group).toBe(6);
+    expect(typeof node!.meta!.code).toBe("function");
   });
 
   it("registers the open-omnibar key 'o<alias>' in normal.mappings", () => {
