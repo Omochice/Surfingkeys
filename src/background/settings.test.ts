@@ -1182,3 +1182,72 @@ describe("createSettings — updateSettings non-showAdvanced path", () => {
     expect(result).toEqual({ error: "" });
   });
 });
+
+describe("createSettings — appendNonce leaves a non-http URL unchanged", () => {
+  it("requests a file:// settings URL verbatim (the /^https?:/ guard is false)", async () => {
+    mockRequest.mockResolvedValue(
+      Result.fail(httpError("file:///settings.js", new Error("net"), 0)),
+    );
+    const { unit } = makeUnit();
+
+    const loadSettingsFromUrl = unit.handlers["loadSettingsFromUrl"];
+    expectDefined(loadSettingsFromUrl);
+    loadSettingsFromUrl({ url: "file:///settings.js" }, {}, vi.fn());
+
+    await vi.waitFor(() => expect(mockRequest).toHaveBeenCalled());
+    // No nonce is appended for a non-http(s) URL.
+    expect(mockRequest).toHaveBeenCalledWith("file:///settings.js");
+  });
+});
+
+describe("createSettings — registerUserScript register/unregister branches", () => {
+  function chromeWithUserScripts(getScripts: (q: any, cb: (r: any[]) => void) => void) {
+    const register = vi.fn();
+    const unregister = vi.fn((_q: any, cb?: () => void) => cb && cb());
+    g.chrome.userScripts = { configureWorld: vi.fn(), getScripts, register, unregister };
+    g.chrome.storage = {
+      local: { set: (_d: any, cb?: () => void) => cb && cb() },
+      sync: { set: vi.fn() },
+    };
+    g.chrome.tabs = { query: (_q: any, cb: (t: any[]) => void) => cb([]) };
+    g.chrome.runtime = {
+      ...g.chrome.runtime,
+      getManifest: () => ({ manifest_version: 2 }),
+      getURL: () => "chrome-extension://abc/",
+    };
+    return { register, unregister };
+  }
+
+  it("unregisters then re-registers when the stored script code differs", () => {
+    // getScripts returns a script whose code does not match the freshly built one.
+    const { register, unregister } = chromeWithUserScripts((_q, cb) =>
+      cb([{ js: [{ code: "/* stale code */" }] }]),
+    );
+    const { unit } = makeUnit();
+
+    const loadSettingsFromUrl = unit.handlers["loadSettingsFromUrl"];
+    expectDefined(loadSettingsFromUrl);
+    mockRequest.mockResolvedValue(Result.succeed("NEW_SNIPPETS"));
+    loadSettingsFromUrl({ url: "http://example.com/settings.js" }, {}, vi.fn());
+
+    return vi.waitFor(() => {
+      expect(unregister).toHaveBeenCalledWith({ ids: ["settingsSnippets"] }, expect.any(Function));
+      expect(register).toHaveBeenCalledOnce();
+    });
+  });
+
+  it("registers directly without unregistering when no script is stored yet", () => {
+    const { register, unregister } = chromeWithUserScripts((_q, cb) => cb([]));
+    const { unit } = makeUnit();
+
+    const loadSettingsFromUrl = unit.handlers["loadSettingsFromUrl"];
+    expectDefined(loadSettingsFromUrl);
+    mockRequest.mockResolvedValue(Result.succeed("FRESH_SNIPPETS"));
+    loadSettingsFromUrl({ url: "http://example.com/settings.js" }, {}, vi.fn());
+
+    return vi.waitFor(() => {
+      expect(register).toHaveBeenCalledOnce();
+      expect(unregister).not.toHaveBeenCalled();
+    });
+  });
+});
