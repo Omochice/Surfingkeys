@@ -3,6 +3,12 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import KeyboardUtils from "./keyboardUtils";
 import Mode from "./mode";
 import Trie from "./trie";
+import * as utils from "./utils";
+
+vi.mock("./utils", async () => {
+  const actual = await vi.importActual<typeof import("./utils")>("./utils");
+  return { ...actual, reportIssue: vi.fn() };
+});
 
 type FakeKeyEvent = {
   sk_keyName: string;
@@ -465,5 +471,115 @@ describe("Mode.hasScroll", () => {
     document.body.appendChild(el);
     expect(Mode.hasScroll(el, "y", 16)).toBe(true);
     document.body.innerHTML = "";
+  });
+
+  it("checks horizontal scroll (x direction) — returns false when scrollLeft is 0", () => {
+    const el = document.createElement("div");
+    document.body.appendChild(el);
+    // scrollLeft = 0 < 16 (barSize), getBoundingClientRect().width = 0 → no change → false.
+    expect(Mode.hasScroll(el, "x", 16)).toBe(false);
+    document.body.innerHTML = "";
+  });
+
+  it("checks horizontal scroll (x direction) — returns true when scrollLeft meets threshold", () => {
+    const el = document.createElement("div");
+    Object.defineProperty(el, "scrollLeft", { get: () => 50, configurable: true });
+    document.body.appendChild(el);
+    expect(Mode.hasScroll(el, "x", 16)).toBe(true);
+    document.body.innerHTML = "";
+  });
+});
+
+describe("Mode.handleMapKey — repeat digit accumulation edge cases", () => {
+  it("allows '0' as a repeat digit once at least one leading digit has been entered", () => {
+    const { mode, mappings } = makeMode();
+    mappings.add(KeyboardUtils.encodeKeystroke("a"), {
+      annotation: "run",
+      code: () => {},
+    });
+
+    // '1' sets repeats="1"; '0' is allowed because repeats is non-empty.
+    press(mode, "1");
+    press(mode, "0");
+    // The digit-accumulation branch has fired twice: repeats="10".
+    expect(mode.repeats).toBe("10");
+
+    // repeatThreshold defaults to 9; "10" > 9 triggers the showDialog branch rather than
+    // running the code inline. Mode.finish resets repeats to "" either way.
+    press(mode, "a");
+    expect(mode.repeats).toBe("");
+  });
+
+  it("does not treat '0' as a repeat digit when repeats is still empty", () => {
+    // When repeats="" and key="0", the condition `key >= "0"` is true but
+    // `this.repeats !== "" && key >= "0"` is false (repeats is ""), so the
+    // digit-accumulation branch is not taken. Instead '0' is looked up as a key.
+    const { mode, mappings } = makeMode();
+    mappings.add(KeyboardUtils.encodeKeystroke("0"), {
+      annotation: "zero",
+      code: () => {},
+    });
+
+    press(mode, "0");
+    // If '0' were treated as a repeat digit, map_node would still be mappings
+    // with repeats="0". Because it is not (repeats still ""), map_node resets
+    // to mappings via Mode.finish after executing the mapping.
+    expect(mode.repeats).toBe("");
+    expect(mode.map_node).toBe(mappings);
+  });
+});
+
+describe("Mode.enter — reentrant=false re-entry reports an issue and leaves the stack intact", () => {
+  it("reports an issue and does not pop modes when a non-top mode is re-entered without reentrant", () => {
+    const reportIssue = vi.mocked(utils.reportIssue);
+    reportIssue.mockClear();
+    const lower = new Mode("Lower");
+    const upper = new Mode("Upper");
+    // lower enters first (lower priority), upper enters on top (higher priority).
+    lower.enter(1);
+    upper.enter(2);
+    // upper is current because it has the higher priority and sits at stack[0].
+    expect(Mode.getCurrent()).toBe(upper);
+
+    // Re-enter the lower (non-top, pos > 0) mode without reentrant=true: the else
+    // branch must call reportIssue and must NOT slice the stack down to `lower`.
+    lower.enter(1, false);
+
+    expect(reportIssue).toHaveBeenCalledTimes(1);
+    expect(reportIssue).toHaveBeenCalledWith(
+      "Mode Lower pushed into mode stack again.",
+      expect.stringContaining("Modes in stack:"),
+    );
+    // Stack top is unchanged: upper still current (the reentrant slice did NOT run).
+    expect(Mode.getCurrent()).toBe(upper);
+
+    upper.exit();
+    lower.exit();
+  });
+});
+
+describe("Mode.handleMapKey — pendingMap stopPropagation variants", () => {
+  it("respects boolean meta.stopPropagation when executing via pendingMap", () => {
+    const { mode, mappings } = makeMode();
+    const received: string[] = [];
+    // A two-argument pending function — code.length > 0 triggers pendingMap flow.
+    const pendingFn = (key: string) => {
+      received.push(key);
+    };
+    // Give the mapping node a stopPropagation=true so the pending branch tests that arm.
+    mappings.add(KeyboardUtils.encodeKeystroke("a"), {
+      annotation: "stop-pending",
+      stopPropagation: true,
+      code: pendingFn,
+    });
+
+    press(mode, "a"); // sets pendingMap
+    const event = press(mode, "y"); // calls pendingMap("y")
+
+    expect(received).toEqual(["y"]);
+    // stopPropagation was reached via the pendingMap path.
+    // event.sk_stopPropagation = !meta.stopPropagation || callStopPropagation(meta, key)
+    // = !true || true = true
+    expect(event.sk_stopPropagation).toBe(true);
   });
 });
