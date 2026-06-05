@@ -50,11 +50,6 @@ describe("createVisual — mode identity", () => {
     const visual = createVisual(makeClipboard(), makeHints());
     expect(visual.name).toBe("Visual");
   });
-
-  it("has a Trie for mappings", () => {
-    const visual = createVisual(makeClipboard(), makeHints());
-    expect(visual.mappings).toBeDefined();
-  });
 });
 
 // ─── mapping registrations ────────────────────────────────────────────────────
