@@ -67,8 +67,8 @@ function makeBrowser() {
 
 // ---------------------------------------------------------------------------
 // Capture the window "message" handler that createFront registers.
-// front.ts registers its listener with `{capture: true}` as the third
-// argument, so we spy on addEventListener to intercept exactly that call.
+// front.ts registers its listener with `true` as the third argument (the
+// capture flag), so we spy on addEventListener to intercept exactly that call.
 // ---------------------------------------------------------------------------
 
 type MessageHandlerFn = (event: MessageEvent) => void;
@@ -83,7 +83,11 @@ function captureMessageHandler(): {
     .spyOn(window, "addEventListener")
     .mockImplementation((type: string, listener: any, options?: any) => {
       if (type === "message" && options === true) {
+        // Capture the handler but do NOT re-register it on the real window;
+        // otherwise each createFront() in the suite stacks another live
+        // capture-phase listener that fires on every later dispatch.
         captured = listener as MessageHandlerFn;
+        return;
       }
       origAddEventListener(type, listener, options);
     });
