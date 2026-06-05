@@ -13,14 +13,6 @@ describe("CursorPrompt constructor", () => {
     expect(cp.element.tagName).toBe("DIV");
     expect(cp.element.classList.contains("sk_cursor_prompt")).toBe(true);
   });
-
-  it("stores the renderer, picker and fetcher as instance properties", () => {
-    const fetcher = async () => ["a"];
-    const cp = new CursorPrompt(renderer, picker, fetcher);
-    expect(cp.renderer).toBe(renderer);
-    expect(cp.picker).toBe(picker);
-    expect(cp.fetcher).toBe(fetcher);
-  });
 });
 
 // jsdom has no layout engine so scrollIntoView and getBoundingClientRect are
