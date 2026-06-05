@@ -599,15 +599,15 @@ describe("createFront runtime.on focusFrame — highlights when frameId matches"
     createFront(makeInsert(), makeNormal(), null, makeVisual(), makeBrowser());
 
     const focusFrameHandler = capturedHandlers["focusFrame"];
-    if (focusFrameHandler == null) {
-      return;
-    }
+    // Fail loudly if the focusFrame handler was never registered, rather than
+    // silently passing the test on missing wiring.
+    expect(focusFrameHandler).toBeDefined();
 
     // jsdom does not implement scrollIntoView — stub it.
     document.body.scrollIntoView = vi.fn();
 
     (window as any).frameId = "frame-42";
-    focusFrameHandler({ frameId: "frame-42" }, undefined, () => {});
+    focusFrameHandler!({ frameId: "frame-42" }, undefined, () => {});
 
     // The handler appends the sk_frame div to documentElement.
     const frameEl = document.getElementById("sk_frame");
