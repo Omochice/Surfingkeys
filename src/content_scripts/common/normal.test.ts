@@ -1891,3 +1891,95 @@ describe("createNormal disable — disabled mode keydown branches", () => {
     normal.enable();
   });
 });
+
+// Drive the Normal keydown handler with an arbitrary target and key, reporting a
+// trusted event (jsdom forbids redefining isTrusted, hence the Proxy).
+function dispatchKeydownWith(
+  normal: ReturnType<typeof createNormal>,
+  target: Element,
+  key: string,
+): Event & { sk_stopPropagation?: boolean } {
+  const base = new Event("keydown");
+  Object.defineProperty(base, "target", { value: target });
+  Object.defineProperty(base, "key", { value: key });
+  base.sk_keyName = key === "<Esc>" ? "<Esc>" : key;
+  const event = new Proxy(base, {
+    get(t, p) {
+      if (p === "isTrusted") return true;
+      const value = Reflect.get(t, p, t);
+      return typeof value === "function" ? value.bind(t) : value;
+    },
+  });
+  normal.eventListeners["keydown"]!(event);
+  return event as Event & { sk_stopPropagation?: boolean };
+}
+
+describe("createNormal keydown handler — editable target branches", () => {
+  it("exits insert mode and does not enter it when Esc is pressed on an editable element", () => {
+    const insert = { enter: vi.fn(), exit: vi.fn() };
+    const normal = createNormal(insert);
+    const input = document.createElement("input");
+    document.body.appendChild(input);
+    const blur = vi.spyOn(input, "blur");
+
+    dispatchKeydownWith(normal, input, "<Esc>");
+
+    // Esc on an editable element blurs it and exits insert (the true arm of the
+    // isEditable+Esc branch), never calling insert.enter.
+    expect(blur).toHaveBeenCalledOnce();
+    expect(insert.exit).toHaveBeenCalledOnce();
+    expect(insert.enter).not.toHaveBeenCalled();
+
+    input.remove();
+  });
+
+  it("shows the 'Press i' hint and routes the key through mappings when editableBodyCare is on and body is the target", () => {
+    const savedCare = runtime.conf.editableBodyCare;
+    const savedShow = runtime.conf.showModeStatus;
+    runtime.conf.editableBodyCare = true;
+    runtime.conf.showModeStatus = false;
+    const insert = { enter: vi.fn(), exit: vi.fn() };
+    const normal = createNormal(insert);
+    // jsdom reports isContentEditable as undefined, so force isEditable(body) to be true.
+    Object.defineProperty(document.body, "isContentEditable", {
+      value: true,
+      configurable: true,
+    });
+
+    dispatchKeydownWith(normal, document.body, "j");
+
+    // editableBodyCare + body + key!=="i" arm: status hint set, mode status shown,
+    // and the key is fed to mappings rather than entering insert mode.
+    expect(normal.statusLine).toBe("Press i to enter Insert mode");
+    expect(runtime.conf.showModeStatus).toBe(true);
+    expect(insert.enter).not.toHaveBeenCalled();
+
+    Reflect.deleteProperty(document.body, "isContentEditable");
+    runtime.conf.editableBodyCare = savedCare;
+    runtime.conf.showModeStatus = savedShow;
+  });
+
+  it("stops propagation and focuses the body when 'i' is pressed with editableBodyCare on the body", () => {
+    const savedCare = runtime.conf.editableBodyCare;
+    runtime.conf.editableBodyCare = true;
+    const insert = { enter: vi.fn(), exit: vi.fn() };
+    const normal = createNormal(insert);
+    Object.defineProperty(document.body, "isContentEditable", {
+      value: true,
+      configurable: true,
+    });
+    const focus = vi.spyOn(document.body, "focus");
+    const passFocus = vi.spyOn(normal, "passFocus");
+
+    const event = dispatchKeydownWith(normal, document.body, "i");
+
+    // editableBodyCare + body + key==="i" arm: sk_stopPropagation true, passFocus(true),
+    // and the body is re-focused so the native caret takes over.
+    expect(event.sk_stopPropagation).toBe(true);
+    expect(passFocus).toHaveBeenCalledWith(true);
+    expect(focus).toHaveBeenCalledOnce();
+
+    Reflect.deleteProperty(document.body, "isContentEditable");
+    runtime.conf.editableBodyCare = savedCare;
+  });
+});
