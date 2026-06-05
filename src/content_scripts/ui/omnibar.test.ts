@@ -2147,7 +2147,7 @@ describe("SearchEngine handler — listSuggestions with html/url-keyed items", (
 
     // The result should have the URL in data
     const urls = omnibar.results().map((r: any) => r.data.url);
-    expect(urls.some((u: string) => u === "https://sug.example.com" || u !== undefined)).toBe(true);
+    expect(urls).toContain("https://sug.example.com");
   });
 
   it("suggestion response that is not an array produces empty results", () => {
