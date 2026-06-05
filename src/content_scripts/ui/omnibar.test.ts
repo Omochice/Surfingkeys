@@ -1963,6 +1963,95 @@ describe("createOmnibar — Ctrl-n/Ctrl-p with handler.rotateInput", () => {
     // middle position: Ctrl-p should pass true (backward)
     expect(rotateInput).toHaveBeenLastCalledWith(true);
   });
+
+  it("Ctrl-n falls back to rotating results when the handler has no rotateInput", () => {
+    const { omnibar, ui } = makeOmnibar();
+    // A handler WITHOUT rotateInput drives the else arm (rotateResult).
+    omnibar.addHandler("TestNoRotate", {
+      prompt: "test",
+      onOpen: vi.fn(),
+      onInput: vi.fn(),
+      onEnter: vi.fn(() => true),
+    });
+    ui.onShow({ type: "TestNoRotate" });
+    omnibar.listWords(["a", "b", "c"]);
+
+    const ctrlNCode = getMappingByAnnotation(omnibar, "Forward cycle through the input history.");
+    ctrlNCode!();
+    // rotateResult moved focus forward from -1 to the first candidate.
+    expect(omnibar.focusedIndex()).toBe(0);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Ctrl-d — delete focused bookmark/history item via RUNTIME('removeURL')
+// ---------------------------------------------------------------------------
+describe("createOmnibar — Ctrl-d deletes the focused item", () => {
+  beforeEach(() => {
+    mockRUNTIME.mockReset();
+    mockRUNTIME.mockImplementation(() => Result.succeed(undefined));
+    localStorage.clear();
+    runtime.conf.focusFirstCandidate = true;
+  });
+
+  afterAll(() => {
+    runtime.conf.focusFirstCandidate = false;
+  });
+
+  function listWithUids(omnibar: any, uids: string[]): void {
+    omnibar.listResults(
+      uids.map((uid) => ({ uid })),
+      (b: any) => ({ html: `<li>${b.uid}</li>`, data: { uid: b.uid } }),
+    );
+  }
+
+  it("removes the focused item from results when the backend reports Done", () => {
+    const { omnibar } = makeOmnibar();
+    runtime.conf.focusFirstCandidate = true;
+    mockRUNTIME.mockImplementation((action: any, _args: any, cb?: any) => {
+      if (action === "removeURL" && cb) {
+        cb({ response: "Done" });
+      }
+      return Result.succeed(undefined);
+    });
+    listWithUids(omnibar, ["u0", "u1", "u2"]);
+    omnibar.focusItem(0);
+
+    getMappingByAnnotation(omnibar, "Delete focused item from bookmark or history")!();
+
+    expect(mockRUNTIME).toHaveBeenCalledWith("removeURL", { uid: "u0" }, expect.any(Function));
+    expect(omnibar.results().map((r: any) => r.data.uid)).toEqual(["u1", "u2"]);
+  });
+
+  it("keeps the results unchanged when the backend does not report Done", () => {
+    const { omnibar } = makeOmnibar();
+    runtime.conf.focusFirstCandidate = true;
+    mockRUNTIME.mockImplementation((action: any, _args: any, cb?: any) => {
+      if (action === "removeURL" && cb) {
+        cb({ response: "Failed" });
+      }
+      return Result.succeed(undefined);
+    });
+    listWithUids(omnibar, ["a", "b"]);
+    omnibar.focusItem(0);
+
+    getMappingByAnnotation(omnibar, "Delete focused item from bookmark or history")!();
+
+    // The `ret.response !== "Done"` early return leaves results intact.
+    expect(omnibar.results().map((r: any) => r.data.uid)).toEqual(["a", "b"]);
+  });
+
+  it("does nothing when the focused item carries no uid", () => {
+    const { omnibar } = makeOmnibar();
+    runtime.conf.focusFirstCandidate = true;
+    omnibar.listWords(["plain"]); // listWords data has `query`, no `uid`
+    omnibar.focusItem(0);
+
+    getMappingByAnnotation(omnibar, "Delete focused item from bookmark or history")!();
+
+    // The `fi && fi.data.uid` guard is false, so no removeURL call is made.
+    expect(mockRUNTIME).not.toHaveBeenCalledWith("removeURL", expect.anything(), expect.anything());
+  });
 });
 
 // ---------------------------------------------------------------------------
