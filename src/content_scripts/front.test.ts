@@ -885,13 +885,14 @@ describe("createFront window message — frontendDestroyed resets frontend", () 
     const mockCreateUiHost = createUiHost as ReturnType<typeof vi.fn>;
     mockCreateUiHost.mockClear();
 
+    // Capture the message handler belonging to THIS front so the frontendDestroyed
+    // event resets its own frontendPromise (not a sibling instance's closure).
     const { handler, restore } = captureMessageHandler();
-    createFront(makeInsert(), makeNormal(), null, makeVisual(), makeBrowser());
+    const front = createFront(makeInsert(), makeNormal(), null, makeVisual(), makeBrowser());
     restore();
     const messageHandler = handler()!;
 
     // Trigger newFrontEnd by sending a command action.
-    const front = createFront(makeInsert(), makeNormal(), null, makeVisual(), makeBrowser());
     mockCreateUiHost.mockClear();
     front.executeCommand("tabNext");
     expect(mockCreateUiHost).toHaveBeenCalledOnce();
@@ -905,12 +906,10 @@ describe("createFront window message — frontendDestroyed resets frontend", () 
       }),
     );
 
-    // frontendPromise is now undefined on the original captured messageHandler's
-    // closure (the first createFront call). A new executeCommand on a fresh
-    // createFront verifies the path runs without error.
-    expect(() => {
-      front.executeCommand("tabNext2");
-    }).not.toThrow();
+    // frontendDestroyed cleared frontendPromise, so the next executeCommand must
+    // build the host again (proving the reset, not merely that it did not throw).
+    front.executeCommand("tabNext2");
+    expect(mockCreateUiHost).toHaveBeenCalledOnce();
   });
 });
 
