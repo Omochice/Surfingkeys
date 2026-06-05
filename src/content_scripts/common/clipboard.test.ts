@@ -170,30 +170,33 @@ describe("Clipboard.read on Firefox (navigator.clipboard path)", () => {
       writable: true,
     });
 
-    const clipboard = createClipboard();
+    try {
+      const clipboard = createClipboard();
 
-    let received: string | undefined;
-    clipboard.read((response) => {
-      received = response.data;
-    });
+      let received: string | undefined;
+      clipboard.read((response) => {
+        received = response.data;
+      });
 
-    // The Firefox path calls setTimeout to deliver the result asynchronously;
-    // advance fake timers to trigger the callback.
-    vi.useFakeTimers();
-    await Promise.resolve(); // let the readText promise resolve
-    vi.runAllTimers();
-    vi.useRealTimers();
+      // The Firefox path calls setTimeout to deliver the result asynchronously;
+      // advance fake timers to trigger the callback.
+      vi.useFakeTimers();
+      await Promise.resolve(); // let the readText promise resolve
+      vi.runAllTimers();
+      vi.useRealTimers();
 
-    expect(received).toBe("clipboard text");
-
-    // Restore
-    if (origClipboard) {
-      Object.defineProperty(navigator, "clipboard", origClipboard);
-    } else {
-      // @ts-expect-error -- restoring stub
-      delete navigator.clipboard;
+      expect(received).toBe("clipboard text");
+    } finally {
+      // Always restore the stubbed navigator.clipboard, real timers, and the
+      // browser-name mock, even if the assertion above throws.
+      vi.useRealTimers();
+      if (origClipboard) {
+        Object.defineProperty(navigator, "clipboard", origClipboard);
+      } else {
+        // @ts-expect-error -- restoring stub
+        delete navigator.clipboard;
+      }
+      mockGetBrowserName.mockReturnValue("Chrome");
     }
-
-    mockGetBrowserName.mockReturnValue("Chrome");
   });
 });
