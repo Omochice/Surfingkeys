@@ -1,7 +1,8 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import KeyboardUtils from "./keyboardUtils";
 import Mode from "./mode";
+import { RUNTIME, runtime } from "./runtime";
 import Trie from "./trie";
 import * as utils from "./utils";
 
@@ -581,5 +582,172 @@ describe("Mode.handleMapKey — pendingMap stopPropagation variants", () => {
     // event.sk_stopPropagation = !meta.stopPropagation || callStopPropagation(meta, key)
     // = !true || true = true
     expect(event.sk_stopPropagation).toBe(true);
+  });
+});
+
+// Capture surfingkeys:front CustomEvents (dispatchSKEvent("front", [...])) so the
+// keystroke/dialog side effects of handleMapKey and finish can be asserted.
+function captureFront(): { events: unknown[][]; cleanup: () => void } {
+  const events: unknown[][] = [];
+  const handler = (e: Event) => {
+    events.push((e as CustomEvent).detail as unknown[]);
+  };
+  document.addEventListener("surfingkeys:front", handler);
+  return { events, cleanup: () => document.removeEventListener("surfingkeys:front", handler) };
+}
+
+describe("Mode.handleMapKey — repeatThreshold dialog branch", () => {
+  let savedRepeats: number;
+  let savedThreshold: number;
+
+  beforeEach(() => {
+    savedRepeats = RUNTIME.repeats;
+    savedThreshold = runtime.conf.repeatThreshold;
+  });
+
+  afterEach(() => {
+    RUNTIME.repeats = savedRepeats;
+    runtime.conf.repeatThreshold = savedThreshold;
+  });
+
+  it("dispatches showDialog instead of running inline when repeats exceed repeatThreshold", () => {
+    runtime.conf.repeatThreshold = 9;
+    let runs = 0;
+    const { mode, mappings } = makeMode();
+    mappings.add(KeyboardUtils.encodeKeystroke("a"), {
+      annotation: "big-repeat",
+      code: () => {
+        runs++;
+      },
+    });
+
+    const { events, cleanup } = captureFront();
+    // Accumulate "10" (> threshold 9), then trigger the action.
+    press(mode, "1");
+    press(mode, "0");
+    press(mode, "a");
+
+    const dialog = events.find((d) => d[0] === "showDialog");
+    expect(dialog).toBeDefined();
+    expect(dialog![1]).toContain("big-repeat");
+    expect(dialog![1]).toContain("10");
+    // The code must NOT have run inline — it runs only when the dialog callback fires.
+    expect(runs).toBe(0);
+
+    // Invoking the dialog confirm callback runs the action exactly `repeats` (10) times.
+    (dialog![2] as () => void)();
+    expect(runs).toBe(10);
+
+    cleanup();
+  });
+
+  it("runs the action inline (no dialog) when repeats stay within repeatThreshold", () => {
+    runtime.conf.repeatThreshold = 9;
+    let runs = 0;
+    const { mode, mappings } = makeMode();
+    mappings.add(KeyboardUtils.encodeKeystroke("a"), {
+      annotation: "small-repeat",
+      code: () => {
+        runs++;
+      },
+    });
+
+    const { events, cleanup } = captureFront();
+    press(mode, "3");
+    press(mode, "a");
+
+    expect(runs).toBe(3);
+    expect(events.find((d) => d[0] === "showDialog")).toBeUndefined();
+
+    cleanup();
+  });
+});
+
+describe("Mode.finish — hideKeystroke dispatch on trusted reset", () => {
+  it("dispatches hideKeystroke when finishing a trusted mid-sequence", () => {
+    const { mode, mappings } = makeMode();
+    mappings.add(KeyboardUtils.encodeKeystroke("ab"), { annotation: "two", code: () => {} });
+    // Advance into a partial sequence and mark the event as trusted (press() does).
+    press(mode, "a");
+    mode.isTrustedEvent = true;
+
+    const { events, cleanup } = captureFront();
+    const ret = Mode.finish(mode);
+
+    expect(ret).toBe(true);
+    expect(events.some((d) => d[0] === "hideKeystroke")).toBe(true);
+    expect(mode.map_node).toBe(mappings);
+
+    cleanup();
+  });
+
+  it("does not dispatch hideKeystroke when the reset is for an untrusted event", () => {
+    const { mode, mappings } = makeMode();
+    mappings.add(KeyboardUtils.encodeKeystroke("ab"), { annotation: "two", code: () => {} });
+    press(mode, "a");
+    mode.isTrustedEvent = false;
+
+    const { events, cleanup } = captureFront();
+    const ret = Mode.finish(mode);
+
+    expect(ret).toBe(true);
+    expect(events.some((d) => d[0] === "hideKeystroke")).toBe(false);
+
+    cleanup();
+  });
+});
+
+describe("Mode.addEventListener — registers a new global listened event", () => {
+  it("routes a window event of a not-yet-listened type into the mode's handler", () => {
+    const { mode } = makeMode("GlobalEvt");
+    const handler = vi.fn();
+    // "wheel" is not among the built-in _listenedEvents, so addEventListener must
+    // install a fresh window listener that funnels through handleStack.
+    mode.addEventListener("wheel", handler);
+    mode.enter();
+
+    window.dispatchEvent(new Event("wheel"));
+
+    expect(handler).toHaveBeenCalledTimes(1);
+
+    mode.exit();
+  });
+});
+
+describe("handleStack dispatch — suppression, stopPropagation and Disabled break", () => {
+  afterEach(() => {
+    // Pop any modes left on the stack between tests.
+    for (let i = 0; i < 5; i++) {
+      Mode.getCurrent()?.exit();
+    }
+  });
+
+  it("skips a higher mode's listener and breaks when a Disabled mode is on top", () => {
+    const lower = new Mode("Normal");
+    const lowerHandler = vi.fn();
+    lower.addEventListener("keydown", lowerHandler);
+
+    const disabled = new Mode("Disabled");
+    const disabledHandler = vi.fn((e: Event & { sk_suppressed?: boolean }) => {
+      e.sk_suppressed = true;
+    });
+    disabled.addEventListener("keydown", disabledHandler);
+
+    lower.enter(1);
+    disabled.enter(2); // Disabled sits on top (higher priority)
+
+    const event = new Event("keydown") as Event & {
+      sk_keyName?: string;
+      sk_suppressed?: boolean;
+    };
+    window.dispatchEvent(event);
+
+    // Disabled handled the event and suppressed it; the loop breaks at Disabled so
+    // the lower Normal mode never sees it.
+    expect(disabledHandler).toHaveBeenCalledTimes(1);
+    expect(lowerHandler).not.toHaveBeenCalled();
+
+    disabled.exit();
+    lower.exit();
   });
 });
