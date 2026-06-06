@@ -1,3 +1,5 @@
+import * as v from "valibot";
+
 import type { SurfingkeysApi } from "./api";
 import KeyboardUtils from "./keyboardUtils";
 import type { ModeContext } from "./modeGraph";
@@ -738,6 +740,27 @@ export default function (api: SurfingkeysApi, ctx: ModeContext): void {
   mapkey(";e", "#11Edit Settings", () => {
     tabOpenLink("/options.html");
   });
+  // External suggestion endpoints return untrusted data, so each response is
+  // run through a valibot schema; a parse/shape failure yields no suggestions
+  // rather than throwing out of the keypress handler.
+  const parseJsonSafe = (text: string): unknown => {
+    try {
+      return JSON.parse(text);
+    } catch {
+      return undefined;
+    }
+  };
+  // The leading element echoes the query and is sometimes null, so it is not
+  // constrained; only the suggestion list at index 1 is consumed.
+  const openSearchSuggestSchema = v.tupleWithRest([v.unknown(), v.array(v.string())], v.unknown());
+  const duckduckgoSuggestSchema = v.array(v.object({ phrase: v.string() }));
+  const githubRepoSuggestSchema = v.object({
+    items: v.array(v.object({ description: v.nullable(v.string()), html_url: v.string() })),
+  });
+  const youtubeSuggestSchema = v.tupleWithRest(
+    [v.unknown(), v.array(v.tupleWithRest([v.string()], v.unknown()))],
+    v.unknown(),
+  );
   addSearchAlias(
     "g",
     "google",
@@ -745,8 +768,8 @@ export default function (api: SurfingkeysApi, ctx: ModeContext): void {
     "s",
     "https://www.google.com/complete/search?client=chrome-omni&gs_ri=chrome-ext&oit=1&cp=1&pgcl=7&q=",
     (response: any) => {
-      const res = JSON.parse(response.text);
-      return res[1];
+      const result = v.safeParse(openSearchSuggestSchema, parseJsonSafe(response.text));
+      return result.success ? result.output[1] : [];
     },
   );
   addSearchAlias(
@@ -756,10 +779,8 @@ export default function (api: SurfingkeysApi, ctx: ModeContext): void {
     "s",
     "https://duckduckgo.com/ac/?q=",
     (response: any) => {
-      const res = JSON.parse(response.text);
-      return res.map((r: any) => {
-        return r.phrase;
-      });
+      const result = v.safeParse(duckduckgoSuggestSchema, parseJsonSafe(response.text));
+      return result.success ? result.output.map((r) => r.phrase) : [];
     },
   );
   addSearchAlias(
@@ -781,7 +802,8 @@ export default function (api: SurfingkeysApi, ctx: ModeContext): void {
     "s",
     "https://en.wikipedia.org/w/api.php?action=opensearch&format=json&formatversion=2&namespace=0&limit=40&search=",
     (response: any) => {
-      return JSON.parse(response.text)[1];
+      const result = v.safeParse(openSearchSuggestSchema, parseJsonSafe(response.text));
+      return result.success ? result.output[1] : [];
     },
   );
   addSearchAlias(
@@ -791,8 +813,8 @@ export default function (api: SurfingkeysApi, ctx: ModeContext): void {
     "s",
     "https://api.bing.com/osjson.aspx?query=",
     (response: any) => {
-      const res = JSON.parse(response.text);
-      return res[1];
+      const result = v.safeParse(openSearchSuggestSchema, parseJsonSafe(response.text));
+      return result.success ? result.output[1] : [];
     },
   );
   addSearchAlias("s", "stackoverflow", "https://stackoverflow.com/search?q=");
@@ -803,14 +825,9 @@ export default function (api: SurfingkeysApi, ctx: ModeContext): void {
     "s",
     "https://api.github.com/search/repositories?order=desc&q=",
     (response: any) => {
-      const res = JSON.parse(response.text)["items"];
-      return res
-        ? res.map((r: any) => {
-            return {
-              title: r.description,
-              url: r.html_url,
-            };
-          })
+      const result = v.safeParse(githubRepoSuggestSchema, parseJsonSafe(response.text));
+      return result.success
+        ? result.output.items.map((r) => ({ title: r.description, url: r.html_url }))
         : [];
     },
   );
@@ -821,10 +838,11 @@ export default function (api: SurfingkeysApi, ctx: ModeContext): void {
     "s",
     "https://clients1.google.com/complete/search?client=youtube&ds=yt&callback=cb&q=",
     (response: any) => {
-      const res = JSON.parse(response.text.substring(9, response.text.length - 1));
-      return res[1].map((d: any) => {
-        return d[0];
-      });
+      const result = v.safeParse(
+        youtubeSuggestSchema,
+        parseJsonSafe(response.text.substring(9, response.text.length - 1)),
+      );
+      return result.success ? result.output[1].map((d) => d[0]) : [];
     },
   );
 

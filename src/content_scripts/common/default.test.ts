@@ -1192,6 +1192,18 @@ describe("search alias suggestion parsers", () => {
     const text = "callback(" + JSON.stringify(inner) + ")";
     expect(parse({ text })).toEqual(["suggestion1", "suggestion2"]);
   });
+
+  it("returns no suggestions when the response is malformed JSON", () => {
+    for (const alias of ["g", "d", "e", "w", "h", "y"]) {
+      expect(getParser(alias)({ text: "not json" })).toEqual([]);
+    }
+  });
+
+  it("returns no suggestions when the response shape is unexpected", () => {
+    expect(getParser("g")({ text: JSON.stringify({ unexpected: true }) })).toEqual([]);
+    expect(getParser("d")({ text: JSON.stringify([{ no: "phrase" }]) })).toEqual([]);
+    expect(getParser("h")({ text: JSON.stringify({ items: [{ description: "d" }] }) })).toEqual([]);
+  });
 });
 
 describe("w switches frames", () => {
