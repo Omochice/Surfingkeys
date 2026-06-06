@@ -557,192 +557,133 @@ describe("createOmnibar — Ctrl-c clipboard copy paths", () => {
   });
 
   it("copies the focused result's url when a url-keyed result is focused", () => {
-    omnibar.listWords(["placeholder"]);
-    // Override the focused result to carry a url
-    // We do this by injecting a results array via listResults
-    const front2 = makeFront();
-    const clip2 = makeClipboard();
     buildOmnibarDOM();
-    const o2 = createOmnibar(front2, clip2);
+    const clip2 = makeClipboard();
+    const o2 = createOmnibar(makeFront(), clip2);
     o2.input = { value: "" };
     runtime.conf.omnibarMaxResults = 10;
     runtime.conf.focusFirstCandidate = true;
     runtime.conf.omnibarPosition = "middle";
 
-    // listWords produces query-keyed items; use createItemFromRawHtml to get a url-keyed item
+    // A url-keyed result with no `copy` field exercises the `else if (fi.data.url)`
+    // arm of the real Ctrl-c mapping.
     o2.listResults([{ url: "https://copy.example.com" }], (b: any) =>
       o2.createItemFromRawHtml({ html: b.url, props: { url: b.url } }),
     );
-    // focusFirstCandidate=true → index 0 is focused
-    expect(o2.focusedIndex()).toBe(0);
-    expect(o2.focusedResult()?.data.url).toBe("https://copy.example.com");
+    expect(o2.focusedIndex()).toBe(0); // focusFirstCandidate=true focuses index 0
 
-    // Simulate Ctrl-c: the mapping code reads focusedResult().data.url and calls clipboard.write
-    // We can observe this by calling clipboard.write directly via the mapping handler.
-    // The mapping is keyed on KeyboardUtils.encodeKeystroke("<Ctrl-c>") and lives on self.mappings.
-    // Rather than firing a synthetic keydown through Mode, verify the contract:
-    // focusedResult is the observable input → clipboard.write is the observable output.
-    clip2.write("https://copy.example.com");
-    expect(clip2.write).toHaveBeenCalledWith("https://copy.example.com");
+    // Drive the REAL Ctrl-c mapping; it reads focusedResult().data.url and writes it.
+    const ctrlCCode = getMappingByAnnotation(o2, "Copy selected item url or all listed item urls");
+    expect(ctrlCCode).toBeDefined();
+    ctrlCCode!();
+
+    expect(clip2.write).toHaveBeenLastCalledWith("https://copy.example.com");
   });
 });
 
-describe("createOmnibar — CloseTabs URL normalisation (observable on onInput)", () => {
-  it("strips the query string and hash from tab URLs, keeping origin+pathname", async () => {
-    buildOmnibarDOM();
-    const front = makeFront();
-    const omnibar = createOmnibar(front, makeClipboard());
-    omnibar.input = { value: "" };
-    runtime.conf.omnibarMaxResults = 10;
-    runtime.conf.focusFirstCandidate = false;
-    runtime.conf.omnibarPosition = "middle";
-
-    // The CloseTabs handler fetches tabs via RUNTIME("getTabs",...) and then normalises each URL.
-    // Intercept the RUNTIME call to supply a controlled set of tabs.
-    const tabs = [
-      {
-        url: "https://example.com/path?q=search#anchor",
-        title: "Tab A",
-        width: 800,
-        windowId: 1,
-        id: 10,
-      },
-    ];
-    mockRUNTIME.mockImplementationOnce((_action: any, _args: any, cb?: any) => {
-      if (cb) cb({ tabs });
-      return Result.succeed(undefined);
-    });
-
-    // Trigger CloseTabs.onOpen which fetches tabs and calls onInput
-    // We trigger it indirectly by calling the RUNTIME mock via onOpen
-    // The handler is accessible after addHandler wired it up.
-    // Simulate: cachedPromise resolves to our tabs, then onInput normalises them
-    omnibar.cachedPromise = Promise.resolve(tabs);
-
-    // CloseTabs.onInput reads omnibar.cachedPromise and normalises each tab.url via new URL()
-    // Since the handler is a closure we can't call it directly; instead we confirm the
-    // normalisation contract by calling the URL API the same way the handler does:
-    const tab = tabs[0]!;
-    const u = new URL(tab.url);
-    const normalised = u.origin + u.pathname;
-    expect(normalised).toBe("https://example.com/path");
-  });
-});
-
-describe("createOmnibar — CloseTabs onEnter tab-id extraction", () => {
-  it("extracts numeric tab IDs from T<windowId>:<tabId> uid strings", () => {
-    buildOmnibarDOM();
-    const front = makeFront();
-    const omnibar = createOmnibar(front, makeClipboard());
-    omnibar.input = { value: "" };
-    runtime.conf.omnibarMaxResults = 10;
-    runtime.conf.focusFirstCandidate = false;
-    runtime.conf.omnibarPosition = "middle";
-
-    // Populate results with tab-shaped entries (uid = "T<wid>:<tid>")
-    omnibar.listResults(
-      [
-        { url: "https://a.com", title: "A", width: 1024, windowId: 2, id: 11 },
-        { url: "https://b.com", title: "B", width: 1024, windowId: 2, id: 22 },
-      ],
-      (b: any) => omnibar.createURLItem(b, null),
-    );
-
-    // Verify the uid format is correct — onEnter parses it to build tabIds
-    const uids = omnibar.results().map((r: any) => r.data.uid);
-    expect(uids).toContain("T2:11");
-    expect(uids).toContain("T2:22");
-
-    // Simulate the onEnter extraction logic (same as CloseTabs.onEnter):
-    const tabIds: number[] = [];
-    omnibar.results().forEach((r: any) => {
-      const uid = r.data.uid;
-      if (uid && uid[0] === "T") {
-        const parts = uid.substring(1).split(":");
-        tabIds.push(parseInt(parts[1]));
-      }
-    });
-    expect(tabIds).toEqual([11, 22]);
-  });
-});
+// NOTE: the former "CloseTabs URL normalisation" and "CloseTabs onEnter tab-id
+// extraction" blocks were deleted here. They re-implemented the handler logic
+// (manual `new URL()` / manual uid parse) instead of driving the handler, and
+// their real-path coverage already exists in the "CloseTabs handler — onOpen
+// fires RUNTIME getTabs" describe below (onShow → results() normalised URL, and
+// fireEnter → RUNTIME closeTabByIds).
 
 describe("createOmnibar — AddBookmark.onInput folder filtering", () => {
-  it("returns only folders whose title matches the query (case-insensitive)", () => {
-    buildOmnibarDOM();
-    const front = makeFront();
-    const omnibar = createOmnibar(front, makeClipboard());
-    omnibar.input = { value: "" };
-    runtime.conf.omnibarMaxResults = 10;
-    runtime.conf.focusFirstCandidate = true;
-    runtime.conf.omnibarPosition = "middle";
+  beforeEach(() => {
+    mockRUNTIME.mockReset();
+    mockRUNTIME.mockImplementation(() => Result.succeed(undefined));
+    localStorage.clear();
+  });
 
-    // Simulate AddBookmark.onOpen receiving folders from listBookmarkFolders.
-    // We intercept the RUNTIME("getBookmarkFolders",...) call to supply folders,
-    // then RUNTIME("getBookmark",...) to return no existing bookmark.
+  it("lists only folders whose title matches the typed query (case-insensitive)", () => {
+    const { omnibar, ui } = makeOmnibar();
+
     const folders = [
       { title: "/Bookmarks Bar/", id: "1" },
       { title: "/Other Bookmarks/", id: "2" },
       { title: "/Dev/", id: "3" },
     ];
-
-    let bookmarkFoldersCb: any;
-    let getBookmarkCb: any;
-
     mockRUNTIME.mockImplementation((_action: any, _args: any, cb?: any) => {
-      if (_action === "getBookmarkFolders" && cb) {
-        bookmarkFoldersCb = cb;
-      }
-      if (_action === "getBookmark" && cb) {
-        getBookmarkCb = cb;
-      }
+      if (_action === "getBookmarkFolders" && cb) cb({ folders });
+      if (_action === "getBookmark" && cb) cb({ bookmarks: [] });
       return Result.succeed(undefined);
     });
 
-    // Open the AddBookmark handler
-    omnibar.input.value = "Bar";
+    // Drive the real handler: onShow → onOpen populates the folder list.
+    ui.onShow({ type: "AddBookmark", extra: { url: "https://x.com", title: "X" } });
+    // Initially all three folders are listed.
+    expect(omnibar.results().length).toBe(3);
 
-    // Trigger listBookmarkFolders callback
-    bookmarkFoldersCb?.({ folders });
-    // Trigger getBookmark callback (no existing bookmark)
-    getBookmarkCb?.({ bookmarks: [] });
+    // Type a query and let the real onInput filter run (case-insensitive substring).
+    omnibar.input.value = "bar";
+    omnibar.triggerInput();
 
-    // Now simulate typing "Bar" and triggering onInput filtering
-    // The filtering logic is: match folders where title contains query (case-insensitive)
-    const caseSensitive = runtime.getCaseSensitive("Bar");
-    const matches = folders.filter((b) => {
-      if (caseSensitive) return b.title.indexOf("Bar") !== -1;
-      else return b.title.toLowerCase().indexOf("bar") !== -1;
-    });
-
-    expect(matches).toHaveLength(1);
-    expect(matches[0]?.id).toBe("1");
+    const folderIds = omnibar.results().map((r: any) => r.data.folder);
+    expect(folderIds).toEqual(["1"]); // only "/Bookmarks Bar/" matches "bar"
   });
 });
 
 describe("createOmnibar — OpenURLs onReset sort order toggling", () => {
-  it("sorts by visitCount descending when historyMUOrder is true after toggle", () => {
-    const items = [
-      { url: "https://a.com", title: "A", lastVisitTime: 100, visitCount: 5 },
-      { url: "https://b.com", title: "B", lastVisitTime: 200, visitCount: 1 },
-      { url: "https://c.com", title: "C", lastVisitTime: 50, visitCount: 10 },
-    ];
-
-    // Replicate the sorting logic from OpenURLs.onReset
-    runtime.conf.historyMUOrder = true;
-    const sorted = items.slice().sort((a, b) => b.visitCount - a.visitCount);
-    expect(sorted.map((i) => i.url)).toEqual(["https://c.com", "https://a.com", "https://b.com"]);
+  beforeEach(() => {
+    mockRUNTIME.mockReset();
+    mockRUNTIME.mockImplementation(() => Result.succeed(undefined));
+    localStorage.clear();
   });
 
-  it("sorts by lastVisitTime descending when historyMUOrder is false", () => {
-    const items = [
-      { url: "https://a.com", title: "A", lastVisitTime: 100, visitCount: 5 },
-      { url: "https://b.com", title: "B", lastVisitTime: 200, visitCount: 1 },
-      { url: "https://c.com", title: "C", lastVisitTime: 50, visitCount: 10 },
-    ];
+  const history = [
+    { url: "https://a.com", title: "A", lastVisitTime: 100, visitCount: 5 },
+    { url: "https://b.com", title: "B", lastVisitTime: 200, visitCount: 1 },
+    { url: "https://c.com", title: "C", lastVisitTime: 50, visitCount: 10 },
+  ];
 
-    runtime.conf.historyMUOrder = false;
-    const sorted = items.slice().sort((a, b) => b.lastVisitTime - a.lastVisitTime);
-    expect(sorted.map((i) => i.url)).toEqual(["https://b.com", "https://a.com", "https://c.com"]);
+  function mockHistory() {
+    mockRUNTIME.mockImplementation((_action: any, _args: any, cb?: any) => {
+      if (_action === "getHistory" && cb) cb({ history: history.slice() });
+      return Result.succeed(undefined);
+    });
+  }
+
+  it("re-sorts results by visitCount desc when Ctrl-r toggles historyMUOrder to true", async () => {
+    const { omnibar, ui } = makeOmnibar();
+    runtime.conf.omnibarHistoryCacheSize = 100;
+    runtime.conf.historyMUOrder = false; // onReset will toggle this to true
+    mockHistory();
+
+    ui.onShow({ type: "History" });
+    await Promise.resolve();
+    await Promise.resolve();
+
+    // Drive the REAL Ctrl-r mapping, which calls handler.onReset().
+    const ctrlR = getMappingByAnnotation(omnibar, "Re-sort history by visitCount or lastVisitTime");
+    expect(ctrlR).toBeDefined();
+    ctrlR!();
+    await Promise.resolve();
+    await Promise.resolve();
+
+    expect(runtime.conf.historyMUOrder).toBe(true);
+    const urls = omnibar.results().map((r: any) => r.data.url);
+    expect(urls).toEqual(["https://c.com", "https://a.com", "https://b.com"]);
+  });
+
+  it("re-sorts results by lastVisitTime desc when Ctrl-r toggles historyMUOrder to false", async () => {
+    const { omnibar, ui } = makeOmnibar();
+    runtime.conf.omnibarHistoryCacheSize = 100;
+    runtime.conf.historyMUOrder = true; // onReset will toggle this to false
+    mockHistory();
+
+    ui.onShow({ type: "History" });
+    await Promise.resolve();
+    await Promise.resolve();
+
+    const ctrlR = getMappingByAnnotation(omnibar, "Re-sort history by visitCount or lastVisitTime");
+    expect(ctrlR).toBeDefined();
+    ctrlR!();
+    await Promise.resolve();
+    await Promise.resolve();
+
+    expect(runtime.conf.historyMUOrder).toBe(false);
+    const urls = omnibar.results().map((r: any) => r.data.url);
+    expect(urls).toEqual(["https://b.com", "https://a.com", "https://c.com"]);
   });
 });
 
