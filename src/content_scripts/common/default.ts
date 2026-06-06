@@ -20,6 +20,29 @@ import {
   toggleQuote,
 } from "./utils";
 
+// Parse JSON without throwing: malformed input becomes undefined so callers can
+// route it through schema validation and a graceful fallback.
+const parseJsonSafe = (text: string): unknown => {
+  try {
+    return JSON.parse(text);
+  } catch {
+    return undefined;
+  }
+};
+
+// External suggestion endpoints return untrusted data validated below; the
+// leading element echoes the query (sometimes null), so only the suggestion
+// list at index 1 is constrained.
+const openSearchSuggestSchema = v.tupleWithRest([v.unknown(), v.array(v.string())], v.unknown());
+const duckduckgoSuggestSchema = v.array(v.object({ phrase: v.string() }));
+const githubRepoSuggestSchema = v.object({
+  items: v.array(v.object({ description: v.nullable(v.string()), html_url: v.string() })),
+});
+const youtubeSuggestSchema = v.tupleWithRest(
+  [v.unknown(), v.array(v.tupleWithRest([v.string()], v.unknown()))],
+  v.unknown(),
+);
+
 export default function (api: SurfingkeysApi, ctx: ModeContext): void {
   const { clipboard, normal, hints, visual, front } = ctx;
   const { addSearchAlias, cmap, map, mapkey, imapkey, vmapkey, searchSelectedWith } = api;
@@ -740,27 +763,6 @@ export default function (api: SurfingkeysApi, ctx: ModeContext): void {
   mapkey(";e", "#11Edit Settings", () => {
     tabOpenLink("/options.html");
   });
-  // External suggestion endpoints return untrusted data, so each response is
-  // run through a valibot schema; a parse/shape failure yields no suggestions
-  // rather than throwing out of the keypress handler.
-  const parseJsonSafe = (text: string): unknown => {
-    try {
-      return JSON.parse(text);
-    } catch {
-      return undefined;
-    }
-  };
-  // The leading element echoes the query and is sometimes null, so it is not
-  // constrained; only the suggestion list at index 1 is consumed.
-  const openSearchSuggestSchema = v.tupleWithRest([v.unknown(), v.array(v.string())], v.unknown());
-  const duckduckgoSuggestSchema = v.array(v.object({ phrase: v.string() }));
-  const githubRepoSuggestSchema = v.object({
-    items: v.array(v.object({ description: v.nullable(v.string()), html_url: v.string() })),
-  });
-  const youtubeSuggestSchema = v.tupleWithRest(
-    [v.unknown(), v.array(v.tupleWithRest([v.string()], v.unknown()))],
-    v.unknown(),
-  );
   addSearchAlias(
     "g",
     "google",
