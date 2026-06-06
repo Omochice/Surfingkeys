@@ -258,10 +258,11 @@ function initSKFunctionListener(
   document.addEventListener(
     `surfingkeys:${name}`,
     (evt) => {
-      const args = (evt as CustomEvent).detail as any[];
+      const ce = evt as CustomEvent<any[]>;
+      const args = ce.detail;
       const fk = args.shift();
       if (capture) {
-        const target = (evt as CustomEvent).target;
+        const target = ce.target;
         if (
           args.length > 0 &&
           args[0].constructor.name === "Array" &&
