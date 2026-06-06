@@ -3,7 +3,7 @@ type LogLevel = "log" | "warn" | "error";
 function LOG(level: LogLevel, msg: unknown): void {
   // To turn on all levels: chrome.storage.local.set({"logLevels": ["log", "warn", "error"]})
   chrome.storage.local.get(["logLevels"], (r) => {
-    const rawLogLevels = (r as { logLevels?: unknown } | undefined)?.logLevels;
+    const rawLogLevels: unknown = r?.["logLevels"];
     const logLevels: string[] = Array.isArray(rawLogLevels) ? rawLogLevels : ["error"];
     if (["log", "warn", "error"].indexOf(level) !== -1 && logLevels.indexOf(level) !== -1) {
       console[level](msg);

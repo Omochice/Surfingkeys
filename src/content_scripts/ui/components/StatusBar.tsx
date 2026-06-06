@@ -19,6 +19,11 @@ export type StatusBarProps = {
 
 const isEmpty = (cell: StatusCell): boolean => cell === "";
 
+const htmlCell = (cell: StatusCell): { html: string } | null =>
+  typeof cell === "object" ? cell : null;
+
+const textCell = (cell: StatusCell): string => (typeof cell === "string" ? cell : "");
+
 /**
  * Status line shown in the frontend iframe. A reactive Solid replacement for the imperative
  * `showStatus` DOM updates in the legacy frontend.
@@ -54,10 +59,10 @@ export const StatusBar: Component<StatusBarProps> = (props) => {
           }
         >
           <Show
-            when={typeof cell() === "object"}
-            fallback={cell() as string}
+            when={htmlCell(cell())}
+            fallback={textCell(cell())}
           >
-            <span innerHTML={DOMPurify.sanitize((cell() as { html: string }).html)} />
+            {(html) => <span innerHTML={DOMPurify.sanitize(html().html)} />}
           </Show>
         </span>
       )}

@@ -442,7 +442,7 @@ function createVisual(clipboard: ClipboardLike, hints: HintsLike): VisualMode {
       let p = selection.focusNode as (Node & { parentElement: HTMLElement | null }) | null;
       while (p && p !== document.body) {
         p = p.parentElement;
-        const textNodes = getTextNodes(p!, /./) as Node[];
+        const textNodes = getTextNodes(p!, /./);
         const firstNode = textNodes[0];
         const lastNode = textNodes[textNodes.length - 1] as Text | undefined;
         if (firstNode == null || lastNode == null) {
@@ -520,7 +520,7 @@ function createVisual(clipboard: ClipboardLike, hints: HintsLike): VisualMode {
 
   function getTextNodeByY(y: number): Node | null {
     let node: Node | null = null;
-    const treeWalker = getTextNodes(document.body, /./, 0) as TreeWalker;
+    const treeWalker = getTextNodes(document.body, /./, 0);
     while (treeWalker.nextNode()) {
       const parent = treeWalker.currentNode.parentNode;
       if (!(parent instanceof Element)) {
@@ -646,7 +646,7 @@ function createVisual(clipboard: ClipboardLike, hints: HintsLike): VisualMode {
 
   function highlight(pattern: RegExp): void {
     const gpattern = new RegExp(pattern.source, "g" + pattern.flags);
-    (getTextNodes(document.body, pattern) as Node[]).forEach((node) => {
+    getTextNodes(document.body, pattern).forEach((node) => {
       if (!(node instanceof Text)) {
         return;
       }

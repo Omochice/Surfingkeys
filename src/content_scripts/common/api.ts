@@ -55,8 +55,10 @@ function createAPI(ctx: ModeContext) {
 
   function _isDomainApplicable(domain?: RegExp | number): boolean {
     // A falsy domain (undefined or the legacy 0 sentinel) means "applies everywhere".
-    const re = domain as RegExp;
-    return !domain || re.test(document.location.href) || re.test(window.origin);
+    if (!domain || typeof domain === "number") {
+      return true;
+    }
+    return domain.test(document.location.href) || domain.test(window.origin);
   }
 
   function _mapkey(

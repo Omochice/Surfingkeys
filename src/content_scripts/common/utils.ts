@@ -117,7 +117,8 @@ const colors = [
   "#6B8E23", // Olive Drab
 ];
 function getColor(i: number): string {
-  return colors[i] as string;
+  // wrap around so more hints/marks than palette entries still get a valid color
+  return colors[i % colors.length]!;
 }
 
 function isEmptyObject(obj: object): boolean {
@@ -258,10 +259,11 @@ function initSKFunctionListener(
   document.addEventListener(
     `surfingkeys:${name}`,
     (evt) => {
-      const args = (evt as CustomEvent).detail as any[];
+      const ce = evt as CustomEvent<any[]>;
+      const args = ce.detail;
       const fk = args.shift();
       if (capture) {
-        const target = (evt as CustomEvent).target;
+        const target = ce.target;
         if (
           args.length > 0 &&
           args[0].constructor.name === "Array" &&
@@ -648,6 +650,9 @@ function getClickableElements(selectorString: string, pattern?: RegExp): Element
   return filterOverlapElements(nodes);
 }
 
+// `flag === 0` returns the live TreeWalker; every other flag collects matching nodes.
+function getTextNodes(root: Node, pattern: RegExp, flag: 0): TreeWalker;
+function getTextNodes(root: Node, pattern: RegExp, flag?: number): Node[];
 function getTextNodes(root: Node, pattern: RegExp, flag?: number): Node[] | TreeWalker {
   const skip_tags = ["script", "style", "noscript", "surfingkeys_mark"];
   const treeWalker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, {
@@ -727,10 +732,10 @@ function getTextRect(
       let start = startOffset;
       while (rects.length === 0 && start >= 0) {
         _focusedRange.setStart(node, start);
-        if (endOffset != null) {
-          _focusedRange.setEnd(endNodeOrOffset as Node, endOffset);
-        } else if (endNodeOrOffset != null) {
-          _focusedRange.setEnd(node, endNodeOrOffset as number);
+        if (endOffset != null && typeof endNodeOrOffset === "object") {
+          _focusedRange.setEnd(endNodeOrOffset, endOffset);
+        } else if (typeof endNodeOrOffset === "number") {
+          _focusedRange.setEnd(node, endNodeOrOffset);
         } else {
           _focusedRange.setEnd(node, startOffset);
         }
@@ -877,11 +882,11 @@ function parseAnnotation(ag: { annotation: string | string[]; feature_group?: nu
   feature_group?: number;
 } {
   let an: string | string[] = ag.annotation;
-  if (an.constructor.name === "String") {
+  if (typeof an === "string") {
     // for parameterized annotations such as ["#6Search selected with {0}", "Google"]
-    an = [an as string];
+    an = [an];
   }
-  const arr = an as string[];
+  const arr = an;
   const first = arr[0];
   if (first == null) {
     return ag;
@@ -968,12 +973,12 @@ function tabOpenLink(str: string | string[] | NodeList, simultaneousness?: numbe
   simultaneousness = simultaneousness || 5;
 
   let urls: string[];
-  if (str.constructor.name === "Array") {
-    urls = str as string[];
+  if (Array.isArray(str)) {
+    urls = str;
   } else if (str instanceof NodeList) {
     urls = Array.from(str).map((n) => (n as HTMLAnchorElement).href);
   } else {
-    urls = (str as string).trim().split("\n");
+    urls = str.trim().split("\n");
   }
 
   urls = urls.map((u) => u.trim()).filter((u) => u.length > 0);
