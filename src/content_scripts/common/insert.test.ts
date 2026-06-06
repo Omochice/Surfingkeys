@@ -185,7 +185,8 @@ describe("createInsert mapping codes", () => {
 
   describe("move backward one word (<Alt-b>)", () => {
     it("moves the caret back by one word", () => {
-      // cursor at position 11 (after "hello world"), expect move to after space = 6
+      // cursor starts at 11 (end of "hello world"); moving back one word lands on
+      // the space at index 5, as asserted below.
       const input = makeInput("hello world", 11);
       const code = getCode(insert, "<Alt-b>");
       expect(code).toBeDefined();
