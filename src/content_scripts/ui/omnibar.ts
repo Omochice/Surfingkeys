@@ -665,9 +665,12 @@ function createOmnibar(front: any, clipboard: any) {
     setResults([]);
     setFocusedIndex(-1);
     lastHandler = null;
-    handler.onClose && handler.onClose();
+    handler?.onClose?.();
     self.exit();
-    handler = null;
+    // Reset to an empty object (not null) so a late async callback reading
+    // handler.* after the popup closes hits a harmless no-op rather than a
+    // null-deref. onShow always reassigns the real handler before next use.
+    handler = {};
   };
 
   self.isUrl = (input: string) => {
@@ -745,7 +748,7 @@ function createOmnibar(front: any, clipboard: any) {
       }
     });
     setResults(built);
-    if (runtime.conf.focusFirstCandidate || handler.focusFirstCandidate) {
+    if (runtime.conf.focusFirstCandidate || handler?.focusFirstCandidate) {
       setFocusedIndex(getPosition() === "bottom" ? built.length - 1 : 0);
     } else {
       setFocusedIndex(-1);
