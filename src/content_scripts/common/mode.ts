@@ -83,8 +83,8 @@ function handleStack(eventName: string, event: StackEvent, cb?: (mode: Mode) => 
 
 function init(cb?: () => void): void {
   mode_stack = [];
-  for (const evtName in _listenedEvents) {
-    window.addEventListener(evtName, _listenedEvents[evtName] as EventListener, true);
+  for (const [evtName, listener] of Object.entries(_listenedEvents)) {
+    window.addEventListener(evtName, listener, true);
   }
   cb?.();
 }
@@ -115,10 +115,11 @@ export default class Mode {
     this.eventListeners[evtName] = handler;
 
     if (!Object.hasOwn(_listenedEvents, evtName)) {
-      _listenedEvents[evtName] = (event) => {
+      const listener = (event: StackEvent): void => {
         handleStack(evtName, event);
       };
-      window.addEventListener(evtName, _listenedEvents[evtName] as EventListener, true);
+      _listenedEvents[evtName] = listener;
+      window.addEventListener(evtName, listener, true);
     }
 
     return this;
@@ -224,13 +225,15 @@ export default class Mode {
       else if (a.contains(b)) return -1;
       return b.scrollHeight * b.scrollWidth - a.scrollHeight * a.scrollWidth;
     });
-    // document.scrollingElement will be null when document.body.tagName === "FRAMESET"
+    // document.scrollingElement will be null when document.body.tagName === "FRAMESET".
+    // It belongs to this content script's own document, so instanceof is realm-safe here.
+    const scrollingElement = document.scrollingElement;
     if (
-      document.scrollingElement &&
-      (document.scrollingElement.scrollHeight > window.innerHeight ||
-        document.scrollingElement.scrollWidth > window.innerWidth)
+      scrollingElement instanceof HTMLElement &&
+      (scrollingElement.scrollHeight > window.innerHeight ||
+        scrollingElement.scrollWidth > window.innerWidth)
     ) {
-      nodes.unshift(document.scrollingElement as HTMLElement);
+      nodes.unshift(scrollingElement);
     }
     return nodes;
   }
@@ -304,7 +307,7 @@ export default class Mode {
       event.sk_suppressed = true;
       actionDone = true;
     } else if (this.pendingMap) {
-      const meta = this.map_node!.meta as TrieMeta;
+      const meta = this.map_node!.meta!;
       this.setLastKeys?.(meta.word + key);
       const pf = this.pendingMap.bind(this);
       event.sk_stopPropagation = !meta.stopPropagation || callStopPropagation(meta, key);
