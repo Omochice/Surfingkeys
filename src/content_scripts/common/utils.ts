@@ -117,7 +117,7 @@ const colors = [
   "#6B8E23", // Olive Drab
 ];
 function getColor(i: number): string {
-  return colors[i] as string;
+  return colors[i]!;
 }
 
 function isEmptyObject(obj: object): boolean {
@@ -877,11 +877,11 @@ function parseAnnotation(ag: { annotation: string | string[]; feature_group?: nu
   feature_group?: number;
 } {
   let an: string | string[] = ag.annotation;
-  if (an.constructor.name === "String") {
+  if (typeof an === "string") {
     // for parameterized annotations such as ["#6Search selected with {0}", "Google"]
-    an = [an as string];
+    an = [an];
   }
-  const arr = an as string[];
+  const arr = an;
   const first = arr[0];
   if (first == null) {
     return ag;
@@ -968,12 +968,12 @@ function tabOpenLink(str: string | string[] | NodeList, simultaneousness?: numbe
   simultaneousness = simultaneousness || 5;
 
   let urls: string[];
-  if (str.constructor.name === "Array") {
-    urls = str as string[];
+  if (Array.isArray(str)) {
+    urls = str;
   } else if (str instanceof NodeList) {
     urls = Array.from(str).map((n) => (n as HTMLAnchorElement).href);
   } else {
-    urls = (str as string).trim().split("\n");
+    urls = str.trim().split("\n");
   }
 
   urls = urls.map((u) => u.trim()).filter((u) => u.length > 0);
