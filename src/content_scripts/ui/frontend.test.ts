@@ -312,8 +312,7 @@ describe("window message handler", () => {
     // Provide a topOrigin so postMessage doesn't target undefined.
     Front.topOrigin = "https://ack-test.example.com";
     const posted: any[] = [];
-    const origPostMessage = window.top!.postMessage.bind(window.top);
-    vi.spyOn(window.top!, "postMessage").mockImplementation((data: any) => {
+    const spy = vi.spyOn(window.top!, "postMessage").mockImplementation((data: any) => {
       posted.push(data);
     });
 
@@ -328,9 +327,9 @@ describe("window message handler", () => {
     expect(ackMsg).toBeDefined();
     expect(ackMsg.surfingkeys_uihost_data.toContent).toBe(true);
 
-    vi.restoreAllMocks();
-    // restore
-    window.top!.postMessage = origPostMessage;
+    // Restore via the spy so window.top.postMessage returns to the original
+    // method, not a bound wrapper that would leak into later tests.
+    spy.mockRestore();
   });
 });
 
