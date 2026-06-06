@@ -24,6 +24,7 @@ import {
   tryDecodeURI,
   tryDecodeURIComponent,
 } from "../common/utils";
+import { parseCommandLine } from "./commandLine";
 import { Prompt } from "./components/Prompt";
 import type { PromptValue } from "./components/Prompt";
 import { ResultList } from "./components/ResultList";
@@ -250,7 +251,10 @@ function createOmnibar(front: any, clipboard: any) {
   let bookmarkFolders: any;
 
   let lastInput = "";
-  let handler: any;
+  // Initialised to an empty object so that listResults can safely read
+  // handler.focusFirstCandidate before onShow assigns the real handler. The
+  // value is always overwritten by ui.onShow before any user-facing operation.
+  let handler: any = {};
   let lastHandler: any = null;
   const ui: any = document.getElementById("sk_omnibar");
 
@@ -661,9 +665,12 @@ function createOmnibar(front: any, clipboard: any) {
     setResults([]);
     setFocusedIndex(-1);
     lastHandler = null;
-    handler.onClose && handler.onClose();
+    handler?.onClose?.();
     self.exit();
-    handler = null;
+    // Reset to an empty object (not null) so a late async callback reading
+    // handler.* after the popup closes hits a harmless no-op rather than a
+    // null-deref. onShow always reassigns the real handler before next use.
+    handler = {};
   };
 
   self.isUrl = (input: string) => {
@@ -741,7 +748,7 @@ function createOmnibar(front: any, clipboard: any) {
       }
     });
     setResults(built);
-    if (runtime.conf.focusFirstCandidate || handler.focusFirstCandidate) {
+    if (runtime.conf.focusFirstCandidate || handler?.focusFirstCandidate) {
       setFocusedIndex(getPosition() === "bottom" ? built.length - 1 : 0);
     } else {
       setFocusedIndex(-1);
@@ -1685,29 +1692,8 @@ function Commands(omnibar: any, front: any): any {
     return ret;
   };
 
-  function parseCommand(cmdline: string) {
-    cmdline = cmdline.trim();
-    const tokens: string[] = [];
-    let pendingToken = false;
-    let part = "";
-    for (let i = 0; i < cmdline.length; i++) {
-      if (cmdline.charAt(i) === " " && !pendingToken) {
-        tokens.push(part);
-        part = "";
-      } else {
-        if (cmdline.charAt(i) === '"') {
-          pendingToken = !pendingToken;
-        } else {
-          part += cmdline.charAt(i);
-        }
-      }
-    }
-    tokens.push(part);
-    return tokens;
-  }
-
   function execute(cmdline: string) {
-    const args = parseCommand(cmdline);
+    const args = parseCommandLine(cmdline);
     const cmd = args.shift()!;
     if (Object.hasOwn(items, cmd)) {
       const meta = items[cmd];
@@ -1810,5 +1796,4 @@ function OpenUserURLs(omnibar: any): any {
   };
   return self;
 }
-
 export default createOmnibar;

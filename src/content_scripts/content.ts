@@ -1,8 +1,5 @@
-import { Result } from "@praha/byethrow";
-
-import { reportOnFail, userCodeError } from "../common/result";
+import { reportOnFail } from "../common/result";
 import createAPI from "./common/api";
-import browser from "./common/browser";
 import createDefaultMappings from "./common/default";
 import Mode from "./common/mode";
 import createModeGraph, { type ModeContext } from "./common/modeGraph";
@@ -10,15 +7,9 @@ import createNormal from "./common/normal";
 import startScrollNodeObserver from "./common/observer";
 import { reportError } from "./common/report";
 import { RUNTIME, dispatchSKEvent, runtime } from "./common/runtime";
-import type { StoredSettings } from "./common/runtime";
-import {
-  applyUserSettings,
-  generateQuickGuid,
-  getRealEdit,
-  isInUIFrame,
-  showBanner,
-} from "./common/utils";
+import { generateQuickGuid, getRealEdit, isInUIFrame, showBanner } from "./common/utils";
 import createFront from "./front";
+import { applySettings } from "./settingsApplication";
 
 // The injected browser adapter (createFront / plugin hook) is untyped JS.
 type BrowserAdapter = {
@@ -33,86 +24,6 @@ type Api = ReturnType<typeof createAPI>;
 type Normal = ReturnType<typeof createNormal>;
 type Modes = { normal: Normal; front: any; api: Api };
 
-/*
- * Apply custom key mappings for basic users, the input is like
- * {"a": "b", "b": "a", "c": "d"}
- */
-function applyBasicMappings(api: Api, normal: Normal, mappings: Record<string, string>): void {
-  const originKeys = new Set(Object.keys(mappings));
-  const originMappings: Record<string, any> = {};
-  for (const originKey in mappings) {
-    const newKey = mappings[originKey];
-    if (newKey == null) {
-      continue;
-    }
-    // current new key is one original key that will be overrode later
-    // we need save it some where first, since current map will lose it,
-    // such as the `a` in above example.
-    if (originKeys.has(newKey)) {
-      const target = normal.mappings.find(newKey);
-      if (target) {
-        originMappings[newKey] = target.meta;
-      }
-    }
-    if (newKey === "") {
-      normal.mappings.remove(originKey);
-    } else if (Object.hasOwn(originMappings, originKey)) {
-      const meta = originMappings[originKey];
-      if (meta != null) {
-        normal.mappings.add(newKey, meta);
-      }
-    } else {
-      api.map(newKey, originKey);
-    }
-  }
-}
-
-function ensureRegex(regexName: string): void {
-  const conf = runtime.conf as Record<string, any>;
-  const r = conf[regexName];
-  if (r && r.source && !(r instanceof RegExp)) {
-    conf[regexName] = new RegExp(r.source, r.flags);
-  }
-}
-
-function applyRuntimeConf(normal: Normal): void {
-  ensureRegex("prevLinkRegex");
-  ensureRegex("nextLinkRegex");
-  ensureRegex("clickablePat");
-  reportOnFail(
-    RUNTIME(
-      "getState",
-      {
-        blocklistPattern: runtime.conf.blocklistPattern ? runtime.conf.blocklistPattern : undefined,
-        lurkingPattern: runtime.conf.lurkingPattern ? runtime.conf.lurkingPattern : undefined,
-      },
-      (resp) => {
-        let state = resp.state;
-        if (state === "disabled") {
-          normal.disable();
-          dispatchSKEvent("front", ["showStatus", [undefined, undefined, ""]]);
-        } else if (state === "lurking") {
-          state = normal.startLurk();
-        } else {
-          normal.enable();
-          Mode.showStatus();
-        }
-
-        if (window === top) {
-          reportOnFail(
-            RUNTIME("setSurfingkeysIcon", {
-              status: state,
-            }),
-            reportError,
-          );
-          dispatchSKEvent("front", ["showStatus", [undefined, undefined, ""]]);
-        }
-      },
-    ),
-    reportError,
-  );
-}
-
 const userConfPromise = new Promise<typeof runtime.conf>((resolve) => {
   document.addEventListener(
     "surfingkeys:settingsFromSnippetsLoaded",
@@ -122,54 +33,6 @@ const userConfPromise = new Promise<typeof runtime.conf>((resolve) => {
     { once: true },
   );
 });
-
-function applySettings(api: Api, normal: Normal, rs: StoredSettings): void {
-  const conf = runtime.conf as Record<string, any>;
-  for (const k in rs) {
-    if (Object.hasOwn(runtime.conf, k)) {
-      conf[k] = rs[k];
-    }
-  }
-  if ("findHistory" in rs) {
-    runtime.conf.lastQuery = rs.findHistory!.length ? (rs.findHistory![0] ?? "") : "";
-  }
-  if (!rs.showAdvanced) {
-    if (rs.basicMappings) {
-      applyBasicMappings(api, normal, rs.basicMappings);
-    }
-    if (rs.disabledSearchAliases) {
-      for (const key in rs.disabledSearchAliases) {
-        api.removeSearchAlias(key);
-      }
-    }
-  } else if (
-    !rs.isMV3 &&
-    rs.snippets &&
-    !document.location.href.startsWith(browser.runtime.getURL("/"))
-  ) {
-    const settings = {};
-    const snippets = rs.snippets;
-    const r = Result.try({
-      try: (): void => {
-        new Function("settings", "api", snippets)(settings, api);
-      },
-      catch: (cause) => userCodeError("snippet", cause),
-    });
-    applyUserSettings({
-      settings,
-      error: Result.isFailure(r) ? String(r.error.cause) : "",
-    });
-  }
-
-  applyRuntimeConf(normal);
-  document.addEventListener(
-    "surfingkeys:settingsFromSnippetsLoaded",
-    () => {
-      applyRuntimeConf(normal);
-    },
-    { once: true },
-  );
-}
 
 function _initModules(): Modes {
   const { clipboard, insert, normal, hints, visual } = createModeGraph();
