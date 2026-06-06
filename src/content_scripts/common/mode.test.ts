@@ -355,7 +355,7 @@ describe("Mode.handleMapKey — pendingMap branch", () => {
 });
 
 describe("Mode.handleMapKey — stopPropagation variants", () => {
-  it("respects boolean stopPropagation=true: sk_stopPropagation is false when meta says stop", () => {
+  it("sets sk_stopPropagation true when meta.stopPropagation is true", () => {
     const { mode, mappings } = makeMode();
     let ran = 0;
     mappings.add(KeyboardUtils.encodeKeystroke("z"), {
@@ -368,12 +368,8 @@ describe("Mode.handleMapKey — stopPropagation variants", () => {
 
     const event = press(mode, "z");
     expect(ran).toBe(1);
-    // stopPropagation=true means the meta STOPS propagation; the logic is:
-    // sk_stopPropagation = !meta.stopPropagation || callStopPropagation(meta, key)
-    // => !true || true => false || true => true in this code path.
-    // Actually: event.sk_stopPropagation = !meta.stopPropagation || callStopPropagation(meta, key)
-    // callStopPropagation(meta, key) = !!meta.stopPropagation = true
-    // => !true || true = false || true = true
+    // sk_stopPropagation = !meta.stopPropagation || callStopPropagation(meta, key).
+    // With stopPropagation: true that is `false || true === true`.
     expect(event.sk_stopPropagation).toBe(true);
   });
 
