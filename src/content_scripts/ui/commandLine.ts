@@ -4,9 +4,10 @@
  * concern independent of the omnibar's DOM/state, shared by the Commands handler and its tests.
  *
  * Each unquoted space is its own token separator, so two consecutive spaces emit an empty-string
- * token between them: `parseCommandLine("a" + " ".repeat(2) + "b")` returns `["a", "", "b"]`, and
- * an empty input returns `[""]`. This is the existing contract pinned by commandLine.test.ts;
- * callers must tolerate empty tokens.
+ * token between them: `parseCommandLine("a" + " ".repeat(2) + "b")` returns `["a", "", "b"]`. The
+ * input is trimmed first, so both an empty string and a whitespace-only string return `[""]` (a
+ * single empty token) — callers cannot distinguish the two. This is the existing contract pinned by
+ * commandLine.test.ts; callers must tolerate empty tokens.
  */
 export function parseCommandLine(cmdline: string): string[] {
   cmdline = cmdline.trim();
