@@ -31,7 +31,8 @@ describe("parseCommandLine", () => {
   });
 
   it("handles consecutive spaces between tokens", () => {
-    // Each space without an open quote is a separator → two empty tokens between a and b
+    // Two unquoted spaces are two separators, emitting a single empty-string
+    // token between "a" and "b".
     expect(parseCommandLine("a  b")).toEqual(["a", "", "b"]);
   });
 
