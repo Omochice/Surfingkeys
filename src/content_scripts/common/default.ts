@@ -643,7 +643,11 @@ export default function (api: SurfingkeysApi, ctx: ModeContext): void {
 
       return obj;
     } else {
-      return new URLSearchParams(formData as unknown as Record<string, string>).toString();
+      // URLSearchParams' typings omit FormData, though it accepts it at runtime
+      // by iterating entries; build it explicitly to keep that behavior typed.
+      const params = new URLSearchParams();
+      formData.forEach((value, key) => params.append(key, String(value)));
+      return params.toString();
     }
   }
   function generateFormKey(form: HTMLFormElement): string {
