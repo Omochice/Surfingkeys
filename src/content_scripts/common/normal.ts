@@ -987,7 +987,7 @@ function createNormal(insert: InsertLike): NormalMode {
 
   type ScrollCode = (() => void) & { isSKScrollInHints?: boolean };
   const bindScrollForHints = (action: string): ScrollCode => {
-    const f = self.scroll.bind(self, action) as ScrollCode;
+    const f: ScrollCode = self.scroll.bind(self, action);
     // indicate that the key bound with this function is a key to scroll page and can be used to scroll in Hints mode.
     f.isSKScrollInHints = true;
     return f;
