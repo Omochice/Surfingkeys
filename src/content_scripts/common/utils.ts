@@ -731,10 +731,10 @@ function getTextRect(
       let start = startOffset;
       while (rects.length === 0 && start >= 0) {
         _focusedRange.setStart(node, start);
-        if (endOffset != null) {
-          _focusedRange.setEnd(endNodeOrOffset as Node, endOffset);
-        } else if (endNodeOrOffset != null) {
-          _focusedRange.setEnd(node, endNodeOrOffset as number);
+        if (endOffset != null && typeof endNodeOrOffset === "object") {
+          _focusedRange.setEnd(endNodeOrOffset, endOffset);
+        } else if (typeof endNodeOrOffset === "number") {
+          _focusedRange.setEnd(node, endNodeOrOffset);
         } else {
           _focusedRange.setEnd(node, startOffset);
         }
