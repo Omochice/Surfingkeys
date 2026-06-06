@@ -500,7 +500,7 @@ div.hint-scrollable {
     } while (
       node &&
       node !== document.body &&
-      node !== (document as unknown as Node) &&
+      node !== document &&
       node.nodeType !== node.DOCUMENT_FRAGMENT_NODE
     );
     return z;
