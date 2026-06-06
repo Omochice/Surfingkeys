@@ -41,6 +41,11 @@ function makeFront() {
   return {
     _actions: {} as Record<string, any>,
     hidePopup: vi.fn(),
+    // The Ctrl-j "toggle position" path calls reopen(), which schedules a real
+    // setTimeout that fires front.openOmnibar after the test has ended; stub it so
+    // the deferred call is a harmless no-op rather than an unhandled TypeError
+    // (front.openOmnibar is not a function) that fails the run on slower machines.
+    openOmnibar: vi.fn(),
     topOrigin: "https://example.com",
     postMessage: vi.fn(),
     contentCommand: vi.fn(),
