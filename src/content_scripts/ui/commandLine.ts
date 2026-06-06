@@ -2,6 +2,11 @@
  * Parse an omnibar command line into tokens, treating a double-quoted span as a single token and
  * dropping the quote characters themselves. Lives in its own module because the tokeniser is a pure
  * concern independent of the omnibar's DOM/state, shared by the Commands handler and its tests.
+ *
+ * Each unquoted space is its own token separator, so two consecutive spaces emit an empty-string
+ * token between them: `parseCommandLine("a" + " ".repeat(2) + "b")` returns `["a", "", "b"]`, and
+ * an empty input returns `[""]`. This is the existing contract pinned by commandLine.test.ts;
+ * callers must tolerate empty tokens.
  */
 export function parseCommandLine(cmdline: string): string[] {
   cmdline = cmdline.trim();
