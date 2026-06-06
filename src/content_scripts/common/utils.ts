@@ -648,6 +648,9 @@ function getClickableElements(selectorString: string, pattern?: RegExp): Element
   return filterOverlapElements(nodes);
 }
 
+// `flag === 0` returns the live TreeWalker; every other flag collects matching nodes.
+function getTextNodes(root: Node, pattern: RegExp, flag: 0): TreeWalker;
+function getTextNodes(root: Node, pattern: RegExp, flag?: number): Node[];
 function getTextNodes(root: Node, pattern: RegExp, flag?: number): Node[] | TreeWalker {
   const skip_tags = ["script", "style", "noscript", "surfingkeys_mark"];
   const treeWalker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, {
