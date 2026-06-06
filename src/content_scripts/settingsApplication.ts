@@ -110,7 +110,10 @@ export function applySettings(api: Api, normal: Normal, rs: StoredSettings): voi
     }
   }
   if ("findHistory" in rs) {
-    runtime.conf.lastQuery = rs.findHistory!.length ? (rs.findHistory![0] ?? "") : "";
+    // Guard against a non-array findHistory from malformed stored settings; a real
+    // array preserves the previous semantics (lastQuery = first entry, else "").
+    const fh = Array.isArray(rs.findHistory) ? rs.findHistory : [];
+    runtime.conf.lastQuery = fh[0] ?? "";
   }
   if (!rs.showAdvanced) {
     if (rs.basicMappings) {
