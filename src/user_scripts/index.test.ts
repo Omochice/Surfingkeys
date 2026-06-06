@@ -113,8 +113,9 @@ describe("imapkey (via api returned by factory)", () => {
   });
 
   it("does not dispatch when domain option regex does not match", () => {
+    // Distinct key from the registration test above (registries persist across tests).
     const events = captureEvents("surfingkeys:api", () => {
-      capturedApi.imapkey("i", "unreachable", vi.fn(), {
+      capturedApi.imapkey("qz", "unreachable", vi.fn(), {
         domain: /this-domain-will-never-match\.example/,
       });
     });
