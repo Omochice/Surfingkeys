@@ -117,7 +117,8 @@ const colors = [
   "#6B8E23", // Olive Drab
 ];
 function getColor(i: number): string {
-  return colors[i]!;
+  // wrap around so more hints/marks than palette entries still get a valid color
+  return colors[i % colors.length]!;
 }
 
 function isEmptyObject(obj: object): boolean {
