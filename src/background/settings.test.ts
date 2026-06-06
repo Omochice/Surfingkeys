@@ -14,9 +14,24 @@ vi.mock("./request.js", () => ({ request: mockRequest }));
 type AnyChrome = { runtime?: any; storage?: any; tabs?: any; userScripts?: any; windows?: any };
 const g = globalThis as unknown as { chrome: AnyChrome };
 const defaultStorage = g.chrome.storage;
+const defaultRuntime = g.chrome.runtime;
+
+// A deterministic getURL so toggleBlocklist / toggleMouseQuery (which compare the
+// sender URL against chrome.runtime.getURL("/")) do not depend on ambient state.
+// The default setup stub returns the path verbatim, and the registerUserScript
+// tests replace chrome.runtime wholesale; resetting it each test keeps every case
+// starting from a known extension origin.
+function stubRuntime() {
+  g.chrome.runtime = {
+    ...defaultRuntime,
+    getURL: (path = "") => `chrome-extension://abc/${path.replace(/^\//, "")}`,
+  };
+}
+stubRuntime();
 
 afterEach(() => {
   g.chrome.storage = defaultStorage;
+  stubRuntime();
   delete g.chrome.tabs;
   delete g.chrome.userScripts;
   delete g.chrome.windows;
