@@ -2,8 +2,10 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import createUserScript from "./index";
 
-// The user-script api built by the factory; rebuilt before each test so every
-// case starts from a fresh api/event surface.
+// The user-script api built by the factory, rebuilt before each test. Note the
+// factory's registries (userDefinedFunctions/userDefinedCommands in index.ts) are
+// module-level and persist across tests, so cases use distinct keys rather than
+// relying on a per-test reset of that state.
 let capturedApi: any;
 beforeEach(() => {
   createUserScript("chrome-extension://test/", (api) => {
