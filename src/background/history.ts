@@ -8,12 +8,12 @@ import type { MessageHandler } from "./start";
  */
 export function createHistoryHandlers(
   browser: any,
-  _filterByTitleOrUrl: (items: any[], query: string) => any[],
+  _filterByTitleOrUrl: (items: readonly any[], query: string) => readonly any[],
 ): Record<string, MessageHandler> {
   async function _getHistory(text: string, maxResults: number, sortByMostUsed?: boolean) {
     const items: any[] = await browser.getLatestHistoryItem(text, maxResults);
     if (sortByMostUsed) {
-      return items.sort((a, b) => b.visitCount - a.visitCount);
+      return items.toSorted((a, b) => b.visitCount - a.visitCount);
     }
     return items;
   }

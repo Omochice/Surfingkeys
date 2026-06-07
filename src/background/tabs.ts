@@ -42,7 +42,7 @@ export type TabsDeps = {
 export type TabsUnit = {
   handlers: Record<string, MessageHandler>;
   sendTabMessage: (tabId: number, frameId: number, message: any) => void;
-  filterByTitleOrUrl: (tabs: any[], query: string) => any[];
+  filterByTitleOrUrl: (tabs: readonly any[], query: string) => readonly any[];
   tabMessages: Record<string, any>;
   setScrollPos: (tabId: number) => void;
   newTabUrl: string;
@@ -214,7 +214,7 @@ export function createTabs(deps: TabsDeps): TabsUnit {
     }
   }
 
-  function _filterByTitleOrUrl(tabs: any[], query: string) {
+  function _filterByTitleOrUrl(tabs: readonly any[], query: string) {
     tabs = tabs.filter((b) => {
       return b.url;
     });
@@ -325,14 +325,14 @@ export function createTabs(deps: TabsDeps): TabsUnit {
     getTabs: async (message: any, sender: any) => {
       const tab = sender.tab;
       const queryInfo = message.queryInfo || {};
-      let tabs = await chrome.tabs.query(queryInfo);
+      let tabs: readonly chrome.tabs.Tab[] = await chrome.tabs.query(queryInfo);
       tabs = _filterByTitleOrUrl(tabs, message.filter);
       if (tabs.length > message.tabsThreshold && conf["tabsMRUOrder"]) {
         // only remove current tab when tabsMRUOrder is enabled.
         tabs = tabs.filter((b) => {
           return b.id !== tab.id;
         });
-        tabs.sort((x, y) => {
+        tabs = tabs.toSorted((x, y) => {
           // Shift tabs without "last access" data to the end
           const a = x.lastAccessed || tabActivated[x.id!];
           const b = y.lastAccessed || tabActivated[y.id!];

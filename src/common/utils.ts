@@ -30,13 +30,13 @@ function regexFromString(str: string, caseSensitive?: boolean, highlight?: boole
 }
 
 function filterByTitleOrUrl<T extends { title?: string; url?: string }>(
-  urls: T[],
+  urls: readonly T[],
   query?: string,
   caseSensitive?: boolean,
-): T[] {
+): readonly T[] {
   if (query && query.length) {
     const rxp = regexFromString(query, caseSensitive, false);
-    urls = urls.filter((b) => {
+    return urls.filter((b) => {
       return rxp.test(b.title ?? "") || rxp.test(b.url ?? "");
     });
   }

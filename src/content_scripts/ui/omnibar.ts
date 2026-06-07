@@ -1224,11 +1224,11 @@ function OpenURLs(prompt: PromptValue, omnibar: any, queryFn: () => Promise<any>
     runtime.conf.historyMUOrder = !runtime.conf.historyMUOrder;
     queryFn().then((historyItems) => {
       if (runtime.conf.historyMUOrder) {
-        historyItems = historyItems.sort((a: any, b: any) => {
+        historyItems = historyItems.toSorted((a: any, b: any) => {
           return b.visitCount - a.visitCount;
         });
       } else {
-        historyItems = historyItems.sort((a: any, b: any) => {
+        historyItems = historyItems.toSorted((a: any, b: any) => {
           return b.lastVisitTime - a.lastVisitTime;
         });
       }

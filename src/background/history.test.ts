@@ -22,7 +22,7 @@ function browserWith(items: any[]) {
 
 // The injected filter is exercised by start.ts; here it is identity so the
 // handler's own shaping is what gets asserted.
-const identityFilter = (items: any[]) => items;
+const identityFilter = (items: readonly any[]) => items;
 
 describe("createHistoryHandlers", () => {
   it("getRecentlyClosed flattens both window and single-tab sessions", async () => {
@@ -61,6 +61,18 @@ describe("createHistoryHandlers", () => {
     const result = await getHistory({ sortByMostUsed: true }, {}, vi.fn());
 
     expect(result.history.map((h: any) => h.url)).toEqual(["https://high", "https://low"]);
+  });
+
+  it("getHistory leaves the array returned by the browser unmodified when sorting", async () => {
+    const items = [
+      { url: "https://low", visitCount: 1 },
+      { url: "https://high", visitCount: 9 },
+    ];
+    const getHistory = createHistoryHandlers(browserWith(items), identityFilter)["getHistory"];
+    expectDefined(getHistory);
+    await getHistory({ sortByMostUsed: true }, {}, vi.fn());
+
+    expect(items.map((h) => h.url)).toEqual(["https://low", "https://high"]);
   });
 
   it("getAllURLs concatenates bookmarks with history up to maxResults", async () => {

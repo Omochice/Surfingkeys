@@ -219,8 +219,7 @@ export default class Mode {
       (n: HTMLElement) =>
         (Mode.hasScroll(n, "y", 16) && n.scrollHeight > 200) ||
         (Mode.hasScroll(n, "x", 16) && n.scrollWidth > 200),
-    );
-    nodes.sort((a: HTMLElement, b: HTMLElement) => {
+    ).toSorted((a: HTMLElement, b: HTMLElement) => {
       if (b.contains(a)) return 1;
       else if (a.contains(b)) return -1;
       return b.scrollHeight * b.scrollWidth - a.scrollHeight * a.scrollWidth;
