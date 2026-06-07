@@ -9,10 +9,11 @@ import { createSettings } from "./settings";
 import { createTabs } from "./tabs";
 
 /**
- * A background message handler, dispatched by `message.action`. Returning a truthy value sends it
- * as the synchronous response; returning falsy while `message.needResponse` is set defers to an
- * asynchronous `sendResponse`. Extracted background units export a `Record<string, MessageHandler>`
- * map that the composition root registers into the dispatch registry.
+ * A background message handler, dispatched by `message.action`. It resolves to the response
+ * payload: a returned value is sent as the synchronous response, while a returned promise is
+ * awaited and its resolved value sent asynchronously (the dispatcher settles even on rejection).
+ * Extracted background units export a `Record<string, MessageHandler>` map that the composition
+ * root registers into the dispatch registry.
  */
 export type MessageHandler = (
   message: any,
@@ -211,14 +212,6 @@ function start(browser: any): void {
     interceptedErrors: [],
   };
 
-  const pendingPorts: any[] = [];
-  function _response(message: any, sendResponse: (result: any) => void, result: any) {
-    const idx = pendingPorts.indexOf(message);
-    if (idx !== -1) {
-      pendingPorts.splice(idx, 1);
-    }
-    sendResponse(result);
-  }
   function handleMessage(_message: any, _sender: any, _sendResponse: any) {
     const handler = Object.hasOwn(handlers, _message.action)
       ? handlers[_message.action]
@@ -228,10 +221,9 @@ function start(browser: any): void {
       return undefined;
     }
     const result = handler(_message, _sender, _sendResponse);
-    // A promise-returning handler resolves to the response value itself, so it
-    // needs neither the pendingPorts bookkeeping nor the injected responder.
-    // Bridge it to sendResponse here and keep the channel open; settle even on
-    // rejection so a throwing handler never re-hangs the sender.
+    // Asynchronous handlers resolve to the response value; bridge it to
+    // sendResponse and keep the channel open, settling even on rejection so a
+    // throwing handler never hangs the sender.
     if (result instanceof Promise) {
       if (!_message.needResponse) {
         void result.catch(() => {});
@@ -243,15 +235,9 @@ function start(browser: any): void {
       );
       return true;
     }
-    if (_message.needResponse) {
-      if (result) {
-        _sendResponse(result);
-        _message.needResponse = false;
-      } else {
-        pendingPorts.push(_message);
-        // An asynchronous response will be sent using sendResponse later.
-      }
-      return _message.needResponse;
+    // Synchronous handlers return their payload directly.
+    if (_message.needResponse && result) {
+      _sendResponse(result);
     }
     return undefined;
   }
@@ -303,17 +289,12 @@ function start(browser: any): void {
       tabId: sender.tab ? sender.tab.id : undefined,
     });
   };
-  handlers["request"] = (message: any, _sender: any, sendResponse: any) => {
-    void request(message.url, message.headers, message.data).then((r) => {
-      if (Result.isSuccess(r)) {
-        _response(message, sendResponse, { text: r.value });
-      } else {
-        _response(message, sendResponse, { error: String(r.error.cause) });
-      }
-    });
+  handlers["request"] = async (message: any) => {
+    const r = await request(message.url, message.headers, message.data);
+    return Result.isSuccess(r) ? { text: r.value } : { error: String(r.error.cause) };
   };
-  handlers["requestImage"] = (message: any, _sender: any, sendResponse: any) => {
-    void Result.try({
+  handlers["requestImage"] = async (message: any) => {
+    const r = await Result.try({
       try: async () => {
         const res = await fetch(message.url, { method: "GET" });
         const img = await createImageBitmap(await res.blob());
@@ -334,26 +315,17 @@ function start(browser: any): void {
         });
       },
       catch: (cause) => domApiError("requestImage", cause),
-    }).then((r) => {
-      _response(message, sendResponse, {
-        text: Result.isSuccess(r) ? r.value : "",
-      });
     });
+    return { text: Result.isSuccess(r) ? r.value : "" };
   };
-  function _quit() {
-    chrome.windows.getAll(
-      {
-        populate: false,
-      },
-      (windows: any[]) => {
-        windows.forEach((w) => {
-          chrome.windows.remove(w.id);
-        });
-      },
-    );
+  async function _quit() {
+    const windows = await chrome.windows.getAll({ populate: false });
+    windows.forEach((w) => {
+      chrome.windows.remove(w.id!);
+    });
   }
-  handlers["quit"] = (_message: any, _sender: any, _sendResponse: any) => {
-    _quit();
+  handlers["quit"] = () => {
+    void _quit();
   };
   handlers["closeDownloadsShelf"] = (message: any, _sender: any, _sendResponse: any) => {
     if (message.clearHistory) {
@@ -363,12 +335,9 @@ function start(browser: any): void {
       chrome.downloads.setShelfEnabled(true);
     }
   };
-  handlers["getDownloads"] = (message: any, _sender: any, sendResponse: any) => {
-    chrome.downloads.search(message.query, (items: any[]) => {
-      _response(message, sendResponse, {
-        downloads: items,
-      });
-    });
+  handlers["getDownloads"] = async (message: any) => {
+    const downloads = await chrome.downloads.search(message.query);
+    return { downloads };
   };
   handlers["download"] = (message: any, _sender: any, _sendResponse: any) => {
     chrome.downloads.download({
@@ -377,84 +346,53 @@ function start(browser: any): void {
       saveAs: message.saveAs,
     });
   };
-  function _removeURL(uid: string, cb: () => void) {
+  async function _removeURL(uid: string): Promise<void> {
     const type = uid[0];
     uid = uid.substring(1);
     if (type === "B") {
-      chrome.bookmarks.remove(uid, cb);
+      await chrome.bookmarks.remove(uid);
     } else if (type === "H") {
-      chrome.history.deleteUrl({ url: uid }, cb);
+      await chrome.history.deleteUrl({ url: uid });
     } else if (type === "T") {
       const parts = uid.split(":").map((u) => {
         return parseInt(u);
       });
-      chrome.windows.update(
-        parts[0]!,
-        {
-          focused: true,
-        },
-        () => {
-          chrome.tabs.remove(parts[1]!, cb);
-        },
-      );
-    } else if (type === "M") {
-      void settings.loadSettings("marks").then((data: any) => {
-        delete data.marks[uid];
-        void settings.updateAndPostSettings({ marks: data.marks }).then(cb);
+      await chrome.windows.update(parts[0]!, {
+        focused: true,
       });
+      await chrome.tabs.remove(parts[1]!);
+    } else if (type === "M") {
+      const data = await settings.loadSettings("marks");
+      delete data.marks[uid];
+      await settings.updateAndPostSettings({ marks: data.marks });
     }
   }
-  handlers["removeURL"] = (message: any, _sender: any, sendResponse: any) => {
-    let removed = 0;
-    let totalToRemoved = message.uid.length;
-    let uid = message.uid;
-    if (typeof message.uid === "string") {
-      totalToRemoved = 1;
-      uid = [message.uid];
-    }
-    function _done() {
-      removed++;
-      if (removed === totalToRemoved) {
-        _response(message, sendResponse, {
-          response: "Done",
-        });
-      }
-    }
-    uid.forEach((u: string) => {
-      _removeURL(u, _done);
-    });
+  handlers["removeURL"] = async (message: any) => {
+    const uids = typeof message.uid === "string" ? [message.uid] : message.uid;
+    await Promise.all(uids.map((u: string) => _removeURL(u)));
+    return { response: "Done" };
   };
-  handlers["localData"] = (message: any, _sender: any, sendResponse: any) => {
+  handlers["localData"] = async (message: any) => {
     if (message.data.constructor === Object) {
-      chrome.storage.local.set(message.data, () => {});
+      void chrome.storage.local.set(message.data);
       // broadcast the change also, such as lastKeys
       // we would set lastKeys in sync to avoid breaching chrome.storage.sync.MAX_WRITE_OPERATIONS_PER_MINUTE
       void settings.broadcastSettings(message.data);
-    } else {
-      // string or array of string keys
-      chrome.storage.local.get(message.data, (data: any) => {
-        _response(message, sendResponse, {
-          data: data,
-        });
-      });
+      return undefined;
     }
+    // string or array of string keys
+    const data = await chrome.storage.local.get(message.data);
+    return { data };
   };
-  handlers["captureVisibleTab"] = (message: any, _sender: any, sendResponse: any) => {
-    chrome.tabs.captureVisibleTab({ format: "png" }, (dataUrl: string) => {
-      _response(message, sendResponse, {
-        dataUrl: dataUrl,
-      });
-    });
+  handlers["captureVisibleTab"] = async () => {
+    const dataUrl = await chrome.tabs.captureVisibleTab({ format: "png" });
+    return { dataUrl };
   };
-  handlers["getCaptureSize"] = (message: any, _sender: any, sendResponse: any) => {
+  handlers["getCaptureSize"] = async () => {
+    const dataUrl = await chrome.tabs.captureVisibleTab({ format: "png" });
     const img = document.createElement("img");
-    img.onload = () => {
-      _response(message, sendResponse, {
-        width: img.width,
-        height: img.height,
-      });
-    };
-    chrome.tabs.captureVisibleTab({ format: "png" }, (dataUrl: string) => {
+    return await new Promise<{ width: number; height: number }>((resolve) => {
+      img.onload = () => resolve({ width: img.width, height: img.height });
       img.src = dataUrl;
     });
   };
@@ -473,7 +411,7 @@ function start(browser: any): void {
   handlers["writeClipboard"] = (message: any, _sender: any, _sendResponse: any) => {
     navigator.clipboard.writeText(message.text);
   };
-  handlers["getContainerName"] = browser._getContainerName(handlers, _response);
+  handlers["getContainerName"] = browser._getContainerName(handlers);
   chrome.runtime.setUninstallURL(
     "http://brookhong.github.io/2018/01/30/why-did-you-uninstall-surfingkeys.html",
   );

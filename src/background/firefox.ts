@@ -16,21 +16,14 @@ function _setNewTabUrl(): string {
   return "about:newtab";
 }
 
-function _getContainerName(_self: unknown, _response: any) {
-  return function (message: any, sender: any, sendResponse: any) {
-    const cookieStoreId = sender.tab.cookieStoreId;
-    browser.contextualIdentities.get(cookieStoreId).then(
-      (container: any) => {
-        _response(message, sendResponse, {
-          name: container.name,
-        });
-      },
-      () => {
-        _response(message, sendResponse, {
-          name: null,
-        });
-      },
-    );
+function _getContainerName(_self: unknown) {
+  return async (_message: any, sender: any) => {
+    try {
+      const container = await browser.contextualIdentities.get(sender.tab.cookieStoreId);
+      return { name: container.name };
+    } catch {
+      return { name: null };
+    }
   };
 }
 

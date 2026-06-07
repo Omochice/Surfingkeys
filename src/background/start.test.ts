@@ -454,9 +454,9 @@ describe("start — tab/window/download handlers delegate to chrome", () => {
     expect(setShelfEnabled).toHaveBeenNthCalledWith(2, true);
   });
 
-  it("getDownloads searches and responds with the found items", () => {
+  it("getDownloads searches and responds with the found items", async () => {
     const items = [{ url: "https://a/1" }];
-    const search = vi.fn((_query: any, cb: any) => cb(items));
+    const search = vi.fn().mockResolvedValue(items);
     const dispatch = bootWith({ downloads: { search } });
     const sendResponse = vi.fn();
     dispatch(
@@ -464,17 +464,19 @@ describe("start — tab/window/download handlers delegate to chrome", () => {
       {},
       sendResponse,
     );
-    expect(search).toHaveBeenCalledWith({ state: "in_progress" }, expect.any(Function));
-    expect(sendResponse).toHaveBeenCalledWith({ downloads: items });
+    expect(search).toHaveBeenCalledWith({ state: "in_progress" });
+    await vi.waitFor(() => expect(sendResponse).toHaveBeenCalledWith({ downloads: items }));
   });
 
-  it("captureVisibleTab responds with the captured data URL", () => {
-    const captureVisibleTab = vi.fn((_opts: any, cb: any) => cb("data:image/png;base64,AAA"));
+  it("captureVisibleTab responds with the captured data URL", async () => {
+    const captureVisibleTab = vi.fn().mockResolvedValue("data:image/png;base64,AAA");
     const dispatch = bootWith({ tabs: { captureVisibleTab } });
     const sendResponse = vi.fn();
     dispatch({ action: "captureVisibleTab", needResponse: true }, {}, sendResponse);
-    expect(captureVisibleTab).toHaveBeenCalledWith({ format: "png" }, expect.any(Function));
-    expect(sendResponse).toHaveBeenCalledWith({ dataUrl: "data:image/png;base64,AAA" });
+    expect(captureVisibleTab).toHaveBeenCalledWith({ format: "png" });
+    await vi.waitFor(() =>
+      expect(sendResponse).toHaveBeenCalledWith({ dataUrl: "data:image/png;base64,AAA" }),
+    );
   });
 
   it("setSurfingkeysIcon picks the disabled icon and targets the sender tab", () => {
@@ -558,17 +560,17 @@ describe("start — handleMessage dispatch", () => {
 // ---------------------------------------------------------------------------
 
 describe("start — removeURL", () => {
-  it("handles a single string uid (wraps it into an array) and responds after removal", () => {
-    const remove = vi.fn((_url: any, cb: () => void) => cb());
+  it("handles a single string uid (wraps it into an array) and responds after removal", async () => {
+    const remove = vi.fn();
     const dispatch = bootWith({ bookmarks: { remove } });
     const sendResponse = vi.fn();
     dispatch({ action: "removeURL", uid: "Bbookmark-id-1", needResponse: true }, {}, sendResponse);
-    expect(remove).toHaveBeenCalledWith("bookmark-id-1", expect.any(Function));
-    expect(sendResponse).toHaveBeenCalledWith({ response: "Done" });
+    await vi.waitFor(() => expect(sendResponse).toHaveBeenCalledWith({ response: "Done" }));
+    expect(remove).toHaveBeenCalledWith("bookmark-id-1");
   });
 
-  it("handles an array of uids and only responds after all are done", () => {
-    const deleteUrl = vi.fn((_opts: any, cb: () => void) => cb());
+  it("handles an array of uids and only responds after all are done", async () => {
+    const deleteUrl = vi.fn();
     const dispatch = bootWith({ history: { deleteUrl } });
     const sendResponse = vi.fn();
     dispatch(
@@ -576,24 +578,24 @@ describe("start — removeURL", () => {
       {},
       sendResponse,
     );
-    expect(deleteUrl).toHaveBeenCalledWith({ url: "http://a.com" }, expect.any(Function));
-    expect(deleteUrl).toHaveBeenCalledWith({ url: "http://b.com" }, expect.any(Function));
+    await vi.waitFor(() => expect(sendResponse).toHaveBeenCalledWith({ response: "Done" }));
+    expect(deleteUrl).toHaveBeenCalledWith({ url: "http://a.com" });
+    expect(deleteUrl).toHaveBeenCalledWith({ url: "http://b.com" });
     expect(sendResponse).toHaveBeenCalledTimes(1);
-    expect(sendResponse).toHaveBeenCalledWith({ response: "Done" });
   });
 
-  it("focuses the window and removes the tab for type T uid", () => {
-    const windowsUpdate = vi.fn((_id: any, _opts: any, cb?: () => void) => cb && cb());
-    const tabsRemove = vi.fn((_id: any, cb?: () => void) => cb && cb());
+  it("focuses the window and removes the tab for type T uid", async () => {
+    const windowsUpdate = vi.fn();
+    const tabsRemove = vi.fn();
     const dispatch = bootWith({
       windows: { update: windowsUpdate },
       tabs: { remove: tabsRemove },
     });
     const sendResponse = vi.fn();
     dispatch({ action: "removeURL", uid: "T10:42", needResponse: true }, {}, sendResponse);
-    expect(windowsUpdate).toHaveBeenCalledWith(10, { focused: true }, expect.any(Function));
-    expect(tabsRemove).toHaveBeenCalledWith(42, expect.any(Function));
-    expect(sendResponse).toHaveBeenCalledWith({ response: "Done" });
+    await vi.waitFor(() => expect(sendResponse).toHaveBeenCalledWith({ response: "Done" }));
+    expect(windowsUpdate).toHaveBeenCalledWith(10, { focused: true });
+    expect(tabsRemove).toHaveBeenCalledWith(42);
   });
 });
 
@@ -606,16 +608,18 @@ describe("start — localData", () => {
     const localSet = vi.fn();
     const dispatch = bootWith({ storage: { local: { set: localSet } } });
     dispatch({ action: "localData", data: { lastKeys: "abc" } }, {}, vi.fn());
-    expect(localSet).toHaveBeenCalledWith({ lastKeys: "abc" }, expect.any(Function));
+    expect(localSet).toHaveBeenCalledWith({ lastKeys: "abc" });
   });
 
-  it("reads from local storage and responds when data is a string key", () => {
-    const localGet = vi.fn((_key: any, cb: (d: any) => void) => cb({ lastKeys: "xyz" }));
+  it("reads from local storage and responds when data is a string key", async () => {
+    const localGet = vi.fn().mockResolvedValue({ lastKeys: "xyz" });
     const dispatch = bootWith({ storage: { local: { get: localGet } } });
     const sendResponse = vi.fn();
     dispatch({ action: "localData", data: "lastKeys", needResponse: true }, {}, sendResponse);
-    expect(localGet).toHaveBeenCalledWith("lastKeys", expect.any(Function));
-    expect(sendResponse).toHaveBeenCalledWith({ data: { lastKeys: "xyz" } });
+    expect(localGet).toHaveBeenCalledWith("lastKeys");
+    await vi.waitFor(() =>
+      expect(sendResponse).toHaveBeenCalledWith({ data: { lastKeys: "xyz" } }),
+    );
   });
 });
 

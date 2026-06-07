@@ -32,7 +32,7 @@ function _setNewTabUrl(): string {
   return "chrome://newtab/";
 }
 
-function _getContainerName(_self: unknown, _response: unknown): void {}
+function _getContainerName(_self: unknown): void {}
 
 async function getLatestHistoryItem(text: string, maxResults: number): Promise<any[]> {
   let results: any[] = [];
