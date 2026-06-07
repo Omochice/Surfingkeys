@@ -245,20 +245,35 @@ function start(browser: any): void {
     const handler = Object.hasOwn(handlers, _message.action)
       ? handlers[_message.action]
       : undefined;
-    if (handler) {
-      const result = handler(_message, _sender, _sendResponse);
-      if (_message.needResponse) {
-        if (result) {
-          _sendResponse(result);
-          _message.needResponse = false;
-        } else {
-          pendingPorts.push(_message);
-          // An asynchronous response will be sent using sendResponse later.
-        }
-        return _message.needResponse;
-      }
-    } else {
+    if (!handler) {
       console.log("[unexpected runtime message] " + JSON.stringify(_message));
+      return undefined;
+    }
+    const result = handler(_message, _sender, _sendResponse);
+    // A promise-returning handler resolves to the response value itself, so it
+    // needs neither the pendingPorts bookkeeping nor the injected responder.
+    // Bridge it to sendResponse here and keep the channel open; settle even on
+    // rejection so a throwing handler never re-hangs the sender.
+    if (result instanceof Promise) {
+      if (!_message.needResponse) {
+        void result.catch(() => {});
+        return undefined;
+      }
+      void result.then(
+        (value) => _sendResponse(value),
+        (error) => _sendResponse({ error: String(error) }),
+      );
+      return true;
+    }
+    if (_message.needResponse) {
+      if (result) {
+        _sendResponse(result);
+        _message.needResponse = false;
+      } else {
+        pendingPorts.push(_message);
+        // An asynchronous response will be sent using sendResponse later.
+      }
+      return _message.needResponse;
     }
     return undefined;
   }
