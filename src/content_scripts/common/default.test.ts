@@ -681,6 +681,18 @@ describe(";pj restores settings from clipboard", () => {
       settings: { theme: "dark" },
     });
   });
+
+  it("shows a banner and does not update settings when the clipboard data is invalid", () => {
+    let capturedCb: ((r: { data: string }) => void) | null = null;
+    ctx.clipboard.read.mockImplementationOnce((cb: (r: { data: string }) => void) => {
+      capturedCb = cb;
+    });
+    fire(";pj");
+    seam.RUNTIME.mockClear();
+    capturedCb!({ data: "not valid json" });
+    expect(seam.utils.showBanner).toHaveBeenCalled();
+    expect(seam.RUNTIME).not.toHaveBeenCalled();
+  });
 });
 
 describe("yY response callback writes tab URLs to clipboard", () => {
@@ -1060,6 +1072,30 @@ describe(";pf fills form from clipboard", () => {
     );
   });
 
+  it("shows the no-data banner when clipboard JSON is malformed", () => {
+    const form = document.createElement("form");
+    form.method = "get";
+    form.action = "https://example.com/malformed";
+    document.body.appendChild(form);
+
+    let capturedFormCb: ((el: HTMLFormElement) => void) | null = null;
+    ctx.hints.create.mockImplementationOnce((_sel: any, cb: any) => {
+      capturedFormCb = cb;
+      return Promise.resolve(1);
+    });
+    fire(";pf");
+    let clipCb: ((r: { data: string }) => void) | null = null;
+    ctx.clipboard.read.mockImplementationOnce((cb: (r: { data: string }) => void) => {
+      clipCb = cb;
+    });
+    capturedFormCb!(form);
+    clipCb!({ data: "not json" });
+
+    expect(seam.utils.showBanner).toHaveBeenCalledWith(
+      "No form data found for your selection from clipboard.",
+    );
+  });
+
   it("sets a radio input checked state from clipboard data", () => {
     const form = document.createElement("form");
     form.method = "get";
@@ -1191,6 +1227,18 @@ describe("search alias suggestion parsers", () => {
     const inner = [null, [["suggestion1"], ["suggestion2"]]];
     const text = "callback(" + JSON.stringify(inner) + ")";
     expect(parse({ text })).toEqual(["suggestion1", "suggestion2"]);
+  });
+
+  it("returns no suggestions when the response is malformed JSON", () => {
+    for (const alias of ["g", "d", "e", "w", "h", "y"]) {
+      expect(getParser(alias)({ text: "not json" })).toEqual([]);
+    }
+  });
+
+  it("returns no suggestions when the response shape is unexpected", () => {
+    expect(getParser("g")({ text: JSON.stringify({ unexpected: true }) })).toEqual([]);
+    expect(getParser("d")({ text: JSON.stringify([{ no: "phrase" }]) })).toEqual([]);
+    expect(getParser("h")({ text: JSON.stringify({ items: [{ description: "d" }] }) })).toEqual([]);
   });
 });
 

@@ -1,4 +1,5 @@
 import { Result } from "@praha/byethrow";
+import * as v from "valibot";
 
 import { domApiError } from "../common/result";
 import { createBookmarkHandlers } from "./bookmarks";
@@ -18,6 +19,21 @@ export type MessageHandler = (
   sender?: any,
   sendResponse?: (result: any) => void,
 ) => any;
+
+// GitHub gist API responses are external data; each parsed body is validated so
+// the fields consumed below carry real types instead of any.
+const gistListSchema = v.array(
+  v.object({
+    id: v.string(),
+    description: v.nullable(v.string()),
+    files: v.record(v.string(), v.unknown()),
+  }),
+);
+const createdGistSchema = v.object({ id: v.string() });
+const gistCommentSchema = v.object({ body: v.string() });
+// GitHub returns gist comment ids as integers (unlike the gist id, which is a
+// hex string), so accept both and normalize to string for use in request URLs.
+const gistCommentListSchema = v.array(v.object({ id: v.union([v.string(), v.number()]) }));
 
 const Gist = (() => {
   const self: any = {};
@@ -42,18 +58,14 @@ const Gist = (() => {
         onGistReady("");
         return;
       }
-      const gists = parseGist(r.value);
-      if (gists == null) {
+      const gists = v.safeParse(gistListSchema, parseGist(r.value));
+      if (!gists.success) {
         onGistReady("");
         return;
       }
       let gist = "";
-      gists.forEach((g: any) => {
-        if (
-          Object.hasOwn(g, "description") &&
-          g["description"] === magic_word &&
-          Object.hasOwn(g.files, magic_word)
-        ) {
+      gists.output.forEach((g) => {
+        if (g.description === magic_word && Object.hasOwn(g.files, magic_word)) {
           gist = g.id;
         }
       });
@@ -65,8 +77,10 @@ const Gist = (() => {
         ).then((r2) => {
           // Same hang trap as above: resolve with an empty gist id on failure
           // (request error or unparseable body) so the sender never waits.
-          const created = Result.isSuccess(r2) ? parseGist(r2.value) : undefined;
-          onGistReady(created?.id ?? "");
+          const created = Result.isSuccess(r2)
+            ? v.safeParse(createdGistSchema, parseGist(r2.value))
+            : undefined;
+          onGistReady(created?.success ? created.output.id : "");
         });
       } else {
         onGistReady(gist);
@@ -112,12 +126,23 @@ const Gist = (() => {
         cb({ status: 1, error: String(r.error.cause) });
         return;
       }
-      const comment = parseGist(r.value);
-      if (comment == null) {
+      const comment = v.safeParse(gistCommentSchema, parseGist(r.value));
+      if (!comment.success) {
         cb({ status: 1, error: "malformed gist comment response" });
         return;
       }
-      cb({ status: 0, content: decodeURIComponent(comment.body) });
+      // The body is an external, user-editable gist comment, so a malformed
+      // percent-encoding (e.g. a lone "%") makes decodeURIComponent throw. An
+      // unhandled throw here would skip cb and re-hang the runtime sender, so
+      // report it like any other malformed response instead.
+      let content: string;
+      try {
+        content = decodeURIComponent(comment.output.body);
+      } catch {
+        cb({ status: 1, error: "malformed gist comment response" });
+        return;
+      }
+      cb({ status: 0, content });
     });
   }
   function _listComment(cb: (comments: any[]) => void, onError: (error: string) => void) {
@@ -128,12 +153,12 @@ const Gist = (() => {
         onError(String(r.error.cause));
         return;
       }
-      const comments = parseGist(r.value);
-      if (comments == null) {
+      const comments = v.safeParse(gistCommentListSchema, parseGist(r.value));
+      if (!comments.success) {
         onError("malformed gist comment list response");
         return;
       }
-      _comments = comments.map((c: any) => c.id);
+      _comments = comments.output.map((c) => String(c.id));
       cb(_comments);
     });
   }

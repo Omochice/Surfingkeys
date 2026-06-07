@@ -1,3 +1,5 @@
+import * as v from "valibot";
+
 import { reportOnFail } from "../common/result";
 import { markSurfingKeysElement } from "./common/domFlags";
 import Mode from "./common/mode";
@@ -17,6 +19,24 @@ import {
   tabOpenLink,
 } from "./common/utils";
 import createUiHost from "./uiframe";
+
+// Any page can postMessage to this window, so the inbound envelope is external
+// data; validate its shape before dispatching. looseObject preserves unknown
+// keys so each message reaches its handler (typed `any`) with all fields intact.
+const frontMessageSchema = v.looseObject({
+  action: v.optional(v.string()),
+  id: v.optional(v.union([v.string(), v.number()])),
+  query: v.optional(v.string()),
+  type: v.optional(v.string()),
+  pos: v.optional(v.unknown()),
+  result: v.optional(v.unknown()),
+  ack: v.optional(v.unknown()),
+  origin: v.optional(v.string()),
+});
+const frontMessageEnvelopeSchema = v.looseObject({
+  surfingkeys_content_data: v.optional(frontMessageSchema),
+  dictorium_data: v.optional(frontMessageSchema),
+});
 
 type InsertLike = { mappings: Trie; enableEmojiInsertion(): void };
 type NormalLike = {
@@ -652,34 +672,42 @@ function createFront(
   window.addEventListener(
     "message",
     (event) => {
-      const _message =
-        event.data && (event.data.surfingkeys_content_data || event.data.dictorium_data);
+      const parsed = v.safeParse(frontMessageEnvelopeSchema, event.data);
+      if (!parsed.success) {
+        return;
+      }
+      const _message = parsed.output.surfingkeys_content_data ?? parsed.output.dictorium_data;
       if (_message == null) {
         return;
       }
       if (_message.action === "performInlineQuery") {
-        self.performInlineQuery(_message.query, _message.pos, (pos: any, queryResult: any) => {
-          (event.source as Window).postMessage(
-            {
-              surfingkeys_content_data: {
-                action: "performInlineQueryResult",
-                pos: pos,
-                result: queryResult,
+        self.performInlineQuery(
+          _message.query ?? "",
+          _message.pos,
+          (pos: any, queryResult: any) => {
+            (event.source as Window).postMessage(
+              {
+                surfingkeys_content_data: {
+                  action: "performInlineQueryResult",
+                  pos: pos,
+                  result: queryResult,
+                },
               },
-            },
-            event.origin,
-          );
-        });
+              event.origin,
+            );
+          },
+        );
       } else if (_message.action === "performInlineQueryResult") {
         _showQueryResult!(_message.pos, _message.result);
       } else if (_message.action === "frontendDestroyed") {
         frontendPromise = undefined;
       } else if (_active) {
-        const f = _callbacks[_message.id];
+        const id = _message.id;
+        const f = id == null ? undefined : _callbacks[id];
         if (f) {
           // returns true to make callback stay for coming response.
-          if (!f(_message)) {
-            delete _callbacks[_message.id];
+          if (!f(_message) && id != null) {
+            delete _callbacks[id];
           }
         } else if (_message.action && Object.hasOwn(_actions, _message.action)) {
           const action = _actions[_message.action];
@@ -712,7 +740,7 @@ function createFront(
           activated(_message);
         }
       }
-      if (!event.data.dictorium_data) {
+      if (!parsed.output.dictorium_data) {
         event.stopImmediatePropagation();
       }
     },

@@ -1,3 +1,5 @@
+import * as v from "valibot";
+
 import type { SurfingkeysApi } from "./api";
 import KeyboardUtils from "./keyboardUtils";
 import type { ModeContext } from "./modeGraph";
@@ -17,6 +19,35 @@ import {
   tabOpenLink,
   toggleQuote,
 } from "./utils";
+
+// Parse JSON without throwing: malformed input becomes undefined so callers can
+// route it through schema validation and a graceful fallback.
+const parseJsonSafe = (text: string): unknown => {
+  try {
+    return JSON.parse(text);
+  } catch {
+    return undefined;
+  }
+};
+
+// External suggestion endpoints return untrusted data validated below; the
+// leading element echoes the query (sometimes null), so only the suggestion
+// list at index 1 is constrained.
+const openSearchSuggestSchema = v.tupleWithRest([v.unknown(), v.array(v.string())], v.unknown());
+const duckduckgoSuggestSchema = v.array(v.object({ phrase: v.string() }));
+const githubRepoSuggestSchema = v.object({
+  items: v.array(v.object({ description: v.nullable(v.string()), html_url: v.string() })),
+});
+const youtubeSuggestSchema = v.tupleWithRest(
+  [v.unknown(), v.array(v.tupleWithRest([v.string()], v.unknown()))],
+  v.unknown(),
+);
+
+// Clipboard restore reads back JSON the user previously copied; only the
+// top-level object shape is constrained, individual values stay unknown and are
+// narrowed at the use sites.
+const clipboardSettingsSchema = v.record(v.string(), v.unknown());
+const clipboardFormsSchema = v.record(v.string(), v.record(v.string(), v.unknown()));
 
 export default function (api: SurfingkeysApi, ctx: ModeContext): void {
   const { clipboard, normal, hints, visual, front } = ctx;
@@ -579,9 +610,12 @@ export default function (api: SurfingkeysApi, ctx: ModeContext): void {
   });
   mapkey(";pj", "#7Restore settings data from clipboard", () => {
     clipboard.read((response) => {
-      RUNTIME("updateSettings", {
-        settings: JSON.parse(response.data.trim()),
-      });
+      const result = v.safeParse(clipboardSettingsSchema, parseJsonSafe(response.data.trim()));
+      if (!result.success) {
+        showBanner("Clipboard does not contain valid settings data.");
+        return;
+      }
+      RUNTIME("updateSettings", { settings: result.output });
     });
   });
   mapkey("yt", "#3Duplicate current tab", () => {
@@ -664,31 +698,32 @@ export default function (api: SurfingkeysApi, ctx: ModeContext): void {
     hints.create("form", (element: any) => {
       const formKey = generateFormKey(element);
       clipboard.read((response) => {
-        const forms = JSON.parse(response.data.trim());
-        if (Object.hasOwn(forms, formKey)) {
-          const fd = forms[formKey];
+        const result = v.safeParse(clipboardFormsSchema, parseJsonSafe(response.data.trim()));
+        const forms: Record<string, Record<string, unknown>> = result.success ? result.output : {};
+        const fd = forms[formKey];
+        if (fd) {
           element.querySelectorAll("input, textarea").forEach((ip: any) => {
+            const value = fd[ip.name];
             if (Object.hasOwn(fd, ip.name) && ip.type !== "hidden") {
               if (ip.type === "radio") {
                 const op = element.querySelector(
-                  `input[name='${ip.name}'][value='${fd[ip.name]}']`,
+                  `input[name='${ip.name}'][value='${String(value)}']`,
                 );
                 if (op) {
                   op.checked = true;
                 }
-              } else if (Array.isArray(fd[ip.name])) {
+              } else if (Array.isArray(value)) {
                 element.querySelectorAll(`input[name='${ip.name}']`).forEach((ip2: any) => {
                   ip2.checked = false;
                 });
-                const vals = fd[ip.name];
-                vals.forEach((v: any) => {
+                value.forEach((v: any) => {
                   const op = element.querySelector(`input[name='${ip.name}'][value='${v}']`);
                   if (op) {
                     op.checked = true;
                   }
                 });
-              } else if (typeof fd[ip.name] === "string") {
-                ip.value = fd[ip.name];
+              } else if (typeof value === "string") {
+                ip.value = value;
               }
             }
           });
@@ -745,8 +780,8 @@ export default function (api: SurfingkeysApi, ctx: ModeContext): void {
     "s",
     "https://www.google.com/complete/search?client=chrome-omni&gs_ri=chrome-ext&oit=1&cp=1&pgcl=7&q=",
     (response: any) => {
-      const res = JSON.parse(response.text);
-      return res[1];
+      const result = v.safeParse(openSearchSuggestSchema, parseJsonSafe(response.text));
+      return result.success ? result.output[1] : [];
     },
   );
   addSearchAlias(
@@ -756,10 +791,8 @@ export default function (api: SurfingkeysApi, ctx: ModeContext): void {
     "s",
     "https://duckduckgo.com/ac/?q=",
     (response: any) => {
-      const res = JSON.parse(response.text);
-      return res.map((r: any) => {
-        return r.phrase;
-      });
+      const result = v.safeParse(duckduckgoSuggestSchema, parseJsonSafe(response.text));
+      return result.success ? result.output.map((r) => r.phrase) : [];
     },
   );
   addSearchAlias(
@@ -781,7 +814,8 @@ export default function (api: SurfingkeysApi, ctx: ModeContext): void {
     "s",
     "https://en.wikipedia.org/w/api.php?action=opensearch&format=json&formatversion=2&namespace=0&limit=40&search=",
     (response: any) => {
-      return JSON.parse(response.text)[1];
+      const result = v.safeParse(openSearchSuggestSchema, parseJsonSafe(response.text));
+      return result.success ? result.output[1] : [];
     },
   );
   addSearchAlias(
@@ -791,8 +825,8 @@ export default function (api: SurfingkeysApi, ctx: ModeContext): void {
     "s",
     "https://api.bing.com/osjson.aspx?query=",
     (response: any) => {
-      const res = JSON.parse(response.text);
-      return res[1];
+      const result = v.safeParse(openSearchSuggestSchema, parseJsonSafe(response.text));
+      return result.success ? result.output[1] : [];
     },
   );
   addSearchAlias("s", "stackoverflow", "https://stackoverflow.com/search?q=");
@@ -803,14 +837,9 @@ export default function (api: SurfingkeysApi, ctx: ModeContext): void {
     "s",
     "https://api.github.com/search/repositories?order=desc&q=",
     (response: any) => {
-      const res = JSON.parse(response.text)["items"];
-      return res
-        ? res.map((r: any) => {
-            return {
-              title: r.description,
-              url: r.html_url,
-            };
-          })
+      const result = v.safeParse(githubRepoSuggestSchema, parseJsonSafe(response.text));
+      return result.success
+        ? result.output.items.map((r) => ({ title: r.description, url: r.html_url }))
         : [];
     },
   );
@@ -821,10 +850,11 @@ export default function (api: SurfingkeysApi, ctx: ModeContext): void {
     "s",
     "https://clients1.google.com/complete/search?client=youtube&ds=yt&callback=cb&q=",
     (response: any) => {
-      const res = JSON.parse(response.text.substring(9, response.text.length - 1));
-      return res[1].map((d: any) => {
-        return d[0];
-      });
+      const result = v.safeParse(
+        youtubeSuggestSchema,
+        parseJsonSafe(response.text.substring(9, response.text.length - 1)),
+      );
+      return result.success ? result.output[1].map((d) => d[0]) : [];
     },
   );
 

@@ -1,7 +1,21 @@
+import * as v from "valibot";
+
 import { LOG } from "../common/utils";
 import browser from "./common/browser";
 import { runtime } from "./common/runtime";
 import { getDocumentOrigin } from "./common/utils";
+
+// Any page can postMessage to this window, so the uihost envelope is external
+// data; validate its shape before dispatching or forwarding. looseObject keeps
+// unknown keys so the message forwarded to the frontend retains all its fields.
+const uihostMessageEnvelopeSchema = v.looseObject({
+  surfingkeys_uihost_data: v.looseObject({
+    action: v.optional(v.string()),
+    origin: v.optional(v.string()),
+    toFrontend: v.optional(v.unknown()),
+    toContent: v.optional(v.unknown()),
+  }),
+});
 
 type BrowserLike = {
   getBackFocusFromFrontend?: () => void;
@@ -33,16 +47,22 @@ function createUiHost(adapter: BrowserLike, onload: (uiHost: HTMLElement) => voi
   uiHost.shadowRoot!.appendChild(ifr);
 
   function _onWindowMessage(event: MessageEvent): void {
-    const _message = event.data && event.data.surfingkeys_uihost_data;
-    if (_message == null) {
+    const parsed = v.safeParse(uihostMessageEnvelopeSchema, event.data);
+    if (!parsed.success) {
       return;
     }
+    const _message = parsed.output.surfingkeys_uihost_data;
     if (_message.toFrontend) {
       // forward message to frontend
       ifr.contentWindow!.postMessage({ surfingkeys_frontend_data: _message }, frontEndURL);
       if (
         _message.toFrontend &&
         event.source &&
+        _message.action != null &&
+        // origin becomes activeContent.origin, used as a postMessage targetOrigin;
+        // an absent origin (e.g. an untrusted page's message) would make a later
+        // postMessage throw a DOMException, so require it before activating.
+        _message.origin != null &&
         ["showStatus", "openOmnibar", "openFinder", "chooseTab"].indexOf(_message.action) !== -1
       ) {
         if (!activeContent || activeContent.window !== event.source) {
