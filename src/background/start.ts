@@ -49,172 +49,150 @@ const Gist = (() => {
     }
   };
 
-  function _initGist(token: string, magic_word: string, onGistReady: (gist: string) => void) {
+  async function _initGist(token: string, magic_word: string): Promise<string> {
     const auth = { Authorization: "token " + token };
-    void request("https://api.github.com/gists", auth).then((r) => {
-      if (Result.isFailure(r)) {
-        // Without this the message handler never calls `_response`, leaving the
-        // runtime sender hung forever; signal failure with an empty gist id.
-        onGistReady("");
-        return;
-      }
-      const gists = v.safeParse(gistListSchema, parseGist(r.value));
-      if (!gists.success) {
-        onGistReady("");
-        return;
-      }
-      let gist = "";
-      gists.output.forEach((g) => {
-        if (g.description === magic_word && Object.hasOwn(g.files, magic_word)) {
-          gist = g.id;
-        }
-      });
-      if (gist === "") {
-        void request(
-          "https://api.github.com/gists",
-          auth,
-          `{ "description": "${magic_word}", "public": false, "files": { "${magic_word}": { "content": "${magic_word}" } } }`,
-        ).then((r2) => {
-          // Same hang trap as above: resolve with an empty gist id on failure
-          // (request error or unparseable body) so the sender never waits.
-          const created = Result.isSuccess(r2)
-            ? v.safeParse(createdGistSchema, parseGist(r2.value))
-            : undefined;
-          onGistReady(created?.success ? created.output.id : "");
-        });
-      } else {
-        onGistReady(gist);
+    const r = await request("https://api.github.com/gists", auth);
+    if (Result.isFailure(r)) {
+      // Signal failure with an empty gist id so the awaiting handler still
+      // settles instead of leaving the runtime sender hung forever.
+      return "";
+    }
+    const gists = v.safeParse(gistListSchema, parseGist(r.value));
+    if (!gists.success) {
+      return "";
+    }
+    let gist = "";
+    gists.output.forEach((g) => {
+      if (g.description === magic_word && Object.hasOwn(g.files, magic_word)) {
+        gist = g.id;
       }
     });
+    if (gist !== "") {
+      return gist;
+    }
+    const r2 = await request(
+      "https://api.github.com/gists",
+      auth,
+      `{ "description": "${magic_word}", "public": false, "files": { "${magic_word}": { "content": "${magic_word}" } } }`,
+    );
+    // Same hang trap as above: resolve with an empty gist id on failure
+    // (request error or unparseable body) so the sender never waits.
+    const created = Result.isSuccess(r2)
+      ? v.safeParse(createdGistSchema, parseGist(r2.value))
+      : undefined;
+    return created?.success ? created.output.id : "";
   }
 
   let _token: string;
   let _gist = "";
   let _comments: any[] = [];
-  self.initGist = (token: string, onGistReady?: (gist: string) => void) => {
+  self.initGist = async (token: string): Promise<string> => {
     if (_token === token && _gist !== "") {
       return _gist;
-    } else {
-      _token = token;
-      _initGist(_token, "cloudboard", (gist) => {
-        _gist = gist;
-        onGistReady && onGistReady(_gist);
-      });
-      return undefined;
     }
+    _token = token;
+    _gist = await _initGist(_token, "cloudboard");
+    return _gist;
   };
 
-  // The Gist comment helpers below must always invoke their callback, even on
-  // request failure: their consumers (`self.readComment`/`self.editComment`)
-  // feed the callback straight into `_response`, so a dropped callback hangs the
-  // runtime sender forever. Each helper forwards the failure through a payload
-  // shaped like its success path so the sender still settles.
-  function _newComment(text: string, cb?: (res: string) => void) {
-    void request(
+  // The Gist comment helpers below always resolve, even on request failure:
+  // their consumers (`self.readComment`/`self.editComment`) hand the result
+  // straight to the dispatcher, so a rejected promise would hang the runtime
+  // sender forever. Each helper forwards the failure through a payload shaped
+  // like its success path so the sender still settles.
+  async function _newComment(text: string): Promise<string> {
+    const r = await request(
       `https://api.github.com/gists/${_gist}/comments`,
       { Authorization: "token " + _token },
       `{"body": "${encodeURIComponent(text)}"}`,
-    ).then((r) => {
-      cb && cb(Result.isSuccess(r) ? r.value : "");
-    });
+    );
+    return Result.isSuccess(r) ? r.value : "";
   }
-  function _readComment(cid: string, cb: (resp: any) => void) {
-    void request(`https://api.github.com/gists/${_gist}/comments/${cid}`, {
+  async function _readComment(cid: string): Promise<any> {
+    const r = await request(`https://api.github.com/gists/${_gist}/comments/${cid}`, {
       Authorization: "token " + _token,
-    }).then((r) => {
-      if (Result.isFailure(r)) {
-        cb({ status: 1, error: String(r.error.cause) });
-        return;
-      }
-      const comment = v.safeParse(gistCommentSchema, parseGist(r.value));
-      if (!comment.success) {
-        cb({ status: 1, error: "malformed gist comment response" });
-        return;
-      }
-      // The body is an external, user-editable gist comment, so a malformed
-      // percent-encoding (e.g. a lone "%") makes decodeURIComponent throw. An
-      // unhandled throw here would skip cb and re-hang the runtime sender, so
-      // report it like any other malformed response instead.
-      let content: string;
-      try {
-        content = decodeURIComponent(comment.output.body);
-      } catch {
-        cb({ status: 1, error: "malformed gist comment response" });
-        return;
-      }
-      cb({ status: 0, content });
     });
+    if (Result.isFailure(r)) {
+      return { status: 1, error: String(r.error.cause) };
+    }
+    const comment = v.safeParse(gistCommentSchema, parseGist(r.value));
+    if (!comment.success) {
+      return { status: 1, error: "malformed gist comment response" };
+    }
+    // The body is an external, user-editable gist comment, so a malformed
+    // percent-encoding (e.g. a lone "%") makes decodeURIComponent throw. An
+    // unhandled throw here would re-hang the runtime sender, so report it like
+    // any other malformed response instead.
+    let content: string;
+    try {
+      content = decodeURIComponent(comment.output.body);
+    } catch {
+      return { status: 1, error: "malformed gist comment response" };
+    }
+    return { status: 0, content };
   }
-  function _listComment(cb: (comments: any[]) => void, onError: (error: string) => void) {
-    void request(`https://api.github.com/gists/${_gist}/comments`, {
+  async function _listComment(): Promise<
+    { ok: true; comments: any[] } | { ok: false; error: string }
+  > {
+    const r = await request(`https://api.github.com/gists/${_gist}/comments`, {
       Authorization: "token " + _token,
-    }).then((r) => {
-      if (Result.isFailure(r)) {
-        onError(String(r.error.cause));
-        return;
-      }
-      const comments = v.safeParse(gistCommentListSchema, parseGist(r.value));
-      if (!comments.success) {
-        onError("malformed gist comment list response");
-        return;
-      }
-      _comments = comments.output.map((c) => String(c.id));
-      cb(_comments);
     });
+    if (Result.isFailure(r)) {
+      return { ok: false, error: String(r.error.cause) };
+    }
+    const comments = v.safeParse(gistCommentListSchema, parseGist(r.value));
+    if (!comments.success) {
+      return { ok: false, error: "malformed gist comment list response" };
+    }
+    _comments = comments.output.map((c) => String(c.id));
+    return { ok: true, comments: _comments };
   }
-  function _writeComment(cid: string, clip: string, cb?: (res: string) => void) {
-    void request(
+  async function _writeComment(cid: string, clip: string): Promise<string> {
+    const r = await request(
       `https://api.github.com/gists/${_gist}/comments/${cid}`,
       { Authorization: "token " + _token },
       `{"body": "${encodeURIComponent(clip)}"}`,
-    ).then((r) => {
-      cb && cb(Result.isSuccess(r) ? r.value : "");
-    });
+    );
+    return Result.isSuccess(r) ? r.value : "";
   }
-  self.readComment = (nr: number, cb: (resp: any) => void) => {
+  self.readComment = async (nr: number): Promise<any> => {
     if (_gist === "") {
-      cb({ status: 1, content: "Please call initGist first!" });
-    } else if (nr >= _comments.length) {
-      _listComment(
-        (cmts) => {
-          if (nr < cmts.length) {
-            _readComment(cmts[nr], cb);
-          } else {
-            cb({ status: 1, content: "Register not exists!" });
-          }
-        },
-        (error) => cb({ status: 1, error }),
-      );
-    } else {
-      _readComment(_comments[nr], cb);
+      return { status: 1, content: "Please call initGist first!" };
     }
+    if (nr < _comments.length) {
+      return _readComment(_comments[nr]);
+    }
+    const listed = await _listComment();
+    if (!listed.ok) {
+      return { status: 1, error: listed.error };
+    }
+    if (nr < listed.comments.length) {
+      return _readComment(listed.comments[nr]);
+    }
+    return { status: 1, content: "Register not exists!" };
   };
-  self.editComment = (nr: number, clip: string, cb: (resp: any) => void) => {
+  self.editComment = async (nr: number, clip: string): Promise<any> => {
     if (_gist === "") {
-      cb({ status: 1, content: "Please call initGist first!" });
-    } else if (nr >= _comments.length) {
-      _listComment(
-        (cmts) => {
-          if (nr < cmts.length) {
-            _writeComment(cmts[nr], clip, cb);
-          } else {
-            let toCreate = nr - cmts.length + 1;
-            const cbAfterCreated = () => {
-              toCreate--;
-              if (toCreate > 0) {
-                _newComment(".", cbAfterCreated);
-              } else if (toCreate === 0) {
-                _newComment(clip, cb);
-              }
-            };
-            cbAfterCreated();
-          }
-        },
-        (error) => cb({ status: 1, error }),
-      );
-    } else {
-      _writeComment(_comments[nr], clip, cb);
+      return { status: 1, content: "Please call initGist first!" };
     }
+    if (nr < _comments.length) {
+      return _writeComment(_comments[nr], clip);
+    }
+    const listed = await _listComment();
+    if (!listed.ok) {
+      return { status: 1, error: listed.error };
+    }
+    if (nr < listed.comments.length) {
+      return _writeComment(listed.comments[nr], clip);
+    }
+    // Pad the comment list with placeholders up to the requested index, then
+    // write the clip into the final new comment.
+    let toCreate = nr - listed.comments.length + 1;
+    while (toCreate > 1) {
+      await _newComment(".");
+      toCreate--;
+    }
+    return _newComment(clip);
   };
 
   return self;
@@ -480,22 +458,12 @@ function start(browser: any): void {
       img.src = dataUrl;
     });
   };
-  handlers["initGist"] = (message: any, _sender: any, sendResponse: any) => {
-    return Gist.initGist(message.token, (gist: string) => {
-      _response(message, sendResponse, {
-        gist: gist,
-      });
-    });
+  handlers["initGist"] = async (message: any) => {
+    return { gist: await Gist.initGist(message.token) };
   };
-  handlers["readComment"] = (message: any, _sender: any, sendResponse: any) => {
-    Gist.readComment(message.index, (resp: any) => {
-      _response(message, sendResponse, resp);
-    });
-  };
-  handlers["editComment"] = (message: any, _sender: any, sendResponse: any) => {
-    Gist.editComment(message.index, message.content, (resp: any) => {
-      _response(message, sendResponse, { gistResp: resp });
-    });
+  handlers["readComment"] = (message: any) => Gist.readComment(message.index);
+  handlers["editComment"] = async (message: any) => {
+    return { gistResp: await Gist.editComment(message.index, message.content) };
   };
 
   handlers["openIncognito"] = (message: any, _sender: any, _sendResponse: any) => {

@@ -655,8 +655,10 @@ describe("start — readComment / editComment when gist initialisation failed", 
       { tab: { id: 1 } },
       sendResponse,
     );
-    expect(sendResponse).toHaveBeenCalledWith(
-      expect.objectContaining({ status: 1, content: "Please call initGist first!" }),
+    await vi.waitFor(() =>
+      expect(sendResponse).toHaveBeenCalledWith(
+        expect.objectContaining({ status: 1, content: "Please call initGist first!" }),
+      ),
     );
     // No network request should have been made for readComment itself
     expect(mockRequest).not.toHaveBeenCalled();
@@ -676,8 +678,10 @@ describe("start — readComment / editComment when gist initialisation failed", 
       { tab: { id: 1 } },
       sendResponse,
     );
-    expect(sendResponse).toHaveBeenCalledWith(
-      expect.objectContaining({ gistResp: expect.objectContaining({ status: 1 }) }),
+    await vi.waitFor(() =>
+      expect(sendResponse).toHaveBeenCalledWith(
+        expect.objectContaining({ gistResp: expect.objectContaining({ status: 1 }) }),
+      ),
     );
     expect(mockRequest).not.toHaveBeenCalled();
   });
@@ -810,18 +814,17 @@ describe("start — initGist returns cached gist when token matches", () => {
     const dispatch = bootDispatch();
     await primeGist(dispatch, "tok-cached");
 
-    // Second initGist with the same token: Gist.initGist returns the cached
-    // gist id synchronously (the raw string, not a {gist} payload). handleMessage
-    // treats that truthy return value as the synchronous response and forwards it
-    // verbatim to sendResponse, also reporting "no async response pending".
+    // Second initGist with the same token: Gist.initGist resolves the cached gist
+    // id without a network round-trip, and the dispatcher forwards the {gist}
+    // payload asynchronously (keeping the channel open).
     const sendResponse = vi.fn();
     const ret = dispatch(
       { action: "initGist", token: "tok-cached", needResponse: true },
       { tab: { id: 1 } },
       sendResponse,
     );
-    expect(sendResponse).toHaveBeenCalledWith("gist-id");
-    expect(ret).toBe(false);
+    expect(ret).toBe(true);
+    await vi.waitFor(() => expect(sendResponse).toHaveBeenCalledWith({ gist: "gist-id" }));
     // No new network request should be made
     expect(mockRequest).not.toHaveBeenCalled();
   });
