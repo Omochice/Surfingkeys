@@ -640,9 +640,10 @@ describe("createSettings — resetSettings", () => {
     );
   });
 
-  it("waits for the storage clears to resolve before reloading defaults", async () => {
+  it("waits for both storage clears to resolve before reloading defaults", async () => {
     const order: string[] = [];
-    let resolveLocalClear: () => void;
+    let resolveLocalClear!: () => void;
+    let resolveSyncClear!: () => void;
     const localClear = vi.fn(
       () =>
         new Promise<void>((r) => {
@@ -652,7 +653,15 @@ describe("createSettings — resetSettings", () => {
           };
         }),
     );
-    const syncClear = vi.fn().mockResolvedValue(undefined);
+    const syncClear = vi.fn(
+      () =>
+        new Promise<void>((r) => {
+          resolveSyncClear = () => {
+            order.push("syncClear");
+            r();
+          };
+        }),
+    );
     g.chrome.storage = {
       local: { set: vi.fn(), clear: localClear },
       sync: { set: vi.fn(), clear: syncClear },
@@ -672,9 +681,15 @@ describe("createSettings — resetSettings", () => {
     await new Promise((r) => setTimeout(r, 0));
     expect(order).not.toContain("load");
 
-    resolveLocalClear!();
+    // Resolving only the local clear must not let the reload run; the sync clear
+    // is still pending.
+    resolveLocalClear();
+    await new Promise((r) => setTimeout(r, 0));
+    expect(order).not.toContain("load");
+
+    resolveSyncClear();
     await handled;
-    expect(order).toEqual(["localClear", "load"]);
+    expect(order).toEqual(["localClear", "syncClear", "load"]);
   });
 });
 
