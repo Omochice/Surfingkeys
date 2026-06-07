@@ -108,25 +108,27 @@ describe("createBookmarkHandlers", () => {
     expect(remove.mock.calls.map((c) => c[0])).toEqual(["7", "8"]);
   });
 
-  it("getBookmark returns empty bookmarks without querying when the sender has no tab", async () => {
+  // `sender` is optional in the MessageHandler signature, so it can be undefined
+  // entirely (not just missing a tab); the handlers must not throw.
+  it("getBookmark returns empty bookmarks without querying when there is no sender", async () => {
     const search = vi.fn();
     g.chrome.bookmarks = { search };
     const getBookmark = createBookmarkHandlers()["getBookmark"];
     expectDefined(getBookmark);
-    const result = await getBookmark({}, {}, vi.fn());
+    const result = await getBookmark({}, undefined, vi.fn());
 
     expect(result).toEqual({ bookmarks: [] });
     expect(search).not.toHaveBeenCalled();
   });
 
-  it("removeBookmark does nothing when the sender has no tab", async () => {
+  it("removeBookmark does nothing when there is no sender", async () => {
     const search = vi.fn();
     const remove = vi.fn();
     g.chrome.bookmarks = { search, remove };
     const removeBookmark = createBookmarkHandlers()["removeBookmark"];
     expectDefined(removeBookmark);
 
-    await expect(removeBookmark({}, {}, vi.fn())).resolves.toBeUndefined();
+    await expect(removeBookmark({}, undefined, vi.fn())).resolves.toBeUndefined();
     expect(search).not.toHaveBeenCalled();
     expect(remove).not.toHaveBeenCalled();
   });
