@@ -1,73 +1,66 @@
 import { filterByTitleOrUrl } from "../common/utils";
 import { _save, extendObject, getSubSettings } from "./settings";
 
-function loadRawSettings(keys: string[], cb: (set: any) => void, defaultSet?: any): void {
+async function loadRawSettings(keys: string[], defaultSet?: any): Promise<any> {
   const rawSet = defaultSet || {};
-  chrome.storage.local.get(null, (localSet: any) => {
-    const localSavedAt = localSet.savedAt || 0;
-    chrome.storage.sync.get(null, (syncSet: any) => {
-      const syncSavedAt = syncSet.savedAt || 0;
-      if (localSavedAt > syncSavedAt) {
-        extendObject(rawSet, localSet);
-        _save(chrome.storage.sync, localSet, () => {
-          const subset = getSubSettings(rawSet, keys);
-          if (chrome.runtime.lastError) {
-            subset.error =
-              "Settings sync may not work thoroughly because of: " +
-              chrome.runtime.lastError.message;
-          }
-          cb(subset);
-        });
-      } else if (localSavedAt < syncSavedAt) {
-        // don't sync local path
-        delete syncSet.localPath;
-        extendObject(rawSet, syncSet);
-        cb(getSubSettings(rawSet, keys));
-        _save(chrome.storage.local, syncSet);
-      } else {
-        extendObject(rawSet, localSet);
-        cb(getSubSettings(rawSet, keys));
-      }
-    });
-  });
+  const localSet = await chrome.storage.local.get(null);
+  const localSavedAt = localSet["savedAt"] || 0;
+  const syncSet = await chrome.storage.sync.get(null);
+  const syncSavedAt = syncSet["savedAt"] || 0;
+  if (localSavedAt > syncSavedAt) {
+    extendObject(rawSet, localSet);
+    const subset = getSubSettings(rawSet, keys);
+    // Promise-based storage rejects on failure (it does not set
+    // chrome.runtime.lastError), so a failed sync mirror is surfaced as `error`
+    // on the returned settings instead of rejecting the whole load.
+    try {
+      await _save(chrome.storage.sync, localSet);
+    } catch (err) {
+      subset.error =
+        "Settings sync may not work thoroughly because of: " +
+        (err instanceof Error ? err.message : String(err));
+    }
+    return subset;
+  }
+  if (localSavedAt < syncSavedAt) {
+    // don't sync local path
+    delete syncSet["localPath"];
+    extendObject(rawSet, syncSet);
+    void _save(chrome.storage.local, syncSet);
+    return getSubSettings(rawSet, keys);
+  }
+  extendObject(rawSet, localSet);
+  return getSubSettings(rawSet, keys);
 }
 
 function _setNewTabUrl(): string {
   return "chrome://newtab/";
 }
 
-function _getContainerName(_self: unknown, _response: unknown): void {}
+function _getContainerName(_self: unknown): void {}
 
-function getLatestHistoryItem(
-  text: string,
-  maxResults: number,
-  cb: (results: any[]) => void,
-): void {
+async function getLatestHistoryItem(text: string, maxResults: number): Promise<any[]> {
   let results: any[] = [];
-  const impl = (endTime: number, maxResults: number, cb: (results: any[]) => void): void => {
+  let endTime = new Date().getTime();
+  // chrome.history.search has no substring filter, so widen the time window and
+  // re-filter locally, looping until enough matches are collected or history is
+  // exhausted.
+  for (;;) {
     const prefetch = maxResults * Math.pow(10, Math.min(2, text.length));
-    chrome.history.search(
-      {
-        startTime: 0,
-        endTime,
-        text: "",
-        maxResults: prefetch,
-      },
-      (items: any[]) => {
-        const filtered = filterByTitleOrUrl(items, text, false);
-        results = [...results, ...filtered];
-        if (items.length < maxResults || results.length >= maxResults) {
-          // all items are scanned or we have got what we want
-          cb(results.slice(0, maxResults));
-        } else {
-          endTime = items[items.length - 1].lastVisitTime - 0.01;
-          impl(endTime, maxResults, cb);
-        }
-      },
-    );
-  };
-
-  impl(new Date().getTime(), maxResults, cb);
+    const items = await chrome.history.search({
+      startTime: 0,
+      endTime,
+      text: "",
+      maxResults: prefetch,
+    });
+    const filtered = filterByTitleOrUrl(items, text, false);
+    results = [...results, ...filtered];
+    if (items.length < maxResults || results.length >= maxResults) {
+      // all items are scanned or we have got what we want
+      return results.slice(0, maxResults);
+    }
+    endTime = items[items.length - 1]!.lastVisitTime! - 0.01;
+  }
 }
 
 /** Chrome-specific background glue, composed by the WXT background entrypoint. */

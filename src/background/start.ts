@@ -9,10 +9,11 @@ import { createSettings } from "./settings";
 import { createTabs } from "./tabs";
 
 /**
- * A background message handler, dispatched by `message.action`. Returning a truthy value sends it
- * as the synchronous response; returning falsy while `message.needResponse` is set defers to an
- * asynchronous `sendResponse`. Extracted background units export a `Record<string, MessageHandler>`
- * map that the composition root registers into the dispatch registry.
+ * A background message handler, dispatched by `message.action`. It resolves to the response
+ * payload: a returned value is sent as the synchronous response, while a returned promise is
+ * awaited and its resolved value sent asynchronously (the dispatcher settles even on rejection).
+ * Extracted background units export a `Record<string, MessageHandler>` map that the composition
+ * root registers into the dispatch registry.
  */
 export type MessageHandler = (
   message: any,
@@ -49,172 +50,150 @@ const Gist = (() => {
     }
   };
 
-  function _initGist(token: string, magic_word: string, onGistReady: (gist: string) => void) {
+  async function _initGist(token: string, magic_word: string): Promise<string> {
     const auth = { Authorization: "token " + token };
-    void request("https://api.github.com/gists", auth).then((r) => {
-      if (Result.isFailure(r)) {
-        // Without this the message handler never calls `_response`, leaving the
-        // runtime sender hung forever; signal failure with an empty gist id.
-        onGistReady("");
-        return;
-      }
-      const gists = v.safeParse(gistListSchema, parseGist(r.value));
-      if (!gists.success) {
-        onGistReady("");
-        return;
-      }
-      let gist = "";
-      gists.output.forEach((g) => {
-        if (g.description === magic_word && Object.hasOwn(g.files, magic_word)) {
-          gist = g.id;
-        }
-      });
-      if (gist === "") {
-        void request(
-          "https://api.github.com/gists",
-          auth,
-          `{ "description": "${magic_word}", "public": false, "files": { "${magic_word}": { "content": "${magic_word}" } } }`,
-        ).then((r2) => {
-          // Same hang trap as above: resolve with an empty gist id on failure
-          // (request error or unparseable body) so the sender never waits.
-          const created = Result.isSuccess(r2)
-            ? v.safeParse(createdGistSchema, parseGist(r2.value))
-            : undefined;
-          onGistReady(created?.success ? created.output.id : "");
-        });
-      } else {
-        onGistReady(gist);
+    const r = await request("https://api.github.com/gists", auth);
+    if (Result.isFailure(r)) {
+      // Signal failure with an empty gist id so the awaiting handler still
+      // settles instead of leaving the runtime sender hung forever.
+      return "";
+    }
+    const gists = v.safeParse(gistListSchema, parseGist(r.value));
+    if (!gists.success) {
+      return "";
+    }
+    let gist = "";
+    gists.output.forEach((g) => {
+      if (g.description === magic_word && Object.hasOwn(g.files, magic_word)) {
+        gist = g.id;
       }
     });
+    if (gist !== "") {
+      return gist;
+    }
+    const r2 = await request(
+      "https://api.github.com/gists",
+      auth,
+      `{ "description": "${magic_word}", "public": false, "files": { "${magic_word}": { "content": "${magic_word}" } } }`,
+    );
+    // Same hang trap as above: resolve with an empty gist id on failure
+    // (request error or unparseable body) so the sender never waits.
+    const created = Result.isSuccess(r2)
+      ? v.safeParse(createdGistSchema, parseGist(r2.value))
+      : undefined;
+    return created?.success ? created.output.id : "";
   }
 
   let _token: string;
   let _gist = "";
   let _comments: any[] = [];
-  self.initGist = (token: string, onGistReady?: (gist: string) => void) => {
+  self.initGist = async (token: string): Promise<string> => {
     if (_token === token && _gist !== "") {
       return _gist;
-    } else {
-      _token = token;
-      _initGist(_token, "cloudboard", (gist) => {
-        _gist = gist;
-        onGistReady && onGistReady(_gist);
-      });
-      return undefined;
     }
+    _token = token;
+    _gist = await _initGist(_token, "cloudboard");
+    return _gist;
   };
 
-  // The Gist comment helpers below must always invoke their callback, even on
-  // request failure: their consumers (`self.readComment`/`self.editComment`)
-  // feed the callback straight into `_response`, so a dropped callback hangs the
-  // runtime sender forever. Each helper forwards the failure through a payload
-  // shaped like its success path so the sender still settles.
-  function _newComment(text: string, cb?: (res: string) => void) {
-    void request(
+  // The Gist comment helpers below always resolve, even on request failure:
+  // their consumers (`self.readComment`/`self.editComment`) hand the result
+  // straight to the dispatcher, so a rejected promise would hang the runtime
+  // sender forever. Each helper forwards the failure through a payload shaped
+  // like its success path so the sender still settles.
+  async function _newComment(text: string): Promise<string> {
+    const r = await request(
       `https://api.github.com/gists/${_gist}/comments`,
       { Authorization: "token " + _token },
       `{"body": "${encodeURIComponent(text)}"}`,
-    ).then((r) => {
-      cb && cb(Result.isSuccess(r) ? r.value : "");
-    });
+    );
+    return Result.isSuccess(r) ? r.value : "";
   }
-  function _readComment(cid: string, cb: (resp: any) => void) {
-    void request(`https://api.github.com/gists/${_gist}/comments/${cid}`, {
+  async function _readComment(cid: string): Promise<any> {
+    const r = await request(`https://api.github.com/gists/${_gist}/comments/${cid}`, {
       Authorization: "token " + _token,
-    }).then((r) => {
-      if (Result.isFailure(r)) {
-        cb({ status: 1, error: String(r.error.cause) });
-        return;
-      }
-      const comment = v.safeParse(gistCommentSchema, parseGist(r.value));
-      if (!comment.success) {
-        cb({ status: 1, error: "malformed gist comment response" });
-        return;
-      }
-      // The body is an external, user-editable gist comment, so a malformed
-      // percent-encoding (e.g. a lone "%") makes decodeURIComponent throw. An
-      // unhandled throw here would skip cb and re-hang the runtime sender, so
-      // report it like any other malformed response instead.
-      let content: string;
-      try {
-        content = decodeURIComponent(comment.output.body);
-      } catch {
-        cb({ status: 1, error: "malformed gist comment response" });
-        return;
-      }
-      cb({ status: 0, content });
     });
+    if (Result.isFailure(r)) {
+      return { status: 1, error: String(r.error.cause) };
+    }
+    const comment = v.safeParse(gistCommentSchema, parseGist(r.value));
+    if (!comment.success) {
+      return { status: 1, error: "malformed gist comment response" };
+    }
+    // The body is an external, user-editable gist comment, so a malformed
+    // percent-encoding (e.g. a lone "%") makes decodeURIComponent throw. An
+    // unhandled throw here would re-hang the runtime sender, so report it like
+    // any other malformed response instead.
+    let content: string;
+    try {
+      content = decodeURIComponent(comment.output.body);
+    } catch {
+      return { status: 1, error: "malformed gist comment response" };
+    }
+    return { status: 0, content };
   }
-  function _listComment(cb: (comments: any[]) => void, onError: (error: string) => void) {
-    void request(`https://api.github.com/gists/${_gist}/comments`, {
+  async function _listComment(): Promise<
+    { ok: true; comments: any[] } | { ok: false; error: string }
+  > {
+    const r = await request(`https://api.github.com/gists/${_gist}/comments`, {
       Authorization: "token " + _token,
-    }).then((r) => {
-      if (Result.isFailure(r)) {
-        onError(String(r.error.cause));
-        return;
-      }
-      const comments = v.safeParse(gistCommentListSchema, parseGist(r.value));
-      if (!comments.success) {
-        onError("malformed gist comment list response");
-        return;
-      }
-      _comments = comments.output.map((c) => String(c.id));
-      cb(_comments);
     });
+    if (Result.isFailure(r)) {
+      return { ok: false, error: String(r.error.cause) };
+    }
+    const comments = v.safeParse(gistCommentListSchema, parseGist(r.value));
+    if (!comments.success) {
+      return { ok: false, error: "malformed gist comment list response" };
+    }
+    _comments = comments.output.map((c) => String(c.id));
+    return { ok: true, comments: _comments };
   }
-  function _writeComment(cid: string, clip: string, cb?: (res: string) => void) {
-    void request(
+  async function _writeComment(cid: string, clip: string): Promise<string> {
+    const r = await request(
       `https://api.github.com/gists/${_gist}/comments/${cid}`,
       { Authorization: "token " + _token },
       `{"body": "${encodeURIComponent(clip)}"}`,
-    ).then((r) => {
-      cb && cb(Result.isSuccess(r) ? r.value : "");
-    });
+    );
+    return Result.isSuccess(r) ? r.value : "";
   }
-  self.readComment = (nr: number, cb: (resp: any) => void) => {
+  self.readComment = async (nr: number): Promise<any> => {
     if (_gist === "") {
-      cb({ status: 1, content: "Please call initGist first!" });
-    } else if (nr >= _comments.length) {
-      _listComment(
-        (cmts) => {
-          if (nr < cmts.length) {
-            _readComment(cmts[nr], cb);
-          } else {
-            cb({ status: 1, content: "Register not exists!" });
-          }
-        },
-        (error) => cb({ status: 1, error }),
-      );
-    } else {
-      _readComment(_comments[nr], cb);
+      return { status: 1, content: "Please call initGist first!" };
     }
+    if (nr < _comments.length) {
+      return _readComment(_comments[nr]);
+    }
+    const listed = await _listComment();
+    if (!listed.ok) {
+      return { status: 1, error: listed.error };
+    }
+    if (nr < listed.comments.length) {
+      return _readComment(listed.comments[nr]);
+    }
+    return { status: 1, content: "Register not exists!" };
   };
-  self.editComment = (nr: number, clip: string, cb: (resp: any) => void) => {
+  self.editComment = async (nr: number, clip: string): Promise<any> => {
     if (_gist === "") {
-      cb({ status: 1, content: "Please call initGist first!" });
-    } else if (nr >= _comments.length) {
-      _listComment(
-        (cmts) => {
-          if (nr < cmts.length) {
-            _writeComment(cmts[nr], clip, cb);
-          } else {
-            let toCreate = nr - cmts.length + 1;
-            const cbAfterCreated = () => {
-              toCreate--;
-              if (toCreate > 0) {
-                _newComment(".", cbAfterCreated);
-              } else if (toCreate === 0) {
-                _newComment(clip, cb);
-              }
-            };
-            cbAfterCreated();
-          }
-        },
-        (error) => cb({ status: 1, error }),
-      );
-    } else {
-      _writeComment(_comments[nr], clip, cb);
+      return { status: 1, content: "Please call initGist first!" };
     }
+    if (nr < _comments.length) {
+      return _writeComment(_comments[nr], clip);
+    }
+    const listed = await _listComment();
+    if (!listed.ok) {
+      return { status: 1, error: listed.error };
+    }
+    if (nr < listed.comments.length) {
+      return _writeComment(listed.comments[nr], clip);
+    }
+    // Pad the comment list with placeholders up to the requested index, then
+    // write the clip into the final new comment.
+    let toCreate = nr - listed.comments.length + 1;
+    while (toCreate > 1) {
+      await _newComment(".");
+      toCreate--;
+    }
+    return _newComment(clip);
   };
 
   return self;
@@ -233,32 +212,32 @@ function start(browser: any): void {
     interceptedErrors: [],
   };
 
-  const pendingPorts: any[] = [];
-  function _response(message: any, sendResponse: (result: any) => void, result: any) {
-    const idx = pendingPorts.indexOf(message);
-    if (idx !== -1) {
-      pendingPorts.splice(idx, 1);
-    }
-    sendResponse(result);
-  }
   function handleMessage(_message: any, _sender: any, _sendResponse: any) {
     const handler = Object.hasOwn(handlers, _message.action)
       ? handlers[_message.action]
       : undefined;
-    if (handler) {
-      const result = handler(_message, _sender, _sendResponse);
-      if (_message.needResponse) {
-        if (result) {
-          _sendResponse(result);
-          _message.needResponse = false;
-        } else {
-          pendingPorts.push(_message);
-          // An asynchronous response will be sent using sendResponse later.
-        }
-        return _message.needResponse;
-      }
-    } else {
+    if (!handler) {
       console.log("[unexpected runtime message] " + JSON.stringify(_message));
+      return undefined;
+    }
+    const result = handler(_message, _sender, _sendResponse);
+    // Asynchronous handlers resolve to the response value; bridge it to
+    // sendResponse and keep the channel open, settling even on rejection so a
+    // throwing handler never hangs the sender.
+    if (result instanceof Promise) {
+      if (!_message.needResponse) {
+        void result.catch(() => {});
+        return undefined;
+      }
+      void result.then(
+        (value) => _sendResponse(value),
+        (error) => _sendResponse({ error: String(error) }),
+      );
+      return true;
+    }
+    // Synchronous handlers return their payload directly.
+    if (_message.needResponse && result) {
+      _sendResponse(result);
     }
     return undefined;
   }
@@ -279,11 +258,10 @@ function start(browser: any): void {
     });
   }
 
-  const tabs = createTabs({ _response, conf, browser, handlers });
+  const tabs = createTabs({ conf, browser, handlers });
   Object.assign(handlers, tabs.handlers);
 
   const settings = createSettings({
-    _response,
     conf,
     browser,
     sendTabMessage: tabs.sendTabMessage,
@@ -295,8 +273,8 @@ function start(browser: any): void {
   });
   Object.assign(handlers, settings.handlers);
 
-  Object.assign(handlers, createBookmarkHandlers(_response));
-  Object.assign(handlers, createHistoryHandlers(_response, browser, tabs.filterByTitleOrUrl));
+  Object.assign(handlers, createBookmarkHandlers());
+  Object.assign(handlers, createHistoryHandlers(browser, tabs.filterByTitleOrUrl));
 
   handlers["setSurfingkeysIcon"] = (message: any, sender: any, _sendResponse: any) => {
     let icon = "icons/48.png";
@@ -311,17 +289,12 @@ function start(browser: any): void {
       tabId: sender.tab ? sender.tab.id : undefined,
     });
   };
-  handlers["request"] = (message: any, _sender: any, sendResponse: any) => {
-    void request(message.url, message.headers, message.data).then((r) => {
-      if (Result.isSuccess(r)) {
-        _response(message, sendResponse, { text: r.value });
-      } else {
-        _response(message, sendResponse, { error: String(r.error.cause) });
-      }
-    });
+  handlers["request"] = async (message: any) => {
+    const r = await request(message.url, message.headers, message.data);
+    return Result.isSuccess(r) ? { text: r.value } : { error: String(r.error.cause) };
   };
-  handlers["requestImage"] = (message: any, _sender: any, sendResponse: any) => {
-    void Result.try({
+  handlers["requestImage"] = async (message: any) => {
+    const r = await Result.try({
       try: async () => {
         const res = await fetch(message.url, { method: "GET" });
         const img = await createImageBitmap(await res.blob());
@@ -342,26 +315,17 @@ function start(browser: any): void {
         });
       },
       catch: (cause) => domApiError("requestImage", cause),
-    }).then((r) => {
-      _response(message, sendResponse, {
-        text: Result.isSuccess(r) ? r.value : "",
-      });
     });
+    return { text: Result.isSuccess(r) ? r.value : "" };
   };
-  function _quit() {
-    chrome.windows.getAll(
-      {
-        populate: false,
-      },
-      (windows: any[]) => {
-        windows.forEach((w) => {
-          chrome.windows.remove(w.id);
-        });
-      },
-    );
+  async function _quit() {
+    const windows = await chrome.windows.getAll({ populate: false });
+    windows.forEach((w) => {
+      chrome.windows.remove(w.id!);
+    });
   }
-  handlers["quit"] = (_message: any, _sender: any, _sendResponse: any) => {
-    _quit();
+  handlers["quit"] = () => {
+    void _quit();
   };
   handlers["closeDownloadsShelf"] = (message: any, _sender: any, _sendResponse: any) => {
     if (message.clearHistory) {
@@ -371,12 +335,9 @@ function start(browser: any): void {
       chrome.downloads.setShelfEnabled(true);
     }
   };
-  handlers["getDownloads"] = (message: any, _sender: any, sendResponse: any) => {
-    chrome.downloads.search(message.query, (items: any[]) => {
-      _response(message, sendResponse, {
-        downloads: items,
-      });
-    });
+  handlers["getDownloads"] = async (message: any) => {
+    const downloads = await chrome.downloads.search(message.query);
+    return { downloads };
   };
   handlers["download"] = (message: any, _sender: any, _sendResponse: any) => {
     chrome.downloads.download({
@@ -385,103 +346,62 @@ function start(browser: any): void {
       saveAs: message.saveAs,
     });
   };
-  function _removeURL(uid: string, cb: () => void) {
+  async function _removeURL(uid: string): Promise<void> {
     const type = uid[0];
     uid = uid.substring(1);
     if (type === "B") {
-      chrome.bookmarks.remove(uid, cb);
+      await chrome.bookmarks.remove(uid);
     } else if (type === "H") {
-      chrome.history.deleteUrl({ url: uid }, cb);
+      await chrome.history.deleteUrl({ url: uid });
     } else if (type === "T") {
       const parts = uid.split(":").map((u) => {
         return parseInt(u);
       });
-      chrome.windows.update(
-        parts[0]!,
-        {
-          focused: true,
-        },
-        () => {
-          chrome.tabs.remove(parts[1]!, cb);
-        },
-      );
-    } else if (type === "M") {
-      settings.loadSettings("marks", (data: any) => {
-        delete data.marks[uid];
-        settings.updateAndPostSettings({ marks: data.marks }, cb);
+      await chrome.windows.update(parts[0]!, {
+        focused: true,
       });
+      await chrome.tabs.remove(parts[1]!);
+    } else if (type === "M") {
+      const data = await settings.loadSettings("marks");
+      delete data.marks[uid];
+      await settings.updateAndPostSettings({ marks: data.marks });
     }
   }
-  handlers["removeURL"] = (message: any, _sender: any, sendResponse: any) => {
-    let removed = 0;
-    let totalToRemoved = message.uid.length;
-    let uid = message.uid;
-    if (typeof message.uid === "string") {
-      totalToRemoved = 1;
-      uid = [message.uid];
-    }
-    function _done() {
-      removed++;
-      if (removed === totalToRemoved) {
-        _response(message, sendResponse, {
-          response: "Done",
-        });
-      }
-    }
-    uid.forEach((u: string) => {
-      _removeURL(u, _done);
-    });
+  handlers["removeURL"] = async (message: any) => {
+    const uids = typeof message.uid === "string" ? [message.uid] : message.uid;
+    await Promise.all(uids.map((u: string) => _removeURL(u)));
+    return { response: "Done" };
   };
-  handlers["localData"] = (message: any, _sender: any, sendResponse: any) => {
+  handlers["localData"] = async (message: any) => {
     if (message.data.constructor === Object) {
-      chrome.storage.local.set(message.data, () => {});
+      void chrome.storage.local.set(message.data);
       // broadcast the change also, such as lastKeys
       // we would set lastKeys in sync to avoid breaching chrome.storage.sync.MAX_WRITE_OPERATIONS_PER_MINUTE
-      settings.broadcastSettings(message.data);
-    } else {
-      // string or array of string keys
-      chrome.storage.local.get(message.data, (data: any) => {
-        _response(message, sendResponse, {
-          data: data,
-        });
-      });
+      void settings.broadcastSettings(message.data);
+      return undefined;
     }
+    // string or array of string keys
+    const data = await chrome.storage.local.get(message.data);
+    return { data };
   };
-  handlers["captureVisibleTab"] = (message: any, _sender: any, sendResponse: any) => {
-    chrome.tabs.captureVisibleTab({ format: "png" }, (dataUrl: string) => {
-      _response(message, sendResponse, {
-        dataUrl: dataUrl,
-      });
-    });
+  handlers["captureVisibleTab"] = async () => {
+    const dataUrl = await chrome.tabs.captureVisibleTab({ format: "png" });
+    return { dataUrl };
   };
-  handlers["getCaptureSize"] = (message: any, _sender: any, sendResponse: any) => {
+  handlers["getCaptureSize"] = async () => {
+    const dataUrl = await chrome.tabs.captureVisibleTab({ format: "png" });
     const img = document.createElement("img");
-    img.onload = () => {
-      _response(message, sendResponse, {
-        width: img.width,
-        height: img.height,
-      });
-    };
-    chrome.tabs.captureVisibleTab({ format: "png" }, (dataUrl: string) => {
+    return await new Promise<{ width: number; height: number }>((resolve) => {
+      img.onload = () => resolve({ width: img.width, height: img.height });
       img.src = dataUrl;
     });
   };
-  handlers["initGist"] = (message: any, _sender: any, sendResponse: any) => {
-    return Gist.initGist(message.token, (gist: string) => {
-      _response(message, sendResponse, {
-        gist: gist,
-      });
-    });
+  handlers["initGist"] = async (message: any) => {
+    return { gist: await Gist.initGist(message.token) };
   };
-  handlers["readComment"] = (message: any, _sender: any, sendResponse: any) => {
-    Gist.readComment(message.index, (resp: any) => {
-      _response(message, sendResponse, resp);
-    });
-  };
-  handlers["editComment"] = (message: any, _sender: any, sendResponse: any) => {
-    Gist.editComment(message.index, message.content, (resp: any) => {
-      _response(message, sendResponse, { gistResp: resp });
-    });
+  handlers["readComment"] = (message: any) => Gist.readComment(message.index);
+  handlers["editComment"] = async (message: any) => {
+    return { gistResp: await Gist.editComment(message.index, message.content) };
   };
 
   handlers["openIncognito"] = (message: any, _sender: any, _sendResponse: any) => {
@@ -491,7 +411,7 @@ function start(browser: any): void {
   handlers["writeClipboard"] = (message: any, _sender: any, _sendResponse: any) => {
     navigator.clipboard.writeText(message.text);
   };
-  handlers["getContainerName"] = browser._getContainerName(handlers, _response);
+  handlers["getContainerName"] = browser._getContainerName(handlers);
   chrome.runtime.setUninstallURL(
     "http://brookhong.github.io/2018/01/30/why-did-you-uninstall-surfingkeys.html",
   );
