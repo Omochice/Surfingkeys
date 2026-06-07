@@ -118,6 +118,25 @@ describe("start — initGist", () => {
     await vi.waitFor(() => expect(sendResponse).toHaveBeenCalled());
     expect(sendResponse.mock.calls.at(-1)?.[0]).toMatchObject({ gist: "" });
   });
+
+  it("still settles the response when the gist-creation response lacks an id", async () => {
+    // Well-formed JSON whose shape does not match the schema (no `id`): valibot
+    // rejects it just like a parse failure, so the sender still settles.
+    mockRequest
+      .mockResolvedValueOnce(Result.succeed("[]"))
+      .mockResolvedValueOnce(Result.succeed(JSON.stringify({ url: "https://example" })));
+    const dispatch = bootDispatch();
+    const sendResponse = vi.fn();
+
+    dispatch(
+      { action: "initGist", token: "tok-create-bad-shape", needResponse: true },
+      { tab: { id: 1 } },
+      sendResponse,
+    );
+
+    await vi.waitFor(() => expect(sendResponse).toHaveBeenCalled());
+    expect(sendResponse.mock.calls.at(-1)?.[0]).toMatchObject({ gist: "" });
+  });
 });
 
 /**
@@ -178,6 +197,24 @@ describe("start — readComment", () => {
     const dispatch = bootDispatch();
     await primeGist(dispatch, "tok-read-list-bad-json");
     mockRequest.mockResolvedValue(Result.succeed("not-json"));
+    const sendResponse = vi.fn();
+
+    dispatch(
+      { action: "readComment", index: 0, needResponse: true },
+      { tab: { id: 1 } },
+      sendResponse,
+    );
+
+    await vi.waitFor(() => expect(sendResponse).toHaveBeenCalled());
+    expect(sendResponse.mock.calls.at(-1)?.[0]).toMatchObject({ status: 1 });
+  });
+
+  it("still settles the response when the comment list entries lack an id", async () => {
+    const dispatch = bootDispatch();
+    await primeGist(dispatch, "tok-read-list-bad-shape");
+    // Well-formed array whose entries miss the consumed `id` field; valibot
+    // rejects it so the handler reports failure instead of mapping to undefined.
+    mockRequest.mockResolvedValue(Result.succeed(JSON.stringify([{ body: "x" }])));
     const sendResponse = vi.fn();
 
     dispatch(
@@ -791,6 +828,34 @@ describe("start — readComment malformed per-comment JSON", () => {
     // index 0 now hits the cached entry; its per-comment body is malformed JSON,
     // so parseGist returns null and _readComment settles with status 1.
     mockRequest.mockResolvedValueOnce(Result.succeed("not-json"));
+    const sendResponse = vi.fn();
+    dispatch(
+      { action: "readComment", index: 0, needResponse: true },
+      { tab: { id: 1 } },
+      sendResponse,
+    );
+
+    await vi.waitFor(() => expect(sendResponse).toHaveBeenCalled());
+    expect(sendResponse.mock.calls.at(-1)?.[0]).toMatchObject({ status: 1 });
+  });
+
+  it("settles with status 1 when the fetched comment lacks a body", async () => {
+    const dispatch = bootDispatch();
+    await primeGist(dispatch, "tok-read-comment-bad-shape");
+
+    // Prime the singleton's _comments cache with a single known entry (see the
+    // malformed-JSON sibling test for why the per-comment read here is ignored).
+    mockRequest
+      .mockResolvedValueOnce(Result.succeed(JSON.stringify([{ id: "c1" }]))) // _listComment
+      .mockResolvedValueOnce(Result.succeed(JSON.stringify({ body: "hello" }))); // _readComment
+    const prime = vi.fn();
+    dispatch({ action: "readComment", index: 0, needResponse: true }, { tab: { id: 1 } }, prime);
+    await vi.waitFor(() => expect(prime).toHaveBeenCalled());
+    mockRequest.mockReset();
+
+    // Well-formed JSON whose shape misses the consumed `body` field; valibot
+    // rejects it so _readComment settles with status 1.
+    mockRequest.mockResolvedValueOnce(Result.succeed(JSON.stringify({ id: "c1" })));
     const sendResponse = vi.fn();
     dispatch(
       { action: "readComment", index: 0, needResponse: true },
