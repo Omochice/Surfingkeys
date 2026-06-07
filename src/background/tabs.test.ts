@@ -78,18 +78,15 @@ function makeNoopListener() {
 }
 
 /**
- * Builds a chrome stub with controllable `tabs.query` and returns the vi.fn mocks for `tabs.update`
- * (and any extras passed in).
- *
- * `queryMap` allows different query responses keyed by a JSON.stringify of the queryInfo object;
- * when no key matches the stub falls back to `defaultTabs`.
+ * Builds a chrome stub with a promise-based `tabs.query` and returns the vi.fn mocks for
+ * `tabs.update` (and any extras passed in). The query resolves `defaultTabs`.
  */
 function buildChrome(
   defaultTabs: any[],
   extra: Partial<TabsStub> = {},
 ): { update: ReturnType<typeof vi.fn>; query: ReturnType<typeof vi.fn> } {
   const update = vi.fn();
-  const query = vi.fn((_q: any, cb: (t: any[]) => void) => cb(defaultTabs));
+  const query = vi.fn().mockResolvedValue(defaultTabs);
   g.chrome.tabs = {
     onRemoved: makeNoopListener(),
     onUpdated: makeNoopListener(),
@@ -112,7 +109,6 @@ function tabUnitOver(tabs: any[], conf: Record<string, any> = {}, extra: Partial
   const { update, query } = buildChrome(tabs, extra);
   const handlers: Record<string, any> = {};
   const unit = createTabs({
-    _response: vi.fn(),
     conf,
     browser: { _setNewTabUrl: () => "about:newtab" },
     handlers,
@@ -127,36 +123,36 @@ function tabUnitOver(tabs: any[], conf: Record<string, any> = {}, extra: Partial
 // ---------------------------------------------------------------------------
 
 describe("createTabs — tab navigation index math", () => {
-  it("previousTab from the first tab wraps to the last", () => {
+  it("previousTab from the first tab wraps to the last", async () => {
     const { unit, update } = tabUnitOver([{ id: 1 }, { id: 2 }, { id: 3 }]);
     const previousTab = unit.handlers["previousTab"];
     expectDefined(previousTab);
-    previousTab({ repeats: 1 }, { tab: { index: 0, windowId: 5 } }, vi.fn());
+    await previousTab({ repeats: 1 }, { tab: { index: 0, windowId: 5 } }, vi.fn());
     expect(update).toHaveBeenCalledWith(3, { active: true });
   });
 
-  it("nextTab from the last tab wraps to the first", () => {
+  it("nextTab from the last tab wraps to the first", async () => {
     const { unit, update } = tabUnitOver([{ id: 1 }, { id: 2 }, { id: 3 }]);
     const nextTab = unit.handlers["nextTab"];
     expectDefined(nextTab);
-    nextTab({ repeats: 1 }, { tab: { index: 2, windowId: 5 } }, vi.fn());
+    await nextTab({ repeats: 1 }, { tab: { index: 2, windowId: 5 } }, vi.fn());
     expect(update).toHaveBeenCalledWith(1, { active: true });
   });
 
-  it("nextTab steps forward without wrapping inside the range", () => {
+  it("nextTab steps forward without wrapping inside the range", async () => {
     const { unit, update } = tabUnitOver([{ id: 1 }, { id: 2 }, { id: 3 }]);
     const nextTab = unit.handlers["nextTab"];
     expectDefined(nextTab);
-    nextTab({ repeats: 1 }, { tab: { index: 0, windowId: 5 } }, vi.fn());
+    await nextTab({ repeats: 1 }, { tab: { index: 0, windowId: 5 } }, vi.fn());
     expect(update).toHaveBeenCalledWith(2, { active: true });
   });
 
-  it("previousTab with repeats > 1 steps back multiple positions", () => {
+  it("previousTab with repeats > 1 steps back multiple positions", async () => {
     const { unit, update } = tabUnitOver([{ id: 1 }, { id: 2 }, { id: 3 }, { id: 4 }, { id: 5 }]);
     const previousTab = unit.handlers["previousTab"];
     expectDefined(previousTab);
     // index 3, step -3 -> index 0 -> id 1
-    previousTab({ repeats: 3 }, { tab: { index: 3, windowId: 5 } }, vi.fn());
+    await previousTab({ repeats: 3 }, { tab: { index: 3, windowId: 5 } }, vi.fn());
     expect(update).toHaveBeenCalledWith(1, { active: true });
   });
 });
@@ -202,30 +198,30 @@ describe("createTabs — filterByTitleOrUrl", () => {
 // ---------------------------------------------------------------------------
 
 describe("focusTabByIndex", () => {
-  it("activates the tab at repeats-1 index when repeats is in range", () => {
+  it("activates the tab at repeats-1 index when repeats is in range", async () => {
     const tabs = [{ id: 10 }, { id: 20 }, { id: 30 }];
     const { unit, update } = tabUnitOver(tabs);
     const handler = unit.handlers["focusTabByIndex"];
     expectDefined(handler);
-    handler({ repeats: 2, queryInfo: { currentWindow: true } }, {}, vi.fn());
+    await handler({ repeats: 2, queryInfo: { currentWindow: true } }, {}, vi.fn());
     expect(update).toHaveBeenCalledWith(20, { active: true });
   });
 
-  it("does not call tabs.update when repeats is 0", () => {
+  it("does not call tabs.update when repeats is 0", async () => {
     const tabs = [{ id: 10 }, { id: 20 }];
     const { unit, update } = tabUnitOver(tabs);
     const handler = unit.handlers["focusTabByIndex"];
     expectDefined(handler);
-    handler({ repeats: 0, queryInfo: { currentWindow: true } }, {}, vi.fn());
+    await handler({ repeats: 0, queryInfo: { currentWindow: true } }, {}, vi.fn());
     expect(update).not.toHaveBeenCalled();
   });
 
-  it("does not call tabs.update when repeats exceeds tab count", () => {
+  it("does not call tabs.update when repeats exceeds tab count", async () => {
     const tabs = [{ id: 10 }, { id: 20 }];
     const { unit, update } = tabUnitOver(tabs);
     const handler = unit.handlers["focusTabByIndex"];
     expectDefined(handler);
-    handler({ repeats: 5, queryInfo: { currentWindow: true } }, {}, vi.fn());
+    await handler({ repeats: 5, queryInfo: { currentWindow: true } }, {}, vi.fn());
     expect(update).not.toHaveBeenCalled();
   });
 });
@@ -235,27 +231,27 @@ describe("focusTabByIndex", () => {
 // ---------------------------------------------------------------------------
 
 describe("focusTab handler", () => {
-  it("calls windows.update + tabs.update when windowId differs from sender", () => {
+  it("calls windows.update + tabs.update when windowId differs from sender", async () => {
     const tabs = [{ id: 99 }];
     const { unit, update } = tabUnitOver(tabs);
     // attach windows.update after unit creation so it is available at call time
-    const windowsUpdate = vi.fn((_id: any, _opts: any, cb?: () => void) => cb && cb());
+    const windowsUpdate = vi.fn().mockResolvedValue(undefined);
     g.chrome.windows = { ...g.chrome.windows, update: windowsUpdate };
     const handler = unit.handlers["focusTab"];
     expectDefined(handler);
-    handler({ windowId: 7, tabId: 99 }, { tab: { windowId: 3 } }, vi.fn());
-    expect(windowsUpdate).toHaveBeenCalledWith(7, { focused: true }, expect.any(Function));
+    await handler({ windowId: 7, tabId: 99 }, { tab: { windowId: 3 } }, vi.fn());
+    expect(windowsUpdate).toHaveBeenCalledWith(7, { focused: true });
     expect(update).toHaveBeenCalledWith(99, { active: true });
   });
 
-  it("calls only tabs.update when windowId matches sender windowId", () => {
+  it("calls only tabs.update when windowId matches sender windowId", async () => {
     const tabs = [{ id: 99 }];
     const { unit, update } = tabUnitOver(tabs);
     const windowsUpdate = vi.fn();
     g.chrome.windows = { ...g.chrome.windows, update: windowsUpdate };
     const handler = unit.handlers["focusTab"];
     expectDefined(handler);
-    handler({ windowId: 3, tabId: 99 }, { tab: { windowId: 3 } }, vi.fn());
+    await handler({ windowId: 3, tabId: 99 }, { tab: { windowId: 3 } }, vi.fn());
     expect(windowsUpdate).not.toHaveBeenCalled();
     expect(update).toHaveBeenCalledWith(99, { active: true });
   });
@@ -266,21 +262,21 @@ describe("focusTab handler", () => {
 // ---------------------------------------------------------------------------
 
 describe("togglePinTab", () => {
-  it("toggles the pinned state of the active tab from unpinned to pinned", () => {
+  it("toggles the pinned state of the active tab from unpinned to pinned", async () => {
     const tabs = [{ id: 42, pinned: false }];
     const { unit, update } = tabUnitOver(tabs);
     const handler = unit.handlers["togglePinTab"];
     expectDefined(handler);
-    handler({}, {}, vi.fn());
+    await handler({}, {}, vi.fn());
     expect(update).toHaveBeenCalledWith(42, { pinned: true });
   });
 
-  it("toggles the pinned state from pinned to unpinned", () => {
+  it("toggles the pinned state from pinned to unpinned", async () => {
     const tabs = [{ id: 42, pinned: true, active: true }];
     const { unit, update } = tabUnitOver(tabs);
     const handler = unit.handlers["togglePinTab"];
     expectDefined(handler);
-    handler({}, {}, vi.fn());
+    await handler({}, {}, vi.fn());
     expect(update).toHaveBeenCalledWith(42, { pinned: false });
   });
 });
@@ -329,7 +325,7 @@ describe("closeTabByIds", () => {
 // ---------------------------------------------------------------------------
 
 describe("tabOnly", () => {
-  it("removes all non-pinned tabs except the sender tab", () => {
+  it("removes all non-pinned tabs except the sender tab", async () => {
     const remove = vi.fn();
     const tabs = [
       { id: 1, pinned: false },
@@ -341,7 +337,7 @@ describe("tabOnly", () => {
     const handler = unit.handlers["tabOnly"];
     expectDefined(handler);
     // sender tab id = 3 (stays), id=2 is pinned (stays), id=1 and id=4 removed
-    handler({}, { tab: { id: 3 } }, vi.fn());
+    await handler({}, { tab: { id: 3 } }, vi.fn());
     expect(remove).toHaveBeenCalledWith([1, 4]);
   });
 });
@@ -463,21 +459,21 @@ describe("URL queue management", () => {
 // ---------------------------------------------------------------------------
 
 describe("duplicateTab", () => {
-  it("calls tabs.duplicate with the sender tab id", () => {
-    const duplicate = vi.fn((_id: number, cb?: () => void) => cb && cb());
+  it("calls tabs.duplicate with the sender tab id", async () => {
+    const duplicate = vi.fn().mockResolvedValue(undefined);
     const { unit } = tabUnitOver([], {}, { duplicate });
     const handler = unit.handlers["duplicateTab"];
     expectDefined(handler);
-    handler({ active: true }, { tab: { id: 17 } }, vi.fn());
-    expect(duplicate).toHaveBeenCalledWith(17, expect.any(Function));
+    await handler({ active: true }, { tab: { id: 17 } }, vi.fn());
+    expect(duplicate).toHaveBeenCalledWith(17);
   });
 
-  it("re-activates the original tab when active is false", () => {
-    const duplicate = vi.fn((_id: number, cb?: () => void) => cb && cb());
+  it("re-activates the original tab when active is false", async () => {
+    const duplicate = vi.fn().mockResolvedValue(undefined);
     const { unit, update } = tabUnitOver([], {}, { duplicate });
     const handler = unit.handlers["duplicateTab"];
     expectDefined(handler);
-    handler({ active: false }, { tab: { id: 17 } }, vi.fn());
+    await handler({ active: false }, { tab: { id: 17 } }, vi.fn());
     expect(update).toHaveBeenCalledWith(17, { active: true });
   });
 });
@@ -487,25 +483,25 @@ describe("duplicateTab", () => {
 // ---------------------------------------------------------------------------
 
 describe("moveTab", () => {
-  it("moves the tab forward by step * repeats positions", () => {
+  it("moves the tab forward by step * repeats positions", async () => {
     const move = vi.fn();
     const tabs = [{ id: 1 }, { id: 2 }, { id: 3 }, { id: 4 }, { id: 5 }];
     const { unit } = tabUnitOver(tabs, {}, { move });
     const handler = unit.handlers["moveTab"];
     expectDefined(handler);
     // tab at index 1, step 1, repeats 2 -> destination 3, clamped to tabs.length = 5
-    handler({ step: 1, repeats: 2 }, { tab: { id: 2, index: 1, windowId: 1 } }, vi.fn());
+    await handler({ step: 1, repeats: 2 }, { tab: { id: 2, index: 1, windowId: 1 } }, vi.fn());
     expect(move).toHaveBeenCalledWith(2, { index: 3 });
   });
 
-  it("clamps the move target to the end of the list", () => {
+  it("clamps the move target to the end of the list", async () => {
     const move = vi.fn();
     const tabs = [{ id: 1 }, { id: 2 }, { id: 3 }];
     const { unit } = tabUnitOver(tabs, {}, { move });
     const handler = unit.handlers["moveTab"];
     expectDefined(handler);
     // tab at index 2, step 1, repeats 5 -> raw 7 clamped to length (3)
-    handler({ step: 1, repeats: 5 }, { tab: { id: 3, index: 2, windowId: 1 } }, vi.fn());
+    await handler({ step: 1, repeats: 5 }, { tab: { id: 3, index: 2, windowId: 1 } }, vi.fn());
     expect(move).toHaveBeenCalledWith(3, { index: 3 });
   });
 });
@@ -515,8 +511,7 @@ describe("moveTab", () => {
 // ---------------------------------------------------------------------------
 
 describe("getWindows", () => {
-  it("groups tabs by windowId and marks the previous choice", () => {
-    const _response = vi.fn();
+  it("groups tabs by windowId and marks the previous choice", async () => {
     const noopListener = makeNoopListener();
     const tabs = [
       { id: 1, windowId: 10, title: "T1", url: "https://a.com" },
@@ -531,14 +526,13 @@ describe("getWindows", () => {
       onActivated: noopListener,
       onDetached: noopListener,
       onAttached: noopListener,
-      query: (_q: any, cb: (t: any[]) => void) => cb(tabs),
+      query: vi.fn().mockResolvedValue(tabs),
       update: vi.fn(),
     };
     g.chrome.windows = { onFocusChanged: noopListener };
     g.chrome.commands = { onCommand: noopListener };
 
     const unit = createTabs({
-      _response,
       conf: {},
       browser: { _setNewTabUrl: () => "about:newtab" },
       handlers: {},
@@ -546,12 +540,7 @@ describe("getWindows", () => {
 
     const handler = unit.handlers["getWindows"];
     expectDefined(handler);
-    const sendResponse = vi.fn();
-    handler({}, {}, sendResponse);
-
-    expect(_response).toHaveBeenCalled();
-    const args = _response.mock.calls[0]!;
-    const result = args[2] as {
+    const result = (await handler({}, {}, vi.fn())) as {
       windows: Array<{ id: string; tabs: any[]; isPreviousChoice: boolean }>;
     };
     expect(result.windows).toHaveLength(2);
@@ -571,26 +560,26 @@ describe("getWindows", () => {
 // ---------------------------------------------------------------------------
 
 describe("moveToWindow", () => {
-  it("creates a new window when windowId is -1", () => {
+  it("creates a new window when windowId is -1", async () => {
     const { unit } = tabUnitOver([]);
     const windowsCreate = vi.fn();
     g.chrome.windows = { ...g.chrome.windows, create: windowsCreate };
     const handler = unit.handlers["moveToWindow"];
     expectDefined(handler);
-    handler({ windowId: -1 }, { tab: { id: 5, windowId: 1 } }, vi.fn());
+    await handler({ windowId: -1 }, { tab: { id: 5, windowId: 1 } }, vi.fn());
     expect(windowsCreate).toHaveBeenCalledWith({ tabId: 5 });
   });
 
-  it("moves the tab to an existing window and focuses it", () => {
-    const move = vi.fn((_id: any, _opts: any, cb?: () => void) => cb && cb());
+  it("moves the tab to an existing window and focuses it", async () => {
+    const move = vi.fn().mockResolvedValue(undefined);
     const { unit, update } = tabUnitOver([], {}, { move });
-    const windowsUpdate = vi.fn((_id: any, _opts: any, cb?: () => void) => cb && cb());
+    const windowsUpdate = vi.fn().mockResolvedValue(undefined);
     g.chrome.windows = { ...g.chrome.windows, update: windowsUpdate };
     const handler = unit.handlers["moveToWindow"];
     expectDefined(handler);
-    handler({ windowId: 8 }, { tab: { id: 5, windowId: 1 } }, vi.fn());
-    expect(move).toHaveBeenCalledWith(5, { windowId: 8, index: -1 }, expect.any(Function));
-    expect(windowsUpdate).toHaveBeenCalledWith(8, { focused: true }, expect.any(Function));
+    await handler({ windowId: 8 }, { tab: { id: 5, windowId: 1 } }, vi.fn());
+    expect(move).toHaveBeenCalledWith(5, { windowId: 8, index: -1 });
+    expect(windowsUpdate).toHaveBeenCalledWith(8, { focused: true });
     expect(update).toHaveBeenCalledWith(5, { active: true });
   });
 });
@@ -600,7 +589,7 @@ describe("moveToWindow", () => {
 // ---------------------------------------------------------------------------
 
 describe("gatherWindows", () => {
-  it("moves all non-current-window tabs into the sender window", () => {
+  it("moves all non-current-window tabs into the sender window", async () => {
     const move = vi.fn();
     const otherTabs = [
       { id: 10, windowId: 20 },
@@ -609,7 +598,7 @@ describe("gatherWindows", () => {
     const { unit } = tabUnitOver(otherTabs, {}, { move });
     const handler = unit.handlers["gatherWindows"];
     expectDefined(handler);
-    handler({}, { tab: { windowId: 1 } }, vi.fn());
+    await handler({}, { tab: { windowId: 1 } }, vi.fn());
     expect(move).toHaveBeenCalledWith(10, { windowId: 1, index: -1 });
     expect(move).toHaveBeenCalledWith(11, { windowId: 1, index: -1 });
   });
@@ -637,8 +626,7 @@ describe("gatherTabs", () => {
 // ---------------------------------------------------------------------------
 
 describe("getTabs", () => {
-  it("returns all tabs filtered by title/url", () => {
-    const _response = vi.fn();
+  it("returns all tabs filtered by title/url", async () => {
     const tabs = [
       { id: 1, url: "https://example.com", title: "Example" },
       { id: 2, url: "https://other.org", title: "Other" },
@@ -652,13 +640,12 @@ describe("getTabs", () => {
       onActivated: noopListener,
       onDetached: noopListener,
       onAttached: noopListener,
-      query: (_q: any, cb: (t: any[]) => void) => cb(tabs),
+      query: vi.fn().mockResolvedValue(tabs),
       update: vi.fn(),
     };
     g.chrome.windows = { onFocusChanged: noopListener };
     g.chrome.commands = { onCommand: noopListener };
     const unit = createTabs({
-      _response,
       conf: {},
       browser: { _setNewTabUrl: () => "about:newtab" },
       handlers: {},
@@ -666,15 +653,16 @@ describe("getTabs", () => {
 
     const handler = unit.handlers["getTabs"];
     expectDefined(handler);
-    handler({ filter: "example", tabsThreshold: 100, queryInfo: {} }, { tab: { id: 99 } }, vi.fn());
-    expect(_response).toHaveBeenCalled();
-    const result = _response.mock.calls[0]![2] as { tabs: any[] };
+    const result = (await handler(
+      { filter: "example", tabsThreshold: 100, queryInfo: {} },
+      { tab: { id: 99 } },
+      vi.fn(),
+    )) as { tabs: any[] };
     expect(result.tabs).toHaveLength(1);
     expect(result.tabs[0].id).toBe(1);
   });
 
-  it("sorts by lastAccessed when tabsMRUOrder is enabled and count exceeds threshold", () => {
-    const _response = vi.fn();
+  it("sorts by lastAccessed when tabsMRUOrder is enabled and count exceeds threshold", async () => {
     const tabs = [
       { id: 1, url: "https://a.com", title: "A", lastAccessed: 100 },
       { id: 2, url: "https://b.com", title: "B", lastAccessed: 300 },
@@ -690,13 +678,12 @@ describe("getTabs", () => {
       onActivated: noopListener,
       onDetached: noopListener,
       onAttached: noopListener,
-      query: (_q: any, cb: (t: any[]) => void) => cb(tabs),
+      query: vi.fn().mockResolvedValue(tabs),
       update: vi.fn(),
     };
     g.chrome.windows = { onFocusChanged: noopListener };
     g.chrome.commands = { onCommand: noopListener };
     const unit = createTabs({
-      _response,
       conf: { tabsMRUOrder: true },
       browser: { _setNewTabUrl: () => "about:newtab" },
       handlers: {},
@@ -705,9 +692,11 @@ describe("getTabs", () => {
     const handler = unit.handlers["getTabs"];
     expectDefined(handler);
     // threshold=2: 3 non-sender tabs > 2 so MRU sort kicks in
-    handler({ filter: "", tabsThreshold: 2, queryInfo: {} }, { tab: { id: 99 } }, vi.fn());
-    expect(_response).toHaveBeenCalled();
-    const result = _response.mock.calls[0]![2] as { tabs: any[] };
+    const result = (await handler(
+      { filter: "", tabsThreshold: 2, queryInfo: {} },
+      { tab: { id: 99 } },
+      vi.fn(),
+    )) as { tabs: any[] };
     // sender tab excluded; sorted descending by lastAccessed: 300, 200, 100
     expect(result.tabs.map((t) => t.id)).toEqual([2, 3, 1]);
   });
@@ -737,7 +726,7 @@ describe("goToLastTab", () => {
       },
       onDetached: noopListener,
       onAttached: noopListener,
-      query: (_q: any, cb: (t: any[]) => void) => cb([]),
+      query: vi.fn().mockResolvedValue([]),
       update,
       sendMessage,
     };
@@ -745,7 +734,6 @@ describe("goToLastTab", () => {
     g.chrome.commands = { onCommand: noopListener };
 
     const unit = createTabs({
-      _response: vi.fn(),
       conf: {},
       browser: { _setNewTabUrl: () => "about:newtab" },
       handlers: {},
@@ -769,12 +757,12 @@ describe("goToLastTab", () => {
 // ---------------------------------------------------------------------------
 
 describe("openLink — URL normalization and tabbed behavior", () => {
-  it("blocks JavaScript URLs and sends a banner message", () => {
+  it("blocks JavaScript URLs and sends a banner message", async () => {
     const sendMessage = vi.fn().mockReturnValue(undefined);
     const { unit } = tabUnitOver([], {}, { sendMessage });
     const handler = unit.handlers["openLink"];
     expectDefined(handler);
-    handler(
+    await handler(
       { url: "javascript:alert(1)", tab: { tabbed: false } },
       { tab: { id: 3, pinned: false }, frameId: 0 },
       vi.fn(),
@@ -786,12 +774,12 @@ describe("openLink — URL normalization and tabbed behavior", () => {
     );
   });
 
-  it("adds http:// prefix to a bare hostname", () => {
+  it("adds http:// prefix to a bare hostname", async () => {
     const create = vi.fn();
     const { unit } = tabUnitOver([], {}, { create });
     const handler = unit.handlers["openLink"];
     expectDefined(handler);
-    handler(
+    await handler(
       {
         url: "example.com",
         tab: { tabbed: true, active: true, pinned: false },
@@ -799,18 +787,15 @@ describe("openLink — URL normalization and tabbed behavior", () => {
       { tab: { id: 1, pinned: false }, frameId: 0, url: "https://other.com" },
       vi.fn(),
     );
-    expect(create).toHaveBeenCalledWith(
-      expect.objectContaining({ url: "http://example.com" }),
-      expect.any(Function),
-    );
+    expect(create).toHaveBeenCalledWith(expect.objectContaining({ url: "http://example.com" }));
   });
 
-  it("leaves view-source: URLs as-is", () => {
+  it("leaves view-source: URLs as-is", async () => {
     const create = vi.fn();
     const { unit } = tabUnitOver([], {}, { create });
     const handler = unit.handlers["openLink"];
     expectDefined(handler);
-    handler(
+    await handler(
       {
         url: "view-source:https://example.com",
         tab: { tabbed: true, active: true, pinned: false },
@@ -820,11 +805,10 @@ describe("openLink — URL normalization and tabbed behavior", () => {
     );
     expect(create).toHaveBeenCalledWith(
       expect.objectContaining({ url: "view-source:https://example.com" }),
-      expect.any(Function),
     );
   });
 
-  it("opens in the current tab (not tabbed) when tab.tabbed is false", () => {
+  it("opens in the current tab (not tabbed) when tab.tabbed is false", async () => {
     const update = vi.fn();
     g.chrome.tabs = {
       ...(g.chrome.tabs as any),
@@ -833,7 +817,7 @@ describe("openLink — URL normalization and tabbed behavior", () => {
     const { unit } = tabUnitOver([], {}, { update });
     const handler = unit.handlers["openLink"];
     expectDefined(handler);
-    handler(
+    await handler(
       {
         url: "https://example.com",
         tab: { tabbed: false, pinned: false },
@@ -841,10 +825,7 @@ describe("openLink — URL normalization and tabbed behavior", () => {
       { tab: { id: 2, pinned: false }, frameId: 0, url: "https://other.com" },
       vi.fn(),
     );
-    expect(update).toHaveBeenCalledWith(
-      expect.objectContaining({ url: "https://example.com" }),
-      expect.any(Function),
-    );
+    expect(update).toHaveBeenCalledWith(expect.objectContaining({ url: "https://example.com" }));
   });
 });
 
@@ -861,60 +842,51 @@ describe("openUrlInNewTab — newTabPosition config", () => {
     };
   }
 
-  it("places the new tab at currentTab.index when newTabPosition is 'left'", () => {
+  it("places the new tab at currentTab.index when newTabPosition is 'left'", async () => {
     const create = vi.fn();
     const { unit } = tabUnitOver([], { newTabPosition: "left" }, { create });
     const handler = unit.handlers["openLink"];
     expectDefined(handler);
-    handler(
+    await handler(
       { url: "https://example.com", tab: { tabbed: true, active: true, pinned: false } },
       makeOpenLinkSender(3),
       vi.fn(),
     );
-    expect(create).toHaveBeenCalledWith(
-      expect.objectContaining({ index: 3 }),
-      expect.any(Function),
-    );
+    expect(create).toHaveBeenCalledWith(expect.objectContaining({ index: 3 }));
   });
 
-  it("places the new tab at currentTab.index+1 when newTabPosition is 'right'", () => {
+  it("places the new tab at currentTab.index+1 when newTabPosition is 'right'", async () => {
     const create = vi.fn();
     const { unit } = tabUnitOver([], { newTabPosition: "right" }, { create });
     const handler = unit.handlers["openLink"];
     expectDefined(handler);
-    handler(
+    await handler(
       { url: "https://example.com", tab: { tabbed: true, active: true, pinned: false } },
       makeOpenLinkSender(3),
       vi.fn(),
     );
-    expect(create).toHaveBeenCalledWith(
-      expect.objectContaining({ index: 4 }),
-      expect.any(Function),
-    );
+    expect(create).toHaveBeenCalledWith(expect.objectContaining({ index: 4 }));
   });
 
-  it("places the new tab at index 0 when newTabPosition is 'first'", () => {
+  it("places the new tab at index 0 when newTabPosition is 'first'", async () => {
     const create = vi.fn();
     const { unit } = tabUnitOver([], { newTabPosition: "first" }, { create });
     const handler = unit.handlers["openLink"];
     expectDefined(handler);
-    handler(
+    await handler(
       { url: "https://example.com", tab: { tabbed: true, active: true, pinned: false } },
       makeOpenLinkSender(3),
       vi.fn(),
     );
-    expect(create).toHaveBeenCalledWith(
-      expect.objectContaining({ index: 0 }),
-      expect.any(Function),
-    );
+    expect(create).toHaveBeenCalledWith(expect.objectContaining({ index: 0 }));
   });
 
-  it("does not pass an index when newTabPosition is 'last'", () => {
+  it("does not pass an index when newTabPosition is 'last'", async () => {
     const create = vi.fn();
     const { unit } = tabUnitOver([], { newTabPosition: "last" }, { create });
     const handler = unit.handlers["openLink"];
     expectDefined(handler);
-    handler(
+    await handler(
       { url: "https://example.com", tab: { tabbed: true, active: true, pinned: false } },
       makeOpenLinkSender(3),
       vi.fn(),
@@ -929,12 +901,12 @@ describe("openUrlInNewTab — newTabPosition config", () => {
 // ---------------------------------------------------------------------------
 
 describe("viewSource", () => {
-  it("prepends view-source: to the sender tab URL and delegates to openLink", () => {
+  it("prepends view-source: to the sender tab URL and delegates to openLink", async () => {
     const create = vi.fn();
     const { unit } = tabUnitOver([], {}, { create });
     const handler = unit.handlers["viewSource"];
     expectDefined(handler);
-    handler(
+    await handler(
       { tab: { tabbed: true, active: true, pinned: false } },
       {
         tab: { id: 1, url: "https://example.com", pinned: false },
@@ -945,7 +917,6 @@ describe("viewSource", () => {
     );
     expect(create).toHaveBeenCalledWith(
       expect.objectContaining({ url: "view-source:https://example.com" }),
-      expect.any(Function),
     );
   });
 });
@@ -955,24 +926,32 @@ describe("viewSource", () => {
 // ---------------------------------------------------------------------------
 
 describe("reloadTab", () => {
-  it("reloads the specified number of tabs starting from the current", () => {
+  it("reloads the specified number of tabs starting from the current", async () => {
     const reload = vi.fn();
     const tabs = [{ id: 1 }, { id: 2 }, { id: 3 }, { id: 4 }, { id: 5 }];
     const { unit } = tabUnitOver(tabs, {}, { reload });
     const handler = unit.handlers["reloadTab"];
     expectDefined(handler);
-    handler({ repeats: 2, nocache: false }, { tab: { id: 2, index: 1, windowId: 1 } }, vi.fn());
+    await handler(
+      { repeats: 2, nocache: false },
+      { tab: { id: 2, index: 1, windowId: 1 } },
+      vi.fn(),
+    );
     expect(reload).toHaveBeenCalledWith(2, { bypassCache: false });
     expect(reload).toHaveBeenCalledWith(3, { bypassCache: false });
   });
 
-  it("passes bypassCache: true when nocache is set", () => {
+  it("passes bypassCache: true when nocache is set", async () => {
     const reload = vi.fn();
     const tabs = [{ id: 10 }, { id: 20 }];
     const { unit } = tabUnitOver(tabs, {}, { reload });
     const handler = unit.handlers["reloadTab"];
     expectDefined(handler);
-    handler({ repeats: 1, nocache: true }, { tab: { id: 10, index: 0, windowId: 1 } }, vi.fn());
+    await handler(
+      { repeats: 1, nocache: true },
+      { tab: { id: 10, index: 0, windowId: 1 } },
+      vi.fn(),
+    );
     expect(reload).toHaveBeenCalledWith(10, { bypassCache: true });
   });
 });
@@ -982,27 +961,27 @@ describe("reloadTab", () => {
 // ---------------------------------------------------------------------------
 
 describe("closeTabsToRight", () => {
-  it("removes all tabs to the right of the sender tab", () => {
+  it("removes all tabs to the right of the sender tab", async () => {
     const remove = vi.fn();
     const tabs = [{ id: 1 }, { id: 2 }, { id: 3 }, { id: 4 }];
     const { unit } = tabUnitOver(tabs, {}, { remove });
     const handler = unit.handlers["closeTabsToRight"];
     expectDefined(handler);
     // sender is at index 1 (id=2); tabs to the right: id=3, id=4
-    handler({}, { tab: { id: 2, index: 1 } }, vi.fn());
+    await handler({}, { tab: { id: 2, index: 1 } }, vi.fn());
     expect(remove).toHaveBeenCalledWith([3, 4]);
   });
 });
 
 describe("closeTabsToLeft", () => {
-  it("removes all tabs to the left of the sender tab", () => {
+  it("removes all tabs to the left of the sender tab", async () => {
     const remove = vi.fn();
     const tabs = [{ id: 1 }, { id: 2 }, { id: 3 }, { id: 4 }];
     const { unit } = tabUnitOver(tabs, {}, { remove });
     const handler = unit.handlers["closeTabsToLeft"];
     expectDefined(handler);
     // sender is at index 2 (id=3); tabs to the left: id=1, id=2
-    handler({}, { tab: { id: 3, index: 2 } }, vi.fn());
+    await handler({}, { tab: { id: 3, index: 2 } }, vi.fn());
     expect(remove).toHaveBeenCalledWith([1, 2]);
   });
 });
@@ -1012,13 +991,13 @@ describe("closeTabsToLeft", () => {
 // ---------------------------------------------------------------------------
 
 describe("closeTab — focusAfterClosed", () => {
-  it("navigates left after closing when focusAfterClosed is 'left'", () => {
-    const remove = vi.fn((_ids: any, cb?: () => void) => cb && cb());
+  it("navigates left after closing when focusAfterClosed is 'left'", async () => {
+    const remove = vi.fn();
     const tabs = [{ id: 1 }, { id: 2 }, { id: 3 }];
     const { unit, update } = tabUnitOver(tabs, { focusAfterClosed: "left" }, { remove });
     const handler = unit.handlers["closeTab"];
     expectDefined(handler);
-    handler({ repeats: 1 }, { tab: { id: 2, index: 1, windowId: 1 } }, vi.fn());
+    await handler({ repeats: 1 }, { tab: { id: 2, index: 1, windowId: 1 } }, vi.fn());
     expect(remove).toHaveBeenCalled();
     // after close, should navigate to previous tab (index - 1 = 0 -> id=1)
     expect(update).toHaveBeenCalledWith(1, { active: true });
@@ -1044,9 +1023,6 @@ describe("sendTabMessage — opts argument", () => {
   it("passes undefined opts when frameId is -1", () => {
     const sendMessage = vi.fn().mockReturnValue(undefined);
     const { unit } = tabUnitOver([], {}, { sendMessage });
-    // Use the openLink handler which calls sendTabMessage(tid, -1, ...) via nextFrame
-    // but it is simpler to call the nextFrame handler directly.
-    // Instead trigger via gatherWindows which moves tabs; easier: use exposed sendTabMessage.
     unit.sendTabMessage(5, -1, { subject: "focusFrame" });
     // third arg to sendMessage should be undefined
     expect(sendMessage).toHaveBeenCalledWith(5, { subject: "focusFrame" }, undefined);
@@ -1095,14 +1071,13 @@ describe("_tabActivated — branch arms", () => {
       },
       onDetached: noopListener,
       onAttached: noopListener,
-      query: (_q: any, cb: (t: any[]) => void) => cb([]),
+      query: vi.fn().mockResolvedValue([]),
       update: vi.fn(),
       sendMessage,
     };
     g.chrome.windows = { onFocusChanged: noopListener };
     g.chrome.commands = { onCommand: noopListener };
     const unit = createTabs({
-      _response: vi.fn(),
       conf: {},
       browser: { _setNewTabUrl: () => "about:newtab", detectTabTitleChange: false },
       handlers: {},
@@ -1164,14 +1139,13 @@ describe("onUpdated listener — branch arms", () => {
       onActivated: noopListener,
       onDetached: noopListener,
       onAttached: noopListener,
-      query: (_q: any, cb: (t: any[]) => void) => cb([]),
+      query: vi.fn().mockResolvedValue([]),
       update: vi.fn(),
       sendMessage,
     };
     g.chrome.windows = { onFocusChanged: noopListener };
     g.chrome.commands = { onCommand: noopListener };
     createTabs({
-      _response: vi.fn(),
       conf,
       browser: { _setNewTabUrl: () => "about:newtab", detectTabTitleChange },
       handlers: {},
@@ -1221,13 +1195,13 @@ describe("onUpdated listener — branch arms", () => {
 // ---------------------------------------------------------------------------
 
 describe("getActiveTab — no active tab", () => {
-  it("does not call the callback when query returns an empty array", () => {
+  it("does not call the callback when query returns an empty array", async () => {
     // togglePinTab calls getActiveTab; with empty tabs, update should not be called.
     const { unit, update } = tabUnitOver([]);
     const handler = unit.handlers["togglePinTab"];
     expectDefined(handler);
-    handler({}, {}, vi.fn());
-    // The query returns [] so the callback is never invoked, hence no update call
+    await handler({}, {}, vi.fn());
+    // The query returns [] so the active tab is undefined, hence no update call
     expect(update).not.toHaveBeenCalled();
   });
 });
@@ -1238,7 +1212,7 @@ describe("getActiveTab — no active tab", () => {
 
 describe("onCommand listener", () => {
   function buildWithOnCommand(tabs: any[]) {
-    let onCommandCb: ((command: string) => void) | null = null;
+    let onCommandCb: ((command: string) => void | Promise<void>) | null = null;
     const reload = vi.fn();
     const runtimeReload = vi.fn();
     const remove = vi.fn();
@@ -1252,7 +1226,7 @@ describe("onCommand listener", () => {
       onActivated: noopListener,
       onDetached: noopListener,
       onAttached: noopListener,
-      query: (_q: any, cb: (t: any[]) => void) => cb(tabs),
+      query: vi.fn().mockResolvedValue(tabs),
       update,
       reload,
       remove,
@@ -1260,14 +1234,13 @@ describe("onCommand listener", () => {
     g.chrome.windows = { onFocusChanged: noopListener };
     g.chrome.commands = {
       onCommand: {
-        addListener: (cb: (command: string) => void) => {
+        addListener: (cb: (command: string) => void | Promise<void>) => {
           onCommandCb = cb;
         },
       },
     };
     g.chrome.runtime = { reload: runtimeReload };
     createTabs({
-      _response: vi.fn(),
       conf: {},
       browser: { _setNewTabUrl: () => "about:newtab" },
       handlers: {},
@@ -1275,25 +1248,25 @@ describe("onCommand listener", () => {
     return { onCommandCb: () => onCommandCb!, reload, runtimeReload, remove, update };
   }
 
-  it("reloads all tabs and the runtime for the restartext command", () => {
+  it("reloads all tabs and the runtime for the restartext command", async () => {
     const tabs = [{ id: 1 }, { id: 2 }];
     const { onCommandCb, reload, runtimeReload } = buildWithOnCommand(tabs);
-    onCommandCb()("restartext");
+    await onCommandCb()("restartext");
     expect(reload).toHaveBeenCalledWith(1);
     expect(reload).toHaveBeenCalledWith(2);
     expect(runtimeReload).toHaveBeenCalled();
   });
 
-  it("removes the active tab for the closeTab command", () => {
+  it("removes the active tab for the closeTab command", async () => {
     const tabs = [{ id: 7, active: true }];
     const { onCommandCb, remove } = buildWithOnCommand(tabs);
-    onCommandCb()("closeTab");
+    await onCommandCb()("closeTab");
     expect(remove).toHaveBeenCalledWith(7);
   });
 
-  it("does not call any API for an unrecognized command", () => {
+  it("does not call any API for an unrecognized command", async () => {
     const { onCommandCb, reload, runtimeReload, remove } = buildWithOnCommand([]);
-    onCommandCb()("unknownCommand");
+    await onCommandCb()("unknownCommand");
     expect(reload).not.toHaveBeenCalled();
     expect(runtimeReload).not.toHaveBeenCalled();
     expect(remove).not.toHaveBeenCalled();
@@ -1321,14 +1294,13 @@ describe("removeTab — URL queue drain", () => {
       onActivated: noopListener,
       onDetached: noopListener,
       onAttached: noopListener,
-      query: (_q: any, cb: (t: any[]) => void) => cb([]),
+      query: vi.fn().mockResolvedValue([]),
       update: vi.fn(),
       create,
     };
     g.chrome.windows = { onFocusChanged: noopListener };
     g.chrome.commands = { onCommand: noopListener };
     const unit = createTabs({
-      _response: vi.fn(),
       conf: {},
       browser: { _setNewTabUrl: () => "about:newtab" },
       handlers: {},
@@ -1351,12 +1323,12 @@ describe("removeTab — URL queue drain", () => {
 // ---------------------------------------------------------------------------
 
 describe("closeAudibleTab", () => {
-  it("removes the first audible tab when one exists", () => {
+  it("removes the first audible tab when one exists", async () => {
     const remove = vi.fn();
     const { unit } = tabUnitOver([{ id: 55, audible: true }], {}, { remove });
     const handler = unit.handlers["closeAudibleTab"];
     expectDefined(handler);
-    handler({}, {}, vi.fn());
+    await handler({}, {}, vi.fn());
     expect(remove).toHaveBeenCalledWith(55);
   });
 });
@@ -1381,8 +1353,8 @@ describe("goToLastTab — no history", () => {
 // ---------------------------------------------------------------------------
 
 describe("closeTab — focusAfterClosed === 'last'", () => {
-  it("calls the historyTab handler when focusAfterClosed is 'last'", () => {
-    const remove = vi.fn((_ids: any, cb?: () => void) => cb && cb());
+  it("calls the historyTab handler when focusAfterClosed is 'last'", async () => {
+    const remove = vi.fn();
     const tabs = [{ id: 1 }, { id: 2 }, { id: 3 }];
     const { unit, handlers } = tabUnitOver(tabs, { focusAfterClosed: "last" }, { remove });
     const historyTabSpy = vi.fn();
@@ -1391,13 +1363,13 @@ describe("closeTab — focusAfterClosed === 'last'", () => {
 
     const handler = unit.handlers["closeTab"];
     expectDefined(handler);
-    handler({ repeats: 1 }, { tab: { id: 2, index: 1, windowId: 1 } }, vi.fn());
+    await handler({ repeats: 1 }, { tab: { id: 2, index: 1, windowId: 1 } }, vi.fn());
     expect(remove).toHaveBeenCalled();
     expect(historyTabSpy).toHaveBeenCalledWith({ backward: true });
   });
 
-  it("still removes the tab when focusAfterClosed is 'last' but the historyTab handler is absent", () => {
-    const remove = vi.fn((_ids: any, cb?: () => void) => cb && cb());
+  it("still removes the tab when focusAfterClosed is 'last' but the historyTab handler is absent", async () => {
+    const remove = vi.fn();
     const tabs = [{ id: 1 }, { id: 2 }];
     const { unit, handlers } = tabUnitOver(tabs, { focusAfterClosed: "last" }, { remove });
     // Drop the historyTab handler so the `if (historyTab)` guard takes its
@@ -1407,17 +1379,17 @@ describe("closeTab — focusAfterClosed === 'last'", () => {
 
     const handler = unit.handlers["closeTab"];
     expectDefined(handler);
-    handler({ repeats: 1 }, { tab: { id: 2, index: 1, windowId: 1 } }, vi.fn());
-    expect(remove).toHaveBeenCalledWith([2], expect.any(Function));
+    await handler({ repeats: 1 }, { tab: { id: 2, index: 1, windowId: 1 } }, vi.fn());
+    expect(remove).toHaveBeenCalledWith([2]);
   });
 
-  it("does nothing for focusAfterClosed when it is neither 'left' nor 'last'", () => {
-    const remove = vi.fn((_ids: any, cb?: () => void) => cb && cb());
+  it("does nothing for focusAfterClosed when it is neither 'left' nor 'last'", async () => {
+    const remove = vi.fn();
     const tabs = [{ id: 1 }, { id: 2 }, { id: 3 }];
     const { unit, update } = tabUnitOver(tabs, { focusAfterClosed: "right" }, { remove });
     const handler = unit.handlers["closeTab"];
     expectDefined(handler);
-    handler({ repeats: 1 }, { tab: { id: 2, index: 1, windowId: 1 } }, vi.fn());
+    await handler({ repeats: 1 }, { tab: { id: 2, index: 1, windowId: 1 } }, vi.fn());
     expect(update).not.toHaveBeenCalled();
   });
 });
@@ -1427,10 +1399,9 @@ describe("closeTab — focusAfterClosed === 'last'", () => {
 // ---------------------------------------------------------------------------
 
 describe("getTabs — MRU sort tabActivated fallback", () => {
-  it("pushes tabs with no lastAccessed and no tabActivated entry to the end", () => {
+  it("pushes tabs with no lastAccessed and no tabActivated entry to the end", async () => {
     // This test exercises the `!isFinite(a) && !isFinite(b)` (return 0) and
     // `!isFinite(a)` (return 1) sort comparator arms.
-    const _response = vi.fn();
     const tabs = [
       { id: 1, url: "https://a.com", title: "A", lastAccessed: 1000 },
       { id: 2, url: "https://b.com", title: "B" }, // no lastAccessed, no tabActivated → NaN
@@ -1446,14 +1417,13 @@ describe("getTabs — MRU sort tabActivated fallback", () => {
       onActivated: noopListener,
       onDetached: noopListener,
       onAttached: noopListener,
-      query: (_q: any, cb: (t: any[]) => void) => cb(tabs),
+      query: vi.fn().mockResolvedValue(tabs),
       update: vi.fn(),
       sendMessage: vi.fn().mockReturnValue(undefined),
     };
     g.chrome.windows = { onFocusChanged: noopListener };
     g.chrome.commands = { onCommand: noopListener };
     const unit = createTabs({
-      _response,
       conf: { tabsMRUOrder: true },
       browser: { _setNewTabUrl: () => "about:newtab" },
       handlers: {},
@@ -1461,9 +1431,11 @@ describe("getTabs — MRU sort tabActivated fallback", () => {
 
     const handler = unit.handlers["getTabs"];
     expectDefined(handler);
-    handler({ filter: "", tabsThreshold: 2, queryInfo: {} }, { tab: { id: 99 } }, vi.fn());
-
-    const result = _response.mock.calls[0]![2] as { tabs: any[] };
+    const result = (await handler(
+      { filter: "", tabsThreshold: 2, queryInfo: {} },
+      { tab: { id: 99 } },
+      vi.fn(),
+    )) as { tabs: any[] };
     // tab 1 has lastAccessed=1000 → first; tabs 2 and 3 have NaN → sorted to end
     expect(result.tabs[0]!.id).toBe(1);
     // tabs 2 and 3 both lack access time → end (order between them is stable/equal = 0 return)
@@ -1471,9 +1443,8 @@ describe("getTabs — MRU sort tabActivated fallback", () => {
     expect(endIds).toEqual(expect.arrayContaining([2, 3]));
   });
 
-  it("uses tabActivated timestamp as a fallback when lastAccessed is absent", () => {
+  it("uses tabActivated timestamp as a fallback when lastAccessed is absent", async () => {
     // Exercises the `x.lastAccessed || tabActivated[x.id]` fallback arm.
-    const _response = vi.fn();
     const tabs = [
       { id: 1, url: "https://a.com", title: "A" }, // will get tabActivated timestamp
       { id: 2, url: "https://b.com", title: "B" }, // no source → NaN → sinks to end
@@ -1494,14 +1465,13 @@ describe("getTabs — MRU sort tabActivated fallback", () => {
       },
       onDetached: noopListener,
       onAttached: noopListener,
-      query: (_q: any, cb: (t: any[]) => void) => cb(tabs),
+      query: vi.fn().mockResolvedValue(tabs),
       update: vi.fn(),
       sendMessage,
     };
     g.chrome.windows = { onFocusChanged: noopListener };
     g.chrome.commands = { onCommand: noopListener };
     const unit = createTabs({
-      _response,
       conf: { tabsMRUOrder: true },
       browser: { _setNewTabUrl: () => "about:newtab" },
       handlers: {},
@@ -1511,9 +1481,11 @@ describe("getTabs — MRU sort tabActivated fallback", () => {
 
     const handler = unit.handlers["getTabs"];
     expectDefined(handler);
-    handler({ filter: "", tabsThreshold: 1, queryInfo: {} }, { tab: { id: 99 } }, vi.fn());
-
-    const result = _response.mock.calls[0]![2] as { tabs: any[] };
+    const result = (await handler(
+      { filter: "", tabsThreshold: 1, queryInfo: {} },
+      { tab: { id: 99 } },
+      vi.fn(),
+    )) as { tabs: any[] };
     // tab 1 has a tabActivated timestamp (finite) → comes before tab 2 (NaN → sinks)
     expect(result.tabs[0]!.id).toBe(1);
     expect(result.tabs[1]!.id).toBe(2);
@@ -1525,37 +1497,35 @@ describe("getTabs — MRU sort tabActivated fallback", () => {
 // ---------------------------------------------------------------------------
 
 describe("setZoom", () => {
-  it("resets zoom to defaultZoomFactor when zoomFactor is 0", () => {
+  it("resets zoom to defaultZoomFactor when zoomFactor is 0", async () => {
     const setZoom = vi.fn();
-    const getZoomSettings = vi.fn((_id: number, cb: (s: any) => void) =>
-      cb({ defaultZoomFactor: 1.5 }),
-    );
+    const getZoomSettings = vi.fn().mockResolvedValue({ defaultZoomFactor: 1.5 });
     const { unit } = tabUnitOver([], {}, { setZoom, getZoomSettings });
     const handler = unit.handlers["setZoom"];
     expectDefined(handler);
-    handler({ zoomFactor: 0, repeats: 1 }, { tab: { id: 3 } }, vi.fn());
-    expect(getZoomSettings).toHaveBeenCalledWith(3, expect.any(Function));
+    await handler({ zoomFactor: 0, repeats: 1 }, { tab: { id: 3 } }, vi.fn());
+    expect(getZoomSettings).toHaveBeenCalledWith(3);
     expect(setZoom).toHaveBeenCalledWith(3, 1.5);
   });
 
-  it("falls back to zoom factor 1 when defaultZoomFactor is falsy", () => {
+  it("falls back to zoom factor 1 when defaultZoomFactor is falsy", async () => {
     const setZoom = vi.fn();
-    const getZoomSettings = vi.fn((_id: number, cb: (s: any) => void) => cb({}));
+    const getZoomSettings = vi.fn().mockResolvedValue({});
     const { unit } = tabUnitOver([], {}, { setZoom, getZoomSettings });
     const handler = unit.handlers["setZoom"];
     expectDefined(handler);
-    handler({ zoomFactor: 0, repeats: 1 }, { tab: { id: 3 } }, vi.fn());
+    await handler({ zoomFactor: 0, repeats: 1 }, { tab: { id: 3 } }, vi.fn());
     expect(setZoom).toHaveBeenCalledWith(3, 1);
   });
 
-  it("adjusts the current zoom by zoomFactor when zoomFactor is non-zero", () => {
+  it("adjusts the current zoom by zoomFactor when zoomFactor is non-zero", async () => {
     const setZoom = vi.fn();
-    const getZoom = vi.fn((_id: number, cb: (zf: number) => void) => cb(1.0));
+    const getZoom = vi.fn().mockResolvedValue(1.0);
     const { unit } = tabUnitOver([], {}, { setZoom, getZoom });
     const handler = unit.handlers["setZoom"];
     expectDefined(handler);
-    handler({ zoomFactor: 0.1, repeats: 2 }, { tab: { id: 4 } }, vi.fn());
-    expect(getZoom).toHaveBeenCalledWith(4, expect.any(Function));
+    await handler({ zoomFactor: 0.1, repeats: 2 }, { tab: { id: 4 } }, vi.fn());
+    expect(getZoom).toHaveBeenCalledWith(4);
     expect(setZoom).toHaveBeenCalledWith(4, expect.closeTo(1.2, 5));
   });
 });
@@ -1593,11 +1563,11 @@ describe("setScrollPos — tabMessages branch", () => {
 // ---------------------------------------------------------------------------
 
 describe("openLink — tabbed from omnibar sender", () => {
-  it("fetches the active tab via getActiveTab when sender is the omnibar frame", () => {
+  it("fetches the active tab via getActiveTab when sender is the omnibar frame", async () => {
     const create = vi.fn();
     const activeTabs = [{ id: 50, index: 0, pinned: false }];
-    // query must return the active tab for getActiveTab to work
-    const query = vi.fn((_q: any, cb: (t: any[]) => void) => cb(activeTabs));
+    // query must resolve the active tab for getActiveTab to work
+    const query = vi.fn().mockResolvedValue(activeTabs);
     const noopListener = makeNoopListener();
     g.chrome.tabs = {
       onRemoved: noopListener,
@@ -1615,14 +1585,13 @@ describe("openLink — tabbed from omnibar sender", () => {
     g.chrome.commands = { onCommand: noopListener };
     g.chrome.runtime = { getURL: (path: string) => "chrome-extension://abcdef" + path };
     const unit = createTabs({
-      _response: vi.fn(),
       conf: {},
       browser: { _setNewTabUrl: () => "about:newtab" },
       handlers: {},
     });
     const handler = unit.handlers["openLink"];
     expectDefined(handler);
-    handler(
+    await handler(
       { url: "https://target.com", tab: { tabbed: true, active: true, pinned: false } },
       {
         tab: { id: 10, pinned: false },
@@ -1631,24 +1600,21 @@ describe("openLink — tabbed from omnibar sender", () => {
       },
       vi.fn(),
     );
-    expect(create).toHaveBeenCalledWith(
-      expect.objectContaining({ url: "https://target.com" }),
-      expect.any(Function),
-    );
+    expect(create).toHaveBeenCalledWith(expect.objectContaining({ url: "https://target.com" }));
   });
 });
 
 // ---------------------------------------------------------------------------
-// openUrlInNewTab — scrollLeft/scrollTop stored in tabMessages callback
+// openUrlInNewTab — scrollLeft/scrollTop stored in tabMessages
 // ---------------------------------------------------------------------------
 
 describe("openUrlInNewTab — scroll position stored", () => {
-  it("stores scrollLeft/scrollTop in tabMessages when they are set on the message", () => {
-    const create = vi.fn((_opts: any, cb?: (tab: any) => void) => cb && cb({ id: 999 }));
+  it("stores scrollLeft/scrollTop in tabMessages when they are set on the message", async () => {
+    const create = vi.fn().mockResolvedValue({ id: 999 });
     const { unit } = tabUnitOver([], {}, { create });
     const handler = unit.handlers["openLink"];
     expectDefined(handler);
-    handler(
+    await handler(
       {
         url: "https://example.com",
         tab: { tabbed: true, active: true, pinned: false },
@@ -1661,12 +1627,12 @@ describe("openUrlInNewTab — scroll position stored", () => {
     expect(unit.tabMessages[999]).toEqual({ scrollLeft: 100, scrollTop: 200 });
   });
 
-  it("does not store scroll position when both are absent/zero", () => {
-    const create = vi.fn((_opts: any, cb?: (tab: any) => void) => cb && cb({ id: 888 }));
+  it("does not store scroll position when both are absent/zero", async () => {
+    const create = vi.fn().mockResolvedValue({ id: 888 });
     const { unit } = tabUnitOver([], {}, { create });
     const handler = unit.handlers["openLink"];
     expectDefined(handler);
-    handler(
+    await handler(
       { url: "https://example.com", tab: { tabbed: true, active: true, pinned: false } },
       { tab: { id: 1, index: 0, pinned: false }, frameId: 0, url: "https://other.com" },
       vi.fn(),
@@ -1676,16 +1642,16 @@ describe("openUrlInNewTab — scroll position stored", () => {
 });
 
 // ---------------------------------------------------------------------------
-// openLink — non-tabbed with scrollLeft/scrollTop in callback
+// openLink — non-tabbed with scrollLeft/scrollTop
 // ---------------------------------------------------------------------------
 
 describe("openLink — non-tabbed scroll storage", () => {
-  it("stores scroll position for the current tab when not tabbed", () => {
-    const update = vi.fn((_opts: any, cb?: (tab: any) => void) => cb && cb({ id: 77 }));
+  it("stores scroll position for the current tab when not tabbed", async () => {
+    const update = vi.fn().mockResolvedValue({ id: 77 });
     const { unit } = tabUnitOver([], {}, { update });
     const handler = unit.handlers["openLink"];
     expectDefined(handler);
-    handler(
+    await handler(
       {
         url: "https://example.com",
         tab: { tabbed: false, pinned: false },
@@ -1704,7 +1670,7 @@ describe("openLink — non-tabbed scroll storage", () => {
 // ---------------------------------------------------------------------------
 
 describe("viewSource — openLink handler absent", () => {
-  it("rewrites the message url to view-source: even when the openLink handler is absent", () => {
+  it("rewrites the message url to view-source: even when the openLink handler is absent", async () => {
     const create = vi.fn();
     const { unit, handlers } = tabUnitOver([], {}, { create });
     // Drop openLink so the `if (openLink)` guard takes its falsy arm; the
@@ -1715,7 +1681,7 @@ describe("viewSource — openLink handler absent", () => {
     const handler = unit.handlers["viewSource"];
     expectDefined(handler);
     const message: any = { tab: { tabbed: true, active: true, pinned: false } };
-    handler(
+    await handler(
       message,
       { tab: { id: 1, url: "https://example.com", pinned: false }, frameId: 0 },
       vi.fn(),
@@ -1731,12 +1697,9 @@ describe("viewSource — openLink handler absent", () => {
 // ---------------------------------------------------------------------------
 
 describe("nextFrame", () => {
-  it("sends focusFrame to the next frame in the list", () => {
+  function buildWithExecuteScript(results: any[]) {
     const sendMessage = vi.fn().mockReturnValue(undefined);
-    let execScriptCb: ((frames: any[]) => void) | null = null;
-    const executeScript = vi.fn((_opts: any, cb: (frames: any[]) => void) => {
-      execScriptCb = cb;
-    });
+    const executeScript = vi.fn().mockResolvedValue(results);
     const noopListener = makeNoopListener();
     g.chrome.tabs = {
       onRemoved: noopListener,
@@ -1746,7 +1709,7 @@ describe("nextFrame", () => {
       onActivated: noopListener,
       onDetached: noopListener,
       onAttached: noopListener,
-      query: (_q: any, cb: (t: any[]) => void) => cb([]),
+      query: vi.fn().mockResolvedValue([]),
       update: vi.fn(),
       sendMessage,
     };
@@ -1754,92 +1717,41 @@ describe("nextFrame", () => {
     g.chrome.commands = { onCommand: noopListener };
     g.chrome.scripting = { executeScript };
     const unit = createTabs({
-      _response: vi.fn(),
       conf: {},
       browser: { _setNewTabUrl: () => "about:newtab" },
       handlers: {},
     });
+    return { unit, sendMessage };
+  }
+
+  it("sends focusFrame to the next frame in the list", async () => {
+    const { unit, sendMessage } = buildWithExecuteScript([{ result: 1 }, { result: 2 }]);
     const handler = unit.handlers["nextFrame"];
     expectDefined(handler);
-    handler({ frameId: 1 }, { tab: { id: 5 } }, vi.fn());
-    // Simulate executeScript completing with frames 1 and 2; frameId 1 is current → next is 2
-    execScriptCb!([{ result: 1 }, { result: 2 }]);
+    // frames 1 and 2; frameId 1 is current → next is 2
+    await handler({ frameId: 1 }, { tab: { id: 5 } }, vi.fn());
     const focusCalls = sendMessage.mock.calls.filter((c) => c[1]?.subject === "focusFrame");
     expect(focusCalls).toHaveLength(1);
     expect(focusCalls[0]![2]).toBeUndefined(); // frameId -1 → undefined opts
     expect(focusCalls[0]![1].frameId).toBe(2);
   });
 
-  it("wraps around to frameId 0 when the current frame is the last one", () => {
-    const sendMessage = vi.fn().mockReturnValue(undefined);
-    let execScriptCb: ((frames: any[]) => void) | null = null;
-    const executeScript = vi.fn((_opts: any, cb: (frames: any[]) => void) => {
-      execScriptCb = cb;
-    });
-    const noopListener = makeNoopListener();
-    g.chrome.tabs = {
-      onRemoved: noopListener,
-      onUpdated: noopListener,
-      onCreated: noopListener,
-      onMoved: noopListener,
-      onActivated: noopListener,
-      onDetached: noopListener,
-      onAttached: noopListener,
-      query: (_q: any, cb: (t: any[]) => void) => cb([]),
-      update: vi.fn(),
-      sendMessage,
-    };
-    g.chrome.windows = { onFocusChanged: noopListener };
-    g.chrome.commands = { onCommand: noopListener };
-    g.chrome.scripting = { executeScript };
-    const unit = createTabs({
-      _response: vi.fn(),
-      conf: {},
-      browser: { _setNewTabUrl: () => "about:newtab" },
-      handlers: {},
-    });
+  it("wraps around to frameId 0 when the current frame is the last one", async () => {
+    const { unit, sendMessage } = buildWithExecuteScript([{ result: 1 }, { result: 2 }]);
     const handler = unit.handlers["nextFrame"];
     expectDefined(handler);
-    handler({ frameId: 2 }, { tab: { id: 5 } }, vi.fn());
     // Current frame (2) is the last → wrap to index 0 → frameId 1
-    execScriptCb!([{ result: 1 }, { result: 2 }]);
+    await handler({ frameId: 2 }, { tab: { id: 5 } }, vi.fn());
     const focusCalls = sendMessage.mock.calls.filter((c) => c[1]?.subject === "focusFrame");
     expect(focusCalls[0]![1].frameId).toBe(1);
   });
 
-  it("does nothing when executeScript returns no non-zero frames", () => {
-    const sendMessage = vi.fn().mockReturnValue(undefined);
-    let execScriptCb: ((frames: any[]) => void) | null = null;
-    const executeScript = vi.fn((_opts: any, cb: (frames: any[]) => void) => {
-      execScriptCb = cb;
-    });
-    const noopListener = makeNoopListener();
-    g.chrome.tabs = {
-      onRemoved: noopListener,
-      onUpdated: noopListener,
-      onCreated: noopListener,
-      onMoved: noopListener,
-      onActivated: noopListener,
-      onDetached: noopListener,
-      onAttached: noopListener,
-      query: (_q: any, cb: (t: any[]) => void) => cb([]),
-      update: vi.fn(),
-      sendMessage,
-    };
-    g.chrome.windows = { onFocusChanged: noopListener };
-    g.chrome.commands = { onCommand: noopListener };
-    g.chrome.scripting = { executeScript };
-    const unit = createTabs({
-      _response: vi.fn(),
-      conf: {},
-      browser: { _setNewTabUrl: () => "about:newtab" },
-      handlers: {},
-    });
+  it("does nothing when executeScript returns no non-zero frames", async () => {
+    const { unit, sendMessage } = buildWithExecuteScript([{ result: 0 }, { result: 0 }]);
     const handler = unit.handlers["nextFrame"];
     expectDefined(handler);
-    handler({ frameId: 0 }, { tab: { id: 5 } }, vi.fn());
     // All results are 0 → filter removes them → framesInTab.length === 0
-    execScriptCb!([{ result: 0 }, { result: 0 }]);
+    await handler({ frameId: 0 }, { tab: { id: 5 } }, vi.fn());
     const focusCalls = sendMessage.mock.calls.filter((c) => c[1]?.subject === "focusFrame");
     expect(focusCalls).toHaveLength(0);
   });

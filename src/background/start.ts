@@ -294,7 +294,7 @@ function start(browser: any): void {
     });
   }
 
-  const tabs = createTabs({ _response, conf, browser, handlers });
+  const tabs = createTabs({ conf, browser, handlers });
   Object.assign(handlers, tabs.handlers);
 
   const settings = createSettings({
