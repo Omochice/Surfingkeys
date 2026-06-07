@@ -107,4 +107,27 @@ describe("createBookmarkHandlers", () => {
 
     expect(remove.mock.calls.map((c) => c[0])).toEqual(["7", "8"]);
   });
+
+  it("getBookmark returns empty bookmarks without querying when the sender has no tab", async () => {
+    const search = vi.fn();
+    g.chrome.bookmarks = { search };
+    const getBookmark = createBookmarkHandlers()["getBookmark"];
+    expectDefined(getBookmark);
+    const result = await getBookmark({}, {}, vi.fn());
+
+    expect(result).toEqual({ bookmarks: [] });
+    expect(search).not.toHaveBeenCalled();
+  });
+
+  it("removeBookmark does nothing when the sender has no tab", async () => {
+    const search = vi.fn();
+    const remove = vi.fn();
+    g.chrome.bookmarks = { search, remove };
+    const removeBookmark = createBookmarkHandlers()["removeBookmark"];
+    expectDefined(removeBookmark);
+
+    await expect(removeBookmark({}, {}, vi.fn())).resolves.toBeUndefined();
+    expect(search).not.toHaveBeenCalled();
+    expect(remove).not.toHaveBeenCalled();
+  });
 });

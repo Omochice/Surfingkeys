@@ -84,9 +84,14 @@ export function createBookmarkHandlers(): Record<string, MessageHandler> {
       const tree = await chrome.bookmarks.getTree();
       return { bookmarks: tree[0]!.children };
     },
-    removeBookmark: (_message: any, sender: any) => removeBookmark(sender.tab.url),
+    removeBookmark: async (_message: any, sender: any) => {
+      if (sender.tab?.url) {
+        await removeBookmark(sender.tab.url);
+      }
+    },
     getBookmark: async (_message: any, sender: any) => {
-      const bookmarks = await chrome.bookmarks.search({ url: sender.tab.url });
+      const url = sender.tab?.url;
+      const bookmarks = url ? await chrome.bookmarks.search({ url }) : [];
       return { bookmarks };
     },
   };
