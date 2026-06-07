@@ -1,6 +1,10 @@
 {
   "$schema": "https://raw.githubusercontent.com/oxc-project/oxc/refs/tags/oxlint_v1.68.0/npm/oxlint/configuration_schema.json",
-  "ignorePatterns": ["src/content_scripts/gist.js", "src/content_scripts/common/debug_utils.js"],
+  "ignorePatterns": [
+    ".momomo/**",
+    "src/content_scripts/gist.js",
+    "src/content_scripts/common/debug_utils.js"
+  ],
   "plugins": ["typescript", "unicorn", "oxc"],
   "categories": {
     "correctness": "error"
@@ -10,7 +14,9 @@
     "typescript/consistent-type-assertions": ["warn", { "assertionStyle": "never" }],
     "typescript/consistent-type-definitions": ["error", "type"],
     "no-unused-expressions": ["error", { "allowShortCircuit": true, "allowTernary": true }],
-    "curly": ["error", "multi-line"]
+    "curly": ["error", "multi-line"],
+    "unicorn/no-array-sort": "error",
+    "unicorn/no-array-reverse": "error"
   },
   "env": {
     "builtin": true,
