@@ -95,6 +95,70 @@ describe("createBookmarkHandlers", () => {
     expect(created[2]).toMatchObject({ title: "X", url: "https://x" });
   });
 
+  it("createBookmark waits for the old bookmark removals before creating the new one", async () => {
+    const order: string[] = [];
+    // Collect one resolver per removal so multiple bookmarks do not strand the
+    // earlier promises (the mock must not overwrite a single shared resolver).
+    const resolvers: Array<() => void> = [];
+    g.chrome.bookmarks = {
+      search: vi.fn().mockResolvedValue([{ id: "old1" }, { id: "old2" }]),
+      remove: vi.fn(
+        (id: string) =>
+          new Promise<void>((r) => {
+            resolvers.push(() => {
+              order.push("remove:" + id);
+              r();
+            });
+          }),
+      ),
+      create: vi.fn(async (node: any) => {
+        order.push("create:" + node.title);
+        return { id: "new" };
+      }),
+    };
+    const createBookmark = createBookmarkHandlers()["createBookmark"];
+    expectDefined(createBookmark);
+    const handled = createBookmark(
+      { page: { url: "https://x", title: "X", folder: "root", path: [] } },
+      {},
+      vi.fn(),
+    );
+
+    await new Promise((r) => setTimeout(r, 0));
+    expect(order).not.toContain("create:X");
+
+    resolvers.forEach((resolve) => resolve());
+    await handled;
+    // Creation runs only after every removal has settled.
+    expect(order.at(-1)).toBe("create:X");
+    expect(order.filter((o) => o.startsWith("remove:"))).toHaveLength(2);
+  });
+
+  it("createBookmark still creates the new bookmark when an old removal fails", async () => {
+    // A bookmark removed concurrently elsewhere makes chrome.bookmarks.remove
+    // reject; that must not abort the create (matches the original
+    // fire-and-forget tolerance).
+    const created: any[] = [];
+    g.chrome.bookmarks = {
+      search: vi.fn().mockResolvedValue([{ id: "gone" }]),
+      remove: vi.fn().mockRejectedValue(new Error("Can't find bookmark for id.")),
+      create: vi.fn(async (node: any) => {
+        created.push(node);
+        return { id: "new" };
+      }),
+    };
+    const createBookmark = createBookmarkHandlers()["createBookmark"];
+    expectDefined(createBookmark);
+    const result = await createBookmark(
+      { page: { url: "https://x", title: "X", folder: "root", path: [] } },
+      {},
+      vi.fn(),
+    );
+
+    expect(result).toEqual({ bookmark: { id: "new" } });
+    expect(created.map((n) => n.title)).toEqual(["X"]);
+  });
+
   it("removeBookmark removes every bookmark matching the sender tab URL", async () => {
     const remove = vi.fn();
     g.chrome.bookmarks = {
