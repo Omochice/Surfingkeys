@@ -22,7 +22,7 @@ function browserWith(items: any[]) {
 
 // The injected filter is exercised by start.ts; here it is identity so the
 // handler's own shaping is what gets asserted.
-const identityFilter = (items: any[]) => items;
+const identityFilter = (items: readonly any[]) => items;
 
 describe("createHistoryHandlers", () => {
   it("getRecentlyClosed flattens both window and single-tab sessions", async () => {
