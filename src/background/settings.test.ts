@@ -41,9 +41,8 @@ afterEach(() => {
 /** Builds a settings unit with inert defaults; override only what a test needs. */
 function makeUnit(over: Partial<SettingsDeps> = {}) {
   const deps: SettingsDeps = {
-    _response: vi.fn(),
     conf: {},
-    browser: { loadRawSettings: (_keys: any, cb: any) => cb({}) },
+    browser: { loadRawSettings: vi.fn().mockResolvedValue({}) },
     sendTabMessage: vi.fn(),
     tabMessages: {},
     setScrollPos: vi.fn(),
@@ -74,23 +73,22 @@ describe("getSubSettings", () => {
 });
 
 describe("_save", () => {
-  it("strips snippets/localPath before writing to sync storage", () => {
+  it("strips snippets/localPath before writing to sync storage", async () => {
     const set = vi.fn();
     const sync = { set };
     g.chrome.storage = { local: {}, sync };
-    const cb = vi.fn();
 
-    _save(sync, { localPath: "/x", snippets: "s", foo: 1, bar: 2 }, cb);
+    await _save(sync, { localPath: "/x", snippets: "s", foo: 1, bar: 2 });
 
-    expect(set).toHaveBeenCalledWith({ foo: 1, bar: 2 }, cb);
+    expect(set).toHaveBeenCalledWith({ foo: 1, bar: 2 });
   });
 
-  it("skips the sync write when only localPath/snippets were present", () => {
+  it("skips the sync write when only localPath/snippets were present", async () => {
     const set = vi.fn();
     const sync = { set };
     g.chrome.storage = { local: {}, sync };
 
-    _save(sync, { localPath: "/x", snippets: "s" });
+    await _save(sync, { localPath: "/x", snippets: "s" });
 
     expect(set).not.toHaveBeenCalled();
   });
@@ -101,11 +99,10 @@ describe("_save", () => {
     const local = { set };
     g.chrome.storage = { local, sync: {} };
 
-    _save(local, { localPath: "/snips.js", snippets: "stale" });
-    await vi.waitFor(() => expect(set).toHaveBeenCalled());
+    await _save(local, { localPath: "/snips.js", snippets: "stale" });
 
     expect(mockRequest).toHaveBeenCalledWith("/snips.js");
-    expect(set).toHaveBeenCalledWith({ localPath: "/snips.js", snippets: "FETCHED" }, undefined);
+    expect(set).toHaveBeenCalledWith({ localPath: "/snips.js", snippets: "FETCHED" });
   });
 
   it("does not mutate the caller's data when caching snippets to local storage", async () => {
@@ -115,108 +112,103 @@ describe("_save", () => {
     g.chrome.storage = { local, sync: {} };
     const data = { localPath: "/snips.js", snippets: "stale" };
 
-    _save(local, data);
-    await vi.waitFor(() => expect(set).toHaveBeenCalled());
+    await _save(local, data);
 
     expect(data).toEqual({ localPath: "/snips.js", snippets: "stale" });
-    expect(set).toHaveBeenCalledWith({ localPath: "/snips.js", snippets: "FETCHED" }, undefined);
+    expect(set).toHaveBeenCalledWith({ localPath: "/snips.js", snippets: "FETCHED" });
   });
 
-  it("does not mutate the caller's data when stripping for sync storage", () => {
+  it("does not mutate the caller's data when stripping for sync storage", async () => {
     const set = vi.fn();
     const sync = { set };
     g.chrome.storage = { local: {}, sync };
     const data = { localPath: "/x", snippets: "s", foo: 1, bar: 2 };
 
-    _save(sync, data, vi.fn());
+    await _save(sync, data);
 
     expect(data).toEqual({ localPath: "/x", snippets: "s", foo: 1, bar: 2 });
-    expect(set).toHaveBeenCalledWith({ foo: 1, bar: 2 }, expect.any(Function));
+    expect(set).toHaveBeenCalledWith({ foo: 1, bar: 2 });
   });
 
-  it("still writes to local storage and fires cb when the snippet fetch fails", async () => {
-    // A failed fetch must not strand callers: `cb` is what `_updateSettings`
-    // chains `afterSet` onto, and the `updateSettings` handler ultimately calls
-    // `_response` from there, so dropping it hangs the response forever.
+  it("still writes to local storage when the snippet fetch fails", async () => {
+    // A failed fetch must not strand callers: the resolved promise is what
+    // `_updateSettings` chains `afterSet` onto, and the `updateSettings` handler
+    // ultimately settles `_response` from there, so leaving it pending hangs the
+    // response forever.
     mockRequest.mockResolvedValue(Result.fail(httpError("/snips.js", new Error("404"), 404)));
     const set = vi.fn();
     const local = { set };
     g.chrome.storage = { local, sync: {} };
-    const cb = vi.fn();
     const data = { localPath: "/snips.js", snippets: "stale" };
 
-    _save(local, data, cb);
-    await vi.waitFor(() => expect(set).toHaveBeenCalled());
+    await _save(local, data);
 
-    expect(cb).toBe(set.mock.calls.at(-1)?.[1]);
-    expect(set).toHaveBeenCalledWith({ localPath: "/snips.js" }, cb);
+    expect(set).toHaveBeenCalledWith({ localPath: "/snips.js" });
     // The caller's object is left intact; only the persisted copy drops snippets.
     expect(data).toEqual({ localPath: "/snips.js", snippets: "stale" });
   });
 
-  it("still fires cb when storage.set throws after a snippet fetch", async () => {
+  it("still resolves when storage.set throws after a snippet fetch", async () => {
     mockRequest.mockResolvedValue(Result.succeed("FETCHED"));
     const set = vi.fn(() => {
       throw new Error("quota exceeded");
     });
     const local = { set };
     g.chrome.storage = { local, sync: {} };
-    const cb = vi.fn();
 
-    _save(local, { localPath: "/snips.js", snippets: "stale" }, cb);
-    await vi.waitFor(() => expect(cb).toHaveBeenCalled());
+    await expect(
+      _save(local, { localPath: "/snips.js", snippets: "stale" }),
+    ).resolves.toBeUndefined();
   });
 });
 
 describe("createSettings — getState", () => {
   /** Drives the getState handler and returns the computed state string. */
-  function stateFor(blocklist: any, message: any = {}, senderUrl = "https://example.com/") {
-    const _response = vi.fn();
+  async function stateFor(blocklist: any, message: any = {}, senderUrl = "https://example.com/") {
     const { unit } = makeUnit({
-      _response,
-      browser: { loadRawSettings: (_keys: any, cb: any) => cb({ blocklist }) },
+      browser: { loadRawSettings: vi.fn().mockResolvedValue({ blocklist }) },
     });
     const sender = { tab: { id: 1 }, url: senderUrl, frameId: 0 };
     const getState = unit.handlers["getState"];
     expectDefined(getState);
-    getState(message, sender, vi.fn());
-    return _response.mock.calls.at(-1)?.[2].state;
+    const result = await getState(message, sender, vi.fn());
+    return result?.state;
   }
 
-  it("is disabled when the catch-all blocklist entry is set", () => {
-    expect(stateFor({ ".*": 1 })).toBe("disabled");
+  it("is disabled when the catch-all blocklist entry is set", async () => {
+    expect(await stateFor({ ".*": 1 })).toBe("disabled");
   });
 
-  it("is disabled when the sender origin is blocklisted", () => {
-    expect(stateFor({ "https://example.com": 1 })).toBe("disabled");
+  it("is disabled when the sender origin is blocklisted", async () => {
+    expect(await stateFor({ "https://example.com": 1 })).toBe("disabled");
   });
 
-  it("is disabled when the url matches the blocklist pattern", () => {
-    expect(stateFor({}, { blocklistPattern: { source: "example\\.com", flags: "" } })).toBe(
+  it("is disabled when the url matches the blocklist pattern", async () => {
+    expect(await stateFor({}, { blocklistPattern: { source: "example\\.com", flags: "" } })).toBe(
       "disabled",
     );
   });
 
-  it("is lurking when the url matches the lurking pattern", () => {
-    expect(stateFor({}, { lurkingPattern: { source: "example\\.com", flags: "" } })).toBe(
+  it("is lurking when the url matches the lurking pattern", async () => {
+    expect(await stateFor({}, { lurkingPattern: { source: "example\\.com", flags: "" } })).toBe(
       "lurking",
     );
   });
 
-  it("is enabled when nothing matches", () => {
-    expect(stateFor({})).toBe("enabled");
+  it("is enabled when nothing matches", async () => {
+    expect(await stateFor({})).toBe("enabled");
   });
 });
 
 describe("createSettings — updateSettings", () => {
-  it("mutates only known conf keys for the snippets scope, without broadcasting", () => {
+  it("mutates only known conf keys for the snippets scope, without broadcasting", async () => {
     const sendTabMessage = vi.fn();
     const conf: Record<string, any> = { tabsMRUOrder: true };
     const { unit } = makeUnit({ conf, sendTabMessage });
 
     const updateSettings = unit.handlers["updateSettings"];
     expectDefined(updateSettings);
-    const result = updateSettings(
+    const result = await updateSettings(
       { scope: "snippets", settings: { tabsMRUOrder: false, unknownKey: 9 } },
       {},
       vi.fn(),
@@ -228,19 +220,19 @@ describe("createSettings — updateSettings", () => {
     expect(result).toEqual({ error: "" });
   });
 
-  it("broadcasts the diff to every tab and persists it for a normal update", () => {
+  it("broadcasts the diff to every tab and persists it for a normal update", async () => {
     const sendTabMessage = vi.fn();
-    const localSet = vi.fn((_data: any, cb?: () => void) => cb && cb());
+    const localSet = vi.fn();
     const syncSet = vi.fn();
     g.chrome.storage = { local: { set: localSet }, sync: { set: syncSet } };
     g.chrome.tabs = {
-      query: (_q: any, cb: (tabs: any[]) => void) => cb([{ id: 11 }, { id: 22 }]),
+      query: vi.fn().mockResolvedValue([{ id: 11 }, { id: 22 }]),
     };
     const { unit } = makeUnit({ sendTabMessage });
 
     const updateSettings = unit.handlers["updateSettings"];
     expectDefined(updateSettings);
-    updateSettings({ settings: { foo: 1 } }, {}, vi.fn());
+    await updateSettings({ settings: { foo: 1 } }, {}, vi.fn());
 
     expect(sendTabMessage.mock.calls.map((c) => [c[0], c[1]])).toEqual([
       [11, -1],
@@ -249,28 +241,28 @@ describe("createSettings — updateSettings", () => {
     expect(localSet).toHaveBeenCalled();
   });
 
-  it("registers the user script with the snippets when saving advanced settings with a localPath", () => {
+  it("registers the user script with the snippets when saving advanced settings with a localPath", async () => {
     // The bug: _save synchronously deletes snippets from the shared settings
     // object before registerUserScript reads message.settings.snippets, so the
     // snippet code was lost and the script unregistered.
     mockRequest.mockResolvedValue(Result.succeed("FETCHED"));
-    const register = vi.fn((_scripts: any, cb?: () => void) => cb && cb());
+    const register = vi.fn();
     g.chrome.userScripts = {
       configureWorld: vi.fn(),
-      getScripts: (_q: any, cb: (r: any[]) => void) => cb([]),
+      getScripts: vi.fn().mockResolvedValue([]),
       register,
-      unregister: (_q: any, cb?: () => void) => cb && cb(),
+      unregister: vi.fn(),
     };
     g.chrome.storage = {
-      local: { set: (_d: any, cb?: () => void) => cb && cb() },
+      local: { set: vi.fn() },
       sync: { set: vi.fn() },
     };
-    g.chrome.tabs = { query: (_q: any, cb: (t: any[]) => void) => cb([]) };
+    g.chrome.tabs = { query: vi.fn().mockResolvedValue([]) };
     const { unit } = makeUnit();
 
     const updateSettings = unit.handlers["updateSettings"];
     expectDefined(updateSettings);
-    updateSettings(
+    await updateSettings(
       { settings: { showAdvanced: true, localPath: "/snips.js", snippets: "SNIPPET_MARKER" } },
       {},
       vi.fn(),
@@ -281,13 +273,13 @@ describe("createSettings — updateSettings", () => {
     expect(code).toContain("SNIPPET_MARKER");
   });
 
-  it("returns an error when showAdvanced is requested but userScripts API is unavailable", () => {
+  it("returns an error when showAdvanced is requested but userScripts API is unavailable", async () => {
     // userScripts is absent from chrome stub → isUserScriptsAvailable() returns false
     const { unit } = makeUnit();
 
     const updateSettings = unit.handlers["updateSettings"];
     expectDefined(updateSettings);
-    const result = updateSettings({ settings: { showAdvanced: true } }, {}, vi.fn());
+    const result = await updateSettings({ settings: { showAdvanced: true } }, {}, vi.fn());
 
     expect(result).toEqual({
       error: expect.stringContaining("Developer mode"),
@@ -310,58 +302,49 @@ describe("extendObject", () => {
 });
 
 describe("createSettings — loadSettings (via getSettings handler)", () => {
-  it("resolves snippets from localPath and delivers them to the callback", async () => {
+  it("resolves snippets from localPath and delivers them in the response", async () => {
     mockRequest.mockResolvedValue(Result.succeed("SNIPPET_BODY"));
-    const _response = vi.fn();
     const { unit } = makeUnit({
-      _response,
       browser: {
-        loadRawSettings: (_keys: any, cb: any) => cb({ localPath: "http://example.com/snips.js" }),
+        loadRawSettings: vi.fn().mockResolvedValue({ localPath: "http://example.com/snips.js" }),
       },
     });
 
     const getSettings = unit.handlers["getSettings"];
     expectDefined(getSettings);
-    getSettings({ key: "localPath" }, {}, vi.fn());
+    const result = await getSettings({ key: "localPath" }, {}, vi.fn());
 
-    await vi.waitFor(() => expect(_response).toHaveBeenCalled());
-    const settings = _response.mock.calls.at(-1)?.[2].settings;
-    expect(settings.snippets).toBe("SNIPPET_BODY");
+    expect(result.settings.snippets).toBe("SNIPPET_BODY");
   });
 
   it("sets an error field when the localPath fetch fails", async () => {
     mockRequest.mockResolvedValue(
       Result.fail(httpError("http://example.com/snips.js", new Error("404"), 404)),
     );
-    const _response = vi.fn();
     const { unit } = makeUnit({
-      _response,
       browser: {
-        loadRawSettings: (_keys: any, cb: any) => cb({ localPath: "http://example.com/snips.js" }),
+        loadRawSettings: vi.fn().mockResolvedValue({ localPath: "http://example.com/snips.js" }),
       },
     });
 
     const getSettings = unit.handlers["getSettings"];
     expectDefined(getSettings);
-    getSettings({ key: "localPath" }, {}, vi.fn());
+    const result = await getSettings({ key: "localPath" }, {}, vi.fn());
 
-    await vi.waitFor(() => expect(_response).toHaveBeenCalled());
-    const settings = _response.mock.calls.at(-1)?.[2].settings;
-    expect(settings.error).toMatch(/Failed to read snippets/);
+    expect(result.settings.error).toMatch(/Failed to read snippets/);
   });
 
-  it("bypasses loadSettings and uses browser.loadRawSettings directly for key=RAW", () => {
-    const _response = vi.fn();
-    const loadRawSettings = vi.fn((_keys: any, cb: any) => cb({ raw: true }));
-    const { unit } = makeUnit({ _response, browser: { loadRawSettings } });
+  it("bypasses loadSettings and uses browser.loadRawSettings directly for key=RAW", async () => {
+    const loadRawSettings = vi.fn().mockResolvedValue({ raw: true });
+    const { unit } = makeUnit({ browser: { loadRawSettings } });
 
     const getSettings = unit.handlers["getSettings"];
     expectDefined(getSettings);
-    getSettings({ key: "RAW" }, {}, vi.fn());
+    const result = await getSettings({ key: "RAW" }, {}, vi.fn());
 
     // loadRawSettings must have been called with the key cleared to ""
-    expect(loadRawSettings).toHaveBeenCalledWith("", expect.any(Function));
-    expect(_response.mock.calls.at(-1)?.[2].settings).toEqual({ raw: true });
+    expect(loadRawSettings).toHaveBeenCalledWith("");
+    expect(result.settings).toEqual({ raw: true });
   });
 });
 
@@ -369,25 +352,22 @@ describe("createSettings — toggleBlocklist", () => {
   function makeTabsChrome(localSet: any, syncSet: any) {
     g.chrome.storage = { local: { set: localSet }, sync: { set: syncSet } };
     g.chrome.tabs = {
-      query: (_q: any, cb: (tabs: any[]) => void) => cb([]),
+      query: vi.fn().mockResolvedValue([]),
     };
   }
 
-  it("adds a new origin to the blocklist and sends back the updated state", () => {
-    const localSet = vi.fn((_d: any, cb?: () => void) => cb && cb());
-    const syncSet = vi.fn();
-    makeTabsChrome(localSet, syncSet);
+  it("adds a new origin to the blocklist and returns the updated state", async () => {
+    makeTabsChrome(vi.fn(), vi.fn());
 
-    const sendResponse = vi.fn();
     const { unit } = makeUnit({
       browser: {
-        loadRawSettings: (_keys: any, cb: any) => cb({ blocklist: {} }),
+        loadRawSettings: vi.fn().mockResolvedValue({ blocklist: {} }),
       },
     });
 
     const toggleBlocklist = unit.handlers["toggleBlocklist"];
     expectDefined(toggleBlocklist);
-    toggleBlocklist(
+    const result = await toggleBlocklist(
       {},
       {
         origin: "https://example.com",
@@ -395,28 +375,24 @@ describe("createSettings — toggleBlocklist", () => {
         url: "https://example.com/page",
         frameId: 0,
       },
-      sendResponse,
+      vi.fn(),
     );
 
-    expect(sendResponse).toHaveBeenCalledWith(
-      expect.objectContaining({ blocklist: { "https://example.com": 1 } }),
-    );
+    expect(result).toEqual(expect.objectContaining({ blocklist: { "https://example.com": 1 } }));
   });
 
-  it("removes an already-blocked origin from the blocklist", () => {
-    const localSet = vi.fn((_d: any, cb?: () => void) => cb && cb());
-    makeTabsChrome(localSet, vi.fn());
+  it("removes an already-blocked origin from the blocklist", async () => {
+    makeTabsChrome(vi.fn(), vi.fn());
 
-    const sendResponse = vi.fn();
     const { unit } = makeUnit({
       browser: {
-        loadRawSettings: (_keys: any, cb: any) => cb({ blocklist: { "https://example.com": 1 } }),
+        loadRawSettings: vi.fn().mockResolvedValue({ blocklist: { "https://example.com": 1 } }),
       },
     });
 
     const toggleBlocklist = unit.handlers["toggleBlocklist"];
     expectDefined(toggleBlocklist);
-    toggleBlocklist(
+    const result = await toggleBlocklist(
       {},
       {
         origin: "https://example.com",
@@ -424,30 +400,30 @@ describe("createSettings — toggleBlocklist", () => {
         url: "https://example.com/page",
         frameId: 0,
       },
-      sendResponse,
+      vi.fn(),
     );
 
-    expect(sendResponse).toHaveBeenCalledWith(expect.objectContaining({ blocklist: {} }));
+    expect(result).toEqual(expect.objectContaining({ blocklist: {} }));
   });
 });
 
 describe("createSettings — toggleMouseQuery", () => {
-  it("adds a new origin to mouseSelectToQuery when it is not already present", () => {
+  it("adds a new origin to mouseSelectToQuery when it is not already present", async () => {
     const localSet = vi.fn();
     g.chrome.storage = { local: { set: localSet }, sync: { set: vi.fn() } };
-    g.chrome.tabs = { query: (_q: any, cb: (t: any[]) => void) => cb([]) };
+    g.chrome.tabs = { query: vi.fn().mockResolvedValue([]) };
     const sendTabMessage = vi.fn();
 
     const { unit } = makeUnit({
       sendTabMessage,
       browser: {
-        loadRawSettings: (_keys: any, cb: any) => cb({ mouseSelectToQuery: ["https://other.com"] }),
+        loadRawSettings: vi.fn().mockResolvedValue({ mouseSelectToQuery: ["https://other.com"] }),
       },
     });
 
     const toggleMouseQuery = unit.handlers["toggleMouseQuery"];
     expectDefined(toggleMouseQuery);
-    toggleMouseQuery(
+    await toggleMouseQuery(
       { origin: "https://example.com" },
       { tab: { url: "https://example.com/page", id: 1 } },
       vi.fn(),
@@ -457,71 +433,67 @@ describe("createSettings — toggleMouseQuery", () => {
       expect.objectContaining({
         mouseSelectToQuery: expect.arrayContaining(["https://other.com", "https://example.com"]),
       }),
-      expect.anything(),
     );
   });
 
-  it("removes an already-present origin from mouseSelectToQuery", () => {
+  it("removes an already-present origin from mouseSelectToQuery", async () => {
     const localSet = vi.fn();
     g.chrome.storage = { local: { set: localSet }, sync: { set: vi.fn() } };
-    g.chrome.tabs = { query: (_q: any, cb: (t: any[]) => void) => cb([]) };
+    g.chrome.tabs = { query: vi.fn().mockResolvedValue([]) };
 
     const { unit } = makeUnit({
       sendTabMessage: vi.fn(),
       browser: {
-        loadRawSettings: (_keys: any, cb: any) =>
-          cb({ mouseSelectToQuery: ["https://example.com"] }),
+        loadRawSettings: vi.fn().mockResolvedValue({ mouseSelectToQuery: ["https://example.com"] }),
       },
     });
 
     const toggleMouseQuery = unit.handlers["toggleMouseQuery"];
     expectDefined(toggleMouseQuery);
-    toggleMouseQuery(
+    await toggleMouseQuery(
       { origin: "https://example.com" },
       { tab: { url: "https://example.com/page", id: 1 } },
       vi.fn(),
     );
 
-    expect(localSet).toHaveBeenCalledWith(
-      expect.objectContaining({ mouseSelectToQuery: [] }),
-      expect.anything(),
-    );
+    expect(localSet).toHaveBeenCalledWith(expect.objectContaining({ mouseSelectToQuery: [] }));
   });
 
-  it("skips the update when the sender has no tab", () => {
+  it("skips the update when the sender has no tab", async () => {
     const localSet = vi.fn();
     g.chrome.storage = { local: { set: localSet }, sync: { set: vi.fn() } };
     const { unit } = makeUnit({
       browser: {
-        loadRawSettings: (_keys: any, cb: any) => cb({ mouseSelectToQuery: [] }),
+        loadRawSettings: vi.fn().mockResolvedValue({ mouseSelectToQuery: [] }),
       },
     });
 
     const toggleMouseQuery = unit.handlers["toggleMouseQuery"];
     expectDefined(toggleMouseQuery);
     // sender has no tab property
-    toggleMouseQuery({ origin: "https://example.com" }, {}, vi.fn());
+    await toggleMouseQuery({ origin: "https://example.com" }, {}, vi.fn());
 
     expect(localSet).not.toHaveBeenCalled();
   });
 });
 
 describe("createSettings — addVIMark", () => {
-  it("merges a new mark into the stored marks and persists it", () => {
+  it("merges a new mark into the stored marks and persists it", async () => {
     const localSet = vi.fn();
     g.chrome.storage = { local: { set: localSet }, sync: { set: vi.fn() } };
-    g.chrome.tabs = { query: (_q: any, cb: (t: any[]) => void) => cb([]) };
+    g.chrome.tabs = { query: vi.fn().mockResolvedValue([]) };
 
     const { unit } = makeUnit({
       browser: {
-        loadRawSettings: (_keys: any, cb: any) =>
-          cb({ marks: { a: { url: "https://a.example.com", scrollTop: 0 } } }),
+        loadRawSettings: vi
+          .fn()
+          .mockResolvedValue({ marks: { a: { url: "https://a.example.com", scrollTop: 0 } } }),
       },
     });
 
     const addVIMark = unit.handlers["addVIMark"];
     expectDefined(addVIMark);
-    addVIMark({ mark: { b: { url: "https://b.example.com", scrollTop: 100 } } }, {}, vi.fn());
+    await addVIMark({ mark: { b: { url: "https://b.example.com", scrollTop: 100 } } }, {}, vi.fn());
 
     expect(localSet).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -530,28 +502,28 @@ describe("createSettings — addVIMark", () => {
           b: { url: "https://b.example.com", scrollTop: 100 },
         }),
       }),
-      expect.anything(),
     );
   });
 });
 
 describe("createSettings — jumpVIMark", () => {
-  it("calls openLink when the mark's URL is not open in any tab", () => {
+  it("calls openLink when the mark's URL is not open in any tab", async () => {
     g.chrome.tabs = {
-      query: (_q: any, cb: (tabs: any[]) => void) => cb([{ id: 99, url: "https://other.com" }]),
+      query: vi.fn().mockResolvedValue([{ id: 99, url: "https://other.com" }]),
     };
     const openLink = vi.fn();
     const { unit } = makeUnit({
       handlers: { openLink },
       browser: {
-        loadRawSettings: (_keys: any, cb: any) =>
-          cb({ marks: { x: { url: "https://target.com", scrollTop: 0, scrollLeft: 0 } } }),
+        loadRawSettings: vi.fn().mockResolvedValue({
+          marks: { x: { url: "https://target.com", scrollTop: 0, scrollLeft: 0 } },
+        }),
       },
     });
 
     const jumpVIMark = unit.handlers["jumpVIMark"];
     expectDefined(jumpVIMark);
-    jumpVIMark({ mark: "x" }, { tab: { id: 1, url: "https://current.com" } }, vi.fn());
+    await jumpVIMark({ mark: "x" }, { tab: { id: 1, url: "https://current.com" } }, vi.fn());
 
     expect(openLink).toHaveBeenCalled();
     // The mark's tab property is set to open a new tabbed window
@@ -559,92 +531,90 @@ describe("createSettings — jumpVIMark", () => {
     expect(calledMarkInfo.tab).toEqual({ tabbed: true, active: true });
   });
 
-  it("calls setScrollPos when the mark's tab is already the active tab", () => {
+  it("calls setScrollPos when the mark's tab is already the active tab", async () => {
     g.chrome.tabs = {
-      query: (_q: any, cb: (tabs: any[]) => void) => cb([{ id: 5, url: "https://target.com" }]),
+      query: vi.fn().mockResolvedValue([{ id: 5, url: "https://target.com" }]),
     };
     const setScrollPos = vi.fn();
     const { unit } = makeUnit({
       setScrollPos,
       browser: {
-        loadRawSettings: (_keys: any, cb: any) =>
-          cb({ marks: { y: { url: "https://target.com", scrollTop: 200, scrollLeft: 0 } } }),
+        loadRawSettings: vi.fn().mockResolvedValue({
+          marks: { y: { url: "https://target.com", scrollTop: 200, scrollLeft: 0 } },
+        }),
       },
     });
 
     const jumpVIMark = unit.handlers["jumpVIMark"];
     expectDefined(jumpVIMark);
     // The sender tab.id matches the found tab's id
-    jumpVIMark({ mark: "y" }, { tab: { id: 5 } }, vi.fn());
+    await jumpVIMark({ mark: "y" }, { tab: { id: 5 } }, vi.fn());
 
     expect(setScrollPos).toHaveBeenCalledWith(5);
   });
 
-  it("activates a different tab when the mark's URL is open but not focused", () => {
+  it("activates a different tab when the mark's URL is open but not focused", async () => {
     const tabsUpdate = vi.fn();
     g.chrome.tabs = {
-      query: (_q: any, cb: (tabs: any[]) => void) => cb([{ id: 7, url: "https://target.com" }]),
+      query: vi.fn().mockResolvedValue([{ id: 7, url: "https://target.com" }]),
       update: tabsUpdate,
     };
     const { unit } = makeUnit({
       browser: {
-        loadRawSettings: (_keys: any, cb: any) =>
-          cb({ marks: { z: { url: "https://target.com", scrollTop: 0, scrollLeft: 0 } } }),
+        loadRawSettings: vi.fn().mockResolvedValue({
+          marks: { z: { url: "https://target.com", scrollTop: 0, scrollLeft: 0 } },
+        }),
       },
     });
 
     const jumpVIMark = unit.handlers["jumpVIMark"];
     expectDefined(jumpVIMark);
     // Sender tab.id is different from the found tab
-    jumpVIMark({ mark: "z" }, { tab: { id: 99 } }, vi.fn());
+    await jumpVIMark({ mark: "z" }, { tab: { id: 99 } }, vi.fn());
 
     expect(tabsUpdate).toHaveBeenCalledWith(7, { active: true });
   });
 
-  it("does nothing when the requested mark is not found", () => {
+  it("does nothing when the requested mark is not found", async () => {
     const tabsQuery = vi.fn();
     g.chrome.tabs = { query: tabsQuery };
     const { unit } = makeUnit({
       browser: {
-        loadRawSettings: (_keys: any, cb: any) => cb({ marks: {} }),
+        loadRawSettings: vi.fn().mockResolvedValue({ marks: {} }),
       },
     });
 
     const jumpVIMark = unit.handlers["jumpVIMark"];
     expectDefined(jumpVIMark);
-    jumpVIMark({ mark: "missing" }, { tab: { id: 1 } }, vi.fn());
+    await jumpVIMark({ mark: "missing" }, { tab: { id: 1 } }, vi.fn());
 
     expect(tabsQuery).not.toHaveBeenCalled();
   });
 });
 
 describe("createSettings — resetSettings", () => {
-  it("clears both storage areas and broadcasts the freshly loaded defaults", () => {
+  it("clears both storage areas and broadcasts the freshly loaded defaults", async () => {
     const localClear = vi.fn();
     const syncClear = vi.fn();
     g.chrome.storage = {
       local: { set: vi.fn(), clear: localClear },
       sync: { set: vi.fn(), clear: syncClear },
     };
-    g.chrome.tabs = { query: (_q: any, cb: (t: any[]) => void) => cb([]) };
+    g.chrome.tabs = { query: vi.fn().mockResolvedValue([]) };
 
-    const _response = vi.fn();
     const sendTabMessage = vi.fn();
     const { unit } = makeUnit({
-      _response,
       sendTabMessage,
-      browser: { loadRawSettings: (_keys: any, cb: any) => cb({ theme: "dark" }) },
+      browser: { loadRawSettings: vi.fn().mockResolvedValue({ theme: "dark" }) },
     });
 
     const resetSettings = unit.handlers["resetSettings"];
     expectDefined(resetSettings);
-    resetSettings({}, {}, vi.fn());
+    const result = await resetSettings({}, {}, vi.fn());
 
     expect(localClear).toHaveBeenCalled();
     expect(syncClear).toHaveBeenCalled();
-    expect(_response).toHaveBeenCalledWith(
-      expect.anything(),
-      expect.anything(),
+    expect(result).toEqual(
       expect.objectContaining({ settings: expect.objectContaining({ theme: "dark" }) }),
     );
   });
@@ -653,19 +623,19 @@ describe("createSettings — resetSettings", () => {
 describe("createSettings — loadSettingsFromUrl", () => {
   it("updates settings and responds with success when the fetch succeeds", async () => {
     mockRequest.mockResolvedValue(Result.succeed("LOADED_SNIPPETS"));
-    const localSet = vi.fn((_d: any, cb?: () => void) => cb && cb());
-    g.chrome.storage = { local: { set: localSet }, sync: { set: vi.fn() } };
-    g.chrome.tabs = { query: (_q: any, cb: (t: any[]) => void) => cb([]) };
+    g.chrome.storage = { local: { set: vi.fn() }, sync: { set: vi.fn() } };
+    g.chrome.tabs = { query: vi.fn().mockResolvedValue([]) };
 
-    const _response = vi.fn();
-    const { unit } = makeUnit({ _response });
+    const { unit } = makeUnit();
 
     const loadSettingsFromUrl = unit.handlers["loadSettingsFromUrl"];
     expectDefined(loadSettingsFromUrl);
-    loadSettingsFromUrl({ url: "http://example.com/settings.js" }, {}, vi.fn());
+    const result = await loadSettingsFromUrl(
+      { url: "http://example.com/settings.js" },
+      {},
+      vi.fn(),
+    );
 
-    await vi.waitFor(() => expect(_response).toHaveBeenCalled());
-    const result = _response.mock.calls.at(-1)?.[2];
     expect(result.status).toBe("Succeeded");
     expect(result.snippets).toBe("LOADED_SNIPPETS");
   });
@@ -674,114 +644,99 @@ describe("createSettings — loadSettingsFromUrl", () => {
     mockRequest.mockResolvedValue(
       Result.fail(httpError("http://example.com/settings.js", new Error("net error"))),
     );
-    const _response = vi.fn();
-    const { unit } = makeUnit({ _response });
+    const { unit } = makeUnit();
 
     const loadSettingsFromUrl = unit.handlers["loadSettingsFromUrl"];
     expectDefined(loadSettingsFromUrl);
-    loadSettingsFromUrl({ url: "http://example.com/settings.js" }, {}, vi.fn());
+    const result = await loadSettingsFromUrl(
+      { url: "http://example.com/settings.js" },
+      {},
+      vi.fn(),
+    );
 
-    await vi.waitFor(() => expect(_response).toHaveBeenCalled());
-    expect(_response.mock.calls.at(-1)?.[2].status).toBe("Failed");
+    expect(result.status).toBe("Failed");
   });
 });
 
 describe("createSettings — updateInputHistory", () => {
-  it("replaces the history list entirely when given an array value", () => {
+  it("replaces the history list entirely when given an array value", async () => {
     const localSet = vi.fn();
     g.chrome.storage = { local: { set: localSet }, sync: { set: vi.fn() } };
-    g.chrome.tabs = { query: (_q: any, cb: (t: any[]) => void) => cb([]) };
-    const _response = vi.fn();
+    g.chrome.tabs = { query: vi.fn().mockResolvedValue([]) };
 
     const { unit } = makeUnit({
-      _response,
-      browser: { loadRawSettings: (_keys: any, cb: any) => cb({ findHistory: ["old"] }) },
+      browser: { loadRawSettings: vi.fn().mockResolvedValue({ findHistory: ["old"] }) },
     });
 
     const updateInputHistory = unit.handlers["updateInputHistory"];
     expectDefined(updateInputHistory);
-    updateInputHistory({ find: ["new1", "new2"] }, {}, vi.fn());
+    await updateInputHistory({ find: ["new1", "new2"] }, {}, vi.fn());
 
     expect(localSet).toHaveBeenCalledWith(
       expect.objectContaining({ findHistory: ["new1", "new2"] }),
-      expect.anything(),
     );
   });
 
-  it("prepends a new string entry and deduplicates the history", () => {
+  it("prepends a new string entry and deduplicates the history", async () => {
     const localSet = vi.fn();
     g.chrome.storage = { local: { set: localSet }, sync: { set: vi.fn() } };
-    g.chrome.tabs = { query: (_q: any, cb: (t: any[]) => void) => cb([]) };
-    const _response = vi.fn();
+    g.chrome.tabs = { query: vi.fn().mockResolvedValue([]) };
 
     const { unit } = makeUnit({
-      _response,
       browser: {
-        loadRawSettings: (_keys: any, cb: any) => cb({ cmdHistory: ["search term", "other"] }),
+        loadRawSettings: vi.fn().mockResolvedValue({ cmdHistory: ["search term", "other"] }),
       },
     });
 
     const updateInputHistory = unit.handlers["updateInputHistory"];
     expectDefined(updateInputHistory);
     // "search term" is already in history; should be deduped and moved to front
-    updateInputHistory({ cmd: "search term" }, {}, vi.fn());
+    const result = await updateInputHistory({ cmd: "search term" }, {}, vi.fn());
 
     expect(localSet).toHaveBeenCalledWith(
       expect.objectContaining({ cmdHistory: ["search term", "other"] }),
-      expect.anything(),
     );
     // The response reports the deduplicated list
-    expect(_response).toHaveBeenCalledWith(
-      expect.anything(),
-      expect.anything(),
-      expect.objectContaining({ history: ["search term", "other"] }),
-    );
+    expect(result).toEqual(expect.objectContaining({ history: ["search term", "other"] }));
   });
 
-  it("skips updating when the entry is blank or a single dot", () => {
+  it("skips updating when the entry is blank or a single dot", async () => {
     const localSet = vi.fn();
     g.chrome.storage = { local: { set: localSet }, sync: { set: vi.fn() } };
-    const _response = vi.fn();
 
     const { unit } = makeUnit({
-      _response,
-      browser: { loadRawSettings: (_keys: any, cb: any) => cb({ findHistory: ["existing"] }) },
+      browser: { loadRawSettings: vi.fn().mockResolvedValue({ findHistory: ["existing"] }) },
     });
 
     const updateInputHistory = unit.handlers["updateInputHistory"];
     expectDefined(updateInputHistory);
-    updateInputHistory({ find: "." }, {}, vi.fn());
+    const result = await updateInputHistory({ find: "." }, {}, vi.fn());
 
     // Storage should not be written for a "." entry
     expect(localSet).not.toHaveBeenCalled();
-    // But the response still fires with the unchanged history
-    expect(_response).toHaveBeenCalledWith(
-      expect.anything(),
-      expect.anything(),
-      expect.objectContaining({ history: ["existing"] }),
-    );
+    // But the response still reports the unchanged history
+    expect(result).toEqual(expect.objectContaining({ history: ["existing"] }));
   });
 });
 
 describe("createSettings — createSession", () => {
-  it("records open tab URLs grouped by window and persists the session", () => {
+  it("records open tab URLs grouped by window and persists the session", async () => {
     const localSet = vi.fn();
     g.chrome.storage = { local: { set: localSet }, sync: { set: vi.fn() } };
     g.chrome.tabs = {
-      query: (_q: any, cb: (tabs: any[]) => void) =>
-        cb([
-          { id: 1, windowId: 10, index: 0, url: "https://a.com" },
-          { id: 2, windowId: 10, index: 1, url: "https://b.com" },
-        ]),
+      query: vi.fn().mockResolvedValue([
+        { id: 1, windowId: 10, index: 0, url: "https://a.com" },
+        { id: 2, windowId: 10, index: 1, url: "https://b.com" },
+      ]),
     };
 
     const { unit } = makeUnit({
-      browser: { loadRawSettings: (_keys: any, cb: any) => cb({ sessions: {} }) },
+      browser: { loadRawSettings: vi.fn().mockResolvedValue({ sessions: {} }) },
     });
 
     const createSession = unit.handlers["createSession"];
     expectDefined(createSession);
-    createSession({ name: "work", quitAfterSaved: false }, {}, vi.fn());
+    await createSession({ name: "work", quitAfterSaved: false }, {}, vi.fn());
 
     expect(localSet).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -789,53 +744,51 @@ describe("createSettings — createSession", () => {
           work: { tabs: [["https://a.com", "https://b.com"]] },
         }),
       }),
-      expect.anything(),
     );
   });
 
-  it("calls quit after saving when quitAfterSaved is true", () => {
-    const localSet = vi.fn((_d: any, cb?: () => void) => cb && cb());
-    g.chrome.storage = { local: { set: localSet }, sync: { set: vi.fn() } };
+  it("calls quit after saving when quitAfterSaved is true", async () => {
+    g.chrome.storage = { local: { set: vi.fn() }, sync: { set: vi.fn() } };
     g.chrome.tabs = {
-      query: (_q: any, cb: (tabs: any[]) => void) => cb([]),
+      query: vi.fn().mockResolvedValue([]),
     };
     const quit = vi.fn();
 
     const { unit } = makeUnit({
       quit,
-      browser: { loadRawSettings: (_keys: any, cb: any) => cb({ sessions: {} }) },
+      browser: { loadRawSettings: vi.fn().mockResolvedValue({ sessions: {} }) },
     });
 
     const createSession = unit.handlers["createSession"];
     expectDefined(createSession);
-    createSession({ name: "quit-session", quitAfterSaved: true }, {}, vi.fn());
+    await createSession({ name: "quit-session", quitAfterSaved: true }, {}, vi.fn());
 
     expect(quit).toHaveBeenCalled();
   });
 });
 
 describe("createSettings — deleteSession", () => {
-  it("removes the named session and persists the updated sessions map", () => {
+  it("removes the named session and persists the updated sessions map", async () => {
     const localSet = vi.fn();
     g.chrome.storage = { local: { set: localSet }, sync: { set: vi.fn() } };
-    g.chrome.tabs = { query: (_q: any, cb: (t: any[]) => void) => cb([]) };
+    g.chrome.tabs = { query: vi.fn().mockResolvedValue([]) };
 
     const { unit } = makeUnit({
       browser: {
-        loadRawSettings: (_keys: any, cb: any) =>
-          cb({ sessions: { keep: { tabs: [] }, remove: { tabs: [] } } }),
+        loadRawSettings: vi
+          .fn()
+          .mockResolvedValue({ sessions: { keep: { tabs: [] }, remove: { tabs: [] } } }),
       },
     });
 
     const deleteSession = unit.handlers["deleteSession"];
     expectDefined(deleteSession);
-    deleteSession({ name: "remove" }, {}, vi.fn());
+    await deleteSession({ name: "remove" }, {}, vi.fn());
 
     expect(localSet).toHaveBeenCalledWith(
       expect.objectContaining({
         sessions: { keep: { tabs: [] } },
       }),
-      expect.anything(),
     );
   });
 });
@@ -845,18 +798,15 @@ describe("createSettings — deleteSession", () => {
 // ---------------------------------------------------------------------------
 
 describe("createSettings — getState with no sender tab", () => {
-  it("returns enabled when there is no sender tab (url branch skipped)", () => {
-    const _response = vi.fn();
+  it("returns undefined when there is no sender tab (url branch skipped)", async () => {
     const { unit } = makeUnit({
-      _response,
-      browser: { loadRawSettings: (_keys: any, cb: any) => cb({ blocklist: {} }) },
+      browser: { loadRawSettings: vi.fn().mockResolvedValue({ blocklist: {} }) },
     });
     const getState = unit.handlers["getState"];
     expectDefined(getState);
-    // sender has no tab → the handler does nothing (skips _response call)
-    getState({}, { url: "https://example.com/", frameId: 0 }, vi.fn());
-    // Without a sender.tab the handler bails before calling _response
-    expect(_response).not.toHaveBeenCalled();
+    // sender has no tab → the handler returns nothing
+    const result = await getState({}, { url: "https://example.com/", frameId: 0 }, vi.fn());
+    expect(result).toBeUndefined();
   });
 });
 
@@ -865,22 +815,20 @@ describe("createSettings — getState with no sender tab", () => {
 // ---------------------------------------------------------------------------
 
 describe("createSettings — getSenderUrl via toggleBlocklist", () => {
-  it("uses the tab URL when the sender frame URL is about:blank", () => {
-    const localSet = vi.fn((_d: any, cb?: () => void) => cb && cb());
-    g.chrome.storage = { local: { set: localSet }, sync: { set: vi.fn() } };
-    g.chrome.tabs = { query: (_q: any, cb: (t: any[]) => void) => cb([]) };
+  it("uses the tab URL when the sender frame URL is about:blank", async () => {
+    g.chrome.storage = { local: { set: vi.fn() }, sync: { set: vi.fn() } };
+    g.chrome.tabs = { query: vi.fn().mockResolvedValue([]) };
 
-    const sendResponse = vi.fn();
     const { unit } = makeUnit({
       browser: {
-        loadRawSettings: (_keys: any, cb: any) => cb({ blocklist: {} }),
+        loadRawSettings: vi.fn().mockResolvedValue({ blocklist: {} }),
       },
     });
 
     const toggleBlocklist = unit.handlers["toggleBlocklist"];
     expectDefined(toggleBlocklist);
     // frameId !== 0 and url === "about:blank" → getSenderUrl returns tab.url
-    toggleBlocklist(
+    const result = await toggleBlocklist(
       {},
       {
         frameId: 1,
@@ -888,12 +836,10 @@ describe("createSettings — getSenderUrl via toggleBlocklist", () => {
         tab: { id: 1, url: "https://example.com/page" },
         origin: "https://example.com",
       },
-      sendResponse,
+      vi.fn(),
     );
 
-    expect(sendResponse).toHaveBeenCalledWith(
-      expect.objectContaining({ blocklist: { "https://example.com": 1 } }),
-    );
+    expect(result).toEqual(expect.objectContaining({ blocklist: { "https://example.com": 1 } }));
   });
 });
 
@@ -906,14 +852,12 @@ describe("createSettings — appendNonce via loadSettingsFromUrl", () => {
     mockRequest.mockResolvedValue(
       Result.fail(httpError("http://example.com/settings.js", new Error("net"), 500)),
     );
-    const _response = vi.fn();
-    const { unit } = makeUnit({ _response });
+    const { unit } = makeUnit();
 
     const loadSettingsFromUrl = unit.handlers["loadSettingsFromUrl"];
     expectDefined(loadSettingsFromUrl);
-    loadSettingsFromUrl({ url: "http://example.com/settings.js" }, {}, vi.fn());
+    await loadSettingsFromUrl({ url: "http://example.com/settings.js" }, {}, vi.fn());
 
-    await vi.waitFor(() => expect(mockRequest).toHaveBeenCalled());
     const calledUrl: string = mockRequest.mock.calls.at(-1)?.[0];
     expect(calledUrl).toMatch(/\?nonce=\d+$/);
   });
@@ -922,14 +866,12 @@ describe("createSettings — appendNonce via loadSettingsFromUrl", () => {
     mockRequest.mockResolvedValue(
       Result.fail(httpError("http://example.com/settings.js?foo=1", new Error("net"), 500)),
     );
-    const _response = vi.fn();
-    const { unit } = makeUnit({ _response });
+    const { unit } = makeUnit();
 
     const loadSettingsFromUrl = unit.handlers["loadSettingsFromUrl"];
     expectDefined(loadSettingsFromUrl);
-    loadSettingsFromUrl({ url: "http://example.com/settings.js?foo=1" }, {}, vi.fn());
+    await loadSettingsFromUrl({ url: "http://example.com/settings.js?foo=1" }, {}, vi.fn());
 
-    await vi.waitFor(() => expect(mockRequest).toHaveBeenCalled());
     const calledUrl: string = mockRequest.mock.calls.at(-1)?.[0];
     expect(calledUrl).toMatch(/&nonce=\d+$/);
   });
@@ -940,20 +882,16 @@ describe("createSettings — appendNonce via loadSettingsFromUrl", () => {
 // ---------------------------------------------------------------------------
 
 describe("createSettings — getSettings with null key", () => {
-  it("calls _response with the full settings when key is null", () => {
-    const _response = vi.fn();
+  it("returns the full settings when key is null", async () => {
     const { unit } = makeUnit({
-      _response,
-      browser: { loadRawSettings: (_keys: any, cb: any) => cb({ theme: "dark" }) },
+      browser: { loadRawSettings: vi.fn().mockResolvedValue({ theme: "dark" }) },
     });
 
     const getSettings = unit.handlers["getSettings"];
     expectDefined(getSettings);
-    getSettings({ key: null }, {}, vi.fn());
+    const result = await getSettings({ key: null }, {}, vi.fn());
 
-    expect(_response).toHaveBeenCalledWith(
-      expect.anything(),
-      expect.anything(),
+    expect(result).toEqual(
       expect.objectContaining({ settings: expect.objectContaining({ theme: "dark" }) }),
     );
   });
@@ -964,56 +902,55 @@ describe("createSettings — getSettings with null key", () => {
 // ---------------------------------------------------------------------------
 
 describe("createSettings — openSession", () => {
-  it("does nothing when the named session does not exist", () => {
+  it("does nothing when the named session does not exist", async () => {
     const tabCreate = vi.fn();
     g.chrome.tabs = {
       create: tabCreate,
-      query: (_q: any, cb: (t: any[]) => void) => cb([]),
+      query: vi.fn().mockResolvedValue([]),
       remove: vi.fn(),
     };
     g.chrome.windows = { create: vi.fn() };
 
     const { unit } = makeUnit({
-      browser: { loadRawSettings: (_keys: any, cb: any) => cb({ sessions: {} }) },
+      browser: { loadRawSettings: vi.fn().mockResolvedValue({ sessions: {} }) },
     });
 
     const openSession = unit.handlers["openSession"];
     expectDefined(openSession);
-    openSession({ name: "missing" }, {}, vi.fn());
+    await openSession({ name: "missing" }, {}, vi.fn());
 
     expect(tabCreate).not.toHaveBeenCalled();
   });
 
-  it("creates tabs in additional windows when the session has multiple window groups", () => {
+  it("creates tabs in additional windows when the session has multiple window groups", async () => {
     const tabCreate = vi.fn();
-    const windowCreate = vi.fn((_opts: any, cb?: (win: any) => void) => cb && cb({ id: 99 }));
+    const windowCreate = vi.fn().mockResolvedValue({ id: 99 });
     const tabRemove = vi.fn();
     g.chrome.tabs = {
       create: tabCreate,
-      query: (_q: any, cb: (t: any[]) => void) => cb([]),
+      query: vi.fn().mockResolvedValue([]),
       remove: tabRemove,
     };
     g.chrome.windows = { create: windowCreate };
 
     const { unit } = makeUnit({
       browser: {
-        loadRawSettings: (_keys: any, cb: any) =>
-          cb({
-            sessions: {
-              work: {
-                tabs: [
-                  ["https://a.com", "https://b.com"], // window 1
-                  ["https://c.com"], // window 2
-                ],
-              },
+        loadRawSettings: vi.fn().mockResolvedValue({
+          sessions: {
+            work: {
+              tabs: [
+                ["https://a.com", "https://b.com"], // window 1
+                ["https://c.com"], // window 2
+              ],
             },
-          }),
+          },
+        }),
       },
     });
 
     const openSession = unit.handlers["openSession"];
     expectDefined(openSession);
-    openSession({ name: "work" }, {}, vi.fn());
+    await openSession({ name: "work" }, {}, vi.fn());
 
     // First window tabs are created directly (no callback)
     expect(tabCreate).toHaveBeenCalledWith(expect.objectContaining({ url: "https://a.com" }));
@@ -1031,24 +968,23 @@ describe("createSettings — openSession", () => {
 // ---------------------------------------------------------------------------
 
 describe("createSettings — createSession excludes newTab URLs", () => {
-  it("omits tabs whose URL matches newTabUrl from the saved session", () => {
+  it("omits tabs whose URL matches newTabUrl from the saved session", async () => {
     const localSet = vi.fn();
     g.chrome.storage = { local: { set: localSet }, sync: { set: vi.fn() } };
     g.chrome.tabs = {
-      query: (_q: any, cb: (tabs: any[]) => void) =>
-        cb([
-          { id: 1, windowId: 10, index: 0, url: "https://a.com" },
-          { id: 2, windowId: 10, index: 1, url: "about:newtab" }, // should be excluded
-        ]),
+      query: vi.fn().mockResolvedValue([
+        { id: 1, windowId: 10, index: 0, url: "https://a.com" },
+        { id: 2, windowId: 10, index: 1, url: "about:newtab" }, // should be excluded
+      ]),
     };
 
     const { unit } = makeUnit({
-      browser: { loadRawSettings: (_keys: any, cb: any) => cb({ sessions: {} }) },
+      browser: { loadRawSettings: vi.fn().mockResolvedValue({ sessions: {} }) },
     });
 
     const createSession = unit.handlers["createSession"];
     expectDefined(createSession);
-    createSession({ name: "filtered", quitAfterSaved: false }, {}, vi.fn());
+    await createSession({ name: "filtered", quitAfterSaved: false }, {}, vi.fn());
 
     expect(localSet).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -1056,7 +992,6 @@ describe("createSettings — createSession excludes newTab URLs", () => {
           filtered: { tabs: [["https://a.com"]] },
         }),
       }),
-      expect.anything(),
     );
   });
 });
@@ -1066,43 +1001,32 @@ describe("createSettings — createSession excludes newTab URLs", () => {
 // ---------------------------------------------------------------------------
 
 describe("createSettings — registerUserScript branch: existing script same code", () => {
-  it("invokes callback without re-registering when the stored script code is identical", () => {
+  it("does not re-register when the stored script code is identical", async () => {
     mockRequest.mockResolvedValue(Result.succeed("LOADED_SNIPPETS"));
     const register = vi.fn();
     const unregister = vi.fn();
-    const getURL = vi.fn(() => "chrome-extension://abc/");
     // Build the expected code so we can put it in the stub
     const snippets = "LOADED_SNIPPETS";
     const codeBuilt = `import('./api.js').then((module) => {module.default("chrome-extension://abc/", (api, settings) => {${snippets}\n})});`;
     g.chrome.userScripts = {
       configureWorld: vi.fn(),
-      getScripts: (_q: any, cb: (r: any[]) => void) => cb([{ js: [{ code: codeBuilt }] }]),
+      getScripts: vi.fn().mockResolvedValue([{ js: [{ code: codeBuilt }] }]),
       register,
       unregister,
     };
-    g.chrome.storage = {
-      local: { set: (_d: any, cb?: () => void) => cb && cb() },
-      sync: { set: vi.fn() },
-    };
-    g.chrome.tabs = { query: (_q: any, cb: (t: any[]) => void) => cb([]) };
+    g.chrome.storage = { local: { set: vi.fn() }, sync: { set: vi.fn() } };
+    g.chrome.tabs = { query: vi.fn().mockResolvedValue([]) };
     g.chrome.runtime = {
       ...g.chrome.runtime,
       getManifest: () => ({ manifest_version: 2 }),
-      getURL,
+      getURL: () => "chrome-extension://abc/",
     };
 
-    const localSet = vi.fn((_d: any, cb?: () => void) => cb && cb());
-    g.chrome.storage = { local: { set: localSet }, sync: { set: vi.fn() } };
+    const { unit } = makeUnit();
 
-    const _response = vi.fn();
-    const { unit } = makeUnit({ _response });
-
-    const updateSettings = unit.handlers["updateSettings"];
-    expectDefined(updateSettings);
-    // Non-showAdvanced path to trigger loadSettingsFromUrl → registerUserScript(snippets)
     const loadSettingsFromUrl = unit.handlers["loadSettingsFromUrl"];
     expectDefined(loadSettingsFromUrl);
-    loadSettingsFromUrl({ url: "http://example.com/settings.js" }, {}, vi.fn());
+    await loadSettingsFromUrl({ url: "http://example.com/settings.js" }, {}, vi.fn());
 
     // register should NOT be called because the code is already identical
     expect(register).not.toHaveBeenCalled();
@@ -1114,21 +1038,20 @@ describe("createSettings — registerUserScript branch: existing script same cod
 // ---------------------------------------------------------------------------
 
 describe("createSettings — toggleMouseQuery skips extension pages", () => {
-  it("does not update mouseSelectToQuery when the sender tab URL is the extension itself", () => {
+  it("does not update mouseSelectToQuery when the sender tab URL is the extension itself", async () => {
     const localSet = vi.fn();
     g.chrome.storage = { local: { set: localSet }, sync: { set: vi.fn() } };
-    g.chrome.tabs = { query: (_q: any, cb: (t: any[]) => void) => cb([]) };
+    g.chrome.tabs = { query: vi.fn().mockResolvedValue([]) };
 
     const { unit } = makeUnit({
-      browser: { loadRawSettings: (_keys: any, cb: any) => cb({ mouseSelectToQuery: [] }) },
+      browser: { loadRawSettings: vi.fn().mockResolvedValue({ mouseSelectToQuery: [] }) },
     });
 
     const toggleMouseQuery = unit.handlers["toggleMouseQuery"];
     expectDefined(toggleMouseQuery);
     // The tab URL begins with chrome.runtime.getURL("/") which is "chrome-extension://..."
-    // In the jsdom environment chrome.runtime.getURL returns "chrome-extension://..."
-    const extUrl = (g.chrome.runtime as any)?.getURL?.("/") ?? "chrome-extension://abc/";
-    toggleMouseQuery(
+    const extUrl = g.chrome.runtime?.getURL?.("/") ?? "chrome-extension://abc/";
+    await toggleMouseQuery(
       { origin: "https://example.com" },
       { tab: { url: extUrl + "frontend.html", id: 1 } },
       vi.fn(),
@@ -1143,24 +1066,25 @@ describe("createSettings — toggleMouseQuery skips extension pages", () => {
 // ---------------------------------------------------------------------------
 
 describe("createSettings — jumpVIMark stores scroll position for other tab", () => {
-  it("stores scroll position in tabMessages when the mark tab differs from the sender", () => {
+  it("stores scroll position in tabMessages when the mark tab differs from the sender", async () => {
     const tabsUpdate = vi.fn();
     g.chrome.tabs = {
-      query: (_q: any, cb: (tabs: any[]) => void) => cb([{ id: 7, url: "https://target.com" }]),
+      query: vi.fn().mockResolvedValue([{ id: 7, url: "https://target.com" }]),
       update: tabsUpdate,
     };
     const tabMessages: Record<string, any> = {};
     const { unit } = makeUnit({
       tabMessages,
       browser: {
-        loadRawSettings: (_keys: any, cb: any) =>
-          cb({ marks: { q: { url: "https://target.com", scrollTop: 300, scrollLeft: 50 } } }),
+        loadRawSettings: vi.fn().mockResolvedValue({
+          marks: { q: { url: "https://target.com", scrollTop: 300, scrollLeft: 50 } },
+        }),
       },
     });
 
     const jumpVIMark = unit.handlers["jumpVIMark"];
     expectDefined(jumpVIMark);
-    jumpVIMark({ mark: "q" }, { tab: { id: 99 } }, vi.fn());
+    await jumpVIMark({ mark: "q" }, { tab: { id: 99 } }, vi.fn());
 
     expect(tabMessages[7]).toEqual({ scrollLeft: 50, scrollTop: 300 });
     expect(tabsUpdate).toHaveBeenCalledWith(7, { active: true });
@@ -1172,17 +1096,17 @@ describe("createSettings — jumpVIMark stores scroll position for other tab", (
 // ---------------------------------------------------------------------------
 
 describe("createSettings — updateSettings non-showAdvanced path", () => {
-  it("broadcasts and persists settings when showAdvanced is false", () => {
+  it("broadcasts and persists settings when showAdvanced is false", async () => {
     const sendTabMessage = vi.fn();
-    const localSet = vi.fn((_d: any, cb?: () => void) => cb && cb());
+    const localSet = vi.fn();
     g.chrome.storage = { local: { set: localSet }, sync: { set: vi.fn() } };
-    g.chrome.tabs = { query: (_q: any, cb: (t: any[]) => void) => cb([{ id: 5 }]) };
+    g.chrome.tabs = { query: vi.fn().mockResolvedValue([{ id: 5 }]) };
 
     const { unit } = makeUnit({ sendTabMessage });
 
     const updateSettings = unit.handlers["updateSettings"];
     expectDefined(updateSettings);
-    const result = updateSettings(
+    const result = await updateSettings(
       { settings: { showAdvanced: false, theme: "dark" } },
       {},
       vi.fn(),
@@ -1207,24 +1131,23 @@ describe("createSettings — appendNonce leaves a non-http URL unchanged", () =>
 
     const loadSettingsFromUrl = unit.handlers["loadSettingsFromUrl"];
     expectDefined(loadSettingsFromUrl);
-    loadSettingsFromUrl({ url: "file:///settings.js" }, {}, vi.fn());
+    await loadSettingsFromUrl({ url: "file:///settings.js" }, {}, vi.fn());
 
-    await vi.waitFor(() => expect(mockRequest).toHaveBeenCalled());
     // No nonce is appended for a non-http(s) URL.
     expect(mockRequest).toHaveBeenCalledWith("file:///settings.js");
   });
 });
 
 describe("createSettings — registerUserScript register/unregister branches", () => {
-  function chromeWithUserScripts(getScripts: (q: any, cb: (r: any[]) => void) => void) {
+  function chromeWithUserScripts(getScripts: any) {
     const register = vi.fn();
-    const unregister = vi.fn((_q: any, cb?: () => void) => cb && cb());
+    const unregister = vi.fn();
     g.chrome.userScripts = { configureWorld: vi.fn(), getScripts, register, unregister };
     g.chrome.storage = {
-      local: { set: (_d: any, cb?: () => void) => cb && cb() },
+      local: { set: vi.fn() },
       sync: { set: vi.fn() },
     };
-    g.chrome.tabs = { query: (_q: any, cb: (t: any[]) => void) => cb([]) };
+    g.chrome.tabs = { query: vi.fn().mockResolvedValue([]) };
     g.chrome.runtime = {
       ...g.chrome.runtime,
       getManifest: () => ({ manifest_version: 2 }),
@@ -1233,36 +1156,32 @@ describe("createSettings — registerUserScript register/unregister branches", (
     return { register, unregister };
   }
 
-  it("unregisters then re-registers when the stored script code differs", () => {
+  it("unregisters then re-registers when the stored script code differs", async () => {
     // getScripts returns a script whose code does not match the freshly built one.
-    const { register, unregister } = chromeWithUserScripts((_q, cb) =>
-      cb([{ js: [{ code: "/* stale code */" }] }]),
+    const { register, unregister } = chromeWithUserScripts(
+      vi.fn().mockResolvedValue([{ js: [{ code: "/* stale code */" }] }]),
     );
     const { unit } = makeUnit();
 
     const loadSettingsFromUrl = unit.handlers["loadSettingsFromUrl"];
     expectDefined(loadSettingsFromUrl);
     mockRequest.mockResolvedValue(Result.succeed("NEW_SNIPPETS"));
-    loadSettingsFromUrl({ url: "http://example.com/settings.js" }, {}, vi.fn());
+    await loadSettingsFromUrl({ url: "http://example.com/settings.js" }, {}, vi.fn());
 
-    return vi.waitFor(() => {
-      expect(unregister).toHaveBeenCalledWith({ ids: ["settingsSnippets"] }, expect.any(Function));
-      expect(register).toHaveBeenCalledOnce();
-    });
+    expect(unregister).toHaveBeenCalledWith({ ids: ["settingsSnippets"] });
+    expect(register).toHaveBeenCalledOnce();
   });
 
-  it("registers directly without unregistering when no script is stored yet", () => {
-    const { register, unregister } = chromeWithUserScripts((_q, cb) => cb([]));
+  it("registers directly without unregistering when no script is stored yet", async () => {
+    const { register, unregister } = chromeWithUserScripts(vi.fn().mockResolvedValue([]));
     const { unit } = makeUnit();
 
     const loadSettingsFromUrl = unit.handlers["loadSettingsFromUrl"];
     expectDefined(loadSettingsFromUrl);
     mockRequest.mockResolvedValue(Result.succeed("FRESH_SNIPPETS"));
-    loadSettingsFromUrl({ url: "http://example.com/settings.js" }, {}, vi.fn());
+    await loadSettingsFromUrl({ url: "http://example.com/settings.js" }, {}, vi.fn());
 
-    return vi.waitFor(() => {
-      expect(register).toHaveBeenCalledOnce();
-      expect(unregister).not.toHaveBeenCalled();
-    });
+    expect(register).toHaveBeenCalledOnce();
+    expect(unregister).not.toHaveBeenCalled();
   });
 });

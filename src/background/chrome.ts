@@ -1,35 +1,31 @@
 import { filterByTitleOrUrl } from "../common/utils";
 import { _save, extendObject, getSubSettings } from "./settings";
 
-function loadRawSettings(keys: string[], cb: (set: any) => void, defaultSet?: any): void {
+async function loadRawSettings(keys: string[], defaultSet?: any): Promise<any> {
   const rawSet = defaultSet || {};
-  chrome.storage.local.get(null, (localSet: any) => {
-    const localSavedAt = localSet.savedAt || 0;
-    chrome.storage.sync.get(null, (syncSet: any) => {
-      const syncSavedAt = syncSet.savedAt || 0;
-      if (localSavedAt > syncSavedAt) {
-        extendObject(rawSet, localSet);
-        _save(chrome.storage.sync, localSet, () => {
-          const subset = getSubSettings(rawSet, keys);
-          if (chrome.runtime.lastError) {
-            subset.error =
-              "Settings sync may not work thoroughly because of: " +
-              chrome.runtime.lastError.message;
-          }
-          cb(subset);
-        });
-      } else if (localSavedAt < syncSavedAt) {
-        // don't sync local path
-        delete syncSet.localPath;
-        extendObject(rawSet, syncSet);
-        cb(getSubSettings(rawSet, keys));
-        _save(chrome.storage.local, syncSet);
-      } else {
-        extendObject(rawSet, localSet);
-        cb(getSubSettings(rawSet, keys));
-      }
-    });
-  });
+  const localSet = await chrome.storage.local.get(null);
+  const localSavedAt = localSet["savedAt"] || 0;
+  const syncSet = await chrome.storage.sync.get(null);
+  const syncSavedAt = syncSet["savedAt"] || 0;
+  if (localSavedAt > syncSavedAt) {
+    extendObject(rawSet, localSet);
+    await _save(chrome.storage.sync, localSet);
+    const subset = getSubSettings(rawSet, keys);
+    if (chrome.runtime.lastError) {
+      subset.error =
+        "Settings sync may not work thoroughly because of: " + chrome.runtime.lastError.message;
+    }
+    return subset;
+  }
+  if (localSavedAt < syncSavedAt) {
+    // don't sync local path
+    delete syncSet["localPath"];
+    extendObject(rawSet, syncSet);
+    void _save(chrome.storage.local, syncSet);
+    return getSubSettings(rawSet, keys);
+  }
+  extendObject(rawSet, localSet);
+  return getSubSettings(rawSet, keys);
 }
 
 function _setNewTabUrl(): string {

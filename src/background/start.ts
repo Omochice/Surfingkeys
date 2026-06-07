@@ -298,7 +298,6 @@ function start(browser: any): void {
   Object.assign(handlers, tabs.handlers);
 
   const settings = createSettings({
-    _response,
     conf,
     browser,
     sendTabMessage: tabs.sendTabMessage,
@@ -421,9 +420,9 @@ function start(browser: any): void {
         },
       );
     } else if (type === "M") {
-      settings.loadSettings("marks", (data: any) => {
+      void settings.loadSettings("marks").then((data: any) => {
         delete data.marks[uid];
-        settings.updateAndPostSettings({ marks: data.marks }, cb);
+        void settings.updateAndPostSettings({ marks: data.marks }).then(cb);
       });
     }
   }
@@ -452,7 +451,7 @@ function start(browser: any): void {
       chrome.storage.local.set(message.data, () => {});
       // broadcast the change also, such as lastKeys
       // we would set lastKeys in sync to avoid breaching chrome.storage.sync.MAX_WRITE_OPERATIONS_PER_MINUTE
-      settings.broadcastSettings(message.data);
+      void settings.broadcastSettings(message.data);
     } else {
       // string or array of string keys
       chrome.storage.local.get(message.data, (data: any) => {

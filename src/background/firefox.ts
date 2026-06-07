@@ -1,16 +1,15 @@
 import { extendObject, getSubSettings } from "./settings";
 
-function loadRawSettings(keys: string[], cb: (set: any) => void, defaultSet?: any): void {
+async function loadRawSettings(keys: string[], defaultSet?: any): Promise<any> {
   const rawSet = defaultSet || {};
-  chrome.storage.local.get(null, (localSet: any) => {
-    extendObject(rawSet, localSet);
-    const subset = getSubSettings(rawSet, keys);
-    if (chrome.runtime.lastError) {
-      subset.error =
-        "Settings sync may not work thoroughly because of: " + chrome.runtime.lastError.message;
-    }
-    cb(subset);
-  });
+  const localSet = await chrome.storage.local.get(null);
+  extendObject(rawSet, localSet);
+  const subset = getSubSettings(rawSet, keys);
+  if (chrome.runtime.lastError) {
+    subset.error =
+      "Settings sync may not work thoroughly because of: " + chrome.runtime.lastError.message;
+  }
+  return subset;
 }
 
 function _setNewTabUrl(): string {

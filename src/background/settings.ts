@@ -4,12 +4,6 @@ import { chromeRuntimeError } from "../common/result";
 import { request } from "./request";
 import type { MessageHandler } from "./start";
 
-/**
- * Sends a (possibly deferred) response for a handled message; injected from the composition root so
- * the unit shares the one pending-port bookkeeping.
- */
-type Respond = (message: any, sendResponse: (result: any) => void, result: any) => void;
-
 /** Shallow-merges every own enumerable property of `ss` onto `target` in place. */
 export function extendObject(target: any, ss: any): void {
   for (const k in ss) {
@@ -43,7 +37,7 @@ export function getSubSettings(set: any, keys: any): any {
  * a `localPath` are never written there; local storage instead re-fetches and caches the snippets
  * from that path before saving.
  */
-export function _save(storage: any, data: any, cb?: () => void): void {
+export async function _save(storage: any, data: any): Promise<void> {
   // Persist a shallow copy so the caller's object is never stripped or
   // reassigned. `updateSettings` reads `message.settings.snippets` right after
   // this returns; mutating it in place dropped the snippets and unregistered
@@ -56,46 +50,40 @@ export function _save(storage: any, data: any, cb?: () => void): void {
       delete toSave.localPath;
     }
     if (Object.keys(toSave).length > 1) {
-      storage.set(toSave, cb);
+      await storage.set(toSave);
+    }
+  } else if (toSave.localPath) {
+    delete toSave.snippets;
+    // try to fetch snippets from localPath and cache it in local storage.
+    const r = await request(toSave.localPath);
+    if (Result.isSuccess(r)) {
+      toSave.snippets = r.value;
+    } else {
+      // Leave the cached snippets untouched on failure, but still persist so the
+      // chained `afterSet` (and the `updateSettings` response) never hangs on a
+      // bad/unreachable snippet URL.
+      console.error("Failed to fetch snippets from", toSave.localPath, r.error);
+    }
+    // storage.set may throw (e.g. quota); swallow so a caller awaiting _save
+    // (and the response it settles) never hangs on a bad snippet path.
+    try {
+      await storage.set(toSave);
+    } catch (err) {
+      console.error("Failed to save snippets from", toSave.localPath, err);
     }
   } else {
-    if (toSave.localPath) {
-      delete toSave.snippets;
-      // try to fetch snippets from localPath and cache it in local storage.
-      void request(toSave.localPath)
-        .then((r) => {
-          if (Result.isSuccess(r)) {
-            toSave.snippets = r.value;
-          } else {
-            // Leave the cached snippets untouched on failure, but still persist so
-            // `cb` always fires; otherwise callers chaining `afterSet` (and the
-            // `updateSettings` response) would hang on a bad/unreachable snippet URL.
-            console.error("Failed to fetch snippets from", toSave.localPath, r.error);
-          }
-          storage.set(toSave, cb);
-        })
-        .catch((err) => {
-          // request() resolves rather than rejects, so this only fires if
-          // storage.set throws synchronously; still invoke cb so the chain
-          // never hangs.
-          console.error("Failed to save snippets from", toSave.localPath, err);
-          cb?.();
-        });
-    } else {
-      storage.set(toSave, cb);
-    }
+    await storage.set(toSave);
   }
 }
 
 /**
- * Dependencies the settings subsystem cannot own: the deferred-responder and per-browser glue from
- * the composition root, the shared mutable `conf` (also read by the tab handlers), and the tab-core
- * primitives a few settings actions reach into — `sendTabMessage` to broadcast updates, plus
- * `tabMessages`, `setScrollPos`, the shared `handlers` registry, `newTabUrl` and `quit` for the
- * marks/session actions that drive tab navigation.
+ * Dependencies the settings subsystem cannot own: the per-browser glue from the composition root,
+ * the shared mutable `conf` (also read by the tab handlers), and the tab-core primitives a few
+ * settings actions reach into — `sendTabMessage` to broadcast updates, plus `tabMessages`,
+ * `setScrollPos`, the shared `handlers` registry, `newTabUrl` and `quit` for the marks/session
+ * actions that drive tab navigation.
  */
 export type SettingsDeps = {
-  _response: Respond;
   conf: Record<string, any>;
   browser: any;
   sendTabMessage: (tabId: number, frameId: number, message: any) => void;
@@ -113,25 +101,26 @@ export type SettingsDeps = {
  */
 export type SettingsUnit = {
   handlers: Record<string, MessageHandler>;
-  loadSettings: (keys: any, cb: (set: any) => void) => void;
-  updateAndPostSettings: (diffSettings: any, afterSet?: () => void) => void;
-  broadcastSettings: (data: any) => void;
+  loadSettings: (keys: any) => Promise<any>;
+  updateAndPostSettings: (diffSettings: any) => Promise<void>;
+  broadcastSettings: (data: any) => Promise<void>;
 };
 
 /**
  * Settings subsystem: load/save/sync of settings, the blocklist/mouse-query state toggles, the
  * enable/disable state computation, VIM marks, and sessions. Owns the settings storage logic and
  * the user-script registration; takes its cross-concern dependencies by injection so it never
- * imports the tab core back.
+ * imports the tab core back. Handlers resolve to their response payload; the dispatcher in `start`
+ * settles the sender.
  */
 export function createSettings(deps: SettingsDeps): SettingsUnit {
-  const { _response, conf, browser, sendTabMessage, tabMessages, handlers, newTabUrl } = deps;
+  const { conf, browser, sendTabMessage, tabMessages, handlers, newTabUrl } = deps;
   const _setScrollPos_bg = deps.setScrollPos;
   const _quit = deps.quit;
 
   const isMV3 = chrome.runtime.getManifest().manifest_version === 3;
 
-  function loadSettings(keys: any, cb: (set: any) => void) {
+  async function loadSettings(keys: any): Promise<any> {
     const tmpSet = {
       blocklist: {},
       marks: {},
@@ -140,50 +129,37 @@ export function createSettings(deps: SettingsDeps): SettingsUnit {
       sessions: {},
     };
 
-    browser.loadRawSettings(
-      keys,
-      (set: any) => {
-        if (set.localPath) {
-          void request(appendNonce(set.localPath)).then((r) => {
-            if (Result.isSuccess(r)) {
-              set.snippets = r.value;
-            } else {
-              set.error = "Failed to read snippets from " + set.localPath;
-            }
-            cb(set);
-          });
-        } else {
-          cb(set);
-        }
-      },
-      tmpSet,
-    );
-  }
-
-  function _updateSettings(diffSettings: any, afterSet?: () => void) {
-    diffSettings.savedAt = new Date().getTime();
-    _save(chrome.storage.local, diffSettings, () => {
-      _save(chrome.storage.sync, diffSettings);
-      if (afterSet) {
-        afterSet();
+    const set = await browser.loadRawSettings(keys, tmpSet);
+    if (set.localPath) {
+      const r = await request(appendNonce(set.localPath));
+      if (Result.isSuccess(r)) {
+        set.snippets = r.value;
+      } else {
+        set.error = "Failed to read snippets from " + set.localPath;
       }
-    });
+    }
+    return set;
   }
 
-  function _broadcastSettings(data: any) {
-    chrome.tabs.query({}, (tabs: any[]) => {
-      tabs.forEach((tab) => {
-        sendTabMessage(tab.id, -1, {
-          subject: "settingsUpdated",
-          settings: data,
-        });
+  async function _updateSettings(diffSettings: any): Promise<void> {
+    diffSettings.savedAt = new Date().getTime();
+    await _save(chrome.storage.local, diffSettings);
+    void _save(chrome.storage.sync, diffSettings);
+  }
+
+  async function _broadcastSettings(data: any): Promise<void> {
+    const tabs = await chrome.tabs.query({});
+    tabs.forEach((tab) => {
+      sendTabMessage(tab.id!, -1, {
+        subject: "settingsUpdated",
+        settings: data,
       });
     });
   }
 
-  function _updateAndPostSettings(diffSettings: any, afterSet?: () => void) {
-    _broadcastSettings(diffSettings);
-    _updateSettings(diffSettings, afterSet);
+  async function _updateAndPostSettings(diffSettings: any): Promise<void> {
+    await _broadcastSettings(diffSettings);
+    await _updateSettings(diffSettings);
   }
 
   function getSenderUrl(sender: any) {
@@ -224,80 +200,48 @@ export function createSettings(deps: SettingsDeps): SettingsUnit {
     return url;
   }
 
-  function _loadSettingsFromUrl(url: string, cb: (status: any) => void) {
-    void request(appendNonce(url)).then((r) => {
-      if (Result.isSuccess(r)) {
-        const resp = r.value;
-        _updateAndPostSettings({ localPath: url, snippets: resp });
-        registerUserScript(resp, () => {
-          cb({ status: "Succeeded", snippets: resp });
-        });
-      } else {
-        cb({ status: "Failed" });
-      }
-    });
+  async function _loadSettingsFromUrl(url: string): Promise<any> {
+    const r = await request(appendNonce(url));
+    if (Result.isSuccess(r)) {
+      const resp = r.value;
+      await _updateAndPostSettings({ localPath: url, snippets: resp });
+      await registerUserScript(resp);
+      return { status: "Succeeded", snippets: resp };
+    }
+    return { status: "Failed" };
   }
 
-  function registerUserScript(snippets: any, callback?: () => void) {
+  async function registerUserScript(snippets: any): Promise<void> {
     if (!isUserScriptsAvailable()) {
-      callback && callback();
       return;
     }
     const userScriptId = "settingsSnippets";
-    const invokeCallback = () => {
-      if (chrome.runtime.lastError) {
-        console.error("userScripts API error:", chrome.runtime.lastError);
-      }
-      callback && callback();
-    };
     if (snippets) {
-      chrome.userScripts.getScripts({ ids: [userScriptId] }, (r: any[]) => {
-        if (chrome.runtime.lastError) {
-          console.error("userScripts.getScripts error:", chrome.runtime.lastError);
-          callback && callback();
-          return;
+      const r = await chrome.userScripts.getScripts({ ids: [userScriptId] });
+      const code = `import('./api.js').then((module) => {module.default("${chrome.runtime.getURL("/")}", (api, settings) => {${snippets}\n})});`;
+      const script = {
+        allFrames: true,
+        id: userScriptId,
+        matches: ["*://*/*", "file:///*"],
+        js: [{ code }],
+      };
+      if (r.length > 0) {
+        if (r[0]!.js![0]!.code !== code) {
+          await chrome.userScripts.unregister({ ids: [userScriptId] });
+          await chrome.userScripts.register([script]);
         }
-        const code = `import('./api.js').then((module) => {module.default("${chrome.runtime.getURL("/")}", (api, settings) => {${snippets}\n})});`;
-        const registerSettingSnippets = () => {
-          chrome.userScripts.register(
-            [
-              {
-                allFrames: true,
-                id: userScriptId,
-                matches: ["*://*/*", "file:///*"],
-                js: [{ code }],
-              },
-            ],
-            invokeCallback,
-          );
-        };
-        if (r.length > 0) {
-          if (r[0].js[0].code !== code) {
-            chrome.userScripts.unregister({ ids: [userScriptId] }, registerSettingSnippets);
-          } else {
-            callback && callback();
-          }
-        } else {
-          registerSettingSnippets();
-        }
-      });
+      } else {
+        await chrome.userScripts.register([script]);
+      }
     } else {
-      chrome.userScripts.getScripts({ ids: [userScriptId] }, (r: any[]) => {
-        if (chrome.runtime.lastError) {
-          console.error("userScripts.getScripts error:", chrome.runtime.lastError);
-          callback && callback();
-          return;
-        }
-        if (r.length > 0) {
-          chrome.userScripts.unregister({ ids: [userScriptId] }, invokeCallback);
-        } else {
-          callback && callback();
-        }
-      });
+      const r = await chrome.userScripts.getScripts({ ids: [userScriptId] });
+      if (r.length > 0) {
+        await chrome.userScripts.unregister({ ids: [userScriptId] });
+      }
     }
   }
 
-  function onFullSettingsRequested(data: any, callback?: () => void) {
+  async function onFullSettingsRequested(data: any): Promise<void> {
     data.isMV3 = isMV3;
     data.isUserScriptsAvailable = isUserScriptsAvailable();
     if (isMV3) {
@@ -305,11 +249,9 @@ export function createSettings(deps: SettingsDeps): SettingsUnit {
     }
 
     if (data.isUserScriptsAvailable && data.showAdvanced) {
-      registerUserScript(data.snippets, callback);
+      await registerUserScript(data.snippets);
     } else if (data.isUserScriptsAvailable) {
-      registerUserScript(null, callback);
-    } else {
-      callback && callback();
+      await registerUserScript(null);
     }
   }
 
@@ -322,139 +264,124 @@ export function createSettings(deps: SettingsDeps): SettingsUnit {
   }
 
   const handlersMap: Record<string, MessageHandler> = {
-    toggleBlocklist: (message: any, sender: any, sendResponse: any) => {
-      loadSettings("blocklist", (data: any) => {
-        let origin = ".*";
-        const senderOrigin = sender.origin || new URL(getSenderUrl(sender)).origin;
-        if (
-          chrome.runtime.getURL("/").toLowerCase().indexOf(senderOrigin.toLowerCase()) !== 0 &&
-          senderOrigin !== "null"
-        ) {
-          origin = senderOrigin;
-        }
-        if (Object.hasOwn(data.blocklist, origin)) {
-          delete data.blocklist[origin];
+    toggleBlocklist: async (message: any, sender: any) => {
+      const data = await loadSettings("blocklist");
+      let origin = ".*";
+      const senderOrigin = sender.origin || new URL(getSenderUrl(sender)).origin;
+      if (
+        chrome.runtime.getURL("/").toLowerCase().indexOf(senderOrigin.toLowerCase()) !== 0 &&
+        senderOrigin !== "null"
+      ) {
+        origin = senderOrigin;
+      }
+      if (Object.hasOwn(data.blocklist, origin)) {
+        delete data.blocklist[origin];
+      } else {
+        data.blocklist[origin] = 1;
+      }
+      await _updateAndPostSettings({ blocklist: data.blocklist });
+      return {
+        state: _getState(
+          data,
+          sender.tab ? new URL(getSenderUrl(sender)) : null,
+          message.blocklistPattern,
+          message.lurkingPattern,
+        ),
+        blocklist: data.blocklist,
+        url: origin,
+      };
+    },
+    toggleMouseQuery: async (message: any, sender: any) => {
+      const data = await loadSettings("mouseSelectToQuery");
+      if (sender.tab && sender.tab.url.indexOf(chrome.runtime.getURL("/")) !== 0) {
+        const mouseSelectToQuery = data.mouseSelectToQuery || [];
+        const idx = mouseSelectToQuery.indexOf(message.origin);
+        if (idx === -1) {
+          mouseSelectToQuery.push(message.origin);
         } else {
-          data.blocklist[origin] = 1;
+          mouseSelectToQuery.splice(idx, 1);
         }
-        _updateAndPostSettings({ blocklist: data.blocklist }, () => {
-          sendResponse({
-            state: _getState(
-              data,
-              sender.tab ? new URL(getSenderUrl(sender)) : null,
-              message.blocklistPattern,
-              message.lurkingPattern,
-            ),
-            blocklist: data.blocklist,
-            url: origin,
-          });
-        });
-      });
+        await _updateAndPostSettings({ mouseSelectToQuery: mouseSelectToQuery });
+      }
     },
-    toggleMouseQuery: (message: any, sender: any, _sendResponse: any) => {
-      loadSettings("mouseSelectToQuery", (data: any) => {
-        if (sender.tab && sender.tab.url.indexOf(chrome.runtime.getURL("/")) !== 0) {
-          const mouseSelectToQuery = data.mouseSelectToQuery || [];
-          const idx = mouseSelectToQuery.indexOf(message.origin);
-          if (idx === -1) {
-            mouseSelectToQuery.push(message.origin);
-          } else {
-            mouseSelectToQuery.splice(idx, 1);
-          }
-          _updateAndPostSettings({ mouseSelectToQuery: mouseSelectToQuery });
-        }
-      });
+    getState: async (message: any, sender: any) => {
+      const data = await loadSettings(["blocklist"]);
+      if (sender.tab) {
+        return {
+          state: _getState(
+            data,
+            new URL(getSenderUrl(sender)),
+            message.blocklistPattern,
+            message.lurkingPattern,
+          ),
+        };
+      }
+      return undefined;
     },
-    getState: (message: any, sender: any, sendResponse: any) => {
-      loadSettings(["blocklist"], (data: any) => {
-        if (sender.tab) {
-          _response(message, sendResponse, {
-            state: _getState(
-              data,
-              new URL(getSenderUrl(sender)),
-              message.blocklistPattern,
-              message.lurkingPattern,
-            ),
-          });
-        }
-      });
+    addVIMark: async (message: any) => {
+      const data = await loadSettings("marks");
+      extendObject(data.marks, message.mark);
+      await _updateAndPostSettings({ marks: data.marks });
     },
-    addVIMark: (message: any, _sender: any, _sendResponse: any) => {
-      loadSettings("marks", (data: any) => {
-        extendObject(data.marks, message.mark);
-        _updateAndPostSettings({ marks: data.marks });
+    jumpVIMark: async (message: any, sender: any, sendResponse: any) => {
+      const data = await loadSettings("marks");
+      const marks = data.marks;
+      if (!Object.hasOwn(marks, message.mark)) {
+        return undefined;
+      }
+      const markInfo = marks[message.mark];
+      const tabs = (await chrome.tabs.query({})).filter((t) => {
+        return t.url === markInfo.url;
       });
-    },
-    jumpVIMark: (message: any, sender: any, sendResponse: any) => {
-      loadSettings("marks", (data: any) => {
-        const marks = data.marks;
-        if (Object.hasOwn(marks, message.mark)) {
-          const markInfo = marks[message.mark];
-          chrome.tabs.query({}, (tabs: any[]) => {
-            tabs = tabs.filter((t) => {
-              return t.url === markInfo.url;
-            });
 
-            if (tabs.length === 0) {
-              markInfo.tab = {
-                tabbed: true,
-                active: true,
-              };
-              const openLink = handlers["openLink"];
-              if (openLink) {
-                openLink(markInfo, sender, sendResponse);
-              }
-            } else {
-              if (markInfo.scrollLeft || markInfo.scrollTop) {
-                tabMessages[tabs[0].id] = {
-                  scrollLeft: markInfo.scrollLeft,
-                  scrollTop: markInfo.scrollTop,
-                };
-              }
-              if (tabs[0].id === sender.tab.id) {
-                _setScrollPos_bg(tabs[0].id);
-              } else {
-                chrome.tabs.update(tabs[0].id, {
-                  active: true,
-                });
-              }
-            }
-          });
+      if (tabs.length === 0) {
+        markInfo.tab = {
+          tabbed: true,
+          active: true,
+        };
+        const openLink = handlers["openLink"];
+        if (openLink) {
+          return openLink(markInfo, sender, sendResponse);
         }
-      });
+        return undefined;
+      }
+      if (markInfo.scrollLeft || markInfo.scrollTop) {
+        tabMessages[tabs[0]!.id!] = {
+          scrollLeft: markInfo.scrollLeft,
+          scrollTop: markInfo.scrollTop,
+        };
+      }
+      if (tabs[0]!.id === sender.tab.id) {
+        _setScrollPos_bg(tabs[0]!.id!);
+      } else {
+        chrome.tabs.update(tabs[0]!.id!, {
+          active: true,
+        });
+      }
+      return undefined;
     },
-    resetSettings: (message: any, _sender: any, sendResponse: any) => {
+    resetSettings: async () => {
       chrome.storage.local.clear();
       chrome.storage.sync.clear();
-      loadSettings(null, (data: any) => {
-        _response(message, sendResponse, {
-          settings: data,
-        });
-        _broadcastSettings(data);
-      });
+      const data = await loadSettings(null);
+      await _broadcastSettings(data);
+      return { settings: data };
     },
-    loadSettingsFromUrl: (message: any, _sender: any, sendResponse: any) => {
-      _loadSettingsFromUrl(message.url, (status: any) => {
-        _response(message, sendResponse, status);
-      });
-    },
-    getSettings: (message: any, _sender: any, sendResponse: any) => {
-      let pf = loadSettings;
+    loadSettingsFromUrl: (message: any) => _loadSettingsFromUrl(message.url),
+    getSettings: async (message: any) => {
+      let data: any;
       if (message.key === "RAW") {
-        pf = browser.loadRawSettings;
         message.key = "";
+        data = await browser.loadRawSettings(message.key);
+      } else {
+        data = await loadSettings(message.key);
       }
-      pf(message.key, (data: any) => {
-        if (message.key == null) {
-          onFullSettingsRequested(data);
-        }
-
-        _response(message, sendResponse, {
-          settings: data,
-        });
-      });
+      if (message.key == null) {
+        await onFullSettingsRequested(data);
+      }
+      return { settings: data };
     },
-    updateSettings: (message: any, _sender: any, sendResponse: any) => {
+    updateSettings: async (message: any) => {
       const error = "";
       if (message.scope === "snippets") {
         // For settings from snippets, don't broadcast the update
@@ -465,31 +392,26 @@ export function createSettings(deps: SettingsDeps): SettingsUnit {
           }
         }
         return { error };
-      } else {
-        if (message.settings.showAdvanced && isMV3) {
-          if (isUserScriptsAvailable()) {
-            chrome.userScripts.configureWorld({
-              csp: "script-src 'self' 'unsafe-eval'",
-              messaging: true,
-            });
-            _updateAndPostSettings(message.settings);
-            registerUserScript(message.settings.snippets, () => {
-              _response(message, sendResponse, { error });
-            });
-            return;
-          } else {
-            return {
-              error:
-                "Advanced mode is only available when Developer mode is turned on from chrome://extensions/.",
-            };
-          }
-        } else {
-          _updateAndPostSettings(message.settings);
-        }
       }
+      if (message.settings.showAdvanced && isMV3) {
+        if (!isUserScriptsAvailable()) {
+          return {
+            error:
+              "Advanced mode is only available when Developer mode is turned on from chrome://extensions/.",
+          };
+        }
+        chrome.userScripts.configureWorld({
+          csp: "script-src 'self' 'unsafe-eval'",
+          messaging: true,
+        });
+        await _updateAndPostSettings(message.settings);
+        await registerUserScript(message.settings.snippets);
+        return { error };
+      }
+      await _updateAndPostSettings(message.settings);
       return { error };
     },
-    updateInputHistory: (message: any, _sender: any, sendResponse: any) => {
+    updateInputHistory: async (message: any) => {
       let key: string | undefined = undefined;
       let value: any;
       for (const k in message) {
@@ -497,108 +419,96 @@ export function createSettings(deps: SettingsDeps): SettingsUnit {
         value = message[k];
         break;
       }
-      if (key) {
-        loadSettings(key, (data: any) => {
-          let curr = data[key!] || [];
-          const toUpdate: Record<string, any> = {};
-          if (value.constructor.name === "Array") {
-            toUpdate[key!] = value;
-            _updateAndPostSettings(toUpdate);
-          } else if (value.trim().length && value !== ".") {
-            curr = curr.filter((c: string) => {
-              return c.trim().length && c !== value && c !== ".";
-            });
-            curr.unshift(value);
-            if (curr.length > 50) {
-              curr.pop();
-            }
-            toUpdate[key!] = curr;
-            _updateAndPostSettings(toUpdate);
+      if (!key) {
+        return undefined;
+      }
+      const data = await loadSettings(key);
+      let curr = data[key] || [];
+      const toUpdate: Record<string, any> = {};
+      if (value.constructor.name === "Array") {
+        toUpdate[key] = value;
+        await _updateAndPostSettings(toUpdate);
+      } else if (value.trim().length && value !== ".") {
+        curr = curr.filter((c: string) => {
+          return c.trim().length && c !== value && c !== ".";
+        });
+        curr.unshift(value);
+        if (curr.length > 50) {
+          curr.pop();
+        }
+        toUpdate[key] = curr;
+        await _updateAndPostSettings(toUpdate);
+      }
+      return { history: curr };
+    },
+    createSession: async (message: any) => {
+      const data = await loadSettings("sessions");
+      const tabs = await chrome.tabs.query({});
+      const tabGroup: Record<string, any[]> = {};
+      tabs.forEach((tab) => {
+        if (tab && tab.index !== void 0) {
+          if (!Object.hasOwn(tabGroup, tab.windowId)) {
+            tabGroup[tab.windowId] = [];
           }
-          _response(message, sendResponse, {
-            history: curr,
+          const group = tabGroup[tab.windowId];
+          if (group && tab.url !== newTabUrl) {
+            group.push(tab.url);
+          }
+        }
+      });
+      const tabg = [];
+      for (const k in tabGroup) {
+        const group = tabGroup[k];
+        if (group && group.length) {
+          tabg.push(group);
+        }
+      }
+      data.sessions[message.name] = {};
+      data.sessions[message.name]["tabs"] = tabg;
+      await _updateAndPostSettings({
+        sessions: data.sessions,
+      });
+      if (message.quitAfterSaved) {
+        _quit();
+      }
+    },
+    openSession: async (message: any) => {
+      const data = await loadSettings("sessions");
+      if (!Object.hasOwn(data.sessions, message.name)) {
+        return;
+      }
+      const urls = data.sessions[message.name]["tabs"];
+      urls[0].forEach((url: string) => {
+        chrome.tabs.create({
+          url: url,
+          active: false,
+          pinned: false,
+        });
+      });
+      for (let i = 1; i < urls.length; i++) {
+        const a = urls[i];
+        const win = await chrome.windows.create({});
+        a.forEach((url: string) => {
+          chrome.tabs.create({
+            windowId: win!.id,
+            url: url,
+            active: false,
+            pinned: false,
           });
         });
       }
+      const tabs = await chrome.tabs.query({ url: newTabUrl });
+      chrome.tabs.remove(
+        tabs.map((t) => {
+          return t.id!;
+        }),
+      );
     },
-    createSession: (message: any, _sender: any, _sendResponse: any) => {
-      loadSettings("sessions", (data: any) => {
-        chrome.tabs.query({}, (tabs: any[]) => {
-          const tabGroup: Record<string, any[]> = {};
-          tabs.forEach((tab) => {
-            if (tab && tab.index !== void 0) {
-              if (!Object.hasOwn(tabGroup, tab.windowId)) {
-                tabGroup[tab.windowId] = [];
-              }
-              const group = tabGroup[tab.windowId];
-              if (group && tab.url !== newTabUrl) {
-                group.push(tab.url);
-              }
-            }
-          });
-          const tabg = [];
-          for (const k in tabGroup) {
-            const group = tabGroup[k];
-            if (group && group.length) {
-              tabg.push(group);
-            }
-          }
-          data.sessions[message.name] = {};
-          data.sessions[message.name]["tabs"] = tabg;
-          _updateAndPostSettings(
-            {
-              sessions: data.sessions,
-            },
-            message.quitAfterSaved ? _quit : undefined,
-          );
-        });
-      });
-    },
-    openSession: (message: any, _sender: any, _sendResponse: any) => {
-      loadSettings("sessions", (data: any) => {
-        if (Object.hasOwn(data.sessions, message.name)) {
-          const urls = data.sessions[message.name]["tabs"];
-          urls[0].forEach((url: string) => {
-            chrome.tabs.create({
-              url: url,
-              active: false,
-              pinned: false,
-            });
-          });
-          for (let i = 1; i < urls.length; i++) {
-            const a = urls[i];
-            chrome.windows.create({}, (win: any) => {
-              a.forEach((url: string) => {
-                chrome.tabs.create({
-                  windowId: win.id,
-                  url: url,
-                  active: false,
-                  pinned: false,
-                });
-              });
-            });
-          }
-          chrome.tabs.query(
-            {
-              url: newTabUrl,
-            },
-            (tabs: any[]) => {
-              chrome.tabs.remove(
-                tabs.map((t) => {
-                  return t.id;
-                }),
-              );
-            },
-          );
-        }
-      });
-    },
-    deleteSession: (message: any, _sender: any, _sendResponse: any) => {
-      loadSettings("sessions", (data: any) => {
-        delete data.sessions[message.name];
-        _updateAndPostSettings({
-          sessions: data.sessions,
-        });
+    deleteSession: async (message: any) => {
+      const data = await loadSettings("sessions");
+      delete data.sessions[message.name];
+      await _updateAndPostSettings({
+        sessions: data.sessions,
       });
     },
   };
