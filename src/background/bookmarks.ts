@@ -1,17 +1,12 @@
 import type { MessageHandler } from "./start";
 
 /**
- * Sends a (possibly deferred) response for a handled message; injected from the composition root so
- * the unit shares the one pending-port bookkeeping.
- */
-type Respond = (message: any, sendResponse: (result: any) => void, result: any) => void;
-
-/**
  * Bookmark message handlers: folder listing, create/remove, and query. Owns the `bookmarkFolders`
- * cache it rebuilds from the bookmark tree, and depends only on `chrome.bookmarks` and the shared
- * deferred-response helper.
+ * cache it rebuilds from the bookmark tree, and depends only on the promise-based
+ * `chrome.bookmarks` API. Handlers resolve to their response payload; the dispatcher in `start`
+ * settles the sender.
  */
-export function createBookmarkHandlers(_response: Respond): Record<string, MessageHandler> {
+export function createBookmarkHandlers(): Record<string, MessageHandler> {
   let bookmarkFolders: any[] = [];
   function getFolders(tree: any, root: string) {
     let cd = root;
@@ -26,44 +21,26 @@ export function createBookmarkHandlers(_response: Respond): Record<string, Messa
     }
   }
 
-  function createBookmark(page: any, onCreated: (ret: any) => void) {
-    if (page.path.length) {
-      chrome.bookmarks.create(
-        {
-          parentId: page.folder,
-          title: page.path.shift(),
-        },
-        (newFolder: any) => {
-          page.folder = newFolder.id;
-          createBookmark(page, onCreated);
-        },
-      );
-    } else {
-      chrome.bookmarks.create(
-        {
-          parentId: page.folder,
-          title: page.title,
-          url: page.url,
-        },
-        (ret: any) => {
-          onCreated(ret);
-        },
-      );
+  async function createBookmark(page: any) {
+    while (page.path.length) {
+      const newFolder = await chrome.bookmarks.create({
+        parentId: page.folder,
+        title: page.path.shift(),
+      });
+      page.folder = newFolder.id;
     }
+    return chrome.bookmarks.create({
+      parentId: page.folder,
+      title: page.title,
+      url: page.url,
+    });
   }
 
-  function removeBookmark(url: string, cb?: () => void) {
-    chrome.bookmarks.search(
-      {
-        url: url,
-      },
-      (bookmarks: any[]) => {
-        bookmarks.forEach((b) => {
-          chrome.bookmarks.remove(b.id);
-        });
-        cb && cb();
-      },
-    );
+  async function removeBookmark(url: string) {
+    const bookmarks = await chrome.bookmarks.search({ url });
+    bookmarks.forEach((b) => {
+      chrome.bookmarks.remove(b.id);
+    });
   }
 
   function filterBookmarksByQuery(bookmarks: any[], query: string, caseSensitive: boolean) {
@@ -80,65 +57,37 @@ export function createBookmarkHandlers(_response: Respond): Record<string, Messa
   }
 
   return {
-    getBookmarkFolders: (message: any, _sender: any, sendResponse: any) => {
-      chrome.bookmarks.getTree((tree: any[]) => {
-        bookmarkFolders = [];
-        getFolders(tree[0], "");
-        _response(message, sendResponse, {
-          folders: bookmarkFolders,
-        });
-      });
+    getBookmarkFolders: async () => {
+      const tree = await chrome.bookmarks.getTree();
+      bookmarkFolders = [];
+      getFolders(tree[0], "");
+      return { folders: bookmarkFolders };
     },
-    createBookmark: (message: any, _sender: any, sendResponse: any) => {
-      removeBookmark(message.page.url, () => {
-        createBookmark(message.page, (ret) => {
-          _response(message, sendResponse, {
-            bookmark: ret,
-          });
-        });
-      });
+    createBookmark: async (message: any) => {
+      await removeBookmark(message.page.url);
+      const bookmark = await createBookmark(message.page);
+      return { bookmark };
     },
-    getBookmarks: (message: any, _sender: any, sendResponse: any) => {
+    getBookmarks: async (message: any) => {
       if (message.parentId) {
-        chrome.bookmarks.getSubTree(message.parentId, (tree: any[]) => {
-          let bookmarks = tree[0].children;
-          if (message.query && message.query.length) {
-            bookmarks = filterBookmarksByQuery(bookmarks, message.query, message.caseSensitive);
-          }
-          _response(message, sendResponse, {
-            bookmarks: bookmarks,
-          });
-        });
-      } else {
+        const tree = await chrome.bookmarks.getSubTree(message.parentId);
+        let bookmarks: any[] = tree[0]!.children ?? [];
         if (message.query && message.query.length) {
-          chrome.bookmarks.search(message.query, (tree: any[]) => {
-            _response(message, sendResponse, {
-              bookmarks: filterBookmarksByQuery(tree, message.query, message.caseSensitive),
-            });
-          });
-        } else {
-          chrome.bookmarks.getTree((tree: any[]) => {
-            _response(message, sendResponse, {
-              bookmarks: tree[0].children,
-            });
-          });
+          bookmarks = filterBookmarksByQuery(bookmarks, message.query, message.caseSensitive);
         }
+        return { bookmarks };
       }
+      if (message.query && message.query.length) {
+        const tree = await chrome.bookmarks.search(message.query);
+        return { bookmarks: filterBookmarksByQuery(tree, message.query, message.caseSensitive) };
+      }
+      const tree = await chrome.bookmarks.getTree();
+      return { bookmarks: tree[0]!.children };
     },
-    removeBookmark: (_message: any, sender: any, _sendResponse: any) => {
-      removeBookmark(sender.tab.url);
-    },
-    getBookmark: (message: any, sender: any, sendResponse: any) => {
-      chrome.bookmarks.search(
-        {
-          url: sender.tab.url,
-        },
-        (bookmarks: any[]) => {
-          _response(message, sendResponse, {
-            bookmarks: bookmarks,
-          });
-        },
-      );
+    removeBookmark: (_message: any, sender: any) => removeBookmark(sender.tab.url),
+    getBookmark: async (_message: any, sender: any) => {
+      const bookmarks = await chrome.bookmarks.search({ url: sender.tab.url });
+      return { bookmarks };
     },
   };
 }
