@@ -38,36 +38,28 @@ function _setNewTabUrl(): string {
 
 function _getContainerName(_self: unknown, _response: unknown): void {}
 
-function getLatestHistoryItem(
-  text: string,
-  maxResults: number,
-  cb: (results: any[]) => void,
-): void {
+async function getLatestHistoryItem(text: string, maxResults: number): Promise<any[]> {
   let results: any[] = [];
-  const impl = (endTime: number, maxResults: number, cb: (results: any[]) => void): void => {
+  let endTime = new Date().getTime();
+  // chrome.history.search has no substring filter, so widen the time window and
+  // re-filter locally, looping until enough matches are collected or history is
+  // exhausted.
+  for (;;) {
     const prefetch = maxResults * Math.pow(10, Math.min(2, text.length));
-    chrome.history.search(
-      {
-        startTime: 0,
-        endTime,
-        text: "",
-        maxResults: prefetch,
-      },
-      (items: any[]) => {
-        const filtered = filterByTitleOrUrl(items, text, false);
-        results = [...results, ...filtered];
-        if (items.length < maxResults || results.length >= maxResults) {
-          // all items are scanned or we have got what we want
-          cb(results.slice(0, maxResults));
-        } else {
-          endTime = items[items.length - 1].lastVisitTime - 0.01;
-          impl(endTime, maxResults, cb);
-        }
-      },
-    );
-  };
-
-  impl(new Date().getTime(), maxResults, cb);
+    const items = await chrome.history.search({
+      startTime: 0,
+      endTime,
+      text: "",
+      maxResults: prefetch,
+    });
+    const filtered = filterByTitleOrUrl(items, text, false);
+    results = [...results, ...filtered];
+    if (items.length < maxResults || results.length >= maxResults) {
+      // all items are scanned or we have got what we want
+      return results.slice(0, maxResults);
+    }
+    endTime = items[items.length - 1]!.lastVisitTime! - 0.01;
+  }
 }
 
 /** Chrome-specific background glue, composed by the WXT background entrypoint. */

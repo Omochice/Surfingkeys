@@ -35,17 +35,12 @@ function _getContainerName(_self: unknown, _response: any) {
   };
 }
 
-function getLatestHistoryItem(text: string, maxResults: number, cb: (items: any[]) => void): void {
-  chrome.history.search(
-    {
-      startTime: 0,
-      text,
-      maxResults,
-    },
-    (items: any[]) => {
-      cb(items);
-    },
-  );
+function getLatestHistoryItem(text: string, maxResults: number): Promise<any[]> {
+  return chrome.history.search({
+    startTime: 0,
+    text,
+    maxResults,
+  });
 }
 
 /** Firefox-specific background glue, composed by the WXT background entrypoint. */

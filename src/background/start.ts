@@ -311,7 +311,7 @@ function start(browser: any): void {
   Object.assign(handlers, settings.handlers);
 
   Object.assign(handlers, createBookmarkHandlers());
-  Object.assign(handlers, createHistoryHandlers(_response, browser, tabs.filterByTitleOrUrl));
+  Object.assign(handlers, createHistoryHandlers(browser, tabs.filterByTitleOrUrl));
 
   handlers["setSurfingkeysIcon"] = (message: any, sender: any, _sendResponse: any) => {
     let icon = "icons/48.png";
