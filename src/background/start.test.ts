@@ -193,6 +193,30 @@ describe("start — readComment", () => {
     expect(sendResponse.mock.calls.at(-1)?.[0]).toMatchObject({ status: 1 });
   });
 
+  it("accepts numeric comment ids from the GitHub API when listing comments", async () => {
+    const dispatch = bootDispatch();
+    await primeGist(dispatch, "tok-read-numeric-id");
+    // GitHub returns gist comment ids as integers, so the list schema must
+    // accept numbers; otherwise validation fails and readComment hits the
+    // "malformed gist comment list response" error instead of using the list.
+    // A large index forces the list path regardless of the shared cache, and
+    // "Register not exists!" only occurs once the list has validated.
+    mockRequest.mockResolvedValue(Result.succeed(JSON.stringify([{ id: 123 }])));
+    const sendResponse = vi.fn();
+
+    dispatch(
+      { action: "readComment", index: 1000, needResponse: true },
+      { tab: { id: 1 } },
+      sendResponse,
+    );
+
+    await vi.waitFor(() => expect(sendResponse).toHaveBeenCalled());
+    expect(sendResponse.mock.calls.at(-1)?.[0]).toMatchObject({
+      status: 1,
+      content: "Register not exists!",
+    });
+  });
+
   it("still settles the response when the comment list is malformed JSON", async () => {
     const dispatch = bootDispatch();
     await primeGist(dispatch, "tok-read-list-bad-json");

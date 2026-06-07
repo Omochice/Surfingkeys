@@ -31,7 +31,9 @@ const gistListSchema = v.array(
 );
 const createdGistSchema = v.object({ id: v.string() });
 const gistCommentSchema = v.object({ body: v.string() });
-const gistCommentListSchema = v.array(v.object({ id: v.string() }));
+// GitHub returns gist comment ids as integers (unlike the gist id, which is a
+// hex string), so accept both and normalize to string for use in request URLs.
+const gistCommentListSchema = v.array(v.object({ id: v.union([v.string(), v.number()]) }));
 
 const Gist = (() => {
   const self: any = {};
@@ -145,7 +147,7 @@ const Gist = (() => {
         onError("malformed gist comment list response");
         return;
       }
-      _comments = comments.output.map((c) => c.id);
+      _comments = comments.output.map((c) => String(c.id));
       cb(_comments);
     });
   }
