@@ -59,6 +59,10 @@ function createUiHost(adapter: BrowserLike, onload: (uiHost: HTMLElement) => voi
         _message.toFrontend &&
         event.source &&
         _message.action != null &&
+        // origin becomes activeContent.origin, used as a postMessage targetOrigin;
+        // an absent origin (e.g. an untrusted page's message) would make a later
+        // postMessage throw a DOMException, so require it before activating.
+        _message.origin != null &&
         ["showStatus", "openOmnibar", "openFinder", "chooseTab"].indexOf(_message.action) !== -1
       ) {
         if (!activeContent || activeContent.window !== event.source) {
@@ -78,7 +82,7 @@ function createUiHost(adapter: BrowserLike, onload: (uiHost: HTMLElement) => voi
 
           activeContent = {
             window: event.source as Window,
-            origin: _message.origin ?? "",
+            origin: _message.origin,
           };
 
           activeContent.window.postMessage(
