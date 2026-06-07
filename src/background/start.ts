@@ -390,11 +390,11 @@ function start(browser: any): void {
   };
   handlers["getCaptureSize"] = async () => {
     const dataUrl = await chrome.tabs.captureVisibleTab({ format: "png" });
-    const img = document.createElement("img");
-    return await new Promise<{ width: number; height: number }>((resolve) => {
-      img.onload = () => resolve({ width: img.width, height: img.height });
-      img.src = dataUrl;
-    });
+    const blob = await (await fetch(dataUrl)).blob();
+    const img = await createImageBitmap(blob);
+    const size = { width: img.width, height: img.height };
+    img.close();
+    return size;
   };
   handlers["initGist"] = async (message: any) => {
     return { gist: await Gist.initGist(message.token) };
