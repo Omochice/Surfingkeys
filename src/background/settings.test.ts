@@ -285,6 +285,27 @@ describe("createSettings — updateSettings", () => {
       error: expect.stringContaining("Developer mode"),
     });
   });
+
+  it("handles a rejected sync write instead of leaving it unhandled", async () => {
+    // The local write succeeds and settles the response, but the fire-and-forget
+    // sync write can reject (e.g. sync quota). That rejection must be caught and
+    // logged rather than surfacing as an unhandled rejection that can terminate
+    // the service worker.
+    const errorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+    const localSet = vi.fn().mockResolvedValue(undefined);
+    const syncSet = vi.fn().mockRejectedValue(new Error("QUOTA_BYTES quota exceeded"));
+    g.chrome.storage = { local: { set: localSet }, sync: { set: syncSet } };
+    g.chrome.tabs = { query: vi.fn().mockResolvedValue([]) };
+    const { unit } = makeUnit();
+
+    const updateSettings = unit.handlers["updateSettings"];
+    expectDefined(updateSettings);
+    const result = await updateSettings({ settings: { theme: "dark" } }, {}, vi.fn());
+
+    expect(result).toEqual({ error: "" });
+    await vi.waitFor(() => expect(errorSpy).toHaveBeenCalled());
+    errorSpy.mockRestore();
+  });
 });
 
 describe("extendObject", () => {

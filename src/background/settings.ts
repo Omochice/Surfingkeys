@@ -144,7 +144,12 @@ export function createSettings(deps: SettingsDeps): SettingsUnit {
   async function _updateSettings(diffSettings: any): Promise<void> {
     diffSettings.savedAt = new Date().getTime();
     await _save(chrome.storage.local, diffSettings);
-    void _save(chrome.storage.sync, diffSettings);
+    // The sync write is fire-and-forget (local is the source of truth), but a
+    // rejection here (e.g. sync quota) must be caught: an unhandled rejection can
+    // terminate the MV3 service worker.
+    _save(chrome.storage.sync, diffSettings).catch((err) => {
+      console.error("Failed to sync settings:", err);
+    });
   }
 
   async function _broadcastSettings(data: any): Promise<void> {
