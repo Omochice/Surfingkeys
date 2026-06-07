@@ -13,14 +13,10 @@ afterEach(() => {
   delete g.chrome.bookmarks;
 });
 
-function lastResult(respond: ReturnType<typeof vi.fn>): any {
-  return respond.mock.calls.at(-1)?.[2];
-}
-
-/** A browser stub whose history search returns a fixed list. */
+/** A browser stub whose history search resolves a fixed list. */
 function browserWith(items: any[]) {
   return {
-    getLatestHistoryItem: (_text: string, _max: number, cb: (items: any[]) => void) => cb(items),
+    getLatestHistoryItem: vi.fn().mockResolvedValue(items),
   };
 }
 
@@ -29,95 +25,75 @@ function browserWith(items: any[]) {
 const identityFilter = (items: any[]) => items;
 
 describe("createHistoryHandlers", () => {
-  it("getRecentlyClosed flattens both window and single-tab sessions", () => {
+  it("getRecentlyClosed flattens both window and single-tab sessions", async () => {
     g.chrome.sessions = {
-      getRecentlyClosed: (_opts: any, cb: (s: any[]) => void) =>
-        cb([
+      getRecentlyClosed: vi
+        .fn()
+        .mockResolvedValue([
           { window: { tabs: [{ url: "https://a" }, { url: "https://b" }] } },
           { tab: { url: "https://c" } },
         ]),
     };
-    const respond = vi.fn();
-    const getRecentlyClosed = createHistoryHandlers(respond, browserWith([]), identityFilter)[
+    const getRecentlyClosed = createHistoryHandlers(browserWith([]), identityFilter)[
       "getRecentlyClosed"
     ];
     expectDefined(getRecentlyClosed);
-    getRecentlyClosed({ query: "" }, {}, vi.fn());
+    const result = await getRecentlyClosed({ query: "" }, {}, vi.fn());
 
-    expect(lastResult(respond).urls.map((t: any) => t.url)).toEqual([
-      "https://a",
-      "https://b",
-      "https://c",
-    ]);
+    expect(result.urls.map((t: any) => t.url)).toEqual(["https://a", "https://b", "https://c"]);
   });
 
-  it("getTopSites responds with an empty list when chrome.topSites is unavailable", () => {
-    const respond = vi.fn();
-    const getTopSites = createHistoryHandlers(respond, browserWith([]), identityFilter)[
-      "getTopSites"
-    ];
+  it("getTopSites responds with an empty list when chrome.topSites is unavailable", async () => {
+    const getTopSites = createHistoryHandlers(browserWith([]), identityFilter)["getTopSites"];
     expectDefined(getTopSites);
-    getTopSites({ query: "" }, {}, vi.fn());
+    const result = await getTopSites({ query: "" }, {}, vi.fn());
 
-    expect(lastResult(respond)).toEqual({ urls: [] });
+    expect(result).toEqual({ urls: [] });
   });
 
-  it("getHistory sorts by visit count when sortByMostUsed is set", () => {
-    const respond = vi.fn();
+  it("getHistory sorts by visit count when sortByMostUsed is set", async () => {
     const browser = browserWith([
       { url: "https://low", visitCount: 1 },
       { url: "https://high", visitCount: 9 },
     ]);
-    const getHistory = createHistoryHandlers(respond, browser, identityFilter)["getHistory"];
+    const getHistory = createHistoryHandlers(browser, identityFilter)["getHistory"];
     expectDefined(getHistory);
-    getHistory({ sortByMostUsed: true }, {}, vi.fn());
+    const result = await getHistory({ sortByMostUsed: true }, {}, vi.fn());
 
-    expect(lastResult(respond).history.map((h: any) => h.url)).toEqual([
-      "https://high",
-      "https://low",
-    ]);
+    expect(result.history.map((h: any) => h.url)).toEqual(["https://high", "https://low"]);
   });
 
-  it("getAllURLs concatenates bookmarks with history up to maxResults", () => {
+  it("getAllURLs concatenates bookmarks with history up to maxResults", async () => {
     g.chrome.bookmarks = {
-      search: (_q: any, cb: (b: any[]) => void) => cb([{ url: "https://bm" }]),
+      search: vi.fn().mockResolvedValue([{ url: "https://bm" }]),
     };
-    const respond = vi.fn();
     const browser = browserWith([{ url: "https://h1" }, { url: "https://h2" }]);
-    const getAllURLs = createHistoryHandlers(respond, browser, identityFilter)["getAllURLs"];
+    const getAllURLs = createHistoryHandlers(browser, identityFilter)["getAllURLs"];
     expectDefined(getAllURLs);
-    getAllURLs({ maxResults: 3 }, {}, vi.fn());
+    const result = await getAllURLs({ maxResults: 3 }, {}, vi.fn());
 
-    expect(lastResult(respond).urls.map((u: any) => u.url)).toEqual([
-      "https://bm",
-      "https://h1",
-      "https://h2",
-    ]);
+    expect(result.urls.map((u: any) => u.url)).toEqual(["https://bm", "https://h1", "https://h2"]);
   });
 
-  it("getAllURLs slices bookmarks to the requested count when history is not needed", () => {
+  it("getAllURLs slices bookmarks to the requested count when history is not needed", async () => {
     g.chrome.bookmarks = {
-      search: (_q: any, cb: (b: any[]) => void) =>
-        cb([{ url: "https://1" }, { url: "https://2" }, { url: "https://3" }]),
+      search: vi
+        .fn()
+        .mockResolvedValue([{ url: "https://1" }, { url: "https://2" }, { url: "https://3" }]),
     };
-    const respond = vi.fn();
-    const getAllURLs = createHistoryHandlers(respond, browserWith([]), identityFilter)[
-      "getAllURLs"
-    ];
+    const getAllURLs = createHistoryHandlers(browserWith([]), identityFilter)["getAllURLs"];
     expectDefined(getAllURLs);
-    getAllURLs({ maxResults: 2 }, {}, vi.fn());
+    const result = await getAllURLs({ maxResults: 2 }, {}, vi.fn());
 
-    expect(lastResult(respond).urls).toHaveLength(2);
+    expect(result.urls).toHaveLength(2);
   });
 
-  it("addHistories forwards each url to chrome.history.addUrl", () => {
+  it("addHistories forwards each url to chrome.history.addUrl", async () => {
     const addUrl = vi.fn();
     g.chrome.history = { addUrl };
-    const addHistories = createHistoryHandlers(vi.fn(), browserWith([]), identityFilter)[
-      "addHistories"
-    ];
+    const addHistories = createHistoryHandlers(browserWith([]), identityFilter)["addHistories"];
     expectDefined(addHistories);
-    addHistories({ history: ["https://a", "https://b"] }, {}, vi.fn());
+    await addHistories({ history: ["https://a", "https://b"] }, {}, vi.fn());
 
     expect(addUrl.mock.calls.map((c) => c[0])).toEqual([
       { url: "https://a" },
