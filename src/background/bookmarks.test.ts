@@ -95,6 +95,41 @@ describe("createBookmarkHandlers", () => {
     expect(created[2]).toMatchObject({ title: "X", url: "https://x" });
   });
 
+  it("createBookmark waits for the old bookmark removal before creating the new one", async () => {
+    const order: string[] = [];
+    let resolveRemove = () => {};
+    g.chrome.bookmarks = {
+      search: vi.fn().mockResolvedValue([{ id: "old" }]),
+      remove: vi.fn(
+        () =>
+          new Promise<void>((r) => {
+            resolveRemove = () => {
+              order.push("remove");
+              r();
+            };
+          }),
+      ),
+      create: vi.fn(async (node: any) => {
+        order.push("create:" + node.title);
+        return { id: "new" };
+      }),
+    };
+    const createBookmark = createBookmarkHandlers()["createBookmark"];
+    expectDefined(createBookmark);
+    const handled = createBookmark(
+      { page: { url: "https://x", title: "X", folder: "root", path: [] } },
+      {},
+      vi.fn(),
+    );
+
+    await new Promise((r) => setTimeout(r, 0));
+    expect(order).not.toContain("create:X");
+
+    resolveRemove();
+    await handled;
+    expect(order).toEqual(["remove", "create:X"]);
+  });
+
   it("removeBookmark removes every bookmark matching the sender tab URL", async () => {
     const remove = vi.fn();
     g.chrome.bookmarks = {
