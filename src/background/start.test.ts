@@ -890,4 +890,33 @@ describe("start — readComment malformed per-comment JSON", () => {
     await vi.waitFor(() => expect(sendResponse).toHaveBeenCalled());
     expect(sendResponse.mock.calls.at(-1)?.[0]).toMatchObject({ status: 1 });
   });
+
+  it("settles with status 1 when the comment body has malformed percent-encoding", async () => {
+    const dispatch = bootDispatch();
+    await primeGist(dispatch, "tok-read-comment-bad-uri");
+
+    // Prime the singleton's _comments cache with a single known entry (see the
+    // malformed-JSON sibling test for why the per-comment read here is ignored).
+    mockRequest
+      .mockResolvedValueOnce(Result.succeed(JSON.stringify([{ id: "c1" }]))) // _listComment
+      .mockResolvedValueOnce(Result.succeed(JSON.stringify({ body: "hello" }))); // _readComment
+    const prime = vi.fn();
+    dispatch({ action: "readComment", index: 0, needResponse: true }, { tab: { id: 1 } }, prime);
+    await vi.waitFor(() => expect(prime).toHaveBeenCalled());
+    mockRequest.mockReset();
+
+    // A lone "%" passes the body schema but is malformed percent-encoding, so
+    // decodeURIComponent throws; without a guard the callback never settles and
+    // the runtime sender hangs forever.
+    mockRequest.mockResolvedValueOnce(Result.succeed(JSON.stringify({ body: "%" })));
+    const sendResponse = vi.fn();
+    dispatch(
+      { action: "readComment", index: 0, needResponse: true },
+      { tab: { id: 1 } },
+      sendResponse,
+    );
+
+    await vi.waitFor(() => expect(sendResponse).toHaveBeenCalled());
+    expect(sendResponse.mock.calls.at(-1)?.[0]).toMatchObject({ status: 1 });
+  });
 });

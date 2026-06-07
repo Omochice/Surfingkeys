@@ -131,7 +131,18 @@ const Gist = (() => {
         cb({ status: 1, error: "malformed gist comment response" });
         return;
       }
-      cb({ status: 0, content: decodeURIComponent(comment.output.body) });
+      // The body is an external, user-editable gist comment, so a malformed
+      // percent-encoding (e.g. a lone "%") makes decodeURIComponent throw. An
+      // unhandled throw here would skip cb and re-hang the runtime sender, so
+      // report it like any other malformed response instead.
+      let content: string;
+      try {
+        content = decodeURIComponent(comment.output.body);
+      } catch {
+        cb({ status: 1, error: "malformed gist comment response" });
+        return;
+      }
+      cb({ status: 0, content });
     });
   }
   function _listComment(cb: (comments: any[]) => void, onError: (error: string) => void) {
