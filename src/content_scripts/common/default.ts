@@ -43,6 +43,12 @@ const youtubeSuggestSchema = v.tupleWithRest(
   v.unknown(),
 );
 
+// Clipboard restore reads back JSON the user previously copied; only the
+// top-level object shape is constrained, individual values stay unknown and are
+// narrowed at the use sites.
+const clipboardSettingsSchema = v.record(v.string(), v.unknown());
+const clipboardFormsSchema = v.record(v.string(), v.record(v.string(), v.unknown()));
+
 export default function (api: SurfingkeysApi, ctx: ModeContext): void {
   const { clipboard, normal, hints, visual, front } = ctx;
   const { addSearchAlias, cmap, map, mapkey, imapkey, vmapkey, searchSelectedWith } = api;
@@ -604,9 +610,12 @@ export default function (api: SurfingkeysApi, ctx: ModeContext): void {
   });
   mapkey(";pj", "#7Restore settings data from clipboard", () => {
     clipboard.read((response) => {
-      RUNTIME("updateSettings", {
-        settings: JSON.parse(response.data.trim()),
-      });
+      const result = v.safeParse(clipboardSettingsSchema, parseJsonSafe(response.data.trim()));
+      if (!result.success) {
+        showBanner("Clipboard does not contain valid settings data.");
+        return;
+      }
+      RUNTIME("updateSettings", { settings: result.output });
     });
   });
   mapkey("yt", "#3Duplicate current tab", () => {
@@ -689,31 +698,32 @@ export default function (api: SurfingkeysApi, ctx: ModeContext): void {
     hints.create("form", (element: any) => {
       const formKey = generateFormKey(element);
       clipboard.read((response) => {
-        const forms = JSON.parse(response.data.trim());
-        if (Object.hasOwn(forms, formKey)) {
-          const fd = forms[formKey];
+        const result = v.safeParse(clipboardFormsSchema, parseJsonSafe(response.data.trim()));
+        const forms: Record<string, Record<string, unknown>> = result.success ? result.output : {};
+        const fd = forms[formKey];
+        if (fd) {
           element.querySelectorAll("input, textarea").forEach((ip: any) => {
+            const value = fd[ip.name];
             if (Object.hasOwn(fd, ip.name) && ip.type !== "hidden") {
               if (ip.type === "radio") {
                 const op = element.querySelector(
-                  `input[name='${ip.name}'][value='${fd[ip.name]}']`,
+                  `input[name='${ip.name}'][value='${String(value)}']`,
                 );
                 if (op) {
                   op.checked = true;
                 }
-              } else if (Array.isArray(fd[ip.name])) {
+              } else if (Array.isArray(value)) {
                 element.querySelectorAll(`input[name='${ip.name}']`).forEach((ip2: any) => {
                   ip2.checked = false;
                 });
-                const vals = fd[ip.name];
-                vals.forEach((v: any) => {
+                value.forEach((v: any) => {
                   const op = element.querySelector(`input[name='${ip.name}'][value='${v}']`);
                   if (op) {
                     op.checked = true;
                   }
                 });
-              } else if (typeof fd[ip.name] === "string") {
-                ip.value = fd[ip.name];
+              } else if (typeof value === "string") {
+                ip.value = value;
               }
             }
           });
