@@ -487,11 +487,16 @@ describe("start — tab/window/download handlers delegate to chrome", () => {
       "createImageBitmap",
       vi.fn().mockResolvedValue({ width: 12, height: 34, close: vi.fn() }),
     );
-    const dispatch = bootWith({ tabs: { captureVisibleTab } });
-    const sendResponse = vi.fn();
-    dispatch({ action: "getCaptureSize", needResponse: true }, {}, sendResponse);
-    await vi.waitFor(() => expect(sendResponse).toHaveBeenCalledWith({ width: 12, height: 34 }));
-    vi.unstubAllGlobals();
+    // try/finally so a failing assertion still restores the stubbed globals and
+    // does not leak them into later tests.
+    try {
+      const dispatch = bootWith({ tabs: { captureVisibleTab } });
+      const sendResponse = vi.fn();
+      dispatch({ action: "getCaptureSize", needResponse: true }, {}, sendResponse);
+      await vi.waitFor(() => expect(sendResponse).toHaveBeenCalledWith({ width: 12, height: 34 }));
+    } finally {
+      vi.unstubAllGlobals();
+    }
   });
 
   it("setSurfingkeysIcon picks the disabled icon and targets the sender tab", () => {
