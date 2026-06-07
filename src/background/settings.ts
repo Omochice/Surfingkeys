@@ -366,8 +366,8 @@ export function createSettings(deps: SettingsDeps): SettingsUnit {
       return undefined;
     },
     resetSettings: async () => {
-      chrome.storage.local.clear();
-      chrome.storage.sync.clear();
+      await chrome.storage.local.clear();
+      await chrome.storage.sync.clear();
       const data = await loadSettings(null);
       await _broadcastSettings(data);
       return { settings: data };

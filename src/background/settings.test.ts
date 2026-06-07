@@ -639,6 +639,43 @@ describe("createSettings — resetSettings", () => {
       expect.objectContaining({ settings: expect.objectContaining({ theme: "dark" }) }),
     );
   });
+
+  it("waits for the storage clears to resolve before reloading defaults", async () => {
+    const order: string[] = [];
+    let resolveLocalClear: () => void;
+    const localClear = vi.fn(
+      () =>
+        new Promise<void>((r) => {
+          resolveLocalClear = () => {
+            order.push("localClear");
+            r();
+          };
+        }),
+    );
+    const syncClear = vi.fn().mockResolvedValue(undefined);
+    g.chrome.storage = {
+      local: { set: vi.fn(), clear: localClear },
+      sync: { set: vi.fn(), clear: syncClear },
+    };
+    g.chrome.tabs = { query: vi.fn().mockResolvedValue([]) };
+
+    const loadRawSettings = vi.fn(() => {
+      order.push("load");
+      return Promise.resolve({ theme: "dark" });
+    });
+    const { unit } = makeUnit({ browser: { loadRawSettings } });
+
+    const resetSettings = unit.handlers["resetSettings"];
+    expectDefined(resetSettings);
+    const handled = resetSettings({}, {}, vi.fn());
+
+    await new Promise((r) => setTimeout(r, 0));
+    expect(order).not.toContain("load");
+
+    resolveLocalClear!();
+    await handled;
+    expect(order).toEqual(["localClear", "load"]);
+  });
 });
 
 describe("createSettings — loadSettingsFromUrl", () => {
