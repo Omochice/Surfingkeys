@@ -63,6 +63,18 @@ describe("createHistoryHandlers", () => {
     expect(result.history.map((h: any) => h.url)).toEqual(["https://high", "https://low"]);
   });
 
+  it("getHistory leaves the array returned by the browser unmodified when sorting", async () => {
+    const items = [
+      { url: "https://low", visitCount: 1 },
+      { url: "https://high", visitCount: 9 },
+    ];
+    const getHistory = createHistoryHandlers(browserWith(items), identityFilter)["getHistory"];
+    expectDefined(getHistory);
+    await getHistory({ sortByMostUsed: true }, {}, vi.fn());
+
+    expect(items.map((h) => h.url)).toEqual(["https://low", "https://high"]);
+  });
+
   it("getAllURLs concatenates bookmarks with history up to maxResults", async () => {
     g.chrome.bookmarks = {
       search: vi.fn().mockResolvedValue([{ url: "https://bm" }]),
