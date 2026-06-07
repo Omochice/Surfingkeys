@@ -887,7 +887,7 @@ describe("CloseTabs handler — onOpen fires RUNTIME getTabs and resolves cached
       .filter((r: any) => r.data.uid?.[0] === "T")
       .map((r: any) => parseInt(r.data.uid.substring(1).split(":")[1]));
     // Verify the extraction formula (same one CloseTabs.onEnter uses) produces the right IDs
-    expect(tabIds.sort((a: number, b: number) => a - b)).toEqual([55, 66]);
+    expect(tabIds.toSorted((a: number, b: number) => a - b)).toEqual([55, 66]);
   });
 
   it("onEnter sends RUNTIME closeTabByIds with all visible tab IDs", async () => {
