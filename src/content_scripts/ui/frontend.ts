@@ -1,5 +1,6 @@
 import { createSignal } from "solid-js";
 import { render } from "solid-js/web";
+import * as v from "valibot";
 
 import createAPI from "../common/api";
 import createDefaultMappings from "../common/default";
@@ -34,6 +35,17 @@ import type { StatusCell } from "./components/StatusBar";
 import { Tabs as TabsView } from "./components/Tabs";
 import { Usage as UsageView } from "./components/Usage";
 import createOmnibar from "./omnibar";
+
+// Any page can postMessage to this window, so the envelope from the content
+// side is external data; validate its shape before dispatching. looseObject
+// preserves unknown keys so the payload reaches handlers (typed `any`) intact.
+const frontendMessageEnvelopeSchema = v.looseObject({
+  surfingkeys_frontend_data: v.looseObject({
+    action: v.optional(v.string()),
+    id: v.optional(v.union([v.string(), v.number()])),
+    ack: v.optional(v.unknown()),
+  }),
+});
 
 const Front = (() => {
   Mode.init();
@@ -748,15 +760,17 @@ const Front = (() => {
   window.addEventListener(
     "message",
     (event) => {
-      const _message = event.data && event.data.surfingkeys_frontend_data;
-      if (_message == null) {
+      const parsed = v.safeParse(frontendMessageEnvelopeSchema, event.data);
+      if (!parsed.success) {
         return;
       }
-      const f = _callbacks[_message.id];
+      const _message = parsed.output.surfingkeys_frontend_data;
+      const id = _message.id;
+      const f = id == null ? undefined : _callbacks[id];
       if (f) {
         // returns true to make callback stay for coming response.
-        if (!f(_message)) {
-          delete _callbacks[_message.id];
+        if (!f(_message) && id != null) {
+          delete _callbacks[id];
         }
       } else if (_message.action && Object.hasOwn(_actions, _message.action)) {
         const action = _actions[_message.action];
