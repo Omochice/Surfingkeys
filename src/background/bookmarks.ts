@@ -38,7 +38,9 @@ export function createBookmarkHandlers(): Record<string, MessageHandler> {
 
   async function removeBookmark(url: string) {
     const bookmarks = await chrome.bookmarks.search({ url });
-    await Promise.all(bookmarks.map((b) => chrome.bookmarks.remove(b.id)));
+    // allSettled, not all: a bookmark removed concurrently elsewhere makes its
+    // remove reject, and that must not abort the others or a chained create.
+    await Promise.allSettled(bookmarks.map((b) => chrome.bookmarks.remove(b.id)));
   }
 
   function filterBookmarksByQuery(bookmarks: any[], query: string, caseSensitive: boolean) {
