@@ -9,11 +9,16 @@ async function loadRawSettings(keys: string[], defaultSet?: any): Promise<any> {
   const syncSavedAt = syncSet["savedAt"] || 0;
   if (localSavedAt > syncSavedAt) {
     extendObject(rawSet, localSet);
-    await _save(chrome.storage.sync, localSet);
     const subset = getSubSettings(rawSet, keys);
-    if (chrome.runtime.lastError) {
+    // Promise-based storage rejects on failure (it does not set
+    // chrome.runtime.lastError), so a failed sync mirror is surfaced as `error`
+    // on the returned settings instead of rejecting the whole load.
+    try {
+      await _save(chrome.storage.sync, localSet);
+    } catch (err) {
       subset.error =
-        "Settings sync may not work thoroughly because of: " + chrome.runtime.lastError.message;
+        "Settings sync may not work thoroughly because of: " +
+        (err instanceof Error ? err.message : String(err));
     }
     return subset;
   }
