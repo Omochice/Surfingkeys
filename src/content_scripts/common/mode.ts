@@ -147,9 +147,13 @@ export default class Mode {
       }
     }
 
-    mode_stack.sort((a, b) =>
-      (a.priority ?? 0) < (b.priority ?? 0) ? 1 : (b.priority ?? 0) < (a.priority ?? 0) ? -1 : 0,
-    );
+    mode_stack.sort((a, b) => {
+      const pa = a.priority ?? 0;
+      const pb = b.priority ?? 0;
+      if (pa < pb) return 1;
+      if (pb < pa) return -1;
+      return 0;
+    });
 
     this.onEnter?.();
 
