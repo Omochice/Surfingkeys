@@ -1546,7 +1546,7 @@ describe("setZoom", () => {
 
   it("adjusts the current zoom by zoomFactor when zoomFactor is non-zero", async () => {
     const setZoom = vi.fn();
-    const getZoom = vi.fn().mockResolvedValue(1.0);
+    const getZoom = vi.fn().mockResolvedValue(1);
     const { unit } = tabUnitOver([], {}, { setZoom, getZoom });
     const handler = unit.handlers["setZoom"];
     expectDefined(handler);
