@@ -338,7 +338,7 @@ const api = {
   },
 };
 
-export default (extensionRootUrl: string, uf: (api: any, settings: any) => void) => {
+const initUserScripts = (extensionRootUrl: string, uf: (api: any, settings: any) => void) => {
   EXTENSION_ROOT_URL = extensionRootUrl;
   if (isInUIFrame()) return;
   userScriptTask = () => {
@@ -358,3 +358,5 @@ export default (extensionRootUrl: string, uf: (api: any, settings: any) => void)
     userScriptTask();
   }
 };
+
+export default initUserScripts;

@@ -49,7 +49,7 @@ const youtubeSuggestSchema = v.tupleWithRest(
 const clipboardSettingsSchema = v.record(v.string(), v.unknown());
 const clipboardFormsSchema = v.record(v.string(), v.record(v.string(), v.unknown()));
 
-export default function (api: SurfingkeysApi, ctx: ModeContext): void {
+export default function createDefaultMappings(api: SurfingkeysApi, ctx: ModeContext): void {
   const { clipboard, normal, hints, visual, front } = ctx;
   const { addSearchAlias, cmap, map, mapkey, imapkey, vmapkey, searchSelectedWith } = api;
 

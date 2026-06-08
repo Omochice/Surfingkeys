@@ -16,7 +16,7 @@ type KeyboardUtilsLike = {
 };
 type ModeCtor = new (name: string) => any;
 
-export default function (
+export default function optionsMain(
   RUNTIME: RuntimeFn,
   KeyboardUtils: KeyboardUtilsLike,
   Mode: ModeCtor,

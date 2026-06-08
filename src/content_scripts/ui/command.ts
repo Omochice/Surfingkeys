@@ -12,7 +12,7 @@ type OmnibarLike = {
   listWords(words: string[]): void;
 };
 
-export default (normal: NormalLike, command: CommandFn, omnibar: OmnibarLike): void => {
+const createCommands = (normal: NormalLike, command: CommandFn, omnibar: OmnibarLike): void => {
   command("feedkeys", "feed mapkeys", (args) => {
     normal.feedkeys(args[0] ?? "");
   });
@@ -72,3 +72,5 @@ export default (normal: NormalLike, command: CommandFn, omnibar: OmnibarLike): v
     omnibar.listWords([dt.toString()]);
   });
 };
+
+export default createCommands;
