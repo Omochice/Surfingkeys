@@ -208,7 +208,7 @@ function addSearchAlias(
 function createCssSelectorForElements(cssSelector: string, elements: any): number {
   if (elements instanceof HTMLElement) {
     elements = [elements];
-  } else if (elements instanceof Array) {
+  } else if (Array.isArray(elements)) {
     elements = elements.filter((m) => m instanceof HTMLElement);
   } else {
     elements = [];

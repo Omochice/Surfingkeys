@@ -21,7 +21,7 @@ export function getSubSettings(set: any, keys: any): any {
     // if null/undefined/""
     subset = set;
   } else {
-    if (!(keys instanceof Array)) {
+    if (!Array.isArray(keys)) {
       keys = [keys];
     }
     subset = {};
