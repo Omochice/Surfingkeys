@@ -34,7 +34,8 @@
     "unicorn/catch-error-name": "error",
     "unicorn/prefer-includes": "error",
     "unicorn/prefer-regexp-test": "error",
-    "unicorn/no-anonymous-default-export": "error"
+    "unicorn/no-anonymous-default-export": "error",
+    "unicorn/no-array-reduce": "error"
   },
   "env": {
     "builtin": true,
