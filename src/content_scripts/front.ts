@@ -254,9 +254,7 @@ function createFront(
     if (lurk) {
       mappings.unshift(lurk.mappings);
     }
-    return mappings.map(getAnnotations).reduce((a, b) => {
-      return a.concat(b);
-    });
+    return mappings.map(getAnnotations).flat();
   }
 
   self.showUsage = () => {

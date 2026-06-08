@@ -166,11 +166,7 @@ const Front = (() => {
             return !d.noPointerEvents;
           }
         });
-        // to make pointerEvents not empty
-        pe.push(false);
-        const pointerEvents2 = pe.reduce((a, b) => {
-          return a || b;
-        });
+        const pointerEvents2 = pe.some(Boolean);
 
         let ns;
         if (pointerEvents2) {
