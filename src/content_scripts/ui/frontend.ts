@@ -706,7 +706,7 @@ const Front = (() => {
     initL10n((locale) => {
       const cc = keyHints.candidates;
       const words = Object.keys(cc)
-        .sort()
+        .toSorted()
         .map((w) => {
           const annotation = localizeAnnotation(locale, cc[w].annotation);
           if (annotation) {

@@ -194,6 +194,32 @@ describe("createTabs — filterByTitleOrUrl", () => {
 });
 
 // ---------------------------------------------------------------------------
+// getTabs — MRU ordering
+// ---------------------------------------------------------------------------
+
+describe("createTabs — getTabs", () => {
+  it("orders tabs by recent access and leaves the queried array unmodified", async () => {
+    const tabs = [
+      { id: 1, url: "https://a.com", title: "A", lastAccessed: 100 },
+      { id: 2, url: "https://b.com", title: "B", lastAccessed: 300 },
+      { id: 3, url: "https://c.com", title: "C", lastAccessed: 200 },
+    ];
+    const { handlers } = tabUnitOver(tabs, { tabsMRUOrder: true });
+    const getTabs = handlers["getTabs"];
+    expectDefined(getTabs);
+
+    const result = await getTabs(
+      { filter: "", tabsThreshold: 1, queryInfo: {} },
+      { tab: { id: 99 } },
+      vi.fn(),
+    );
+
+    expect(result.tabs.map((t: any) => t.id)).toEqual([2, 3, 1]);
+    expect(tabs.map((t) => t.id)).toEqual([1, 2, 3]);
+  });
+});
+
+// ---------------------------------------------------------------------------
 // focusTabByIndex
 // ---------------------------------------------------------------------------
 

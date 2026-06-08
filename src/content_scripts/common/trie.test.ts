@@ -25,7 +25,7 @@ describe("Trie", () => {
     trie.add("go", {});
     trie.add("gt", {});
 
-    expect(trie.getWords().sort()).toEqual(["go", "gt"]);
+    expect(trie.getWords().toSorted()).toEqual(["go", "gt"]);
   });
 
   it("collects metas matching a criterion", () => {
@@ -34,7 +34,7 @@ describe("Trie", () => {
     trie.add("gt", { annotation: "B" });
 
     const all = trie.getMetas(() => true).map((m) => m.annotation);
-    expect(all.sort()).toEqual(["A", "B"]);
+    expect(all.toSorted()).toEqual(["A", "B"]);
 
     const some = trie.getMetas((m) => m.annotation === "B");
     expect(some.map((m) => m.word)).toEqual(["gt"]);

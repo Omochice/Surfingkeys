@@ -10,7 +10,9 @@
     "typescript/consistent-type-assertions": ["warn", { "assertionStyle": "never" }],
     "typescript/consistent-type-definitions": ["error", "type"],
     "no-unused-expressions": ["error", { "allowShortCircuit": true, "allowTernary": true }],
-    "curly": ["error", "multi-line"]
+    "curly": ["error", "multi-line"],
+    "unicorn/no-array-sort": "error",
+    "unicorn/no-array-reverse": "error"
   },
   "env": {
     "builtin": true,
