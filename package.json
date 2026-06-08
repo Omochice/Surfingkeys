@@ -56,7 +56,7 @@
     "@vitest/coverage-v8": "4.1.8",
     "@wxt-dev/module-solid": "1.1.4",
     "jsdom": "29.1.1",
-    "knip": "6.15.0",
+    "knip": "6.16.0",
     "npm-run-all2": "9.0.1",
     "oxfmt": "0.53.0",
     "oxlint": "1.68.0",
