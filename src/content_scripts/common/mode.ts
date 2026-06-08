@@ -341,7 +341,7 @@ export default class Mode {
           event.sk_stopPropagation = true;
         } else {
           this.setLastKeys?.(meta.word);
-          RUNTIME.repeats = parseInt(this.repeats ?? "", 10) || 1;
+          RUNTIME.repeats = Number.parseInt(this.repeats ?? "", 10) || 1;
           event.sk_stopPropagation = !meta.stopPropagation || callStopPropagation(meta, key);
           if (RUNTIME.repeats > runtime.conf.repeatThreshold) {
             dispatchSKEvent("front", [

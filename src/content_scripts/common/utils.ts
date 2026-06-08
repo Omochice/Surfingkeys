@@ -386,7 +386,7 @@ function isElementDrawn(e: Element, rect?: DOMRect): boolean {
   return (
     rect.width > min &&
     rect.height > min &&
-    (parseFloat(getComputedStyle(e).opacity) > 0.1 ||
+    (Number.parseFloat(getComputedStyle(e).opacity) > 0.1 ||
       (e.tagName == "INPUT" && (e as HTMLInputElement).type != "text"))
   );
 }
@@ -496,7 +496,7 @@ function getLargeElements(minWidth = 0.3, minHeight = 0.3): HTMLElement[] {
     }
     const style = getComputedStyle(element);
     if (
-      parseFloat(style.opacity) > 0.1 &&
+      Number.parseFloat(style.opacity) > 0.1 &&
       style.visibility !== "hidden" &&
       style.display !== "none"
     ) {
@@ -896,7 +896,7 @@ function parseAnnotation(ag: { annotation: string | string[]; feature_group?: nu
     const featureGroup = annotations[1];
     const rest = annotations[2];
     if (featureGroup != null && rest != null) {
-      ag.feature_group = parseInt(featureGroup);
+      ag.feature_group = Number.parseInt(featureGroup);
       arr[0] = rest;
     }
   }

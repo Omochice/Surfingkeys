@@ -355,7 +355,7 @@ function start(browser: any): void {
       await chrome.history.deleteUrl({ url: uid });
     } else if (type === "T") {
       const parts = uid.split(":").map((u) => {
-        return parseInt(u);
+        return Number.parseInt(u);
       });
       await chrome.windows.update(parts[0]!, {
         focused: true,

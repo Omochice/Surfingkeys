@@ -337,15 +337,15 @@ export function createTabs(deps: TabsDeps): TabsUnit {
           const a = x.lastAccessed || tabActivated[x.id!];
           const b = y.lastAccessed || tabActivated[y.id!];
 
-          if (!isFinite(a) && !isFinite(b)) {
+          if (!Number.isFinite(a) && !Number.isFinite(b)) {
             return 0;
           }
 
-          if (!isFinite(a)) {
+          if (!Number.isFinite(a)) {
             return 1;
           }
 
-          if (!isFinite(b)) {
+          if (!Number.isFinite(b)) {
             return -1;
           }
 
@@ -472,7 +472,7 @@ export function createTabs(deps: TabsDeps): TabsUnit {
           return {
             id: w,
             tabs: windows[w],
-            isPreviousChoice: parseInt(w) === previousWindowChoice,
+            isPreviousChoice: Number.parseInt(w) === previousWindowChoice,
           };
         }),
       };

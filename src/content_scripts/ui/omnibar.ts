@@ -710,8 +710,8 @@ function createOmnibar(front: any, clipboard: any) {
       const parts = uid.split(":");
       reportOnFail(
         RUNTIME("focusTab", {
-          windowId: parseInt(parts[0] ?? ""),
-          tabId: parseInt(parts[1] ?? ""),
+          windowId: Number.parseInt(parts[0] ?? ""),
+          tabId: Number.parseInt(parts[1] ?? ""),
         }),
         reportError,
       );
@@ -1337,7 +1337,7 @@ function CloseTabs(omnibar: any): any {
       const uid = r.data.uid;
       if (uid && uid[0] === "T") {
         const parts = uid.slice(1).split(":");
-        tabIds.push(parseInt(parts[1]));
+        tabIds.push(Number.parseInt(parts[1]));
       }
     });
     if (tabIds.length > 0) {
@@ -1420,7 +1420,7 @@ function OpenWindows(omnibar: any, front: any): any {
         });
         // Join every tab URL so the copy-line binding can yank all tabs in this window at once.
         const url = w.tabs.map((t: any) => t.url).join("\n");
-        return buildOmnibarResult(li, { windowId: parseInt(w.id), url });
+        return buildOmnibarResult(li, { windowId: Number.parseInt(w.id), url });
       });
     });
   };

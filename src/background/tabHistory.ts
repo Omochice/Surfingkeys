@@ -57,7 +57,8 @@ export function createTabHistory(): TabHistory {
       if (tabHistory.length > 0) {
         historyTabAction = true;
         if (Object.hasOwn(message, "index")) {
-          tabHistoryIndex = (parseInt(message.index) + tabHistory.length) % tabHistory.length;
+          tabHistoryIndex =
+            (Number.parseInt(message.index) + tabHistory.length) % tabHistory.length;
         } else {
           tabHistoryIndex += message.backward ? -1 : 1;
           if (tabHistoryIndex < 0) {

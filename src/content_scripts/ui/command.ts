@@ -68,7 +68,7 @@ export default (normal: NormalLike, command: CommandFn, omnibar: OmnibarLike): v
     RUNTIME("clearQueueURLs");
   });
   command("timeStamp", "print time stamp in human readable format", (args) => {
-    const dt = new Date(parseInt(args[0] ?? ""));
+    const dt = new Date(Number.parseInt(args[0] ?? ""));
     omnibar.listWords([dt.toString()]);
   });
 };

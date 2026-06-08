@@ -182,7 +182,7 @@ export default class KeyboardUtils {
               keyIdentifier = event.shiftKey ? corrected[1] : corrected[0];
             }
             const unicodeKeyInHex = "0x" + keyIdentifier.slice(2);
-            character = String.fromCharCode(parseInt(unicodeKeyInHex));
+            character = String.fromCharCode(Number.parseInt(unicodeKeyInHex));
             character = event.shiftKey ? character : character.toLowerCase();
           }
         }

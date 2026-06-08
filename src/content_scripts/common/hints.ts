@@ -494,8 +494,8 @@ div.hint-scrollable {
   function getZIndex(node: Node | null): number {
     let z = 0;
     do {
-      const i = parseInt(getComputedStyle(node as Element).getPropertyValue("z-index"));
-      z += isNaN(i) || i < 0 ? 0 : i;
+      const i = Number.parseInt(getComputedStyle(node as Element).getPropertyValue("z-index"));
+      z += Number.isNaN(i) || i < 0 ? 0 : i;
       node = node!.parentNode;
     } while (
       node &&
@@ -594,7 +594,7 @@ div.hint-scrollable {
     const firstHint = hints[0];
     if (firstHint && firstHint.style.zIndex == zIndices.get(firstHint)) {
       hints.forEach((hint, i) => {
-        const z = parseInt(hint.style.zIndex);
+        const z = Number.parseInt(hint.style.zIndex);
         hint.style.zIndex = String(hints.length - i + 2147483000 - z);
       });
     } else {
@@ -631,7 +631,7 @@ div.hint-scrollable {
       if (prefix == null || middle == null || suffix == null) {
         continue;
       }
-      const cp = parseInt(middle);
+      const cp = Number.parseInt(middle);
       if (cp < 0xffffffff) {
         window.location.href = prefix + (cp + step) + suffix;
         return true;

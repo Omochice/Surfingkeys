@@ -717,7 +717,7 @@ function createNormal(insert: InsertLike): NormalMode {
         break;
       case "byRatio": {
         const y =
-          parseInt(String((RUNTIME.repeats * scrollNode.scrollHeight) / 100)) -
+          Number.parseInt(String((RUNTIME.repeats * scrollNode.scrollHeight) / 100)) -
           size[1] / 2 -
           scrollNode.scrollTop;
         RUNTIME.repeats = 0;
