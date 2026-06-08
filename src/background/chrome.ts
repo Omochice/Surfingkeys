@@ -15,10 +15,10 @@ async function loadRawSettings(keys: string[], defaultSet?: any): Promise<any> {
     // on the returned settings instead of rejecting the whole load.
     try {
       await _save(chrome.storage.sync, localSet);
-    } catch (err) {
+    } catch (error) {
       subset.error =
         "Settings sync may not work thoroughly because of: " +
-        (err instanceof Error ? err.message : String(err));
+        (error instanceof Error ? error.message : String(error));
     }
     return subset;
   }

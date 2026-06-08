@@ -68,8 +68,8 @@ export async function _save(storage: any, data: any): Promise<void> {
     // (and the response it settles) never hangs on a bad snippet path.
     try {
       await storage.set(toSave);
-    } catch (err) {
-      console.error("Failed to save snippets from", toSave.localPath, err);
+    } catch (error) {
+      console.error("Failed to save snippets from", toSave.localPath, error);
     }
   } else {
     await storage.set(toSave);
@@ -147,8 +147,8 @@ export function createSettings(deps: SettingsDeps): SettingsUnit {
     // The sync write is fire-and-forget (local is the source of truth), but a
     // rejection here (e.g. sync quota) must be caught: an unhandled rejection can
     // terminate the MV3 service worker.
-    _save(chrome.storage.sync, diffSettings).catch((err) => {
-      console.error("Failed to sync settings:", err);
+    _save(chrome.storage.sync, diffSettings).catch((error) => {
+      console.error("Failed to sync settings:", error);
     });
   }
 
