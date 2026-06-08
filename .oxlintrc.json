@@ -29,7 +29,8 @@
     "unicorn/escape-case": "error",
     "unicorn/prefer-dom-node-dataset": "error",
     "unicorn/no-await-expression-member": "error",
-    "unicorn/prefer-modern-dom-apis": "error"
+    "unicorn/prefer-modern-dom-apis": "error",
+    "unicorn/no-instanceof-builtins": "error"
   },
   "env": {
     "builtin": true,
