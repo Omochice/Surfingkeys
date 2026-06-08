@@ -30,7 +30,8 @@
     "unicorn/prefer-dom-node-dataset": "error",
     "unicorn/no-await-expression-member": "error",
     "unicorn/prefer-modern-dom-apis": "error",
-    "unicorn/no-instanceof-builtins": "error"
+    "unicorn/no-instanceof-builtins": "error",
+    "unicorn/catch-error-name": "error"
   },
   "env": {
     "builtin": true,
