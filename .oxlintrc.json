@@ -18,7 +18,8 @@
     "unicorn/prefer-number-properties": "error",
     "unicorn/prefer-date-now": "error",
     "unicorn/prefer-array-find": "error",
-    "unicorn/consistent-existence-index-check": "error"
+    "unicorn/consistent-existence-index-check": "error",
+    "unicorn/custom-error-definition": "error"
   },
   "env": {
     "builtin": true,
