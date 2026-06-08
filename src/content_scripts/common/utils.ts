@@ -969,9 +969,7 @@ function constructSearchURL(se: string, word: string): string {
  * @param {number} [simultaneousness=5] How many tabs will be opened simultaneously, the rest will
  *   be queued and opened later whenever a tab is closed. Default is `5`
  */
-function tabOpenLink(str: string | string[] | NodeList, simultaneousness?: number): void {
-  simultaneousness = simultaneousness || 5;
-
+function tabOpenLink(str: string | string[] | NodeList, simultaneousness: number = 5): void {
   let urls: string[];
   if (Array.isArray(str)) {
     urls = str;
