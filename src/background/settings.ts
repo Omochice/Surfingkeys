@@ -335,7 +335,8 @@ export function createSettings(deps: SettingsDeps): SettingsUnit {
         return undefined;
       }
       const markInfo = marks[message.mark];
-      const tabs = (await chrome.tabs.query({})).filter((t) => {
+      const allTabs = await chrome.tabs.query({});
+      const tabs = allTabs.filter((t) => {
         return t.url === markInfo.url;
       });
 

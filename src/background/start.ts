@@ -390,7 +390,8 @@ function start(browser: any): void {
   };
   handlers["getCaptureSize"] = async () => {
     const dataUrl = await chrome.tabs.captureVisibleTab({ format: "png" });
-    const blob = await (await fetch(dataUrl)).blob();
+    const response = await fetch(dataUrl);
+    const blob = await response.blob();
     const img = await createImageBitmap(blob);
     const size = { width: img.width, height: img.height };
     img.close();
