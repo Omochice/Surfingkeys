@@ -13,7 +13,8 @@
     "curly": ["error", "multi-line"],
     "unicorn/no-array-sort": "error",
     "unicorn/no-array-reverse": "error",
-    "unicorn/prefer-string-replace-all": "error"
+    "unicorn/prefer-string-replace-all": "error",
+    "unicorn/prefer-string-slice": "error"
   },
   "env": {
     "builtin": true,
