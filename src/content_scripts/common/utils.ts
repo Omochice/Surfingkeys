@@ -343,7 +343,7 @@ function getRealEdit(event?: Event): any {
 function toggleQuote(): void {
   const elm = getRealEdit(),
     val = elm.value;
-  if (val.match(/^"|"$/)) {
+  if (/^"|"$/.test(val)) {
     elm.value = val.replace(/^"?(.*?)"?$/, "$1");
   } else {
     elm.value = '"' + val + '"';

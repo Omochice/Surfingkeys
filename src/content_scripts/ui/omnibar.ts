@@ -674,11 +674,11 @@ function createOmnibar(front: any, clipboard: any) {
   };
 
   self.isUrl = (input: string) => {
-    if (input.match(/\s+/)) {
+    if (/\s+/.test(input)) {
       return false;
     }
 
-    if (input.match(/^https?:\/\//)) {
+    if (/^https?:\/\//.test(input)) {
       return true;
     }
 
