@@ -1105,7 +1105,7 @@ function AddBookmark(omnibar: any): any {
             const idx = omnibar
               .results()
               .findIndex((r: any) => r.data.folder === String(b.parentId));
-            if (idx >= 0) {
+            if (idx !== -1) {
               omnibar.focusItem(idx);
             }
           }
