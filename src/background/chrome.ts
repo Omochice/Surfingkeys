@@ -41,7 +41,7 @@ function _getContainerName(_self: unknown): void {}
 
 async function getLatestHistoryItem(text: string, maxResults: number): Promise<any[]> {
   let results: any[] = [];
-  let endTime = new Date().getTime();
+  let endTime = Date.now();
   // chrome.history.search has no substring filter, so widen the time window and
   // re-filter locally, looping until enough matches are collected or history is
   // exhausted.

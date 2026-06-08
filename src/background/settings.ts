@@ -142,7 +142,7 @@ export function createSettings(deps: SettingsDeps): SettingsUnit {
   }
 
   async function _updateSettings(diffSettings: any): Promise<void> {
-    diffSettings.savedAt = new Date().getTime();
+    diffSettings.savedAt = Date.now();
     await _save(chrome.storage.local, diffSettings);
     // The sync write is fire-and-forget (local is the source of truth), but a
     // rejection here (e.g. sync quota) must be caught: an unhandled rejection can
@@ -200,7 +200,7 @@ export function createSettings(deps: SettingsDeps): SettingsUnit {
       url = url.replace(/\?$/, "");
       const u = new URL(url);
       const con = u.search ? "&" : "?";
-      url = `${url}${con}nonce=${new Date().getTime()}`;
+      url = `${url}${con}nonce=${Date.now()}`;
     }
     return url;
   }

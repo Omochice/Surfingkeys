@@ -745,7 +745,7 @@ const Front = (() => {
   _actions["initFrontend"] = (message: any) => {
     self.topOrigin = message.origin;
     self.topSize = message.winSize;
-    return new Date().getTime();
+    return Date.now();
   };
   _actions["destroyFrontend"] = () => {
     if (_display && _display.style.display !== "none") {

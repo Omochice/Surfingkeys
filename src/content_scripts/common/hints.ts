@@ -608,10 +608,10 @@ div.hint-scrollable {
     if (Mode.getCurrent() !== self || !document.documentElement.contains(hintsHost)) {
       return;
     }
-    const start = new Date().getTime();
+    const start = Date.now();
     const found = createHintsImpl(_cssSelector, _lastCreateAttrs);
     if (found > 0) {
-      self.statusLine += " - " + (new Date().getTime() - start) + "ms / " + found;
+      self.statusLine += " - " + (Date.now() - start) + "ms / " + found;
       Mode.showStatus();
     }
   }
@@ -1130,10 +1130,10 @@ div.hint-scrollable {
     _onHintKey = onHintKey;
     _lastCreateAttrs = attrs || {};
 
-    const start = new Date().getTime();
+    const start = Date.now();
     const found = createHintsImpl(cssSelector, attrs);
     if (found > (runtime.conf.hintExplicit ? 0 : 1)) {
-      self.statusLine += " - " + (new Date().getTime() - start) + "ms / " + found;
+      self.statusLine += " - " + (Date.now() - start) + "ms / " + found;
       self.enter();
     } else {
       handleHint();

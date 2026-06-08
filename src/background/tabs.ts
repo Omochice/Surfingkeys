@@ -151,7 +151,7 @@ export function createTabs(deps: TabsDeps): TabsUnit {
   });
   chrome.tabs.onActivated.addListener((activeInfo: any) => {
     tabHistory.record(activeInfo.tabId);
-    tabActivated[activeInfo.tabId] = new Date().getTime();
+    tabActivated[activeInfo.tabId] = Date.now();
     _tabActivated(activeInfo.tabId);
     chromelikeNewTabPosition = 0;
 
