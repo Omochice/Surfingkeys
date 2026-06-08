@@ -320,20 +320,26 @@ function createFront(
         if (window === top) {
           window.location.href = `chrome://dictorium-query/${query}`;
         } else {
-          window.postMessage({
-            dictorium_data: { type: "DictoriumReload", word: query },
-          });
+          window.postMessage(
+            {
+              dictorium_data: { type: "DictoriumReload", word: query },
+            },
+            window.location.origin,
+          );
         }
       } else {
-        window.postMessage({
-          dictorium_data: {
-            type: "OpenDictoriumQuery",
-            word: query,
-            sentence: "",
-            pos: pos,
-            source: window.location.href,
+        window.postMessage(
+          {
+            dictorium_data: {
+              type: "OpenDictoriumQuery",
+              word: query,
+              sentence: "",
+              pos: pos,
+              source: window.location.href,
+            },
           },
-        });
+          window.location.origin,
+        );
       }
       hidePopup();
     } else if (_inlineQuery) {
