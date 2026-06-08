@@ -19,7 +19,8 @@
     "unicorn/prefer-date-now": "error",
     "unicorn/prefer-array-find": "error",
     "unicorn/consistent-existence-index-check": "error",
-    "unicorn/custom-error-definition": "error"
+    "unicorn/custom-error-definition": "error",
+    "unicorn/import-style": "error"
   },
   "env": {
     "builtin": true,
