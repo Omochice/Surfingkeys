@@ -25,7 +25,8 @@
     "unicorn/no-nested-ternary": "error",
     "unicorn/no-zero-fractions": "error",
     "unicorn/prefer-default-parameters": "error",
-    "unicorn/text-encoding-identifier-case": "error"
+    "unicorn/text-encoding-identifier-case": "error",
+    "unicorn/escape-case": "error"
   },
   "env": {
     "builtin": true,
