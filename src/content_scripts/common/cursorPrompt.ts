@@ -243,7 +243,7 @@ class CursorPrompt {
       mask.appendChild(span);
     } else {
       const fp = (mask.childNodes[0] as Text).splitText(pos);
-      mask.insertBefore(span, fp);
+      fp.before(span);
     }
     document.body.appendChild(mask);
     scrollIntoViewIfNeeded(span);

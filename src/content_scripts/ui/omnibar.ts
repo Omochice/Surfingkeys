@@ -631,7 +631,7 @@ function createOmnibar(front: any, clipboard: any) {
     ui.classList.add("sk_omnibar_" + getPosition());
     if (getPosition() === "bottom") {
       self.resultsDiv.remove();
-      ui.insertBefore(self.resultsDiv, document.querySelector("#sk_omnibarSearchArea"));
+      document.querySelector("#sk_omnibarSearchArea")!.before(self.resultsDiv);
     } else {
       self.resultsDiv.remove();
       ui.append(self.resultsDiv);
