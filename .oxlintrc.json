@@ -21,7 +21,8 @@
     "unicorn/consistent-existence-index-check": "error",
     "unicorn/custom-error-definition": "error",
     "unicorn/import-style": "error",
-    "unicorn/no-console-spaces": "error"
+    "unicorn/no-console-spaces": "error",
+    "unicorn/no-nested-ternary": "error"
   },
   "env": {
     "builtin": true,
