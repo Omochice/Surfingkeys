@@ -15,7 +15,8 @@
     "unicorn/no-array-reverse": "error",
     "unicorn/prefer-string-replace-all": "error",
     "unicorn/prefer-string-slice": "error",
-    "unicorn/prefer-number-properties": "error"
+    "unicorn/prefer-number-properties": "error",
+    "unicorn/prefer-date-now": "error"
   },
   "env": {
     "builtin": true,
