@@ -26,7 +26,8 @@
     "unicorn/no-zero-fractions": "error",
     "unicorn/prefer-default-parameters": "error",
     "unicorn/text-encoding-identifier-case": "error",
-    "unicorn/escape-case": "error"
+    "unicorn/escape-case": "error",
+    "unicorn/prefer-dom-node-dataset": "error"
   },
   "env": {
     "builtin": true,
