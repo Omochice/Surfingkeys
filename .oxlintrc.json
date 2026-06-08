@@ -31,7 +31,8 @@
     "unicorn/no-await-expression-member": "error",
     "unicorn/prefer-modern-dom-apis": "error",
     "unicorn/no-instanceof-builtins": "error",
-    "unicorn/catch-error-name": "error"
+    "unicorn/catch-error-name": "error",
+    "unicorn/prefer-includes": "error"
   },
   "env": {
     "builtin": true,
