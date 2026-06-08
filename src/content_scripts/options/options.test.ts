@@ -389,7 +389,7 @@ describe("getURIPath (via saveSettings)", () => {
 
     const localPathInput = document.getElementById("localPath") as HTMLInputElement;
     // Backslashes get replaced with forward slashes; leading / is dropped then file:/// is prepended
-    localPathInput.value = "C:\\Users\\user\\settings.js";
+    localPathInput.value = String.raw`C:\Users\user\settings.js`;
 
     const saveBtn = document.getElementById("save_button") as HTMLInputElement;
     saveBtn.onclick!(new MouseEvent("click") as unknown as PointerEvent);

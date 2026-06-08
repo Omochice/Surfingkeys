@@ -960,7 +960,7 @@ const Find = (() => {
         query = input.value;
         if (query!.length && query !== ".") {
           if (event.ctrlKey) {
-            query = "\\b" + query + "\\b";
+            query = String.raw`\b` + query + String.raw`\b`;
           }
           reset();
           RUNTIME("updateInputHistory", { find: query });

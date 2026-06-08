@@ -894,7 +894,7 @@ function createVisual(clipboard: ClipboardLike, hints: HintsLike): VisualMode {
   };
 
   self.findSentenceOf = (query) => {
-    const wr = new RegExp("\\b" + query + "\\b");
+    const wr = new RegExp(String.raw`\b` + query + String.raw`\b`);
     let elements = getVisibleElements((e, v) => {
       if (wr.test(e.innerText)) {
         v.push(e);

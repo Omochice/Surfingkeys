@@ -862,7 +862,7 @@ function initL10n(cb: (translate: (str: string) => string) => void): void {
 function format(template: string, ...args: unknown[]): string {
   let formatted = template;
   for (let i = 0; i < args.length; i++) {
-    const regexp = new RegExp("\\{" + i + "\\}", "gi");
+    const regexp = new RegExp(String.raw`\{` + i + String.raw`\}`, "gi");
     formatted = formatted.replace(regexp, () => String(args[i]));
   }
   return formatted;

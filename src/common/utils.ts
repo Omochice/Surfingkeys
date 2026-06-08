@@ -14,7 +14,7 @@ function LOG(level: LogLevel, msg: unknown): void {
 function regexFromString(str: string, caseSensitive?: boolean, highlight?: boolean): RegExp {
   let rxp: RegExp;
   const flags = caseSensitive ? "" : "i";
-  str = str.replaceAll(/[|\\{}()[\]^$+*?.]/g, "\\$&");
+  str = str.replaceAll(/[|\\{}()[\]^$+*?.]/g, String.raw`\$&`);
   if (highlight) {
     rxp = new RegExp(str.replace(/\s+/, "|"), flags);
   } else {
