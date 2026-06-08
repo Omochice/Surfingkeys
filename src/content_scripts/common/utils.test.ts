@@ -170,7 +170,7 @@ describe("removeAttributes", () => {
     const el = document.createElement("div");
     el.setAttribute("id", "x");
     el.setAttribute("class", "y");
-    el.setAttribute("data-z", "1");
+    el.dataset["z"] = "1";
     removeAttributes(el);
     expect(el.attributes.length).toBe(0);
   });
