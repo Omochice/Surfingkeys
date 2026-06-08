@@ -24,7 +24,8 @@
     "unicorn/no-console-spaces": "error",
     "unicorn/no-nested-ternary": "error",
     "unicorn/no-zero-fractions": "error",
-    "unicorn/prefer-default-parameters": "error"
+    "unicorn/prefer-default-parameters": "error",
+    "unicorn/text-encoding-identifier-case": "error"
   },
   "env": {
     "builtin": true,
