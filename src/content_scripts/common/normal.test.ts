@@ -618,8 +618,8 @@ describe("createNormal addVIMark", () => {
 
     normal.addVIMark("b");
 
-    const calls = sendMessage.mock.calls.filter((args: any[]) => args[0]?.action === "addVIMark");
-    const markPayload = calls[0]![0].mark as Record<string, { url: string }>;
+    const call = sendMessage.mock.calls.find((args: any[]) => args[0]?.action === "addVIMark");
+    const markPayload = call![0].mark as Record<string, { url: string }>;
     expect(markPayload["b"]!.url).toBe(window.location.href);
 
     (globalThis as any).chrome.runtime.sendMessage = () => {};

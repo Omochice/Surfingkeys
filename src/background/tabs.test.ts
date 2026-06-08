@@ -1768,8 +1768,8 @@ describe("nextFrame", () => {
     expectDefined(handler);
     // Current frame (2) is the last → wrap to index 0 → frameId 1
     await handler({ frameId: 2 }, { tab: { id: 5 } }, vi.fn());
-    const focusCalls = sendMessage.mock.calls.filter((c) => c[1]?.subject === "focusFrame");
-    expect(focusCalls[0]![1].frameId).toBe(1);
+    const focusCall = sendMessage.mock.calls.find((c) => c[1]?.subject === "focusFrame");
+    expect(focusCall![1].frameId).toBe(1);
   });
 
   it("does nothing when executeScript returns no non-zero frames", async () => {
