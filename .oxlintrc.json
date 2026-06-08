@@ -23,7 +23,8 @@
     "unicorn/import-style": "error",
     "unicorn/no-console-spaces": "error",
     "unicorn/no-nested-ternary": "error",
-    "unicorn/no-zero-fractions": "error"
+    "unicorn/no-zero-fractions": "error",
+    "unicorn/prefer-default-parameters": "error"
   },
   "env": {
     "builtin": true,
