@@ -33,7 +33,8 @@
     "unicorn/no-instanceof-builtins": "error",
     "unicorn/catch-error-name": "error",
     "unicorn/prefer-includes": "error",
-    "unicorn/prefer-regexp-test": "error"
+    "unicorn/prefer-regexp-test": "error",
+    "unicorn/no-anonymous-default-export": "error"
   },
   "env": {
     "builtin": true,
