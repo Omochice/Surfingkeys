@@ -12,6 +12,7 @@ const CHARSET_RE = /(?:charset|encoding)\s*=\s*['"]? *([\w-]+)/i;
 class HttpStatusError extends Error {
   constructor(readonly status: number) {
     super(`HTTP ${status}`);
+    this.name = "HttpStatusError";
   }
 }
 
