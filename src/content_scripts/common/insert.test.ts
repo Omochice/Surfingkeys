@@ -292,7 +292,7 @@ describe("createInsert mapping codes", () => {
       // comma is ASCII
       expect(sp(",")).toBe(true);
       // ESC character itself (charCode 27)
-      expect(sp("\x1b")).toBe(true);
+      expect(sp("\x1B")).toBe(true);
     });
   });
 
