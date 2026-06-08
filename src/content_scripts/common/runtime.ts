@@ -72,7 +72,7 @@ const RUNTIME = function (
   ];
   const a: Record<string, unknown> = args || {};
   a["action"] = action;
-  if (actionsRepeatBackground.indexOf(action) !== -1) {
+  if (actionsRepeatBackground.includes(action)) {
     // if the action can only be repeated in background, pass repeats to background with args,
     // and set RUNTIME.repeats 1, so that it won't be repeated in foreground's _handleMapKey
     a["repeats"] = RUNTIME.repeats;

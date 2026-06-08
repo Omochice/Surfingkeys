@@ -189,7 +189,7 @@ class CursorPrompt {
     if (query.length < this.threshold || query[0] === " ") {
       this.element.remove();
     } else {
-      const choices = this.data!.filter((c) => c.indexOf(query) !== -1)
+      const choices = this.data!.filter((c) => c.includes(query))
         .slice(0, 5)
         .map(this.renderer)
         .join("");

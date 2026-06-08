@@ -52,7 +52,7 @@ export function createBookmarkHandlers(): Record<string, MessageHandler> {
         url = url && url.toLowerCase();
         query = query.toLowerCase();
       }
-      return title.indexOf(query) !== -1 || (url && url.indexOf(query) !== -1);
+      return title.includes(query) || (url && url.includes(query));
     });
   }
 

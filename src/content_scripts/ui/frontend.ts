@@ -105,7 +105,7 @@ const Front = (() => {
             pressedHintKeys = pressedHintKeys.slice(0, pressedHintKeys.length - 1);
             refreshHints(tabHints, pressedHintKeys);
           }
-        } else if (characters.indexOf(key.toLowerCase()) !== -1) {
+        } else if (characters.includes(key.toLowerCase())) {
           pressedHintKeys = pressedHintKeys + key.toUpperCase();
           const hintState = refreshHints(tabHints, pressedHintKeys);
           if (hintState.matched) {
@@ -155,7 +155,7 @@ const Front = (() => {
         const pe = visibleDivs.map((d: any) => {
           const id = d.id;
           const divNoPointerEvents = ["sk_keystroke", "sk_banner"];
-          if (divNoPointerEvents.indexOf(id) !== -1) {
+          if (divNoPointerEvents.includes(id)) {
             // no pointerEvents for bubble
             return false;
           } else if (id === "sk_status") {

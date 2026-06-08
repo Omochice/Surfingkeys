@@ -147,9 +147,9 @@ function applyUserSettings(delta: { error: string; settings: Record<string, unkn
  * @returns {string} "Chrome" | "Firefox"
  */
 function getBrowserName(): "Chrome" | "Firefox" {
-  if (window.navigator.userAgent.indexOf("Chrome") !== -1) {
+  if (window.navigator.userAgent.includes("Chrome")) {
     return "Chrome";
-  } else if (window.navigator.userAgent.indexOf("Firefox") !== -1) {
+  } else if (window.navigator.userAgent.includes("Firefox")) {
     return "Firefox";
   }
   return "Chrome";
@@ -663,7 +663,7 @@ function getTextNodes(root: Node, pattern: RegExp, flag?: number): Node[] | Tree
         !text.data.trim() ||
         !parent ||
         !parent.offsetParent ||
-        skip_tags.indexOf(parent.localName.toLowerCase()) !== -1 ||
+        skip_tags.includes(parent.localName.toLowerCase()) ||
         !pattern.test(text.data)
       ) {
         // node changed, reset pattern.lastIndex

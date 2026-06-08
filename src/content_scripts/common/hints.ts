@@ -369,11 +369,11 @@ div.hint-scrollable {
               refreshByTextFilter();
             }
             handleHint(event);
-          } else if (characters.toLowerCase().indexOf(key.toLowerCase()) !== -1) {
+          } else if (characters.toLowerCase().includes(key.toLowerCase())) {
             prefix = prefix + key.toUpperCase();
             handleHint(event);
           } else {
-            if (normal.isScrollKeyInHints(key) && excludedScrollKeys.indexOf(key) === -1) {
+            if (normal.isScrollKeyInHints(key) && !excludedScrollKeys.includes(key)) {
               // pass on the key to normal mode to scroll page.
               event.sk_stopPropagation = false;
             } else {
@@ -434,7 +434,7 @@ div.hint-scrollable {
         mouseEventModifiers.shiftKey = false;
       }
       if (tabbed) {
-        const modKey = navigator.platform.indexOf("Mac") !== -1 ? "metaKey" : "ctrlKey";
+        const modKey = navigator.platform.includes("Mac") ? "metaKey" : "ctrlKey";
         mouseEventModifiers[modKey] = true;
       }
       flashPressedLink(element, () => {
@@ -560,7 +560,7 @@ div.hint-scrollable {
         if (text == null) {
           text = e[0] ? e[0].textContent : "";
         }
-        return text.indexOf(textFilter) !== -1;
+        return text.includes(textFilter);
       });
     }
     const hintLabels = self.genLabels(hints.length);
@@ -949,7 +949,7 @@ div.hint-scrollable {
     });
 
     let positions: [Text, number, string][];
-    if (rxp.flags.indexOf("g") === -1) {
+    if (!rxp.flags.includes("g")) {
       positions = textNodes.map((e) => {
         return [e, 0, ""];
       });

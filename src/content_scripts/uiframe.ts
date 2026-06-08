@@ -63,7 +63,7 @@ function createUiHost(adapter: BrowserLike, onload: (uiHost: HTMLElement) => voi
         // an absent origin (e.g. an untrusted page's message) would make a later
         // postMessage throw a DOMException, so require it before activating.
         _message.origin != null &&
-        ["showStatus", "openOmnibar", "openFinder", "chooseTab"].indexOf(_message.action) !== -1
+        ["showStatus", "openOmnibar", "openFinder", "chooseTab"].includes(_message.action)
       ) {
         if (!activeContent || activeContent.window !== event.source) {
           // reset active Content

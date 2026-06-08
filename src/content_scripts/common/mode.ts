@@ -188,11 +188,11 @@ export default class Mode {
 
   static isSpecialKeyOf(specialKey: string, keyToCheck: string): boolean {
     const keys = Mode.specialKeys[specialKey];
-    return keys != null && keys.indexOf(KeyboardUtils.decodeKeystroke(keyToCheck)) !== -1;
+    return keys != null && keys.includes(KeyboardUtils.decodeKeystroke(keyToCheck));
   }
 
   static suppressKeyUp(keyCode: number): void {
-    if (keysNeedKeyupSuppressed.indexOf(keyCode) === -1) {
+    if (!keysNeedKeyupSuppressed.includes(keyCode)) {
       keysNeedKeyupSuppressed.push(keyCode);
     }
   }

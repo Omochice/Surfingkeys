@@ -1183,8 +1183,8 @@ function AddBookmark(omnibar: any): any {
     const query = omnibar.input.value;
     const caseSensitive = runtime.getCaseSensitive(query);
     const matches = folders.filter((b) => {
-      if (caseSensitive) return b.title.indexOf(query) !== -1;
-      else return b.title.toLowerCase().indexOf(query.toLowerCase()) !== -1;
+      if (caseSensitive) return b.title.includes(query);
+      else return b.title.toLowerCase().includes(query.toLowerCase());
     });
     omnibar.listResults(matches, (f: any) => {
       return buildFolderResult(f.title, f.id);
@@ -1447,7 +1447,7 @@ function OpenVIMarks(omnibar: any): any {
               scrollTop: 0,
             };
           }
-          if (query === "" || markInfo.url.indexOf(query) !== -1) {
+          if (query === "" || markInfo.url.includes(query)) {
             urls.push({
               title: m,
               type: "🔗",
@@ -1661,7 +1661,7 @@ function Commands(omnibar: any, front: any): any {
   self.onInput = () => {
     const cmd = omnibar.input.value;
     const candidates = Object.keys(items).filter((c) => {
-      return cmd === "" || c.indexOf(cmd) !== -1;
+      return cmd === "" || c.includes(cmd);
     });
     if (candidates.length) {
       omnibar.listResults(candidates, (c: any) => {
@@ -1751,7 +1751,7 @@ function OmniQuery(omnibar: any, front: any): any {
   self.onInput = () => {
     const iw = omnibar.input.value;
     const candidates = _words.filter((w) => {
-      return w.indexOf(iw) !== -1;
+      return w.includes(iw);
     });
     if (candidates.length) {
       omnibar.listResults(candidates, (w: any) => {

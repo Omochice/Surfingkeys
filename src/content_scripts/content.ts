@@ -98,7 +98,7 @@ window.getFrameId = function () {
     window.innerHeight > 16 &&
     document.body &&
     document.body.childElementCount > 0 &&
-    runtime.conf.ignoredFrameHosts.indexOf(window.origin) === -1 &&
+    !runtime.conf.ignoredFrameHosts.includes(window.origin) &&
     (!window.frameElement ||
       (Number.parseInt("0" + getComputedStyle(window.frameElement).zIndex) >= 0 &&
         (window.frameElement as HTMLElement).offsetWidth > 16 &&

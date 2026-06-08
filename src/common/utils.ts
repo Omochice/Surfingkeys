@@ -5,7 +5,7 @@ function LOG(level: LogLevel, msg: unknown): void {
   chrome.storage.local.get(["logLevels"], (r) => {
     const rawLogLevels: unknown = r?.["logLevels"];
     const logLevels: string[] = Array.isArray(rawLogLevels) ? rawLogLevels : ["error"];
-    if (["log", "warn", "error"].indexOf(level) !== -1 && logLevels.indexOf(level) !== -1) {
+    if (["log", "warn", "error"].includes(level) && logLevels.includes(level)) {
       console[level](msg);
     }
   });

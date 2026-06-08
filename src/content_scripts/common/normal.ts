@@ -740,7 +740,7 @@ function createNormal(insert: InsertLike): NormalMode {
     const current = scrollNodes?.[scrollIndex];
     if (
       !scrollNodes ||
-      ((current == null || !elm.contains(current)) && scrollNodes.indexOf(elm) === -1)
+      ((current == null || !elm.contains(current)) && !scrollNodes.includes(elm))
     ) {
       initScrollIndex();
       scrollNodes!.push(elm);
@@ -1113,7 +1113,7 @@ function createNormal(insert: InsertLike): NormalMode {
   function _onMouseUp(event: MouseEvent): void {
     const target = event.target as Element;
     if (
-      runtime.conf.mouseSelectToQuery.indexOf(window.origin) !== -1 &&
+      runtime.conf.mouseSelectToQuery.includes(window.origin) &&
       !isElementClickable(target) &&
       !target.matches(".cm-matchhighlight")
     ) {
