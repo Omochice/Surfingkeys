@@ -102,7 +102,7 @@ const Front = (() => {
         const characters = hints.getCharacters().toLowerCase();
         if (event.keyCode === KeyboardUtils.keyCodes["backspace"]) {
           if (pressedHintKeys.length > 0) {
-            pressedHintKeys = pressedHintKeys.substring(0, pressedHintKeys.length - 1);
+            pressedHintKeys = pressedHintKeys.slice(0, pressedHintKeys.length - 1);
             refreshHints(tabHints, pressedHintKeys);
           }
         } else if (characters.indexOf(key.toLowerCase()) !== -1) {
@@ -710,7 +710,7 @@ const Front = (() => {
         .map((w) => {
           const annotation = localizeAnnotation(locale, cc[w].annotation);
           if (annotation) {
-            const nextKey = w.substring(keyHints.accumulated.length);
+            const nextKey = w.slice(keyHints.accumulated.length);
             return `<div><span class=kbd-span><kbd>${htmlEncode(KeyboardUtils.decodeKeystroke(keyHints.accumulated))}<span class=candidates>${htmlEncode(KeyboardUtils.decodeKeystroke(nextKey))}</span></kbd></span><span class=annotation>${annotation}</span></div>`;
           } else {
             return "";

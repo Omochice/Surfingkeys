@@ -140,6 +140,6 @@ export default class Trie {
       suffix += firstChild.stem ?? "";
       node = firstChild;
     }
-    return fullWord.substring(0, fullWord.length - suffix.length + 1);
+    return fullWord.slice(0, fullWord.length - suffix.length + 1);
   }
 }

@@ -85,14 +85,14 @@ function createAPI(ctx: ModeContext) {
         }
         LOG("warn", warning);
       } else if (keys.length > 1) {
-        let p = keys.substring(0, keys.length - 1);
+        let p = keys.slice(0, keys.length - 1);
         while (p.length > 0) {
           const node = mode.mappings.find(p);
           if (node && node.meta) {
             LOG("warn", `${node.meta.word} for [${node.meta.annotation}] precedes ${keys}.`);
             return;
           }
-          p = p.substring(0, p.length - 1);
+          p = p.slice(0, p.length - 1);
         }
       }
       const keybound = createKeyTarget(
@@ -199,7 +199,7 @@ function createAPI(ctx: ModeContext) {
   ): void {
     if (_isDomainApplicable(domain)) {
       if (old_keystroke[0] === ":" && old_keystroke.length > 1) {
-        const cmdline = old_keystroke.substring(1);
+        const cmdline = old_keystroke.slice(1);
         const keybound = createKeyTarget(
           () => {
             front.executeCommand(cmdline);

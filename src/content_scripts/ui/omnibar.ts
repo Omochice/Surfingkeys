@@ -291,7 +291,7 @@ function createOmnibar(front: any, clipboard: any) {
       lastHandler = null;
       setPrompt(handler.prompt);
       if (val.length) {
-        setQuery(val.substring(0, val.length - 1));
+        setQuery(val.slice(0, val.length - 1));
       }
       self.triggerInput();
       eaten = true;
@@ -437,8 +437,8 @@ function createOmnibar(front: any, clipboard: any) {
       handler.onEnter() && front.hidePopup();
     } else if (evt.keyCode === KeyboardUtils.keyCodes["space"]) {
       const cursor = self.input.selectionStart;
-      const textBeforeCursor = self.input.value.substring(0, cursor);
-      const newQuery = self.input.value.substring(cursor);
+      const textBeforeCursor = self.input.value.slice(0, cursor);
+      const newQuery = self.input.value.slice(cursor);
       self.expandAlias(textBeforeCursor, newQuery) && evt.preventDefault();
     } else if (evt.keyCode === KeyboardUtils.keyCodes["backspace"]) {
       self.collapseAlias() && evt.preventDefault();
@@ -488,8 +488,8 @@ function createOmnibar(front: any, clipboard: any) {
   });
 
   self.highlight = (rxp: RegExp | null, str: string) => {
-    if (str.substring(0, 11) === "data:image/") {
-      str = str.substring(0, 1024);
+    if (str.slice(0, 11) === "data:image/") {
+      str = str.slice(0, 1024);
     }
     return rxp === null
       ? str
@@ -704,7 +704,7 @@ function createOmnibar(front: any, clipboard: any) {
     if (fi && fi.data.uid) {
       uid = fi.data.uid;
       type = uid[0] ?? "";
-      uid = uid.substring(1);
+      uid = uid.slice(1);
     }
     if (type === "T") {
       const parts = uid.split(":");
@@ -1131,7 +1131,7 @@ function AddBookmark(omnibar: any): any {
   self.onTabKey = () => {
     const fi = omnibar.focusedResult();
     if (fi) {
-      omnibar.setQuery(fi.data.text.substring(2));
+      omnibar.setQuery(fi.data.text.slice(2));
     }
   };
 
@@ -1141,7 +1141,7 @@ function AddBookmark(omnibar: any): any {
     let folderName: string | undefined;
     if (fi) {
       self.page.folder = fi.data.folder;
-      folderName = fi.data.text.substring(2);
+      folderName = fi.data.text.slice(2);
     } else {
       let path = omnibar.input.value;
       path = path.split("/");
@@ -1336,7 +1336,7 @@ function CloseTabs(omnibar: any): any {
     omnibar.results().forEach((r: any) => {
       const uid = r.data.uid;
       if (uid && uid[0] === "T") {
-        const parts = uid.substring(1).split(":");
+        const parts = uid.slice(1).split(":");
         tabIds.push(parseInt(parts[1]));
       }
     });

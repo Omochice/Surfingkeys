@@ -348,7 +348,7 @@ function start(browser: any): void {
   };
   async function _removeURL(uid: string): Promise<void> {
     const type = uid[0];
-    uid = uid.substring(1);
+    uid = uid.slice(1);
     if (type === "B") {
       await chrome.bookmarks.remove(uid);
     } else if (type === "H") {

@@ -178,7 +178,7 @@ function getDocumentOrigin(): string {
 }
 
 function generateQuickGuid(): string {
-  return Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
+  return Math.random().toString(36).slice(2, 15) + Math.random().toString(36).slice(2, 15);
 }
 
 function listElements<T extends Node = Element>(
@@ -214,7 +214,7 @@ function isElementClickable(e: Element): boolean {
   return (
     e.matches(cssSelector) ||
     getComputedStyle(e).cursor === "pointer" ||
-    getComputedStyle(e).cursor.substring(0, 4) === "url(" ||
+    getComputedStyle(e).cursor.slice(0, 4) === "url(" ||
     e.closest("a, *[onclick], *[contenteditable=true], *.jfk-button, *.goog-flat-menu-button") !==
       null
   );
@@ -826,7 +826,7 @@ function getWordUnderCursor(mouseCursor?: boolean): string | null {
       getTextRect(selection.focusNode, range[0], range[0] + range[1]),
       [],
     )[0];
-    const word = selection.focusNode.textContent.substring(range[0], range[0] + range[1]);
+    const word = selection.focusNode.textContent.slice(range[0], range[0] + range[1]);
     if (selRect && word) {
       if (!mouseCursor || (_clickPos && rectContains(selRect, _clickPos[0], _clickPos[1], 0, 0))) {
         return word.trim();
@@ -1146,7 +1146,7 @@ function refreshHints(
         hint.style.opacity = "1";
         setSanitizedContent(
           hint,
-          `<span style="opacity: 0.2;">${pressedKeys}</span>` + label.substring(pressedKeys.length),
+          `<span style="opacity: 0.2;">${pressedKeys}</span>` + label.slice(pressedKeys.length),
         );
         result.candidates++;
       } else {

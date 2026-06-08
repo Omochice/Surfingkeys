@@ -129,9 +129,9 @@ class CursorPrompt {
       const input = this.parentElement as InputLike;
       const val = input.value;
       input.value =
-        val.substring(0, this.matchStart + this.insertOffset) +
+        val.slice(0, this.matchStart + this.insertOffset) +
         d +
-        val.substring(input.selectionStart ?? 0);
+        val.slice(input.selectionStart ?? 0);
       input.setSelectionRange(newPos, newPos);
     } else {
       // for contenteditable div
@@ -139,9 +139,7 @@ class CursorPrompt {
       const focus = selection.focusNode as Text;
       const val = focus.data;
       focus.data =
-        val.substring(0, this.matchStart + this.insertOffset) +
-        d +
-        val.substring(selection.focusOffset);
+        val.slice(0, this.matchStart + this.insertOffset) + d + val.slice(selection.focusOffset);
       selection.setPosition(focus, newPos);
     }
 
@@ -181,12 +179,12 @@ class CursorPrompt {
     let query = "";
     if (this.isNativeInput) {
       const input = this.parentElement as InputLike;
-      query = input.value.substring(this.matchStart, input.selectionStart ?? 0);
+      query = input.value.slice(this.matchStart, input.selectionStart ?? 0);
     } else {
       // for contenteditable div
       const selection = document.getSelection()!;
       const focus = selection.focusNode as Text;
-      query = focus.data.substring(this.matchStart, selection.focusOffset);
+      query = focus.data.slice(this.matchStart, selection.focusOffset);
     }
     if (query.length < this.threshold || query[0] === " ") {
       this.element.remove();

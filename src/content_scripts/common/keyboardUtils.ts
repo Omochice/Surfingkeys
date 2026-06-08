@@ -181,7 +181,7 @@ export default class KeyboardUtils {
             ) {
               keyIdentifier = event.shiftKey ? corrected[1] : corrected[0];
             }
-            const unicodeKeyInHex = "0x" + keyIdentifier.substring(2);
+            const unicodeKeyInHex = "0x" + keyIdentifier.slice(2);
             character = String.fromCharCode(parseInt(unicodeKeyInHex));
             character = event.shiftKey ? character : character.toLowerCase();
           }
@@ -240,11 +240,11 @@ export default class KeyboardUtils {
       if (captured == null) {
         continue;
       }
-      ret += s.substring(lastIndex, mtches.index);
+      ret += s.slice(lastIndex, mtches.index);
       ret += encodeOne(mtches[0], captured);
       lastIndex = ekp.lastIndex;
     }
-    ret += s.substring(lastIndex);
+    ret += s.slice(lastIndex);
     return ret;
   }
 
