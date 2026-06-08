@@ -1171,9 +1171,9 @@ div.hint-scrollable {
     }
 
     if (mode === "text") {
-      _styleForText = css.replace(/\bdiv\b/g, "[mode='text'] div");
+      _styleForText = css.replaceAll(/\bdiv\b/g, "[mode='text'] div");
     } else {
-      _styleForClick = css.replace(/\bdiv\b/g, "div");
+      _styleForClick = css.replaceAll(/\bdiv\b/g, "div");
     }
   };
 

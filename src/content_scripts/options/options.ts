@@ -163,7 +163,7 @@ export default function (
 
   function getURIPath(fn: string): string {
     if (fn.length && !/^\w+:\/\/\w+/i.test(fn) && fn.indexOf("file:///") === -1) {
-      fn = fn.replace(/\\/g, "/");
+      fn = fn.replaceAll("\\", "/");
       if (fn[0] === "/") {
         fn = fn.substring(1);
       }

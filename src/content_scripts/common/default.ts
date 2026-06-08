@@ -803,7 +803,7 @@ export default function (api: SurfingkeysApi, ctx: ModeContext): void {
     "https://suggestion.baidu.com/su?cb=&wd=",
     (response: any) => {
       const res = response.text.match(/,s:\[("[^\]]+")]}/);
-      return res ? res[1].replace(/"/g, "").split(",") : [];
+      return res ? res[1].replaceAll('"', "").split(",") : [];
     },
   );
 
