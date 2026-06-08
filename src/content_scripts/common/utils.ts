@@ -558,7 +558,7 @@ function filterAncestors(elements: Element[]): Element[] {
           // skip child from shadowRoot of a selected element.
           return;
         } else if (e.contains(r)) {
-          console.log("skip: ", e, r);
+          console.log("skip:", e, r);
           return;
         }
       }
