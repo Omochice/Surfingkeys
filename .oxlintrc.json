@@ -28,7 +28,8 @@
     "unicorn/text-encoding-identifier-case": "error",
     "unicorn/escape-case": "error",
     "unicorn/prefer-dom-node-dataset": "error",
-    "unicorn/no-await-expression-member": "error"
+    "unicorn/no-await-expression-member": "error",
+    "unicorn/prefer-modern-dom-apis": "error"
   },
   "env": {
     "builtin": true,
