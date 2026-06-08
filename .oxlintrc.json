@@ -32,7 +32,8 @@
     "unicorn/prefer-modern-dom-apis": "error",
     "unicorn/no-instanceof-builtins": "error",
     "unicorn/catch-error-name": "error",
-    "unicorn/prefer-includes": "error"
+    "unicorn/prefer-includes": "error",
+    "unicorn/prefer-regexp-test": "error"
   },
   "env": {
     "builtin": true,
