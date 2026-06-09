@@ -44,6 +44,37 @@ const viewSourceSchema = v.object({
   scrollTop: v.optional(v.number()),
 });
 type OpenLinkMessage = v.InferOutput<typeof openLinkSchema>;
+// Mirrors chrome.tabs.QueryInfo so a validated payload is a structurally valid
+// argument to chrome.tabs.query; the enum-typed fields use picklists.
+const queryInfoSchema = v.optional(
+  v.object({
+    active: v.optional(v.boolean()),
+    audible: v.optional(v.boolean()),
+    autoDiscardable: v.optional(v.boolean()),
+    currentWindow: v.optional(v.boolean()),
+    discarded: v.optional(v.boolean()),
+    groupId: v.optional(v.number()),
+    highlighted: v.optional(v.boolean()),
+    index: v.optional(v.number()),
+    lastFocusedWindow: v.optional(v.boolean()),
+    muted: v.optional(v.boolean()),
+    pinned: v.optional(v.boolean()),
+    status: v.optional(v.picklist(["unloaded", "loading", "complete"])),
+    title: v.optional(v.string()),
+    url: v.optional(v.union([v.string(), v.array(v.string())])),
+    windowId: v.optional(v.number()),
+    windowType: v.optional(v.picklist(["normal", "popup", "panel", "app", "devtools"])),
+  }),
+);
+const getTabsSchema = v.object({
+  queryInfo: queryInfoSchema,
+  filter: v.optional(v.string()),
+  tabsThreshold: v.optional(v.number()),
+});
+const focusTabByIndexSchema = v.object({
+  queryInfo: queryInfoSchema,
+  repeats: v.optional(v.number()),
+});
 
 /** Clamps a target index to between 0 and length. */
 export function _fixTo(to: number, length: number) {
@@ -105,7 +136,7 @@ export function createTabs(deps: TabsDeps): TabsUnit {
   let chromelikeNewTabPosition = 0;
 
   // data by tab id
-  const tabActivated: Record<string, any> = {};
+  const tabActivated: Record<number, number> = {};
   const tabMessages: Record<string, any> = {};
   const tabURLs: Record<number, Record<string, string>> = {};
 
@@ -382,20 +413,20 @@ export function createTabs(deps: TabsDeps): TabsUnit {
   }
 
   const handlersMap: Record<string, MessageHandler> = {
-    getTabs: async (message: any, sender: any) => {
-      const tab = sender.tab;
-      const queryInfo = message.queryInfo || {};
-      let tabs: readonly chrome.tabs.Tab[] = await chrome.tabs.query(queryInfo);
-      tabs = _filterByTitleOrUrl(tabs, message.filter);
-      if (tabs.length > message.tabsThreshold && conf["tabsMRUOrder"]) {
+    getTabs: async (message: unknown, sender?: chrome.runtime.MessageSender) => {
+      const senderTabId = sender?.tab?.id;
+      const { queryInfo, filter, tabsThreshold } = v.parse(getTabsSchema, message);
+      let tabs: readonly chrome.tabs.Tab[] = await chrome.tabs.query(queryInfo ?? {});
+      tabs = _filterByTitleOrUrl(tabs, filter ?? "");
+      if (tabsThreshold != null && tabs.length > tabsThreshold && conf["tabsMRUOrder"]) {
         // only remove current tab when tabsMRUOrder is enabled.
         tabs = tabs.filter((b) => {
-          return b.id !== tab.id;
+          return b.id !== senderTabId;
         });
         tabs = tabs.toSorted((x, y) => {
           // Shift tabs without "last access" data to the end
-          const a = x.lastAccessed || tabActivated[x.id!];
-          const b = y.lastAccessed || tabActivated[y.id!];
+          const a = x.lastAccessed ?? tabActivated[x.id ?? -1];
+          const b = y.lastAccessed ?? tabActivated[y.id ?? -1];
 
           if (!Number.isFinite(a) && !Number.isFinite(b)) {
             return 0;
@@ -409,7 +440,7 @@ export function createTabs(deps: TabsDeps): TabsUnit {
             return -1;
           }
 
-          return b - a;
+          return (b ?? 0) - (a ?? 0);
         });
       }
       return { tabs };
@@ -435,13 +466,16 @@ export function createTabs(deps: TabsDeps): TabsUnit {
         active: true,
       });
     },
-    focusTabByIndex: async (message: any) => {
-      const queryInfo = message.queryInfo || { currentWindow: true };
-      const tabs = await chrome.tabs.query(queryInfo);
-      if (message.repeats > 0 && message.repeats <= tabs.length) {
-        await chrome.tabs.update(tabs[message.repeats - 1]!.id!, {
-          active: true,
-        });
+    focusTabByIndex: async (message: unknown) => {
+      const { queryInfo, repeats } = v.parse(focusTabByIndexSchema, message);
+      const tabs = await chrome.tabs.query(queryInfo ?? { currentWindow: true });
+      if (repeats != null && repeats > 0 && repeats <= tabs.length) {
+        const target = tabs[repeats - 1];
+        if (target?.id != null) {
+          await chrome.tabs.update(target.id, {
+            active: true,
+          });
+        }
       }
     },
     goToLastTab: () => {
