@@ -45,7 +45,7 @@ async function getLatestHistoryItem(text: string, maxResults: number): Promise<a
   // chrome.history.search has no substring filter, so widen the time window and
   // re-filter locally, looping until enough matches are collected or history is
   // exhausted.
-  for (;;) {
+  while (true) {
     const prefetch = maxResults * Math.pow(10, Math.min(2, text.length));
     const items = await chrome.history.search({
       startTime: 0,
