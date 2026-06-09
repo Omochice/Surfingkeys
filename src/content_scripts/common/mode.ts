@@ -273,7 +273,7 @@ export default class Mode {
       if (sl !== "" && window !== top && !isInUIFrame()) {
         const pathname = window.location.pathname.split("/");
         if (pathname.length) {
-          sl += " - frame: " + pathname[pathname.length - 1];
+          sl += " - frame: " + pathname.at(-1);
         }
       }
       dispatchSKEvent("front", ["showStatus", [sl]]);

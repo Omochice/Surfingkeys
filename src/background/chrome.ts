@@ -59,7 +59,7 @@ async function getLatestHistoryItem(text: string, maxResults: number): Promise<a
       // all items are scanned or we have got what we want
       return results.slice(0, maxResults);
     }
-    endTime = items[items.length - 1]!.lastVisitTime! - 0.01;
+    endTime = items.at(-1)!.lastVisitTime! - 0.01;
   }
 }
 

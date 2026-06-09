@@ -85,7 +85,8 @@ function createInsert(): InsertMode {
     } else if (isEditable(element)) {
       // for contenteditable div
       if (element.childNodes.length > 0) {
-        const node = element.childNodes[element.childNodes.length - 1];
+        // childNodes is a NodeList, which has no Array#at; use NodeList#item.
+        const node = element.childNodes.item(element.childNodes.length - 1);
         if (node.nodeType === Node.TEXT_NODE) {
           document.getSelection()!.setPosition(node, node.data.length);
         } else if (node.querySelector(".CodeMirror-line")) {

@@ -30,7 +30,7 @@ export function createTabHistory(): TabHistory {
 
   return {
     record(tabId: number): void {
-      if (!historyTabAction && tabId != tabHistory[tabHistory.length - 1]) {
+      if (!historyTabAction && tabId != tabHistory.at(-1)) {
         if (tabHistory.length > 10) {
           tabHistory.shift();
         }
@@ -49,7 +49,7 @@ export function createTabHistory(): TabHistory {
     },
     previousTab(): number | undefined {
       if (tabHistory.length > 1) {
-        return tabHistory[tabHistory.length - 2];
+        return tabHistory.at(-2);
       }
       return undefined;
     },

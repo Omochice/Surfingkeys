@@ -976,7 +976,7 @@ describe("renderSearchAlias: aliases with object prompt", () => {
     ) as HTMLInputElement[];
     expect(checkboxes.length).toBeGreaterThan(0);
     // Trigger the last one — that's the one registered by our RUNTIME-spy optionsMain.
-    const lastCheckbox = checkboxes[checkboxes.length - 1]!;
+    const lastCheckbox = checkboxes.at(-1)!;
     lastCheckbox.onchange!(new Event("change") as unknown as Event);
 
     expect(RUNTIME).toHaveBeenCalledWith(

@@ -756,7 +756,8 @@ function createOmnibar(front: any, clipboard: any) {
     if (getPosition() === "bottom" && built.length > 0) {
       const lis = self.resultsDiv.querySelectorAll("#sk_omnibarSearchResult>ul>li");
       if (lis.length) {
-        scrollIntoViewIfNeeded(lis[lis.length - 1]);
+        // querySelectorAll returns a NodeList, which has no Array#at; use NodeList#item.
+        scrollIntoViewIfNeeded(lis.item(lis.length - 1));
       }
     }
   };

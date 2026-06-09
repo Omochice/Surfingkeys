@@ -444,7 +444,7 @@ function createVisual(clipboard: ClipboardLike, hints: HintsLike): VisualMode {
         p = p.parentElement;
         const textNodes = getTextNodes(p!, /./);
         const firstNode = textNodes[0];
-        const lastNode = textNodes[textNodes.length - 1] as Text | undefined;
+        const lastNode = textNodes.at(-1) as Text | undefined;
         if (firstNode == null || lastNode == null) {
           continue;
         }
