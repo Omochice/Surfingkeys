@@ -39,8 +39,11 @@ function _setNewTabUrl(): string {
 
 function _getContainerName(_self: unknown): void {}
 
-async function getLatestHistoryItem(text: string, maxResults: number): Promise<any[]> {
-  let results: any[] = [];
+async function getLatestHistoryItem(
+  text: string,
+  maxResults: number,
+): Promise<chrome.history.HistoryItem[]> {
+  let results: chrome.history.HistoryItem[] = [];
   let endTime = Date.now();
   // chrome.history.search has no substring filter, so widen the time window and
   // re-filter locally, looping until enough matches are collected or history is

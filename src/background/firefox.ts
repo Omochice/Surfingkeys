@@ -27,7 +27,10 @@ function _getContainerName(_self: unknown) {
   };
 }
 
-function getLatestHistoryItem(text: string, maxResults: number): Promise<any[]> {
+function getLatestHistoryItem(
+  text: string,
+  maxResults: number,
+): Promise<chrome.history.HistoryItem[]> {
   return chrome.history.search({
     startTime: 0,
     text,
