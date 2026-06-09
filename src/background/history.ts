@@ -39,7 +39,7 @@ export function createHistoryHandlers(
       return { urls: [] };
     },
     getAllURLs: async (message: any) => {
-      const urls: any[] = await chrome.bookmarks.search(message.query || {});
+      const urls = await chrome.bookmarks.search(message.query || {});
       const requestCount = message.maxResults || 100;
       const maxResults = requestCount - urls.length;
       if (maxResults > 0) {

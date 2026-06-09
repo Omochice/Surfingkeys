@@ -123,7 +123,7 @@ export function createTabs(deps: TabsDeps): TabsUnit {
       _lastActiveTabId = tabId;
     }
   }
-  chrome.tabs.onUpdated.addListener((tabId: number, changeInfo: any, tab: any) => {
+  chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
     if (changeInfo.status === "complete" && tab.active) {
       _tabActivated(tabId);
     }
@@ -147,7 +147,7 @@ export function createTabs(deps: TabsDeps): TabsUnit {
   chrome.tabs.onMoved.addListener(() => {
     void _updateTabIndices();
   });
-  chrome.tabs.onActivated.addListener((activeInfo: any) => {
+  chrome.tabs.onActivated.addListener((activeInfo) => {
     tabHistory.record(activeInfo.tabId);
     tabActivated[activeInfo.tabId] = Date.now();
     _tabActivated(activeInfo.tabId);
