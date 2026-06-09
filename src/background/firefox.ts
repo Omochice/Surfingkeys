@@ -20,9 +20,13 @@ function _setNewTabUrl(): string {
 }
 
 function _getContainerName(_self: unknown) {
-  return async (_message: any, sender: any) => {
+  return async (_message: unknown, sender?: { tab?: { cookieStoreId?: string } }) => {
+    const cookieStoreId = sender?.tab?.cookieStoreId;
+    if (cookieStoreId == null) {
+      return { name: null };
+    }
     try {
-      const container = await browser.contextualIdentities.get(sender.tab.cookieStoreId);
+      const container = await browser.contextualIdentities.get(cookieStoreId);
       return { name: container.name };
     } catch {
       return { name: null };
