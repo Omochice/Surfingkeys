@@ -127,11 +127,8 @@ function createOmnibar(front: any, clipboard: any) {
     feature_group: 8,
     code: function () {
       const savedInput = self.input.value;
-      if (runtime.conf.omnibarPosition === "bottom") {
-        runtime.conf.omnibarPosition = "middle";
-      } else {
-        runtime.conf.omnibarPosition = "bottom";
-      }
+      runtime.conf.omnibarPosition =
+        runtime.conf.omnibarPosition === "bottom" ? "middle" : "bottom";
       reopen(() => {
         _savedAargs.pref = savedInput;
         front.openOmnibar(_savedAargs);
@@ -1184,8 +1181,9 @@ function AddBookmark(omnibar: any): any {
     const query = omnibar.input.value;
     const caseSensitive = runtime.getCaseSensitive(query);
     const matches = folders.filter((b) => {
-      if (caseSensitive) return b.title.includes(query);
-      else return b.title.toLowerCase().includes(query.toLowerCase());
+      return caseSensitive
+        ? b.title.includes(query)
+        : b.title.toLowerCase().includes(query.toLowerCase());
     });
     omnibar.listResults(matches, (f: any) => {
       return buildFolderResult(f.title, f.id);

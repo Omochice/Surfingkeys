@@ -154,11 +154,7 @@ export default function optionsMain(
     if (f === null) {
       return;
     }
-    if (f.style.display === "none") {
-      f.style.display = "";
-    } else {
-      f.style.display = "none";
-    }
+    f.style.display = f.style.display === "none" ? "" : "none";
   };
 
   function getURIPath(fn: string): string {
@@ -269,14 +265,7 @@ export default function optionsMain(
     basicMappings = basicMappings
       .map((w) => {
         const binding = normal.mappings.find(KeyboardUtils.encodeKeystroke(w));
-        if (binding) {
-          return {
-            origin: w,
-            annotation: binding.meta.annotation,
-          };
-        } else {
-          return null;
-        }
+        return binding ? { origin: w, annotation: binding.meta.annotation } : null;
       })
       .filter((m) => m !== null);
   });

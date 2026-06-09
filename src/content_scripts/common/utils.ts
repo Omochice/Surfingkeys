@@ -343,11 +343,7 @@ function getRealEdit(event?: Event): any {
 function toggleQuote(): void {
   const elm = getRealEdit(),
     val = elm.value;
-  if (/^"|"$/.test(val)) {
-    elm.value = val.replace(/^"?(.*?)"?$/, "$1");
-  } else {
-    elm.value = '"' + val + '"';
-  }
+  elm.value = /^"|"$/.test(val) ? val.replace(/^"?(.*?)"?$/, "$1") : '"' + val + '"';
 }
 
 function isEditable(element: any): boolean {
@@ -1191,11 +1187,10 @@ function attachFaviconToImgSrc(
   imgEl: HTMLImageElement,
 ): void {
   const browserName = getBrowserName();
-  if (browserName === "Chrome") {
-    imgEl.src = browser.runtime.getURL(`/_favicon/?pageUrl=${encodeURIComponent(tab.url)}`);
-  } else {
-    imgEl.src = tab.favIconUrl ?? "";
-  }
+  imgEl.src =
+    browserName === "Chrome"
+      ? browser.runtime.getURL(`/_favicon/?pageUrl=${encodeURIComponent(tab.url)}`)
+      : (tab.favIconUrl ?? "");
 }
 
 /**

@@ -667,11 +667,7 @@ const Front = (() => {
   });
 
   self.toggleStatus = (visible: boolean) => {
-    if (visible) {
-      self.statusBar.style.display = "";
-    } else {
-      self.statusBar.style.display = "none";
-    }
+    self.statusBar.style.display = visible ? "" : "none";
   };
   _actions["toggleStatus"] = (message: any) => {
     self.toggleStatus(message.visible);

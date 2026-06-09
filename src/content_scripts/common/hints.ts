@@ -667,12 +667,7 @@ div.hint-scrollable {
    * @name Hints.click
    */
   self.click = (links, force) => {
-    let list: Element[];
-    if (typeof links === "string") {
-      list = getClickableElements(links);
-    } else {
-      list = links;
-    }
+    const list: Element[] = typeof links === "string" ? getClickableElements(links) : links;
     if (list.length > 1) {
       if (force) {
         list.forEach((u) => {

@@ -68,11 +68,7 @@ function encodeOne(s: string, k: string): string {
   if (s.includes("Shift-")) mod |= 8;
 
   let code: number;
-  if (k.length > 1) {
-    code = 256 + specialKeys.indexOf(k);
-  } else {
-    code = k.charCodeAt(0);
-  }
+  code = k.length > 1 ? 256 + specialKeys.indexOf(k) : k.charCodeAt(0);
   code = 8192 + (code << 4) + mod;
   return String.fromCharCode(code);
 }
