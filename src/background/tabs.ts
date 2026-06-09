@@ -22,6 +22,11 @@ const moveTabSchema = v.object({ step: v.number(), repeats: v.optional(v.number(
 const tabURLAccessedSchema = v.object({ url: v.string(), title: v.string() });
 const setZoomSchema = v.object({ zoomFactor: v.number(), repeats: v.optional(v.number()) });
 const queueURLsSchema = v.object({ urls: v.array(v.string()) });
+const historyTabSchema = v.object({
+  index: v.optional(v.unknown()),
+  backward: v.optional(v.boolean()),
+});
+const nextFrameSchema = v.object({ frameId: v.optional(v.union([v.string(), v.number()])) });
 
 /** Clamps a target index to between 0 and length. */
 export function _fixTo(to: number, length: number) {
@@ -426,8 +431,8 @@ export function createTabs(deps: TabsDeps): TabsUnit {
         });
       }
     },
-    historyTab: (message: any) => {
-      const tabId = tabHistory.navigate(message);
+    historyTab: (message: unknown) => {
+      const tabId = tabHistory.navigate(v.parse(historyTabSchema, message));
       if (tabId != null) {
         chrome.tabs.update(tabId, {
           active: true,
@@ -614,8 +619,12 @@ export function createTabs(deps: TabsDeps): TabsUnit {
       }
       return undefined;
     },
-    nextFrame: async (message: any, sender: any) => {
-      const tid = sender.tab.id;
+    nextFrame: async (message: unknown, sender?: chrome.runtime.MessageSender) => {
+      const tid = sender?.tab?.id;
+      if (tid == null) {
+        return;
+      }
+      const { frameId } = v.parse(nextFrameSchema, message);
       const results = await chrome.scripting.executeScript({
         target: {
           allFrames: true,
@@ -636,7 +645,7 @@ export function createTabs(deps: TabsDeps): TabsUnit {
       if (framesInTab.length > 0) {
         let i = 0;
         for (i = 0; i < framesInTab.length; i++) {
-          if (framesInTab[i] === message.frameId) {
+          if (framesInTab[i] === frameId) {
             break;
           }
         }

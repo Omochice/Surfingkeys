@@ -20,7 +20,7 @@ export type TabHistory = {
    * position, otherwise step backward/forward clamped to the ends. Returns undefined when the ring
    * is empty.
    */
-  navigate(message: { index?: any; backward?: boolean }): number | undefined;
+  navigate(message: { index?: any; backward?: boolean | undefined }): number | undefined;
 };
 
 export function createTabHistory(): TabHistory {
@@ -53,7 +53,7 @@ export function createTabHistory(): TabHistory {
       }
       return undefined;
     },
-    navigate(message: { index?: any; backward?: boolean }): number | undefined {
+    navigate(message: { index?: any; backward?: boolean | undefined }): number | undefined {
       if (tabHistory.length > 0) {
         historyTabAction = true;
         if (Object.hasOwn(message, "index")) {
