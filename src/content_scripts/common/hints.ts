@@ -349,10 +349,10 @@ div.hint-scrollable {
     } else if (hints.length > 0) {
       if (event.keyCode === KeyboardUtils.keyCodes["backspace"]) {
         if (prefix.length > 0) {
-          prefix = prefix.substring(0, prefix.length - 1);
+          prefix = prefix.slice(0, -1);
           handleHint(event);
         } else if (textFilter.length > 0) {
-          textFilter = textFilter.substring(0, textFilter.length - 1);
+          textFilter = textFilter.slice(0, -1);
           refreshByTextFilter();
         }
       } else {
@@ -369,11 +369,11 @@ div.hint-scrollable {
               refreshByTextFilter();
             }
             handleHint(event);
-          } else if (characters.toLowerCase().indexOf(key.toLowerCase()) !== -1) {
+          } else if (characters.toLowerCase().includes(key.toLowerCase())) {
             prefix = prefix + key.toUpperCase();
             handleHint(event);
           } else {
-            if (normal.isScrollKeyInHints(key) && excludedScrollKeys.indexOf(key) === -1) {
+            if (normal.isScrollKeyInHints(key) && !excludedScrollKeys.includes(key)) {
               // pass on the key to normal mode to scroll page.
               event.sk_stopPropagation = false;
             } else {
@@ -434,7 +434,7 @@ div.hint-scrollable {
         mouseEventModifiers.shiftKey = false;
       }
       if (tabbed) {
-        const modKey = navigator.platform.indexOf("Mac") !== -1 ? "metaKey" : "ctrlKey";
+        const modKey = navigator.platform.includes("Mac") ? "metaKey" : "ctrlKey";
         mouseEventModifiers[modKey] = true;
       }
       flashPressedLink(element, () => {
@@ -494,8 +494,8 @@ div.hint-scrollable {
   function getZIndex(node: Node | null): number {
     let z = 0;
     do {
-      const i = parseInt(getComputedStyle(node as Element).getPropertyValue("z-index"));
-      z += isNaN(i) || i < 0 ? 0 : i;
+      const i = Number.parseInt(getComputedStyle(node as Element).getPropertyValue("z-index"));
+      z += Number.isNaN(i) || i < 0 ? 0 : i;
       node = node!.parentNode;
     } while (
       node &&
@@ -560,7 +560,7 @@ div.hint-scrollable {
         if (text == null) {
           text = e[0] ? e[0].textContent : "";
         }
-        return text.indexOf(textFilter) !== -1;
+        return text.includes(textFilter);
       });
     }
     const hintLabels = self.genLabels(hints.length);
@@ -594,8 +594,8 @@ div.hint-scrollable {
     const firstHint = hints[0];
     if (firstHint && firstHint.style.zIndex == zIndices.get(firstHint)) {
       hints.forEach((hint, i) => {
-        const z = parseInt(hint.style.zIndex);
-        hint.style.zIndex = String(hints.length - i + 2147483000 - z);
+        const z = Number.parseInt(hint.style.zIndex);
+        hint.style.zIndex = String(hints.length - i + 2_147_483_000 - z);
       });
     } else {
       hints.forEach((hint) => {
@@ -608,10 +608,10 @@ div.hint-scrollable {
     if (Mode.getCurrent() !== self || !document.documentElement.contains(hintsHost)) {
       return;
     }
-    const start = new Date().getTime();
+    const start = Date.now();
     const found = createHintsImpl(_cssSelector, _lastCreateAttrs);
     if (found > 0) {
-      self.statusLine += " - " + (new Date().getTime() - start) + "ms / " + found;
+      self.statusLine += " - " + (Date.now() - start) + "ms / " + found;
       Mode.showStatus();
     }
   }
@@ -631,8 +631,8 @@ div.hint-scrollable {
       if (prefix == null || middle == null || suffix == null) {
         continue;
       }
-      const cp = parseInt(middle);
-      if (cp < 0xffffffff) {
+      const cp = Number.parseInt(middle);
+      if (cp < 0xff_ff_ff_ff) {
         window.location.href = prefix + (cp + step) + suffix;
         return true;
       }
@@ -667,12 +667,7 @@ div.hint-scrollable {
    * @name Hints.click
    */
   self.click = (links, force) => {
-    let list: Element[];
-    if (typeof links === "string") {
-      list = getClickableElements(links);
-    } else {
-      list = links;
-    }
+    const list: Element[] = typeof links === "string" ? getClickableElements(links) : links;
     if (list.length > 1) {
       if (force) {
         list.forEach((u) => {
@@ -949,7 +944,7 @@ div.hint-scrollable {
     });
 
     let positions: [Text, number, string][];
-    if (rxp.flags.indexOf("g") === -1) {
+    if (!rxp.flags.includes("g")) {
       positions = textNodes.map((e) => {
         return [e, 0, ""];
       });
@@ -1130,10 +1125,10 @@ div.hint-scrollable {
     _onHintKey = onHintKey;
     _lastCreateAttrs = attrs || {};
 
-    const start = new Date().getTime();
+    const start = Date.now();
     const found = createHintsImpl(cssSelector, attrs);
     if (found > (runtime.conf.hintExplicit ? 0 : 1)) {
-      self.statusLine += " - " + (new Date().getTime() - start) + "ms / " + found;
+      self.statusLine += " - " + (Date.now() - start) + "ms / " + found;
       self.enter();
     } else {
       handleHint();
@@ -1171,9 +1166,9 @@ div.hint-scrollable {
     }
 
     if (mode === "text") {
-      _styleForText = css.replace(/\bdiv\b/g, "[mode='text'] div");
+      _styleForText = css.replaceAll(/\bdiv\b/g, "[mode='text'] div");
     } else {
-      _styleForClick = css.replace(/\bdiv\b/g, "div");
+      _styleForClick = css.replaceAll(/\bdiv\b/g, "div");
     }
   };
 

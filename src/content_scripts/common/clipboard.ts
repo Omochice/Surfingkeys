@@ -66,7 +66,7 @@ function createClipboard(): Clipboard {
       });
       let data = holder.value;
       if (data === "") {
-        data = holder.innerHTML.replace(/<br>/gi, "\n");
+        data = holder.innerHTML.replaceAll(/<br>/gi, "\n");
       }
       onReady({ data });
     },

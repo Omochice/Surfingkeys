@@ -178,7 +178,7 @@ describe("createFront window message handler — action dispatch", () => {
       makeContentEvent({ action: "executeUserCommand", name: "myCmd", args: { x: 1 } }),
     );
 
-    const lastDetail = detail[detail.length - 1] as unknown[];
+    const lastDetail = detail.at(-1) as unknown[];
     expect(lastDetail[0]).toBe("executeUserCommand");
     expect(lastDetail[1]).toBe("myCmd");
     expect(lastDetail[2]).toEqual({ x: 1 });

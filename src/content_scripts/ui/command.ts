@@ -12,7 +12,7 @@ type OmnibarLike = {
   listWords(words: string[]): void;
 };
 
-export default (normal: NormalLike, command: CommandFn, omnibar: OmnibarLike): void => {
+const createCommands = (normal: NormalLike, command: CommandFn, omnibar: OmnibarLike): void => {
   command("feedkeys", "feed mapkeys", (args) => {
     normal.feedkeys(args[0] ?? "");
   });
@@ -24,8 +24,7 @@ export default (normal: NormalLike, command: CommandFn, omnibar: OmnibarLike): v
     if (key == null) {
       return;
     }
-    const update: Record<string, unknown[]> = {};
-    update[key] = [];
+    const update: Record<string, unknown[]> = { [key]: [] };
     RUNTIME("updateInputHistory", update);
   });
   command("listSession", "list session", () => {
@@ -68,7 +67,9 @@ export default (normal: NormalLike, command: CommandFn, omnibar: OmnibarLike): v
     RUNTIME("clearQueueURLs");
   });
   command("timeStamp", "print time stamp in human readable format", (args) => {
-    const dt = new Date(parseInt(args[0] ?? ""));
+    const dt = new Date(Number.parseInt(args[0] ?? ""));
     omnibar.listWords([dt.toString()]);
   });
 };
+
+export default createCommands;

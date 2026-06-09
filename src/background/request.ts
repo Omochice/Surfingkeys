@@ -12,6 +12,7 @@ const CHARSET_RE = /(?:charset|encoding)\s*=\s*['"]? *([\w-]+)/i;
 class HttpStatusError extends Error {
   constructor(readonly status: number) {
     super(`HTTP ${status}`);
+    this.name = "HttpStatusError";
   }
 }
 
@@ -40,7 +41,7 @@ export function request(
         throw new HttpStatusError(res.status);
       }
       const charsetMatch = res.headers.get("content-type")?.match(CHARSET_RE);
-      const charset = charsetMatch && charsetMatch.length > 1 ? charsetMatch[1]! : "utf-8";
+      const charset = charsetMatch && charsetMatch.length > 1 ? charsetMatch[1]! : "utf8";
       const buf = await res.arrayBuffer();
       return new TextDecoder(charset).decode(buf);
     },

@@ -127,11 +127,8 @@ function createOmnibar(front: any, clipboard: any) {
     feature_group: 8,
     code: function () {
       const savedInput = self.input.value;
-      if (runtime.conf.omnibarPosition === "bottom") {
-        runtime.conf.omnibarPosition = "middle";
-      } else {
-        runtime.conf.omnibarPosition = "bottom";
-      }
+      runtime.conf.omnibarPosition =
+        runtime.conf.omnibarPosition === "bottom" ? "middle" : "bottom";
       reopen(() => {
         _savedAargs.pref = savedInput;
         front.openOmnibar(_savedAargs);
@@ -291,7 +288,7 @@ function createOmnibar(front: any, clipboard: any) {
       lastHandler = null;
       setPrompt(handler.prompt);
       if (val.length) {
-        setQuery(val.substring(0, val.length - 1));
+        setQuery(val.slice(0, -1));
       }
       self.triggerInput();
       eaten = true;
@@ -437,8 +434,8 @@ function createOmnibar(front: any, clipboard: any) {
       handler.onEnter() && front.hidePopup();
     } else if (evt.keyCode === KeyboardUtils.keyCodes["space"]) {
       const cursor = self.input.selectionStart;
-      const textBeforeCursor = self.input.value.substring(0, cursor);
-      const newQuery = self.input.value.substring(cursor);
+      const textBeforeCursor = self.input.value.slice(0, cursor);
+      const newQuery = self.input.value.slice(cursor);
       self.expandAlias(textBeforeCursor, newQuery) && evt.preventDefault();
     } else if (evt.keyCode === KeyboardUtils.keyCodes["backspace"]) {
       self.collapseAlias() && evt.preventDefault();
@@ -488,8 +485,8 @@ function createOmnibar(front: any, clipboard: any) {
   });
 
   self.highlight = (rxp: RegExp | null, str: string) => {
-    if (str.substring(0, 11) === "data:image/") {
-      str = str.substring(0, 1024);
+    if (str.slice(0, 11) === "data:image/") {
+      str = str.slice(0, 1024);
     }
     return rxp === null
       ? str
@@ -631,7 +628,7 @@ function createOmnibar(front: any, clipboard: any) {
     ui.classList.add("sk_omnibar_" + getPosition());
     if (getPosition() === "bottom") {
       self.resultsDiv.remove();
-      ui.insertBefore(self.resultsDiv, document.querySelector("#sk_omnibarSearchArea"));
+      document.querySelector("#sk_omnibarSearchArea")!.before(self.resultsDiv);
     } else {
       self.resultsDiv.remove();
       ui.append(self.resultsDiv);
@@ -674,11 +671,11 @@ function createOmnibar(front: any, clipboard: any) {
   };
 
   self.isUrl = (input: string) => {
-    if (input.match(/\s+/)) {
+    if (/\s+/.test(input)) {
       return false;
     }
 
-    if (input.match(/^https?:\/\//)) {
+    if (/^https?:\/\//.test(input)) {
       return true;
     }
 
@@ -704,14 +701,14 @@ function createOmnibar(front: any, clipboard: any) {
     if (fi && fi.data.uid) {
       uid = fi.data.uid;
       type = uid[0] ?? "";
-      uid = uid.substring(1);
+      uid = uid.slice(1);
     }
     if (type === "T") {
       const parts = uid.split(":");
       reportOnFail(
         RUNTIME("focusTab", {
-          windowId: parseInt(parts[0] ?? ""),
-          tabId: parseInt(parts[1] ?? ""),
+          windowId: Number.parseInt(parts[0] ?? ""),
+          tabId: Number.parseInt(parts[1] ?? ""),
         }),
         reportError,
       );
@@ -756,7 +753,8 @@ function createOmnibar(front: any, clipboard: any) {
     if (getPosition() === "bottom" && built.length > 0) {
       const lis = self.resultsDiv.querySelectorAll("#sk_omnibarSearchResult>ul>li");
       if (lis.length) {
-        scrollIntoViewIfNeeded(lis[lis.length - 1]);
+        // querySelectorAll returns a NodeList, which has no Array#at; use NodeList#item.
+        scrollIntoViewIfNeeded(lis.item(lis.length - 1));
       }
     }
   };
@@ -1105,7 +1103,7 @@ function AddBookmark(omnibar: any): any {
             const idx = omnibar
               .results()
               .findIndex((r: any) => r.data.folder === String(b.parentId));
-            if (idx >= 0) {
+            if (idx !== -1) {
               omnibar.focusItem(idx);
             }
           }
@@ -1131,7 +1129,7 @@ function AddBookmark(omnibar: any): any {
   self.onTabKey = () => {
     const fi = omnibar.focusedResult();
     if (fi) {
-      omnibar.setQuery(fi.data.text.substring(2));
+      omnibar.setQuery(fi.data.text.slice(2));
     }
   };
 
@@ -1141,7 +1139,7 @@ function AddBookmark(omnibar: any): any {
     let folderName: string | undefined;
     if (fi) {
       self.page.folder = fi.data.folder;
-      folderName = fi.data.text.substring(2);
+      folderName = fi.data.text.slice(2);
     } else {
       let path = omnibar.input.value;
       path = path.split("/");
@@ -1183,8 +1181,9 @@ function AddBookmark(omnibar: any): any {
     const query = omnibar.input.value;
     const caseSensitive = runtime.getCaseSensitive(query);
     const matches = folders.filter((b) => {
-      if (caseSensitive) return b.title.indexOf(query) !== -1;
-      else return b.title.toLowerCase().indexOf(query.toLowerCase()) !== -1;
+      return caseSensitive
+        ? b.title.includes(query)
+        : b.title.toLowerCase().includes(query.toLowerCase());
     });
     omnibar.listResults(matches, (f: any) => {
       return buildFolderResult(f.title, f.id);
@@ -1336,8 +1335,8 @@ function CloseTabs(omnibar: any): any {
     omnibar.results().forEach((r: any) => {
       const uid = r.data.uid;
       if (uid && uid[0] === "T") {
-        const parts = uid.substring(1).split(":");
-        tabIds.push(parseInt(parts[1]));
+        const parts = uid.slice(1).split(":");
+        tabIds.push(Number.parseInt(parts[1]));
       }
     });
     if (tabIds.length > 0) {
@@ -1420,7 +1419,7 @@ function OpenWindows(omnibar: any, front: any): any {
         });
         // Join every tab URL so the copy-line binding can yank all tabs in this window at once.
         const url = w.tabs.map((t: any) => t.url).join("\n");
-        return buildOmnibarResult(li, { windowId: parseInt(w.id), url });
+        return buildOmnibarResult(li, { windowId: Number.parseInt(w.id), url });
       });
     });
   };
@@ -1447,7 +1446,7 @@ function OpenVIMarks(omnibar: any): any {
               scrollTop: 0,
             };
           }
-          if (query === "" || markInfo.url.indexOf(query) !== -1) {
+          if (query === "" || markInfo.url.includes(query)) {
             urls.push({
               title: m,
               type: "🔗",
@@ -1466,8 +1465,7 @@ function OpenVIMarks(omnibar: any): any {
 }
 
 function SearchEngine(omnibar: any, front: any): any {
-  const self: any = {};
-  self.aliases = {};
+  const self: any = { aliases: {} };
 
   let _pendingRequest: ReturnType<typeof setTimeout> | undefined = undefined; // timeout ID
   function clearPendingRequest() {
@@ -1661,7 +1659,7 @@ function Commands(omnibar: any, front: any): any {
   self.onInput = () => {
     const cmd = omnibar.input.value;
     const candidates = Object.keys(items).filter((c) => {
-      return cmd === "" || c.indexOf(cmd) !== -1;
+      return cmd === "" || c.includes(cmd);
     });
     if (candidates.length) {
       omnibar.listResults(candidates, (c: any) => {
@@ -1751,7 +1749,7 @@ function OmniQuery(omnibar: any, front: any): any {
   self.onInput = () => {
     const iw = omnibar.input.value;
     const candidates = _words.filter((w) => {
-      return w.indexOf(iw) !== -1;
+      return w.includes(iw);
     });
     if (candidates.length) {
       omnibar.listResults(candidates, (w: any) => {

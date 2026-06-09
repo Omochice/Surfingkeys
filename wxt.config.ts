@@ -1,4 +1,4 @@
-import { resolve } from "node:path";
+import path from "node:path";
 
 import { build as viteBuild } from "vite";
 import { defineConfig } from "wxt";
@@ -67,7 +67,7 @@ export default defineConfig({
           emptyOutDir: false,
           minify: wxt.config.mode === "production",
           lib: {
-            entry: resolve(wxt.config.root, "src/user_scripts/index.ts"),
+            entry: path.resolve(wxt.config.root, "src/user_scripts/index.ts"),
             formats: ["es"],
             fileName: () => "api.js",
           },

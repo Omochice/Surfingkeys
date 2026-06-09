@@ -49,10 +49,10 @@ const specialKeys = [
 
 function detectPlatform(): string {
   if (typeof navigator !== "undefined") {
-    if (navigator.platform.indexOf("Mac") !== -1) {
+    if (navigator.platform.includes("Mac")) {
       return "Mac";
     }
-    if (navigator.userAgent.indexOf("Linux") !== -1) {
+    if (navigator.userAgent.includes("Linux")) {
       return "Linux";
     }
   }
@@ -62,17 +62,13 @@ function detectPlatform(): string {
 // <flag: always 1><flag: 1 bit, 0 for visible keys, 1 for invisible keys><key: 8 bits><mod: 4 bits>
 function encodeOne(s: string, k: string): string {
   let mod = 0;
-  if (s.indexOf("Ctrl-") !== -1) mod |= 1;
-  if (s.indexOf("Alt-") !== -1) mod |= 2;
-  if (s.indexOf("Meta-") !== -1) mod |= 4;
-  if (s.indexOf("Shift-") !== -1) mod |= 8;
+  if (s.includes("Ctrl-")) mod |= 1;
+  if (s.includes("Alt-")) mod |= 2;
+  if (s.includes("Meta-")) mod |= 4;
+  if (s.includes("Shift-")) mod |= 8;
 
   let code: number;
-  if (k.length > 1) {
-    code = 256 + specialKeys.indexOf(k);
-  } else {
-    code = k.charCodeAt(0);
-  }
+  code = k.length > 1 ? 256 + specialKeys.indexOf(k) : k.charCodeAt(0);
   code = 8192 + (code << 4) + mod;
   return String.fromCharCode(code);
 }
@@ -164,7 +160,7 @@ export default class KeyboardUtils {
       character = namedKey;
     } else {
       character = event.key || "";
-      if (["Shift", "Meta", "Alt", "Ctrl"].indexOf(character) !== -1) {
+      if (["Shift", "Meta", "Alt", "Ctrl"].includes(character)) {
         character = "";
       }
       if (!character) {
@@ -181,8 +177,8 @@ export default class KeyboardUtils {
             ) {
               keyIdentifier = event.shiftKey ? corrected[1] : corrected[0];
             }
-            const unicodeKeyInHex = "0x" + keyIdentifier.substring(2);
-            character = String.fromCharCode(parseInt(unicodeKeyInHex));
+            const unicodeKeyInHex = "0x" + keyIdentifier.slice(2);
+            character = String.fromCharCode(Number.parseInt(unicodeKeyInHex));
             character = event.shiftKey ? character : character.toLowerCase();
           }
         }
@@ -240,11 +236,11 @@ export default class KeyboardUtils {
       if (captured == null) {
         continue;
       }
-      ret += s.substring(lastIndex, mtches.index);
+      ret += s.slice(lastIndex, mtches.index);
       ret += encodeOne(mtches[0], captured);
       lastIndex = ekp.lastIndex;
     }
-    ret += s.substring(lastIndex);
+    ret += s.slice(lastIndex);
     return ret;
   }
 

@@ -199,7 +199,7 @@ describe("createVisual — visualClear()", () => {
       return Array.isArray(d) && d[0] === "showStatus";
     });
     expect(statusEvents.length).toBeGreaterThan(0);
-    const lastArgs = (statusEvents[statusEvents.length - 1]!.detail as unknown[])[1] as unknown[];
+    const lastArgs = (statusEvents.at(-1)!.detail as unknown[])[1] as unknown[];
     // Third element of showStatus args is the status text; visualClear sends "".
     expect(lastArgs[2]).toBe("");
   });

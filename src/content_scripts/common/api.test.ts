@@ -638,10 +638,10 @@ describe("createAPI searchSelectedWith", () => {
 
     api.searchSelectedWith("https://www.google.com/search?q=");
 
-    const openLinkCalls = sendMessage.mock.calls.filter(
+    const openLinkCall = sendMessage.mock.calls.find(
       (args: any[]) => args[0]?.action === "openLink",
     );
-    expect(openLinkCalls[0]![0].url).toBe(
+    expect(openLinkCall![0].url).toBe(
       `https://www.google.com/search?q=${encodeURIComponent("clipboard text")}`,
     );
 
@@ -663,10 +663,10 @@ describe("createAPI searchSelectedWith", () => {
 
     api.searchSelectedWith("https://example.com/search?q={0}&lang=en");
 
-    const openLinkCalls = sendMessage.mock.calls.filter(
+    const openLinkCall = sendMessage.mock.calls.find(
       (args: any[]) => args[0]?.action === "openLink",
     );
-    expect(openLinkCalls[0]![0].url).toBe(
+    expect(openLinkCall![0].url).toBe(
       `https://example.com/search?q=${encodeURIComponent("hello")}&lang=en`,
     );
 

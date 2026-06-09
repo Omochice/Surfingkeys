@@ -147,9 +147,9 @@ function applyUserSettings(delta: { error: string; settings: Record<string, unkn
  * @returns {string} "Chrome" | "Firefox"
  */
 function getBrowserName(): "Chrome" | "Firefox" {
-  if (window.navigator.userAgent.indexOf("Chrome") !== -1) {
+  if (window.navigator.userAgent.includes("Chrome")) {
     return "Chrome";
-  } else if (window.navigator.userAgent.indexOf("Firefox") !== -1) {
+  } else if (window.navigator.userAgent.includes("Firefox")) {
     return "Firefox";
   }
   return "Chrome";
@@ -170,7 +170,7 @@ function getDocumentOrigin(): string {
   // Lastly, posting a message to a page at a file: URL currently requires that the targetOrigin argument be "*".
   // file:// cannot be used as a security restriction; this restriction may be modified in the future.
   // Firefox provides window.origin instead of document.origin.
-  let origin = window.location.origin ? window.location.origin : "*";
+  let origin = window.location.origin || "*";
   if (origin === "file://" || origin === "null") {
     origin = "*";
   }
@@ -178,7 +178,7 @@ function getDocumentOrigin(): string {
 }
 
 function generateQuickGuid(): string {
-  return Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
+  return Math.random().toString(36).slice(2, 15) + Math.random().toString(36).slice(2, 15);
 }
 
 function listElements<T extends Node = Element>(
@@ -214,7 +214,7 @@ function isElementClickable(e: Element): boolean {
   return (
     e.matches(cssSelector) ||
     getComputedStyle(e).cursor === "pointer" ||
-    getComputedStyle(e).cursor.substring(0, 4) === "url(" ||
+    getComputedStyle(e).cursor.slice(0, 4) === "url(" ||
     e.closest("a, *[onclick], *[contenteditable=true], *.jfk-button, *.goog-flat-menu-button") !==
       null
   );
@@ -343,11 +343,7 @@ function getRealEdit(event?: Event): any {
 function toggleQuote(): void {
   const elm = getRealEdit(),
     val = elm.value;
-  if (val.match(/^"|"$/)) {
-    elm.value = val.replace(/^"?(.*?)"?$/, "$1");
-  } else {
-    elm.value = '"' + val + '"';
-  }
+  elm.value = /^"|"$/.test(val) ? val.replace(/^"?(.*?)"?$/, "$1") : '"' + val + '"';
 }
 
 function isEditable(element: any): boolean {
@@ -386,7 +382,7 @@ function isElementDrawn(e: Element, rect?: DOMRect): boolean {
   return (
     rect.width > min &&
     rect.height > min &&
-    (parseFloat(getComputedStyle(e).opacity) > 0.1 ||
+    (Number.parseFloat(getComputedStyle(e).opacity) > 0.1 ||
       (e.tagName == "INPUT" && (e as HTMLInputElement).type != "text"))
   );
 }
@@ -496,7 +492,7 @@ function getLargeElements(minWidth = 0.3, minHeight = 0.3): HTMLElement[] {
     }
     const style = getComputedStyle(element);
     if (
-      parseFloat(style.opacity) > 0.1 &&
+      Number.parseFloat(style.opacity) > 0.1 &&
       style.visibility !== "hidden" &&
       style.display !== "none"
     ) {
@@ -558,7 +554,7 @@ function filterAncestors(elements: Element[]): Element[] {
           // skip child from shadowRoot of a selected element.
           return;
         } else if (e.contains(r)) {
-          console.log("skip: ", e, r);
+          console.log("skip:", e, r);
           return;
         }
       }
@@ -663,7 +659,7 @@ function getTextNodes(root: Node, pattern: RegExp, flag?: number): Node[] | Tree
         !text.data.trim() ||
         !parent ||
         !parent.offsetParent ||
-        skip_tags.indexOf(parent.localName.toLowerCase()) !== -1 ||
+        skip_tags.includes(parent.localName.toLowerCase()) ||
         !pattern.test(text.data)
       ) {
         // node changed, reset pattern.lastIndex
@@ -826,11 +822,13 @@ function getWordUnderCursor(mouseCursor?: boolean): string | null {
       getTextRect(selection.focusNode, range[0], range[0] + range[1]),
       [],
     )[0];
-    const word = selection.focusNode.textContent.substring(range[0], range[0] + range[1]);
-    if (selRect && word) {
-      if (!mouseCursor || (_clickPos && rectContains(selRect, _clickPos[0], _clickPos[1], 0, 0))) {
-        return word.trim();
-      }
+    const word = selection.focusNode.textContent.slice(range[0], range[0] + range[1]);
+    if (
+      selRect &&
+      word &&
+      (!mouseCursor || (_clickPos && rectContains(selRect, _clickPos[0], _clickPos[1], 0, 0)))
+    ) {
+      return word.trim();
     }
   }
   return null;
@@ -851,7 +849,7 @@ function initL10n(cb: (translate: (str: string) => string) => void): void {
       .then((l10n) => {
         if (typeof l10n[lang] === "object") {
           const table = l10n[lang];
-          cb((str) => (table[str] ? table[str] : str));
+          cb((str) => table[str] || str);
         } else {
           cb((str) => str);
         }
@@ -862,7 +860,7 @@ function initL10n(cb: (translate: (str: string) => string) => void): void {
 function format(template: string, ...args: unknown[]): string {
   let formatted = template;
   for (let i = 0; i < args.length; i++) {
-    const regexp = new RegExp("\\{" + i + "\\}", "gi");
+    const regexp = new RegExp(String.raw`\{` + i + String.raw`\}`, "gi");
     formatted = formatted.replace(regexp, () => String(args[i]));
   }
   return formatted;
@@ -896,7 +894,7 @@ function parseAnnotation(ag: { annotation: string | string[]; feature_group?: nu
     const featureGroup = annotations[1];
     const rest = annotations[2];
     if (featureGroup != null && rest != null) {
-      ag.feature_group = parseInt(featureGroup);
+      ag.feature_group = Number.parseInt(featureGroup);
       arr[0] = rest;
     }
   }
@@ -969,9 +967,7 @@ function constructSearchURL(se: string, word: string): string {
  * @param {number} [simultaneousness=5] How many tabs will be opened simultaneously, the rest will
  *   be queued and opened later whenever a tab is closed. Default is `5`
  */
-function tabOpenLink(str: string | string[] | NodeList, simultaneousness?: number): void {
-  simultaneousness = simultaneousness || 5;
-
+function tabOpenLink(str: string | string[] | NodeList, simultaneousness: number = 5): void {
   let urls: string[];
   if (Array.isArray(str)) {
     urls = str;
@@ -1146,7 +1142,7 @@ function refreshHints(
         hint.style.opacity = "1";
         setSanitizedContent(
           hint,
-          `<span style="opacity: 0.2;">${pressedKeys}</span>` + label.substring(pressedKeys.length),
+          `<span style="opacity: 0.2;">${pressedKeys}</span>` + label.slice(pressedKeys.length),
         );
         result.candidates++;
       } else {
@@ -1191,11 +1187,10 @@ function attachFaviconToImgSrc(
   imgEl: HTMLImageElement,
 ): void {
   const browserName = getBrowserName();
-  if (browserName === "Chrome") {
-    imgEl.src = browser.runtime.getURL(`/_favicon/?pageUrl=${encodeURIComponent(tab.url)}`);
-  } else {
-    imgEl.src = tab.favIconUrl ?? "";
-  }
+  imgEl.src =
+    browserName === "Chrome"
+      ? browser.runtime.getURL(`/_favicon/?pageUrl=${encodeURIComponent(tab.url)}`)
+      : (tab.favIconUrl ?? "");
 }
 
 /**

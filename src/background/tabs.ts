@@ -124,10 +124,8 @@ export function createTabs(deps: TabsDeps): TabsUnit {
     }
   }
   chrome.tabs.onUpdated.addListener((tabId: number, changeInfo: any, tab: any) => {
-    if (changeInfo.status === "complete") {
-      if (tab.active) {
-        _tabActivated(tabId);
-      }
+    if (changeInfo.status === "complete" && tab.active) {
+      _tabActivated(tabId);
     }
     if (browser.detectTabTitleChange && changeInfo.title) {
       sendTabMessage(tabId, 0, {
@@ -151,7 +149,7 @@ export function createTabs(deps: TabsDeps): TabsUnit {
   });
   chrome.tabs.onActivated.addListener((activeInfo: any) => {
     tabHistory.record(activeInfo.tabId);
-    tabActivated[activeInfo.tabId] = new Date().getTime();
+    tabActivated[activeInfo.tabId] = Date.now();
     _tabActivated(activeInfo.tabId);
     chromelikeNewTabPosition = 0;
 
@@ -197,8 +195,9 @@ export function createTabs(deps: TabsDeps): TabsUnit {
         }
         break;
       }
-      default:
+      default: {
         break;
+      }
     }
   });
 
@@ -276,11 +275,10 @@ export function createTabs(deps: TabsDeps): TabsUnit {
   function normalizeURL(url: string) {
     if (
       !/^view-source:|^javascript:/.test(url) &&
-      /^(?:https?:\/\/)?(?:[^@/\n]+@)?(?:www\.)?([^:/\n]+)/im.test(url)
+      /^(?:https?:\/\/)?(?:[^@/\n]+@)?(?:www\.)?([^:/\n]+)/im.test(url) &&
+      !/^[\w-]+?:/i.test(url)
     ) {
-      if (!/^[\w-]+?:/i.test(url)) {
-        url = "http://" + url;
-      }
+      url = "http://" + url;
     }
     return url;
   }
@@ -289,21 +287,26 @@ export function createTabs(deps: TabsDeps): TabsUnit {
     let newTabPosition;
     if (currentTab) {
       switch (conf["newTabPosition"]) {
-        case "left":
+        case "left": {
           newTabPosition = currentTab.index;
           break;
-        case "right":
+        }
+        case "right": {
           newTabPosition = currentTab.index + 1;
           break;
-        case "first":
+        }
+        case "first": {
           newTabPosition = 0;
           break;
-        case "last":
+        }
+        case "last": {
           break;
-        default:
+        }
+        default: {
           newTabPosition = currentTab.index + 1 + chromelikeNewTabPosition;
           chromelikeNewTabPosition++;
           break;
+        }
       }
     }
     const tab = await chrome.tabs.create({
@@ -337,15 +340,15 @@ export function createTabs(deps: TabsDeps): TabsUnit {
           const a = x.lastAccessed || tabActivated[x.id!];
           const b = y.lastAccessed || tabActivated[y.id!];
 
-          if (!isFinite(a) && !isFinite(b)) {
+          if (!Number.isFinite(a) && !Number.isFinite(b)) {
             return 0;
           }
 
-          if (!isFinite(a)) {
+          if (!Number.isFinite(a)) {
             return 1;
           }
 
-          if (!isFinite(b)) {
+          if (!Number.isFinite(b)) {
             return -1;
           }
 
@@ -472,7 +475,7 @@ export function createTabs(deps: TabsDeps): TabsUnit {
           return {
             id: w,
             tabs: windows[w],
-            isPreviousChoice: parseInt(w) === previousWindowChoice,
+            isPreviousChoice: Number.parseInt(w) === previousWindowChoice,
           };
         }),
       };
@@ -618,7 +621,7 @@ export function createTabs(deps: TabsDeps): TabsUnit {
       const zoomFactor = message.zoomFactor * message.repeats;
       if (zoomFactor == 0) {
         const settings = await chrome.tabs.getZoomSettings(tabId);
-        const defaultZoom = settings.defaultZoomFactor ? settings.defaultZoomFactor : 1;
+        const defaultZoom = settings.defaultZoomFactor || 1;
         await chrome.tabs.setZoom(tabId, defaultZoom);
       } else {
         const zf = await chrome.tabs.getZoom(tabId);

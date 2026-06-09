@@ -528,7 +528,7 @@ describe("createNormal jumpVIMark", () => {
     Reflect.deleteProperty(scrollTarget(), "scrollLeft");
   });
 
-  it("mark=\\' swaps scroll position with the saved lastScrollTop/lastScrollLeft", () => {
+  it(String.raw`mark=\' swaps scroll position with the saved lastScrollTop/lastScrollLeft`, () => {
     const normal = createNormal(insertStub);
 
     // Prime scroll state: a scroll call records lastScrollTop/lastScrollLeft
@@ -547,7 +547,7 @@ describe("createNormal jumpVIMark", () => {
     expect(scrollTarget().scrollLeft).toBe(50);
   });
 
-  it("non-\\' mark sends RUNTIME jumpVIMark with the mark character", () => {
+  it(String.raw`non-\' mark sends RUNTIME jumpVIMark with the mark character`, () => {
     const sendMessage = vi.fn();
     (globalThis as any).chrome.runtime.sendMessage = sendMessage;
     const normal = createNormal(insertStub);
@@ -618,8 +618,8 @@ describe("createNormal addVIMark", () => {
 
     normal.addVIMark("b");
 
-    const calls = sendMessage.mock.calls.filter((args: any[]) => args[0]?.action === "addVIMark");
-    const markPayload = calls[0]![0].mark as Record<string, { url: string }>;
+    const call = sendMessage.mock.calls.find((args: any[]) => args[0]?.action === "addVIMark");
+    const markPayload = call![0].mark as Record<string, { url: string }>;
     expect(markPayload["b"]!.url).toBe(window.location.href);
 
     (globalThis as any).chrome.runtime.sendMessage = () => {};
@@ -1756,7 +1756,7 @@ describe("createNormal addScrollableElement — duplicate guard", () => {
 
 // ─── jumpVIMark — empty scrollNodes on "'" mark ───────────────────────────────
 
-describe("createNormal jumpVIMark — no scrollable elements on '\\' mark", () => {
+describe(String.raw`createNormal jumpVIMark — no scrollable elements on '\' mark`, () => {
   it("does nothing when scrollNodes is empty on the backtick mark", () => {
     Object.defineProperty(document, "scrollingElement", {
       value: document.documentElement,

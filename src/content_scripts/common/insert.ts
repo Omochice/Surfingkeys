@@ -42,11 +42,11 @@ export function deleteNextWord(str: string, dir: number, cur: number): [string, 
   const pos = nextNonWord(str, dir, cur);
   let s = str;
   if (pos > cur) {
-    s = str.substring(0, cur) + str.substring(pos);
+    s = str.slice(0, cur) + str.slice(pos);
   } else if (pos < cur) {
-    s = str.substring(0, pos) + str.substring(cur);
+    s = str.slice(0, pos) + str.slice(cur);
   } else {
-    s = str.substring(0, pos) + str.substring(pos + 1);
+    s = str.slice(0, pos) + str.slice(pos + 1);
   }
   return [s, dir > 0 ? cur : pos];
 }
@@ -82,17 +82,15 @@ function createInsert(): InsertMode {
           throw cause;
         }
       }
-    } else if (isEditable(element)) {
-      // for contenteditable div
-      if (element.childNodes.length > 0) {
-        const node = element.childNodes[element.childNodes.length - 1];
-        if (node.nodeType === Node.TEXT_NODE) {
-          document.getSelection()!.setPosition(node, node.data.length);
-        } else if (node.querySelector(".CodeMirror-line")) {
-          setEndOfContenteditable(element);
-        } else {
-          document.getSelection()!.setPosition(node, node.childNodes.length);
-        }
+    } else if (isEditable(element) && element.childNodes.length > 0) {
+      // for contenteditable div; childNodes is a NodeList, which has no Array#at, so use NodeList#item.
+      const node = element.childNodes.item(element.childNodes.length - 1);
+      if (node.nodeType === Node.TEXT_NODE) {
+        document.getSelection()!.setPosition(node, node.data.length);
+      } else if (node.querySelector(".CodeMirror-line")) {
+        setEndOfContenteditable(element);
+      } else {
+        document.getSelection()!.setPosition(node, node.childNodes.length);
       }
     }
   }
@@ -136,13 +134,13 @@ function createInsert(): InsertMode {
     code: () => {
       const element = getRealEdit();
       if (element.setSelectionRange != null) {
-        element.value = element.value.substring(element.selectionStart);
+        element.value = element.value.slice(element.selectionStart);
         element.setSelectionRange(0, 0);
       } else {
         // for contenteditable div
         const selection = document.getSelection()!;
         const focus = selection.focusNode as Text;
-        focus.data = focus.data.substring(selection.focusOffset);
+        focus.data = focus.data.slice(selection.focusOffset);
       }
     },
   });
@@ -191,7 +189,7 @@ function createInsert(): InsertMode {
         const focus = selection.focusNode as Text;
         const v = focus.data;
         const p1 = selection.focusOffset;
-        focus.data = v.substring(0, p1) + v.substring(p0);
+        focus.data = v.slice(0, p1) + v.slice(p0);
         selection.setPosition(focus, p1);
       }
     },
@@ -213,7 +211,7 @@ function createInsert(): InsertMode {
         const focus = selection.focusNode as Text;
         const v = focus.data;
         const p1 = selection.focusOffset;
-        focus.data = v.substring(0, p0) + v.substring(p1);
+        focus.data = v.slice(0, p0) + v.slice(p1);
         selection.setPosition(focus, p0);
       }
     },
@@ -288,7 +286,7 @@ function createInsert(): InsertMode {
           const str = elm.value;
           let pos = elm.selectionStart;
           if (str != null && pos != null) {
-            elm.value = str.substring(0, elm.selectionStart) + pw + str.substring(elm.selectionEnd);
+            elm.value = str.slice(0, elm.selectionStart) + pw + str.slice(elm.selectionEnd);
             pos += pw.length;
             elm.setSelectionRange(pos, pos);
           } else {
@@ -302,7 +300,7 @@ function createInsert(): InsertMode {
                 elm.setPosition(n, n.length);
               } else {
                 pos = elm.focusOffset;
-                elm.focusNode.data = data.substring(0, pos) + pw + data.substring(pos);
+                elm.focusNode.data = data.slice(0, pos) + pw + data.slice(pos);
                 elm.setPosition(elm.focusNode, pos + pw.length);
               }
             } else {

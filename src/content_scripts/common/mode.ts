@@ -147,9 +147,13 @@ export default class Mode {
       }
     }
 
-    mode_stack.sort((a, b) =>
-      (a.priority ?? 0) < (b.priority ?? 0) ? 1 : (b.priority ?? 0) < (a.priority ?? 0) ? -1 : 0,
-    );
+    mode_stack.sort((a, b) => {
+      const pa = a.priority ?? 0;
+      const pb = b.priority ?? 0;
+      if (pa < pb) return 1;
+      if (pb < pa) return -1;
+      return 0;
+    });
 
     this.onEnter?.();
 
@@ -184,11 +188,11 @@ export default class Mode {
 
   static isSpecialKeyOf(specialKey: string, keyToCheck: string): boolean {
     const keys = Mode.specialKeys[specialKey];
-    return keys != null && keys.indexOf(KeyboardUtils.decodeKeystroke(keyToCheck)) !== -1;
+    return keys != null && keys.includes(KeyboardUtils.decodeKeystroke(keyToCheck));
   }
 
   static suppressKeyUp(keyCode: number): void {
-    if (keysNeedKeyupSuppressed.indexOf(keyCode) === -1) {
+    if (!keysNeedKeyupSuppressed.includes(keyCode)) {
       keysNeedKeyupSuppressed.push(keyCode);
     }
   }
@@ -269,7 +273,7 @@ export default class Mode {
       if (sl !== "" && window !== top && !isInUIFrame()) {
         const pathname = window.location.pathname.split("/");
         if (pathname.length) {
-          sl += " - frame: " + pathname[pathname.length - 1];
+          sl += " - frame: " + pathname.at(-1);
         }
       }
       dispatchSKEvent("front", ["showStatus", [sl]]);
@@ -341,7 +345,7 @@ export default class Mode {
           event.sk_stopPropagation = true;
         } else {
           this.setLastKeys?.(meta.word);
-          RUNTIME.repeats = parseInt(this.repeats ?? "", 10) || 1;
+          RUNTIME.repeats = Number.parseInt(this.repeats ?? "", 10) || 1;
           event.sk_stopPropagation = !meta.stopPropagation || callStopPropagation(meta, key);
           if (RUNTIME.repeats > runtime.conf.repeatThreshold) {
             dispatchSKEvent("front", [

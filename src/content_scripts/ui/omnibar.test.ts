@@ -885,7 +885,7 @@ describe("CloseTabs handler — onOpen fires RUNTIME getTabs and resolves cached
     const tabIds = omnibar
       .results()
       .filter((r: any) => r.data.uid?.[0] === "T")
-      .map((r: any) => parseInt(r.data.uid.substring(1).split(":")[1]));
+      .map((r: any) => Number.parseInt(r.data.uid.slice(1).split(":")[1]));
     // Verify the extraction formula (same one CloseTabs.onEnter uses) produces the right IDs
     expect(tabIds.toSorted((a: number, b: number) => a - b)).toEqual([55, 66]);
   });

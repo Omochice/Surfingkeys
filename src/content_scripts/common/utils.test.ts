@@ -170,7 +170,7 @@ describe("removeAttributes", () => {
     const el = document.createElement("div");
     el.setAttribute("id", "x");
     el.setAttribute("class", "y");
-    el.setAttribute("data-z", "1");
+    el.dataset["z"] = "1";
     removeAttributes(el);
     expect(el.attributes.length).toBe(0);
   });
@@ -198,22 +198,22 @@ describe("requireElement", () => {
 describe("getNearestWord", () => {
   it("returns the whole word containing an interior offset", () => {
     const [start, length] = getNearestWord("hello world", 7);
-    expect("hello world".substr(start, length)).toBe("world");
+    expect("hello world".slice(start, start + length)).toBe("world");
   });
 
   it("returns the leading word when the offset sits on it", () => {
     const [start, length] = getNearestWord("hello world", 2);
-    expect("hello world".substr(start, length)).toBe("hello");
+    expect("hello world".slice(start, start + length)).toBe("hello");
   });
 
   it("jumps to the nearest word when the offset lands on a separator", () => {
     const [start, length] = getNearestWord("ab cd", 2);
-    expect("ab cd".substr(start, length)).toBe("ab");
+    expect("ab cd".slice(start, start + length)).toBe("ab");
   });
 
   it("clamps an out-of-range offset to the end of the text", () => {
     const [start, length] = getNearestWord("foo bar", 100);
-    expect("foo bar".substr(start, length)).toBe("bar");
+    expect("foo bar".slice(start, start + length)).toBe("bar");
   });
 });
 
@@ -762,7 +762,7 @@ describe("getRealEdit — additional shadow-root branches", () => {
 describe("getNearestWord — negative offset clamping", () => {
   it("clamps a negative offset to 0 and returns the leading word", () => {
     const [start, length] = getNearestWord("hello world", -5);
-    expect("hello world".substr(start, length)).toBe("hello");
+    expect("hello world".slice(start, start + length)).toBe("hello");
   });
 });
 

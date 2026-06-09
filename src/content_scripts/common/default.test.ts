@@ -460,7 +460,7 @@ describe("hint-yank keys copy the picked element's text", () => {
   // callback writes to the clipboard.
   const lastHintCallback = () => {
     const calls = ctx.hints.create.mock.calls;
-    return calls[calls.length - 1][1] as (el: any) => void;
+    return calls.at(-1)[1] as (el: any) => void;
   };
 
   it("ya copies a link's href", () => {
@@ -521,7 +521,7 @@ describe(";ql shows last action via showPopup", () => {
 describe("yv copies element text via hint callback", () => {
   const lastHintCallback = () => {
     const calls = ctx.hints.create.mock.calls;
-    return calls[calls.length - 1][1] as (el: any) => void;
+    return calls.at(-1)[1] as (el: any) => void;
   };
 
   it("takes element[2].trim() when element[1] is not 0", () => {
@@ -540,7 +540,7 @@ describe("yv copies element text via hint callback", () => {
 describe("ymv accumulates multiple element texts", () => {
   const lastHintCallback = () => {
     const calls = ctx.hints.create.mock.calls;
-    return calls[calls.length - 1][1] as (el: any) => void;
+    return calls.at(-1)[1] as (el: any) => void;
   };
 
   it("joins picked texts with newlines as more are selected", () => {
@@ -563,7 +563,7 @@ describe("<Ctrl-'> jumps to a VIMark in a new tab", () => {
 describe("yma accumulates multiple link URLs", () => {
   const lastHintCallback = () => {
     const calls = ctx.hints.create.mock.calls;
-    return calls[calls.length - 1][1] as (el: any) => void;
+    return calls.at(-1)[1] as (el: any) => void;
   };
 
   it("joins collected hrefs with newlines as links are picked", () => {
@@ -605,7 +605,7 @@ describe("yc copies a table column", () => {
     ]);
     fire("yc");
     const calls = ctx.hints.create.mock.calls;
-    const cb = calls[calls.length - 1][1] as (el: any) => void;
+    const cb = calls.at(-1)[1] as (el: any) => void;
     // Pick the first cell (column 0, cellIndex 0)
     const header = table.rows[0]!.cells[0]!;
     cb(header);
@@ -624,7 +624,7 @@ describe("ymc copies multiple columns of a table", () => {
     ]);
     fire("ymc");
     const calls = ctx.hints.create.mock.calls;
-    const cb = calls[calls.length - 1][1] as (el: any) => void;
+    const cb = calls.at(-1)[1] as (el: any) => void;
     cb(table.rows[0]!.cells[0]!);
     expect(ctx.clipboard.write).toHaveBeenLastCalledWith("Name\nAlice\nBob");
     cb(table.rows[0]!.cells[1]!);
@@ -804,7 +804,7 @@ describe(";di downloads an image via hint callback", () => {
   it("sends a download RUNTIME message with the element src", () => {
     fire(";di");
     const calls = ctx.hints.create.mock.calls;
-    const cb = calls[calls.length - 1][1] as (el: any) => void;
+    const cb = calls.at(-1)[1] as (el: any) => void;
     cb({ src: "https://example.com/image.png" });
     expect(seam.RUNTIME).toHaveBeenLastCalledWith("download", {
       url: "https://example.com/image.png",
@@ -884,7 +884,7 @@ describe("cq queries word under cursor via hint callback", () => {
   it("calls front.performInlineQuery with the trimmed word", () => {
     fire("cq");
     const calls = ctx.hints.create.mock.calls;
-    const cb = calls[calls.length - 1][1] as (el: any) => void;
+    const cb = calls.at(-1)[1] as (el: any) => void;
     // element[2] is the text fragment; element[0] is the text node; element[1] is offset
     cb([{}, 0, "  hello  "]);
     expect(ctx.front.performInlineQuery).toHaveBeenCalledWith(
@@ -897,7 +897,7 @@ describe("cq queries word under cursor via hint callback", () => {
   it("the showBubble callback dispatches a front event", () => {
     fire("cq");
     const calls = ctx.hints.create.mock.calls;
-    const cb = calls[calls.length - 1][1] as (el: any) => void;
+    const cb = calls.at(-1)[1] as (el: any) => void;
     cb([{}, 0, "hello"]);
     const queryCallback = ctx.front.performInlineQuery.mock.calls.at(-1)![2] as (
       pos: unknown,
@@ -1268,7 +1268,7 @@ describe("<Ctrl-h> mouse-over hint callback falls back to dispatchMouseClick", (
   it("calls hints.dispatchMouseClick when chrome.surfingkeys is absent", () => {
     fire("<Ctrl-h>");
     const calls = ctx.hints.create.mock.calls;
-    const cb = calls[calls.length - 1][1] as (el: any) => void;
+    const cb = calls.at(-1)[1] as (el: any) => void;
     const fakeEl = { getClientRects: () => [{ x: 0, y: 0, width: 10, height: 10 }] };
     cb(fakeEl);
     expect(ctx.hints.dispatchMouseClick).toHaveBeenLastCalledWith(fakeEl);
@@ -1318,7 +1318,7 @@ describe("<Ctrl-h> mouse-over hint callback uses sendMouseEvent when chrome.surf
     (globalThis as any).chrome = { surfingkeys: { sendMouseEvent } };
     fire("<Ctrl-h>");
     const calls = ctx.hints.create.mock.calls;
-    const cb = calls[calls.length - 1][1] as (el: any) => void;
+    const cb = calls.at(-1)[1] as (el: any) => void;
     const fakeEl = {
       getClientRects: () => [{ x: 10, y: 20, width: 100, height: 40 }],
     };
@@ -1499,7 +1499,7 @@ describe("yc / ymc table-column edge arms", () => {
 
   const lastHintCallback = () => {
     const calls = ctx.hints.create.mock.calls;
-    return calls[calls.length - 1][1] as (el: any) => void;
+    return calls.at(-1)[1] as (el: any) => void;
   };
 
   it("yc offers no column heads when a table has no row", () => {

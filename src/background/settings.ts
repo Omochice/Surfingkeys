@@ -21,7 +21,7 @@ export function getSubSettings(set: any, keys: any): any {
     // if null/undefined/""
     subset = set;
   } else {
-    if (!(keys instanceof Array)) {
+    if (!Array.isArray(keys)) {
       keys = [keys];
     }
     subset = {};
@@ -68,8 +68,8 @@ export async function _save(storage: any, data: any): Promise<void> {
     // (and the response it settles) never hangs on a bad snippet path.
     try {
       await storage.set(toSave);
-    } catch (err) {
-      console.error("Failed to save snippets from", toSave.localPath, err);
+    } catch (error) {
+      console.error("Failed to save snippets from", toSave.localPath, error);
     }
   } else {
     await storage.set(toSave);
@@ -142,13 +142,13 @@ export function createSettings(deps: SettingsDeps): SettingsUnit {
   }
 
   async function _updateSettings(diffSettings: any): Promise<void> {
-    diffSettings.savedAt = new Date().getTime();
+    diffSettings.savedAt = Date.now();
     await _save(chrome.storage.local, diffSettings);
     // The sync write is fire-and-forget (local is the source of truth), but a
     // rejection here (e.g. sync quota) must be caught: an unhandled rejection can
     // terminate the MV3 service worker.
-    _save(chrome.storage.sync, diffSettings).catch((err) => {
-      console.error("Failed to sync settings:", err);
+    _save(chrome.storage.sync, diffSettings).catch((error) => {
+      console.error("Failed to sync settings:", error);
     });
   }
 
@@ -200,7 +200,7 @@ export function createSettings(deps: SettingsDeps): SettingsUnit {
       url = url.replace(/\?$/, "");
       const u = new URL(url);
       const con = u.search ? "&" : "?";
-      url = `${url}${con}nonce=${new Date().getTime()}`;
+      url = `${url}${con}nonce=${Date.now()}`;
     }
     return url;
   }
@@ -335,7 +335,8 @@ export function createSettings(deps: SettingsDeps): SettingsUnit {
         return undefined;
       }
       const markInfo = marks[message.mark];
-      const tabs = (await chrome.tabs.query({})).filter((t) => {
+      const allTabs = await chrome.tabs.query({});
+      const tabs = allTabs.filter((t) => {
         return t.url === markInfo.url;
       });
 

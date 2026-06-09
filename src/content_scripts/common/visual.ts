@@ -117,11 +117,12 @@ function createVisual(clipboard: ClipboardLike, hints: HintsLike): VisualMode {
 
   self.addEventListener("click", () => {
     switch (selection.type) {
-      case "None":
+      case "None": {
         self.hideCursor();
         state = 0;
         break;
-      case "Caret":
+      }
+      case "Caret": {
         if (state) {
           self.hideCursor();
           if (state === 0) {
@@ -130,13 +131,15 @@ function createVisual(clipboard: ClipboardLike, hints: HintsLike): VisualMode {
           self.showCursor();
         }
         break;
-      case "Range":
+      }
+      case "Range": {
         if (state) {
           self.hideCursor();
           state = 2;
           self.showCursor();
         }
         break;
+      }
     }
     _onStateChange();
   });
@@ -444,7 +447,7 @@ function createVisual(clipboard: ClipboardLike, hints: HintsLike): VisualMode {
         p = p.parentElement;
         const textNodes = getTextNodes(p!, /./);
         const firstNode = textNodes[0];
-        const lastNode = textNodes[textNodes.length - 1] as Text | undefined;
+        const lastNode = textNodes.at(-1) as Text | undefined;
         if (firstNode == null || lastNode == null) {
           continue;
         }
@@ -727,17 +730,19 @@ function createVisual(clipboard: ClipboardLike, hints: HintsLike): VisualMode {
   };
   self.toggle = (ex) => {
     switch (state) {
-      case 1:
+      case 1: {
         selection.extend(selection.anchorNode!, selection.anchorOffset);
         _incState();
         break;
-      case 2:
+      }
+      case 2: {
         self.hideCursor();
         selection.collapse(selection.focusNode, selection.focusOffset);
         self.exit();
         _incState();
         break;
-      default:
+      }
+      default: {
         hints.create(runtime.conf.textAnchorPat, (element) => {
           setTimeout(() => {
             selection.setPosition(element[0], element[1]);
@@ -754,6 +759,7 @@ function createVisual(clipboard: ClipboardLike, hints: HintsLike): VisualMode {
           }, 0);
         });
         break;
+      }
     }
   };
 
@@ -894,7 +900,7 @@ function createVisual(clipboard: ClipboardLike, hints: HintsLike): VisualMode {
   };
 
   self.findSentenceOf = (query) => {
-    const wr = new RegExp("\\b" + query + "\\b");
+    const wr = new RegExp(String.raw`\b` + query + String.raw`\b`);
     let elements = getVisibleElements((e, v) => {
       if (wr.test(e.innerText)) {
         v.push(e);

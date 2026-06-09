@@ -16,7 +16,7 @@ type KeyboardUtilsLike = {
 };
 type ModeCtor = new (name: string) => any;
 
-export default function (
+export default function optionsMain(
   RUNTIME: RuntimeFn,
   KeyboardUtils: KeyboardUtilsLike,
   Mode: ModeCtor,
@@ -154,18 +154,14 @@ export default function (
     if (f === null) {
       return;
     }
-    if (f.style.display === "none") {
-      f.style.display = "";
-    } else {
-      f.style.display = "none";
-    }
+    f.style.display = f.style.display === "none" ? "" : "none";
   };
 
   function getURIPath(fn: string): string {
-    if (fn.length && !/^\w+:\/\/\w+/i.test(fn) && fn.indexOf("file:///") === -1) {
-      fn = fn.replace(/\\/g, "/");
+    if (fn.length && !/^\w+:\/\/\w+/i.test(fn) && !fn.includes("file:///")) {
+      fn = fn.replaceAll("\\", "/");
       if (fn[0] === "/") {
-        fn = fn.substring(1);
+        fn = fn.slice(1);
       }
       fn = "file:///" + fn;
     }
@@ -269,14 +265,7 @@ export default function (
     basicMappings = basicMappings
       .map((w) => {
         const binding = normal.mappings.find(KeyboardUtils.encodeKeystroke(w));
-        if (binding) {
-          return {
-            origin: w,
-            annotation: binding.meta.annotation,
-          };
-        } else {
-          return null;
-        }
+        return binding ? { origin: w, annotation: binding.meta.annotation } : null;
       })
       .filter((m) => m !== null);
   });
@@ -401,7 +390,7 @@ export default function (
         self.exit();
       } else if (event.keyCode === 8) {
         let ek = KeyboardUtils.encodeKeystroke(_key);
-        ek = ek.substring(0, ek.length - 1);
+        ek = ek.slice(0, -1);
         _key = KeyboardUtils.decodeKeystroke(ek);
         showKey();
       } else if (event.keyCode === 13) {

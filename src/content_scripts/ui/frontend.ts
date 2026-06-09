@@ -102,10 +102,10 @@ const Front = (() => {
         const characters = hints.getCharacters().toLowerCase();
         if (event.keyCode === KeyboardUtils.keyCodes["backspace"]) {
           if (pressedHintKeys.length > 0) {
-            pressedHintKeys = pressedHintKeys.substring(0, pressedHintKeys.length - 1);
+            pressedHintKeys = pressedHintKeys.slice(0, -1);
             refreshHints(tabHints, pressedHintKeys);
           }
-        } else if (characters.indexOf(key.toLowerCase()) !== -1) {
+        } else if (characters.includes(key.toLowerCase())) {
           pressedHintKeys = pressedHintKeys + key.toUpperCase();
           const hintState = refreshHints(tabHints, pressedHintKeys);
           if (hintState.matched) {
@@ -155,7 +155,7 @@ const Front = (() => {
         const pe = visibleDivs.map((d: any) => {
           const id = d.id;
           const divNoPointerEvents = ["sk_keystroke", "sk_banner"];
-          if (divNoPointerEvents.indexOf(id) !== -1) {
+          if (divNoPointerEvents.includes(id)) {
             // no pointerEvents for bubble
             return false;
           } else if (id === "sk_status") {
@@ -166,11 +166,7 @@ const Front = (() => {
             return !d.noPointerEvents;
           }
         });
-        // to make pointerEvents not empty
-        pe.push(false);
-        const pointerEvents2 = pe.reduce((a, b) => {
-          return a || b;
-        });
+        const pointerEvents2 = pe.some(Boolean);
 
         let ns;
         if (pointerEvents2) {
@@ -671,11 +667,7 @@ const Front = (() => {
   });
 
   self.toggleStatus = (visible: boolean) => {
-    if (visible) {
-      self.statusBar.style.display = "";
-    } else {
-      self.statusBar.style.display = "none";
-    }
+    self.statusBar.style.display = visible ? "" : "none";
   };
   _actions["toggleStatus"] = (message: any) => {
     self.toggleStatus(message.visible);
@@ -697,7 +689,7 @@ const Front = (() => {
       keystroke.style.display = "none";
       self.flush();
     }
-    if (runtime.conf.richHintsForKeystroke > 0 && runtime.conf.richHintsForKeystroke < 10000) {
+    if (runtime.conf.richHintsForKeystroke > 0 && runtime.conf.richHintsForKeystroke < 10_000) {
       clearPendingHint();
     }
   };
@@ -710,7 +702,7 @@ const Front = (() => {
         .map((w) => {
           const annotation = localizeAnnotation(locale, cc[w].annotation);
           if (annotation) {
-            const nextKey = w.substring(keyHints.accumulated.length);
+            const nextKey = w.slice(keyHints.accumulated.length);
             return `<div><span class=kbd-span><kbd>${htmlEncode(KeyboardUtils.decodeKeystroke(keyHints.accumulated))}<span class=candidates>${htmlEncode(KeyboardUtils.decodeKeystroke(nextKey))}</span></kbd></span><span class=annotation>${annotation}</span></div>`;
           } else {
             return "";
@@ -734,7 +726,7 @@ const Front = (() => {
       const keys = keystrokeText() + KeyboardUtils.decodeKeystroke(message.keyHints.key);
       setKeystrokeText(keys);
 
-      if (runtime.conf.richHintsForKeystroke > 0 && runtime.conf.richHintsForKeystroke < 10000) {
+      if (runtime.conf.richHintsForKeystroke > 0 && runtime.conf.richHintsForKeystroke < 10_000) {
         _pendingHint = setTimeout(() => {
           showRichHints(message.keyHints);
         }, runtime.conf.richHintsForKeystroke);
@@ -745,7 +737,7 @@ const Front = (() => {
   _actions["initFrontend"] = (message: any) => {
     self.topOrigin = message.origin;
     self.topSize = message.winSize;
-    return new Date().getTime();
+    return Date.now();
   };
   _actions["destroyFrontend"] = () => {
     if (_display && _display.style.display !== "none") {
@@ -964,7 +956,7 @@ const Find = (() => {
         query = input.value;
         if (query!.length && query !== ".") {
           if (event.ctrlKey) {
-            query = "\\b" + query + "\\b";
+            query = String.raw`\b` + query + String.raw`\b`;
           }
           reset();
           RUNTIME("updateInputHistory", { find: query });

@@ -348,14 +348,14 @@ function start(browser: any): void {
   };
   async function _removeURL(uid: string): Promise<void> {
     const type = uid[0];
-    uid = uid.substring(1);
+    uid = uid.slice(1);
     if (type === "B") {
       await chrome.bookmarks.remove(uid);
     } else if (type === "H") {
       await chrome.history.deleteUrl({ url: uid });
     } else if (type === "T") {
       const parts = uid.split(":").map((u) => {
-        return parseInt(u);
+        return Number.parseInt(u);
       });
       await chrome.windows.update(parts[0]!, {
         focused: true,
@@ -390,7 +390,8 @@ function start(browser: any): void {
   };
   handlers["getCaptureSize"] = async () => {
     const dataUrl = await chrome.tabs.captureVisibleTab({ format: "png" });
-    const blob = await (await fetch(dataUrl)).blob();
+    const response = await fetch(dataUrl);
+    const blob = await response.blob();
     const img = await createImageBitmap(blob);
     const size = { width: img.width, height: img.height };
     img.close();

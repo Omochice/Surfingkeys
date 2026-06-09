@@ -5,7 +5,7 @@ function LOG(level: LogLevel, msg: unknown): void {
   chrome.storage.local.get(["logLevels"], (r) => {
     const rawLogLevels: unknown = r?.["logLevels"];
     const logLevels: string[] = Array.isArray(rawLogLevels) ? rawLogLevels : ["error"];
-    if (["log", "warn", "error"].indexOf(level) !== -1 && logLevels.indexOf(level) !== -1) {
+    if (["log", "warn", "error"].includes(level) && logLevels.includes(level)) {
       console[level](msg);
     }
   });
@@ -14,7 +14,7 @@ function LOG(level: LogLevel, msg: unknown): void {
 function regexFromString(str: string, caseSensitive?: boolean, highlight?: boolean): RegExp {
   let rxp: RegExp;
   const flags = caseSensitive ? "" : "i";
-  str = str.replace(/[|\\{}()[\]^$+*?.]/g, "\\$&");
+  str = str.replaceAll(/[|\\{}()[\]^$+*?.]/g, String.raw`\$&`);
   if (highlight) {
     rxp = new RegExp(str.replace(/\s+/, "|"), flags);
   } else {

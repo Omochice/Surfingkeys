@@ -49,7 +49,7 @@ const youtubeSuggestSchema = v.tupleWithRest(
 const clipboardSettingsSchema = v.record(v.string(), v.unknown());
 const clipboardFormsSchema = v.record(v.string(), v.record(v.string(), v.unknown()));
 
-export default function (api: SurfingkeysApi, ctx: ModeContext): void {
+export default function createDefaultMappings(api: SurfingkeysApi, ctx: ModeContext): void {
   const { clipboard, normal, hints, visual, front } = ctx;
   const { addSearchAlias, cmap, map, mapkey, imapkey, vmapkey, searchSelectedWith } = api;
 
@@ -171,7 +171,7 @@ export default function (api: SurfingkeysApi, ctx: ModeContext): void {
   mapkey("gu", "#4Go up one path in the URL", () => {
     let pathname = location.pathname;
     if (pathname.length > 1) {
-      pathname = pathname.endsWith("/") ? pathname.substring(0, pathname.length - 1) : pathname;
+      pathname = pathname.endsWith("/") ? pathname.slice(0, -1) : pathname;
       let last = pathname.lastIndexOf("/");
       let repeats = RUNTIME.repeats;
       RUNTIME.repeats = 1;
@@ -183,7 +183,7 @@ export default function (api: SurfingkeysApi, ctx: ModeContext): void {
           last = p;
         }
       }
-      pathname = pathname.substring(0, last);
+      pathname = pathname.slice(0, last);
     }
     window.location.href = location.origin + pathname;
   });
@@ -736,8 +736,9 @@ export default function (api: SurfingkeysApi, ctx: ModeContext): void {
   mapkey("yp", "#7Copy form data for POST on current page", () => {
     const aa: Record<string, unknown>[] = [];
     document.querySelectorAll("form").forEach((form) => {
-      const fd: Record<string, unknown> = {};
-      fd[(form.method || "get") + "::" + form.action] = getFormData(form);
+      const fd: Record<string, unknown> = {
+        [(form.method || "get") + "::" + form.action]: getFormData(form),
+      };
       aa.push(fd);
     });
     clipboard.write(JSON.stringify(aa, null, 4));
@@ -803,7 +804,7 @@ export default function (api: SurfingkeysApi, ctx: ModeContext): void {
     "https://suggestion.baidu.com/su?cb=&wd=",
     (response: any) => {
       const res = response.text.match(/,s:\[("[^\]]+")]}/);
-      return res ? res[1].replace(/"/g, "").split(",") : [];
+      return res ? res[1].replaceAll('"', "").split(",") : [];
     },
   );
 
@@ -850,10 +851,7 @@ export default function (api: SurfingkeysApi, ctx: ModeContext): void {
     "s",
     "https://clients1.google.com/complete/search?client=youtube&ds=yt&callback=cb&q=",
     (response: any) => {
-      const result = v.safeParse(
-        youtubeSuggestSchema,
-        parseJsonSafe(response.text.substring(9, response.text.length - 1)),
-      );
+      const result = v.safeParse(youtubeSuggestSchema, parseJsonSafe(response.text.slice(9, -1)));
       return result.success ? result.output[1].map((d) => d[0]) : [];
     },
   );

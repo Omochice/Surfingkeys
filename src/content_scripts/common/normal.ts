@@ -353,7 +353,7 @@ function createNormal(insert: InsertLike): NormalMode {
       RUNTIME(
         "toggleBlocklist",
         {
-          blocklistPattern: runtime.conf.blocklistPattern ? runtime.conf.blocklistPattern : "",
+          blocklistPattern: runtime.conf.blocklistPattern || "",
         },
         (resp) => {
           if (resp.state === "disabled") {
@@ -462,7 +462,7 @@ function createNormal(insert: InsertLike): NormalMode {
       smoothScrollBy(x: number, y: number, d: number) {
         if (!keyHeld) {
           const prop: "scrollTop" | "scrollLeft" = y ? "scrollTop" : "scrollLeft";
-          const distance = y ? y : x;
+          const distance = y || x;
           const duration = d;
           let previousTimestamp = 0;
           let originValue = elm[prop];
@@ -602,12 +602,15 @@ function createNormal(insert: InsertLike): NormalMode {
     const clientWidth = isMainPage ? window.innerWidth : elm.clientWidth;
 
     switch (direction) {
-      case "vertical":
+      case "vertical": {
         return elm.scrollHeight > clientHeight + 1;
-      case "horizontal":
+      }
+      case "horizontal": {
         return elm.scrollWidth > clientWidth + 1;
-      default:
+      }
+      default: {
         return false;
+      }
     }
   }
 
@@ -679,53 +682,66 @@ function createNormal(insert: InsertLike): NormalMode {
     helpers.lastScrollTop = scrollNode.scrollTop;
     helpers.lastScrollLeft = scrollNode.scrollLeft;
     switch (type) {
-      case "down":
+      case "down": {
         helpers.skScrollBy(0, runtime.conf.scrollStepSize);
         break;
-      case "up":
+      }
+      case "up": {
         helpers.skScrollBy(0, -runtime.conf.scrollStepSize);
         break;
-      case "pageDown":
+      }
+      case "pageDown": {
         helpers.skScrollBy(0, Math.round(size[1] / 2));
         break;
-      case "fullPageDown":
+      }
+      case "fullPageDown": {
         helpers.skScrollBy(0, size[1]);
         break;
-      case "pageUp":
+      }
+      case "pageUp": {
         helpers.skScrollBy(0, -Math.round(size[1] / 2));
         break;
-      case "fullPageUp":
+      }
+      case "fullPageUp": {
         helpers.skScrollBy(0, -size[1]);
         break;
-      case "top":
+      }
+      case "top": {
         helpers.skScrollBy(0, -scrollNode.scrollTop);
         break;
-      case "bottom":
+      }
+      case "bottom": {
         helpers.skScrollBy(scrollNode.scrollLeft, scrollNode.scrollHeight - scrollNode.scrollTop);
         break;
-      case "left":
+      }
+      case "left": {
         helpers.skScrollBy(-Math.round(runtime.conf.scrollStepSize / 2), 0);
         break;
-      case "right":
+      }
+      case "right": {
         helpers.skScrollBy(Math.round(runtime.conf.scrollStepSize / 2), 0);
         break;
-      case "leftmost":
+      }
+      case "leftmost": {
         helpers.skScrollBy(-scrollNode.scrollLeft - 10, 0);
         break;
-      case "rightmost":
+      }
+      case "rightmost": {
         helpers.skScrollBy(scrollNode.scrollWidth - scrollNode.scrollLeft - size[0] + 20, 0);
         break;
+      }
       case "byRatio": {
         const y =
-          parseInt(String((RUNTIME.repeats * scrollNode.scrollHeight) / 100)) -
+          Number.parseInt(String((RUNTIME.repeats * scrollNode.scrollHeight) / 100)) -
           size[1] / 2 -
           scrollNode.scrollTop;
         RUNTIME.repeats = 0;
         helpers.skScrollBy(0, y);
         break;
       }
-      default:
+      default: {
         break;
+      }
     }
     dispatchSKEvent("observer", ["turnOff"]);
   };
@@ -740,7 +756,7 @@ function createNormal(insert: InsertLike): NormalMode {
     const current = scrollNodes?.[scrollIndex];
     if (
       !scrollNodes ||
-      ((current == null || !elm.contains(current)) && scrollNodes.indexOf(elm) === -1)
+      ((current == null || !elm.contains(current)) && !scrollNodes.includes(elm))
     ) {
       initScrollIndex();
       scrollNodes!.push(elm);
@@ -795,11 +811,12 @@ function createNormal(insert: InsertLike): NormalMode {
 
   self.addVIMark = (mark, url) => {
     url = url || window.location.href;
-    const mo: Record<string, { url: string; scrollLeft: number; scrollTop: number }> = {};
-    mo[mark] = {
-      url: url,
-      scrollLeft: document.scrollingElement!.scrollLeft,
-      scrollTop: document.scrollingElement!.scrollTop,
+    const mo: Record<string, { url: string; scrollLeft: number; scrollTop: number }> = {
+      [mark]: {
+        url: url,
+        scrollLeft: document.scrollingElement!.scrollLeft,
+        scrollTop: document.scrollingElement!.scrollTop,
+      },
     };
     RUNTIME("addVIMark", { mark: mo });
     showBanner(`Mark '${mark}' added for: ${url}.`);
@@ -1113,7 +1130,7 @@ function createNormal(insert: InsertLike): NormalMode {
   function _onMouseUp(event: MouseEvent): void {
     const target = event.target as Element;
     if (
-      runtime.conf.mouseSelectToQuery.indexOf(window.origin) !== -1 &&
+      runtime.conf.mouseSelectToQuery.includes(window.origin) &&
       !isElementClickable(target) &&
       !target.matches(".cm-matchhighlight")
     ) {

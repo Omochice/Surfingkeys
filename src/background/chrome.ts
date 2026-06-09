@@ -15,10 +15,10 @@ async function loadRawSettings(keys: string[], defaultSet?: any): Promise<any> {
     // on the returned settings instead of rejecting the whole load.
     try {
       await _save(chrome.storage.sync, localSet);
-    } catch (err) {
+    } catch (error) {
       subset.error =
         "Settings sync may not work thoroughly because of: " +
-        (err instanceof Error ? err.message : String(err));
+        (error instanceof Error ? error.message : String(error));
     }
     return subset;
   }
@@ -41,7 +41,7 @@ function _getContainerName(_self: unknown): void {}
 
 async function getLatestHistoryItem(text: string, maxResults: number): Promise<any[]> {
   let results: any[] = [];
-  let endTime = new Date().getTime();
+  let endTime = Date.now();
   // chrome.history.search has no substring filter, so widen the time window and
   // re-filter locally, looping until enough matches are collected or history is
   // exhausted.
@@ -59,7 +59,7 @@ async function getLatestHistoryItem(text: string, maxResults: number): Promise<a
       // all items are scanned or we have got what we want
       return results.slice(0, maxResults);
     }
-    endTime = items[items.length - 1]!.lastVisitTime! - 0.01;
+    endTime = items.at(-1)!.lastVisitTime! - 0.01;
   }
 }
 
