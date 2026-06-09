@@ -18,7 +18,7 @@ async function loadRawSettings(keys: string[], defaultSet?: any): Promise<any> {
     } catch (error) {
       subset.error =
         "Settings sync may not work thoroughly because of: " +
-        (error instanceof Error ? error.message : String(error));
+        (Error.isError(error) ? error.message : String(error));
     }
     return subset;
   }
