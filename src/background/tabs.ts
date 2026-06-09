@@ -1,9 +1,18 @@
 import { Result } from "@praha/byethrow";
+import * as v from "valibot";
 
 import { chromeRuntimeError } from "../common/result";
 import { filterByTitleOrUrl } from "../common/utils";
 import type { BackgroundConf, MessageHandler } from "./start";
 import { createTabHistory } from "./tabHistory";
+
+// Repeat-count actions carry `repeats` (injected by the content-script RUNTIME
+// helper); validate it rather than trusting the cross-process payload.
+const repeatsSchema = v.object({ repeats: v.optional(v.number()) });
+const reloadTabSchema = v.object({
+  repeats: v.optional(v.number()),
+  nocache: v.optional(v.boolean()),
+});
 
 /** Clamps a target index to between 0 and length. */
 export function _fixTo(to: number, length: number) {
@@ -229,7 +238,7 @@ export function createTabs(deps: TabsDeps): TabsUnit {
     });
   }
 
-  async function _nextTab(tab: any, step: number): Promise<void> {
+  async function _nextTab(tab: chrome.tabs.Tab | undefined, step: number): Promise<void> {
     if (tab) {
       const tabs = await chrome.tabs.query({ windowId: tab.windowId });
       if (tab.index == 0 && step == -1) {
@@ -247,7 +256,7 @@ export function createTabs(deps: TabsDeps): TabsUnit {
   }
 
   async function _roundRepeatTabs(
-    tab: any,
+    tab: chrome.tabs.Tab | undefined,
     repeats: number,
     operation: (tabIds: number[]) => void | Promise<void>,
   ): Promise<void> {
@@ -264,12 +273,16 @@ export function createTabs(deps: TabsDeps): TabsUnit {
     }
   }
 
-  async function _closeTab(s: any, n: number) {
+  async function _closeTab(s: chrome.runtime.MessageSender, n: number) {
+    if (!s.tab) {
+      return;
+    }
+    const tabIndex = s.tab.index;
     const tabs = await chrome.tabs.query({ currentWindow: true });
     const ids = tabs.map((e) => {
       return e.id!;
     });
-    chrome.tabs.remove(ids.slice(s.tab.index + (n < 0 ? n : 1), s.tab.index + (n < 0 ? 0 : 1 + n)));
+    chrome.tabs.remove(ids.slice(tabIndex + (n < 0 ? n : 1), tabIndex + (n < 0 ? 0 : 1 + n)));
   }
 
   function normalizeURL(url: string) {
@@ -401,32 +414,50 @@ export function createTabs(deps: TabsDeps): TabsUnit {
         });
       }
     },
-    nextTab: (message: any, sender: any) => _nextTab(sender.tab, message.repeats),
-    previousTab: (message: any, sender: any) => _nextTab(sender.tab, -message.repeats),
-    reloadTab: (message: any, sender: any) =>
-      _roundRepeatTabs(sender.tab, message.repeats, (tabIds) => {
+    nextTab: (message: unknown, sender?: chrome.runtime.MessageSender) =>
+      _nextTab(sender?.tab, v.parse(repeatsSchema, message).repeats ?? 1),
+    previousTab: (message: unknown, sender?: chrome.runtime.MessageSender) =>
+      _nextTab(sender?.tab, -(v.parse(repeatsSchema, message).repeats ?? 1)),
+    reloadTab: (message: unknown, sender?: chrome.runtime.MessageSender) => {
+      const { repeats, nocache } = v.parse(reloadTabSchema, message);
+      return _roundRepeatTabs(sender?.tab, repeats ?? 1, (tabIds) => {
         tabIds.forEach((tabId) => {
           chrome.tabs.reload(tabId, {
-            bypassCache: message.nocache,
+            bypassCache: nocache,
           });
         });
-      }),
-    closeTab: (message: any, sender: any) =>
-      _roundRepeatTabs(sender.tab, message.repeats, async (tabIds) => {
-        await chrome.tabs.remove(tabIds);
-        if (conf["focusAfterClosed"] === "left") {
-          await _nextTab(sender.tab, -1);
-        } else if (conf["focusAfterClosed"] === "last") {
-          const historyTab = handlers["historyTab"];
-          if (historyTab) {
-            historyTab({ backward: true });
+      });
+    },
+    closeTab: (message: unknown, sender?: chrome.runtime.MessageSender) =>
+      _roundRepeatTabs(
+        sender?.tab,
+        v.parse(repeatsSchema, message).repeats ?? 1,
+        async (tabIds) => {
+          await chrome.tabs.remove(tabIds);
+          if (conf["focusAfterClosed"] === "left") {
+            await _nextTab(sender?.tab, -1);
+          } else if (conf["focusAfterClosed"] === "last") {
+            const historyTab = handlers["historyTab"];
+            if (historyTab) {
+              historyTab({ backward: true });
+            }
           }
-        }
-      }),
-    closeTabLeft: (message: any, sender: any) => _closeTab(sender, -message.repeats),
-    closeTabRight: (message: any, sender: any) => _closeTab(sender, message.repeats),
-    closeTabsToLeft: (_message: any, sender: any) => _closeTab(sender, -sender.tab.index),
-    closeTabsToRight: async (_message: any, sender: any) => {
+        },
+      ),
+    closeTabLeft: (message: unknown, sender?: chrome.runtime.MessageSender) =>
+      sender ? _closeTab(sender, -(v.parse(repeatsSchema, message).repeats ?? 1)) : undefined,
+    closeTabRight: (message: unknown, sender?: chrome.runtime.MessageSender) =>
+      sender ? _closeTab(sender, v.parse(repeatsSchema, message).repeats ?? 1) : undefined,
+    closeTabsToLeft: (_message: unknown, sender?: chrome.runtime.MessageSender) => {
+      if (!sender?.tab) {
+        return undefined;
+      }
+      return _closeTab(sender, -sender.tab.index);
+    },
+    closeTabsToRight: async (_message: unknown, sender?: chrome.runtime.MessageSender) => {
+      if (!sender?.tab) {
+        return;
+      }
       const tabs = await chrome.tabs.query({ currentWindow: true });
       await _closeTab(sender, tabs.length - sender.tab.index);
     },
