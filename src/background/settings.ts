@@ -113,8 +113,8 @@ export async function _save(
 export type SettingsDeps = {
   conf: BackgroundConf;
   browser: any;
-  sendTabMessage: (tabId: number, frameId: number, message: any) => void;
-  tabMessages: Record<string, any>;
+  sendTabMessage: (tabId: number, frameId: number, message: unknown) => void;
+  tabMessages: Record<string, unknown>;
   setScrollPos: (tabId: number) => void;
   handlers: Record<string, MessageHandler>;
   newTabUrl: string;
@@ -242,7 +242,7 @@ export function createSettings(deps: SettingsDeps): SettingsUnit {
     return url;
   }
 
-  async function _loadSettingsFromUrl(url: string): Promise<any> {
+  async function _loadSettingsFromUrl(url: string): Promise<{ status: string; snippets?: string }> {
     const r = await request(appendNonce(url));
     if (Result.isSuccess(r)) {
       const resp = r.value;
@@ -253,12 +253,12 @@ export function createSettings(deps: SettingsDeps): SettingsUnit {
     return { status: "Failed" };
   }
 
-  async function registerUserScript(snippets: any): Promise<void> {
+  async function registerUserScript(snippets: unknown): Promise<void> {
     if (!isUserScriptsAvailable()) {
       return;
     }
     const userScriptId = "settingsSnippets";
-    if (snippets) {
+    if (typeof snippets === "string" && snippets) {
       const r = await chrome.userScripts.getScripts({ ids: [userScriptId] });
       const code = `import('./api.js').then((module) => {module.default("${chrome.runtime.getURL("/")}", (api, settings) => {${snippets}\n})});`;
       const script = {
@@ -283,16 +283,16 @@ export function createSettings(deps: SettingsDeps): SettingsUnit {
     }
   }
 
-  async function onFullSettingsRequested(data: any): Promise<void> {
-    data.isMV3 = isMV3;
-    data.isUserScriptsAvailable = isUserScriptsAvailable();
+  async function onFullSettingsRequested(data: Record<string, unknown>): Promise<void> {
+    data["isMV3"] = isMV3;
+    data["isUserScriptsAvailable"] = isUserScriptsAvailable();
     if (isMV3) {
-      data.showAdvanced = data.isUserScriptsAvailable && data.showAdvanced;
+      data["showAdvanced"] = data["isUserScriptsAvailable"] && data["showAdvanced"];
     }
 
-    if (data.isUserScriptsAvailable && data.showAdvanced) {
-      await registerUserScript(data.snippets);
-    } else if (data.isUserScriptsAvailable) {
+    if (data["isUserScriptsAvailable"] && data["showAdvanced"]) {
+      await registerUserScript(data["snippets"]);
+    } else if (data["isUserScriptsAvailable"]) {
       await registerUserScript(null);
     }
   }
