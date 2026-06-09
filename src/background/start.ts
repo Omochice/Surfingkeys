@@ -21,6 +21,19 @@ export type MessageHandler = (
   sendResponse?: (result: any) => void,
 ) => any;
 
+/**
+ * The fixed-shape subset of settings the background keeps in memory. Settings only ever updates
+ * keys already present here (the `updateSettings` loop guards with `Object.hasOwn(conf, k)`), so
+ * the shape never grows beyond these five fields.
+ */
+export type BackgroundConf = {
+  focusAfterClosed?: string;
+  tabsMRUOrder?: boolean;
+  newTabPosition?: string;
+  showTabIndices?: boolean;
+  interceptedErrors?: unknown[];
+};
+
 // GitHub gist API responses are external data; each parsed body is validated so
 // the fields consumed below carry real types instead of any.
 const gistListSchema = v.array(
@@ -225,7 +238,7 @@ function start(browser: any): void {
 
   const isMV3 = chrome.runtime.getManifest().manifest_version === 3;
 
-  const conf: Record<string, any> = {
+  const conf: BackgroundConf = {
     focusAfterClosed: "right",
     tabsMRUOrder: true,
     newTabPosition: "default",

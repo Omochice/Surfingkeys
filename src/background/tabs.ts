@@ -2,7 +2,7 @@ import { Result } from "@praha/byethrow";
 
 import { chromeRuntimeError } from "../common/result";
 import { filterByTitleOrUrl } from "../common/utils";
-import type { MessageHandler } from "./start";
+import type { BackgroundConf, MessageHandler } from "./start";
 import { createTabHistory } from "./tabHistory";
 
 /** Clamps a target index to between 0 and length. */
@@ -29,7 +29,7 @@ export function _roundBase(base: number, repeats: number, length: number) {
  * intra-tab cross-calls (viewSource → openLink, closeTab → historyTab).
  */
 export type TabsDeps = {
-  conf: Record<string, any>;
+  conf: BackgroundConf;
   browser: any;
   handlers: Record<string, MessageHandler>;
 };

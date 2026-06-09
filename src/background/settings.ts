@@ -2,7 +2,7 @@ import { Result } from "@praha/byethrow";
 
 import { chromeRuntimeError } from "../common/result";
 import { request } from "./request";
-import type { MessageHandler } from "./start";
+import type { BackgroundConf, MessageHandler } from "./start";
 
 /** Shallow-merges every own enumerable property of `ss` onto `target` in place. */
 export function extendObject(target: any, ss: any): void {
@@ -84,7 +84,7 @@ export async function _save(storage: any, data: any): Promise<void> {
  * actions that drive tab navigation.
  */
 export type SettingsDeps = {
-  conf: Record<string, any>;
+  conf: BackgroundConf;
   browser: any;
   sendTabMessage: (tabId: number, frameId: number, message: any) => void;
   tabMessages: Record<string, any>;
@@ -394,9 +394,16 @@ export function createSettings(deps: SettingsDeps): SettingsUnit {
       if (message.scope === "snippets") {
         // For settings from snippets, don't broadcast the update
         // neither persist into storage
-        for (const k in message.settings) {
-          if (Object.hasOwn(conf, k)) {
-            conf[k] = message.settings[k];
+        const confKeys = [
+          "focusAfterClosed",
+          "tabsMRUOrder",
+          "newTabPosition",
+          "showTabIndices",
+          "interceptedErrors",
+        ] as const;
+        for (const k of confKeys) {
+          if (Object.hasOwn(message.settings, k)) {
+            Object.assign(conf, { [k]: message.settings[k] });
           }
         }
         return { error };
