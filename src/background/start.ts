@@ -15,6 +15,9 @@ import { createTabs } from "./tabs";
  * Extracted background units export a `Record<string, MessageHandler>` map that the composition
  * root registers into the dispatch registry.
  */
+// The dispatch slot is intentionally loose: each handler narrows `message` (and
+// `sender`) for itself, and the dispatcher only inspects the returned value's
+// then-able-ness, so the registry stays callable with any handler shape.
 export type MessageHandler = (
   message: any,
   sender?: any,
@@ -64,6 +67,13 @@ const gistCommentSchema = v.object({ body: v.string() });
 // GitHub returns gist comment ids as integers (unlike the gist id, which is a
 // hex string), so accept both and normalize to string for use in request URLs.
 const gistCommentListSchema = v.array(v.object({ id: v.union([v.string(), v.number()]) }));
+
+// Every runtime message carries an `action` to dispatch on (set by the
+// content-script RUNTIME helper); `needResponse` flags whether the sender awaits.
+const messageEnvelopeSchema = v.object({
+  action: v.string(),
+  needResponse: v.optional(v.boolean()),
+});
 
 // Request payloads for the standalone background handlers cross the
 // chrome.runtime boundary, so each is validated before its fields are used.
@@ -262,39 +272,46 @@ function start(browser: BrowserAdapter): void {
     interceptedErrors: [],
   };
 
-  function handleMessage(_message: any, _sender: any, _sendResponse: any) {
-    const handler = Object.hasOwn(handlers, _message.action)
-      ? handlers[_message.action]
-      : undefined;
-    if (!handler) {
-      console.log("[unexpected runtime message] " + JSON.stringify(_message));
+  function handleMessage(
+    rawMessage: unknown,
+    sender: chrome.runtime.MessageSender,
+    sendResponse: (response?: unknown) => void,
+  ) {
+    const envelope = v.safeParse(messageEnvelopeSchema, rawMessage);
+    const handler =
+      envelope.success && Object.hasOwn(handlers, envelope.output.action)
+        ? handlers[envelope.output.action]
+        : undefined;
+    if (!handler || !envelope.success) {
+      console.log("[unexpected runtime message] " + JSON.stringify(rawMessage));
       return undefined;
     }
-    const result = handler(_message, _sender, _sendResponse);
+    const result = handler(rawMessage, sender, sendResponse);
     // Asynchronous handlers resolve to the response value; bridge it to
     // sendResponse and keep the channel open, settling even on rejection so a
     // throwing handler never hangs the sender.
     if (result instanceof Promise) {
-      if (!_message.needResponse) {
+      if (!envelope.output.needResponse) {
         void result.catch(() => {});
         return undefined;
       }
       void result.then(
-        (value) => _sendResponse(value),
-        (error) => _sendResponse({ error: String(error) }),
+        (value) => sendResponse(value),
+        (error) => sendResponse({ error: String(error) }),
       );
       return true;
     }
     // Synchronous handlers return their payload directly.
-    if (_message.needResponse && result) {
-      _sendResponse(result);
+    if (envelope.output.needResponse && result) {
+      sendResponse(result);
     }
     return undefined;
   }
   chrome.runtime.onMessage.addListener(handleMessage);
   if (isMV3) {
-    chrome.runtime.onUserScriptMessage.addListener((m: any, s: any, r: any) => {
-      m.fromUserScript = true;
+    // `fromUserScript` was written here but never read, so the message is
+    // forwarded to the shared dispatcher unchanged.
+    chrome.runtime.onUserScriptMessage.addListener((m, s, r) => {
       handleMessage(m, s, r);
     });
     chrome.runtime.onInstalled.addListener(() => {
