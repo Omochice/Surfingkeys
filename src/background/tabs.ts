@@ -21,6 +21,7 @@ const gatherTabsSchema = v.object({ tabs: v.array(v.object({ id: v.number() })) 
 const moveTabSchema = v.object({ step: v.number(), repeats: v.optional(v.number()) });
 const tabURLAccessedSchema = v.object({ url: v.string(), title: v.string() });
 const setZoomSchema = v.object({ zoomFactor: v.number(), repeats: v.optional(v.number()) });
+const queueURLsSchema = v.object({ urls: v.array(v.string()) });
 
 /** Clamps a target index to between 0 and length. */
 export function _fixTo(to: number, length: number) {
@@ -58,8 +59,11 @@ export type TabsDeps = {
  */
 export type TabsUnit = {
   handlers: Record<string, MessageHandler>;
-  sendTabMessage: (tabId: number, frameId: number, message: any) => void;
-  filterByTitleOrUrl: (tabs: readonly any[], query: string) => readonly any[];
+  sendTabMessage: (tabId: number, frameId: number, message: unknown) => void;
+  filterByTitleOrUrl: <T extends { title?: string | undefined; url?: string | undefined }>(
+    tabs: readonly T[],
+    query: string,
+  ) => readonly T[];
   tabMessages: Record<string, any>;
   setScrollPos: (tabId: number) => void;
   newTabUrl: string;
@@ -87,7 +91,7 @@ export function createTabs(deps: TabsDeps): TabsUnit {
 
   let _lastActiveTabId: number | null = null;
   let previousWindowChoice = -1;
-  let _queueURLs: any[] = [];
+  let _queueURLs: string[] = [];
 
   function removeTab(tabId: number) {
     delete tabActivated[tabId];
@@ -116,7 +120,7 @@ export function createTabs(deps: TabsDeps): TabsUnit {
     }
   }
 
-  function sendTabMessage(tabId: number, frameId: number, message: any) {
+  function sendTabMessage(tabId: number, frameId: number, message: unknown) {
     const opts = frameId === -1 ? undefined : { frameId: frameId };
     // Wrap to suppress Uncaught (in promise) Error on sending message to unsupported tabs like chrome://
     const p = chrome.tabs.sendMessage(tabId, message, opts);
@@ -230,11 +234,17 @@ export function createTabs(deps: TabsDeps): TabsUnit {
     }
   }
 
-  function _filterByTitleOrUrl(tabs: readonly any[], query: string) {
-    tabs = tabs.filter((b) => {
-      return b.url;
-    });
-    return filterByTitleOrUrl(tabs, query, false);
+  function _filterByTitleOrUrl<T extends { title?: string | undefined; url?: string | undefined }>(
+    tabs: readonly T[],
+    query: string,
+  ): readonly T[] {
+    return filterByTitleOrUrl(
+      tabs.filter((b) => {
+        return b.url;
+      }),
+      query,
+      false,
+    );
   }
 
   async function focusTab(windowId: number, tabId: number) {
@@ -698,8 +708,8 @@ export function createTabs(deps: TabsDeps): TabsUnit {
         await chrome.tabs.setZoom(tabId, zf + zoomFactor);
       }
     },
-    queueURLs: (message: any) => {
-      _queueURLs = _queueURLs.concat(message.urls);
+    queueURLs: (message: unknown) => {
+      _queueURLs = _queueURLs.concat(v.parse(queueURLsSchema, message).urls);
     },
     getQueueURLs: () => {
       return {

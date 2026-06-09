@@ -29,7 +29,7 @@ function regexFromString(str: string, caseSensitive?: boolean, highlight?: boole
   return rxp;
 }
 
-function filterByTitleOrUrl<T extends { title?: string; url?: string }>(
+function filterByTitleOrUrl<T extends { title?: string | undefined; url?: string | undefined }>(
   urls: readonly T[],
   query?: string,
   caseSensitive?: boolean,

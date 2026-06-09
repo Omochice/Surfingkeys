@@ -169,7 +169,7 @@ describe("createTabs — filterByTitleOrUrl", () => {
       "",
     );
     expect(result).toHaveLength(1);
-    expect(result[0].url).toBe("https://example.com");
+    expect(result[0]?.url).toBe("https://example.com");
   });
 
   it("returns only tabs matching the query string", () => {
@@ -180,7 +180,7 @@ describe("createTabs — filterByTitleOrUrl", () => {
     ];
     const result = unit.filterByTitleOrUrl(tabs, "example");
     expect(result).toHaveLength(1);
-    expect(result[0].url).toBe("https://example.com");
+    expect(result[0]?.url).toBe("https://example.com");
   });
 
   it("returns all URL-bearing tabs when query is empty", () => {
