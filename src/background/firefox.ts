@@ -6,7 +6,7 @@ async function loadRawSettings(keys: string[], defaultSet?: any): Promise<any> {
   extendObject(rawSet, localSet);
   const subset = getSubSettings(rawSet, keys);
   if (chrome.runtime.lastError) {
-    subset.error =
+    subset["error"] =
       "Settings sync may not work thoroughly because of: " + chrome.runtime.lastError.message;
   }
   return subset;

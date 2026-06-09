@@ -16,7 +16,7 @@ async function loadRawSettings(keys: string[], defaultSet?: any): Promise<any> {
     try {
       await _save(chrome.storage.sync, localSet);
     } catch (error) {
-      subset.error =
+      subset["error"] =
         "Settings sync may not work thoroughly because of: " +
         (Error.isError(error) ? error.message : String(error));
     }

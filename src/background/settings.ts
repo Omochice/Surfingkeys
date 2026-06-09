@@ -5,7 +5,7 @@ import { request } from "./request";
 import type { BackgroundConf, MessageHandler } from "./start";
 
 /** Shallow-merges every own enumerable property of `ss` onto `target` in place. */
-export function extendObject(target: any, ss: any): void {
+export function extendObject(target: Record<string, unknown>, ss: Record<string, unknown>): void {
   for (const k in ss) {
     target[k] = ss[k];
   }
@@ -15,20 +15,19 @@ export function extendObject(target: any, ss: any): void {
  * Projects `set` to the requested `keys`. A null/undefined/"" key set returns the whole object; a
  * single key or an array of keys returns just that subset.
  */
-export function getSubSettings(set: any, keys: any): any {
-  let subset: any;
+export function getSubSettings(
+  set: Record<string, unknown>,
+  keys: string | readonly string[] | null | undefined,
+): Record<string, unknown> {
   if (!keys) {
     // if null/undefined/""
-    subset = set;
-  } else {
-    if (!Array.isArray(keys)) {
-      keys = [keys];
-    }
-    subset = {};
-    keys.forEach((k: string) => {
-      subset[k] = set[k];
-    });
+    return set;
   }
+  const keyList = Array.isArray(keys) ? keys : [keys];
+  const subset: Record<string, unknown> = {};
+  keyList.forEach((k: string) => {
+    subset[k] = set[k];
+  });
   return subset;
 }
 
