@@ -36,6 +36,27 @@ const gistCommentSchema = v.object({ body: v.string() });
 // hex string), so accept both and normalize to string for use in request URLs.
 const gistCommentListSchema = v.array(v.object({ id: v.union([v.string(), v.number()]) }));
 
+// Request payloads for the standalone background handlers cross the
+// chrome.runtime boundary, so each is validated before its fields are used.
+const setIconSchema = v.object({ status: v.optional(v.string()) });
+const requestSchema = v.object({
+  url: v.string(),
+  headers: v.optional(v.record(v.string(), v.string())),
+  data: v.optional(v.string()),
+});
+const urlSchema = v.object({ url: v.string() });
+const closeDownloadsShelfSchema = v.object({ clearHistory: v.optional(v.boolean()) });
+const downloadSchema = v.object({
+  url: v.string(),
+  filename: v.optional(v.string()),
+  saveAs: v.optional(v.boolean()),
+});
+const removeURLSchema = v.object({ uid: v.union([v.string(), v.array(v.string())]) });
+const textSchema = v.object({ text: v.string() });
+const tokenSchema = v.object({ token: v.string() });
+const commentIndexSchema = v.object({ index: v.number() });
+const editCommentSchema = v.object({ index: v.number(), content: v.string() });
+
 const Gist = (() => {
   const self: any = {};
 
@@ -276,27 +297,30 @@ function start(browser: any): void {
   Object.assign(handlers, createBookmarkHandlers());
   Object.assign(handlers, createHistoryHandlers(browser, tabs.filterByTitleOrUrl));
 
-  handlers["setSurfingkeysIcon"] = (message: any, sender: any, _sendResponse: any) => {
+  handlers["setSurfingkeysIcon"] = (message: unknown, sender?: chrome.runtime.MessageSender) => {
+    const { status } = v.parse(setIconSchema, message);
     let icon = "icons/48.png";
-    if (message.status === "disabled") {
+    if (status === "disabled") {
       icon = "icons/48-x.png";
-    } else if (message.status === "lurking") {
+    } else if (status === "lurking") {
       icon = "icons/48-l.png";
     }
     const browserAction = isMV3 ? chrome.action : chrome.browserAction;
     browserAction.setIcon({
       path: icon,
-      tabId: sender.tab ? sender.tab.id : undefined,
+      tabId: sender?.tab?.id,
     });
   };
-  handlers["request"] = async (message: any) => {
-    const r = await request(message.url, message.headers, message.data);
+  handlers["request"] = async (message: unknown) => {
+    const { url, headers, data } = v.parse(requestSchema, message);
+    const r = await request(url, headers, data);
     return Result.isSuccess(r) ? { text: r.value } : { error: String(r.error.cause) };
   };
-  handlers["requestImage"] = async (message: any) => {
+  handlers["requestImage"] = async (message: unknown) => {
+    const { url } = v.parse(urlSchema, message);
     const r = await Result.try({
       try: async () => {
-        const res = await fetch(message.url, { method: "GET" });
+        const res = await fetch(url, { method: "GET" });
         const img = await createImageBitmap(await res.blob());
         const canvas = new OffscreenCanvas(img.width, img.height);
         canvas.getContext("2d")!.drawImage(img, 0, 0, canvas.width, canvas.height);
@@ -327,8 +351,9 @@ function start(browser: any): void {
   handlers["quit"] = () => {
     void _quit();
   };
-  handlers["closeDownloadsShelf"] = (message: any, _sender: any, _sendResponse: any) => {
-    if (message.clearHistory) {
+  handlers["closeDownloadsShelf"] = (message: unknown) => {
+    const { clearHistory } = v.parse(closeDownloadsShelfSchema, message);
+    if (clearHistory) {
       chrome.downloads.erase({ urlRegex: ".*" });
     } else {
       chrome.downloads.setShelfEnabled(false);
@@ -339,12 +364,9 @@ function start(browser: any): void {
     const downloads = await chrome.downloads.search(message.query);
     return { downloads };
   };
-  handlers["download"] = (message: any, _sender: any, _sendResponse: any) => {
-    chrome.downloads.download({
-      url: message.url,
-      filename: message.filename,
-      saveAs: message.saveAs,
-    });
+  handlers["download"] = (message: unknown) => {
+    const { url, filename, saveAs } = v.parse(downloadSchema, message);
+    chrome.downloads.download({ url, filename, saveAs });
   };
   async function _removeURL(uid: string): Promise<void> {
     const type = uid[0];
@@ -367,9 +389,10 @@ function start(browser: any): void {
       await settings.updateAndPostSettings({ marks: data.marks });
     }
   }
-  handlers["removeURL"] = async (message: any) => {
-    const uids = typeof message.uid === "string" ? [message.uid] : message.uid;
-    await Promise.all(uids.map((u: string) => _removeURL(u)));
+  handlers["removeURL"] = async (message: unknown) => {
+    const { uid } = v.parse(removeURLSchema, message);
+    const uids = typeof uid === "string" ? [uid] : uid;
+    await Promise.all(uids.map((u) => _removeURL(u)));
     return { response: "Done" };
   };
   handlers["localData"] = async (message: any) => {
@@ -397,20 +420,27 @@ function start(browser: any): void {
     img.close();
     return size;
   };
-  handlers["initGist"] = async (message: any) => {
-    return { gist: await Gist.initGist(message.token) };
+  handlers["initGist"] = async (message: unknown) => {
+    const { token } = v.parse(tokenSchema, message);
+    return { gist: await Gist.initGist(token) };
   };
-  handlers["readComment"] = (message: any) => Gist.readComment(message.index);
-  handlers["editComment"] = async (message: any) => {
-    return { gistResp: await Gist.editComment(message.index, message.content) };
+  handlers["readComment"] = (message: unknown) => {
+    const { index } = v.parse(commentIndexSchema, message);
+    return Gist.readComment(index);
+  };
+  handlers["editComment"] = async (message: unknown) => {
+    const { index, content } = v.parse(editCommentSchema, message);
+    return { gistResp: await Gist.editComment(index, content) };
   };
 
-  handlers["openIncognito"] = (message: any, _sender: any, _sendResponse: any) => {
-    chrome.windows.create({ url: message.url, incognito: true });
+  handlers["openIncognito"] = (message: unknown) => {
+    const { url } = v.parse(urlSchema, message);
+    chrome.windows.create({ url, incognito: true });
   };
 
-  handlers["writeClipboard"] = (message: any, _sender: any, _sendResponse: any) => {
-    navigator.clipboard.writeText(message.text);
+  handlers["writeClipboard"] = (message: unknown) => {
+    const { text } = v.parse(textSchema, message);
+    navigator.clipboard.writeText(text);
   };
   handlers["getContainerName"] = browser._getContainerName(handlers);
   chrome.runtime.setUninstallURL(
