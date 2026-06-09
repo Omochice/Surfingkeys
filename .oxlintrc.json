@@ -38,7 +38,8 @@
     "unicorn/no-array-reduce": "error",
     "unicorn/prefer-string-raw": "error",
     "unicorn/prefer-at": "error",
-    "unicorn/switch-case-braces": "error"
+    "unicorn/switch-case-braces": "error",
+    "unicorn/prefer-logical-operator-over-ternary": "error"
   },
   "env": {
     "builtin": true,
