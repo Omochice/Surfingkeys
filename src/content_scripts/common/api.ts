@@ -85,14 +85,14 @@ function createAPI(ctx: ModeContext) {
         }
         LOG("warn", warning);
       } else if (keys.length > 1) {
-        let p = keys.slice(0, keys.length - 1);
+        let p = keys.slice(0, -1);
         while (p.length > 0) {
           const node = mode.mappings.find(p);
           if (node && node.meta) {
             LOG("warn", `${node.meta.word} for [${node.meta.annotation}] precedes ${keys}.`);
             return;
           }
-          p = p.slice(0, p.length - 1);
+          p = p.slice(0, -1);
         }
       }
       const keybound = createKeyTarget(

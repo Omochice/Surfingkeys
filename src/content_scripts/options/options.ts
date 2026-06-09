@@ -401,7 +401,7 @@ export default function optionsMain(
         self.exit();
       } else if (event.keyCode === 8) {
         let ek = KeyboardUtils.encodeKeystroke(_key);
-        ek = ek.slice(0, ek.length - 1);
+        ek = ek.slice(0, -1);
         _key = KeyboardUtils.decodeKeystroke(ek);
         showKey();
       } else if (event.keyCode === 13) {

@@ -349,10 +349,10 @@ div.hint-scrollable {
     } else if (hints.length > 0) {
       if (event.keyCode === KeyboardUtils.keyCodes["backspace"]) {
         if (prefix.length > 0) {
-          prefix = prefix.slice(0, prefix.length - 1);
+          prefix = prefix.slice(0, -1);
           handleHint(event);
         } else if (textFilter.length > 0) {
-          textFilter = textFilter.slice(0, textFilter.length - 1);
+          textFilter = textFilter.slice(0, -1);
           refreshByTextFilter();
         }
       } else {

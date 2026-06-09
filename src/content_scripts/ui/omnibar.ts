@@ -291,7 +291,7 @@ function createOmnibar(front: any, clipboard: any) {
       lastHandler = null;
       setPrompt(handler.prompt);
       if (val.length) {
-        setQuery(val.slice(0, val.length - 1));
+        setQuery(val.slice(0, -1));
       }
       self.triggerInput();
       eaten = true;

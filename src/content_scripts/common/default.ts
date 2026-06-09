@@ -171,7 +171,7 @@ export default function createDefaultMappings(api: SurfingkeysApi, ctx: ModeCont
   mapkey("gu", "#4Go up one path in the URL", () => {
     let pathname = location.pathname;
     if (pathname.length > 1) {
-      pathname = pathname.endsWith("/") ? pathname.slice(0, pathname.length - 1) : pathname;
+      pathname = pathname.endsWith("/") ? pathname.slice(0, -1) : pathname;
       let last = pathname.lastIndexOf("/");
       let repeats = RUNTIME.repeats;
       RUNTIME.repeats = 1;
@@ -850,10 +850,7 @@ export default function createDefaultMappings(api: SurfingkeysApi, ctx: ModeCont
     "s",
     "https://clients1.google.com/complete/search?client=youtube&ds=yt&callback=cb&q=",
     (response: any) => {
-      const result = v.safeParse(
-        youtubeSuggestSchema,
-        parseJsonSafe(response.text.slice(9, response.text.length - 1)),
-      );
+      const result = v.safeParse(youtubeSuggestSchema, parseJsonSafe(response.text.slice(9, -1)));
       return result.success ? result.output[1].map((d) => d[0]) : [];
     },
   );

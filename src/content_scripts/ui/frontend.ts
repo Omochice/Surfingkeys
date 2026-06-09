@@ -102,7 +102,7 @@ const Front = (() => {
         const characters = hints.getCharacters().toLowerCase();
         if (event.keyCode === KeyboardUtils.keyCodes["backspace"]) {
           if (pressedHintKeys.length > 0) {
-            pressedHintKeys = pressedHintKeys.slice(0, pressedHintKeys.length - 1);
+            pressedHintKeys = pressedHintKeys.slice(0, -1);
             refreshHints(tabHints, pressedHintKeys);
           }
         } else if (characters.includes(key.toLowerCase())) {
