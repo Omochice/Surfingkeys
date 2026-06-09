@@ -27,6 +27,13 @@ const createSessionMessageSchema = v.object({
   quitAfterSaved: v.optional(v.boolean()),
 });
 const sessionNameMessageSchema = v.object({ name: v.string() });
+const getSettingsMessageSchema = v.object({
+  key: v.optional(v.union([v.string(), v.array(v.string()), v.null()])),
+});
+const updateSettingsMessageSchema = v.object({
+  scope: v.optional(v.string()),
+  settings: v.record(v.string(), v.unknown()),
+});
 
 /** Shallow-merges every own enumerable property of `ss` onto `target` in place. */
 export function extendObject(target: Record<string, unknown>, ss: Record<string, unknown>): void {
@@ -128,9 +135,11 @@ export type SettingsDeps = {
  */
 export type SettingsUnit = {
   handlers: Record<string, MessageHandler>;
-  loadSettings: (keys: any) => Promise<any>;
-  updateAndPostSettings: (diffSettings: any) => Promise<void>;
-  broadcastSettings: (data: any) => Promise<void>;
+  loadSettings: (
+    keys: string | readonly string[] | null | undefined,
+  ) => Promise<Record<string, unknown>>;
+  updateAndPostSettings: (diffSettings: Record<string, unknown>) => Promise<void>;
+  broadcastSettings: (data: Record<string, unknown>) => Promise<void>;
 };
 
 /**
@@ -432,22 +441,25 @@ export function createSettings(deps: SettingsDeps): SettingsUnit {
     },
     loadSettingsFromUrl: (message: unknown) =>
       _loadSettingsFromUrl(v.parse(urlMessageSchema, message).url),
-    getSettings: async (message: any) => {
-      let data: any;
-      if (message.key === "RAW") {
-        message.key = "";
-        data = await browser.loadRawSettings(message.key);
+    getSettings: async (message: unknown) => {
+      const parsed = v.parse(getSettingsMessageSchema, message);
+      let key = parsed.key;
+      let data: Record<string, unknown>;
+      if (key === "RAW") {
+        key = "";
+        data = await browser.loadRawSettings(key);
       } else {
-        data = await loadSettings(message.key);
+        data = await loadSettings(key);
       }
-      if (message.key == null) {
+      if (key == null) {
         await onFullSettingsRequested(data);
       }
       return { settings: data };
     },
-    updateSettings: async (message: any) => {
+    updateSettings: async (message: unknown) => {
+      const { scope, settings } = v.parse(updateSettingsMessageSchema, message);
       const error = "";
-      if (message.scope === "snippets") {
+      if (scope === "snippets") {
         // For settings from snippets, don't broadcast the update
         // neither persist into storage
         const confKeys = [
@@ -458,13 +470,13 @@ export function createSettings(deps: SettingsDeps): SettingsUnit {
           "interceptedErrors",
         ] as const;
         for (const k of confKeys) {
-          if (Object.hasOwn(message.settings, k)) {
-            Object.assign(conf, { [k]: message.settings[k] });
+          if (Object.hasOwn(settings, k)) {
+            Object.assign(conf, { [k]: settings[k] });
           }
         }
         return { error };
       }
-      if (message.settings.showAdvanced && isMV3) {
+      if (settings["showAdvanced"] && isMV3) {
         if (!isUserScriptsAvailable()) {
           return {
             error:
@@ -475,11 +487,11 @@ export function createSettings(deps: SettingsDeps): SettingsUnit {
           csp: "script-src 'self' 'unsafe-eval'",
           messaging: true,
         });
-        await _updateAndPostSettings(message.settings);
-        await registerUserScript(message.settings.snippets);
+        await _updateAndPostSettings(settings);
+        await registerUserScript(settings["snippets"]);
         return { error };
       }
-      await _updateAndPostSettings(message.settings);
+      await _updateAndPostSettings(settings);
       return { error };
     },
     updateInputHistory: async (message: unknown) => {

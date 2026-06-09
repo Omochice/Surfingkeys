@@ -414,8 +414,9 @@ function start(browser: BrowserAdapter): void {
       await chrome.tabs.remove(parts[1]!);
     } else if (type === "M") {
       const data = await settings.loadSettings("marks");
-      delete data.marks[uid];
-      await settings.updateAndPostSettings({ marks: data.marks });
+      const marks = v.parse(v.record(v.string(), v.record(v.string(), v.unknown())), data["marks"]);
+      delete marks[uid];
+      await settings.updateAndPostSettings({ marks });
     }
   }
   handlers["removeURL"] = async (message: unknown) => {
