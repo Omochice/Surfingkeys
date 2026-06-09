@@ -27,6 +27,23 @@ const historyTabSchema = v.object({
   backward: v.optional(v.boolean()),
 });
 const nextFrameSchema = v.object({ frameId: v.optional(v.union([v.string(), v.number()])) });
+const tabFlagsSchema = v.object({
+  tabbed: v.optional(v.boolean()),
+  active: v.optional(v.boolean()),
+  pinned: v.optional(v.boolean()),
+});
+const openLinkSchema = v.object({
+  url: v.string(),
+  tab: tabFlagsSchema,
+  scrollLeft: v.optional(v.number()),
+  scrollTop: v.optional(v.number()),
+});
+const viewSourceSchema = v.object({
+  tab: tabFlagsSchema,
+  scrollLeft: v.optional(v.number()),
+  scrollTop: v.optional(v.number()),
+});
+type OpenLinkMessage = v.InferOutput<typeof openLinkSchema>;
 
 /** Clamps a target index to between 0 and length. */
 export function _fixTo(to: number, length: number) {
@@ -319,8 +336,12 @@ export function createTabs(deps: TabsDeps): TabsUnit {
     return url;
   }
 
-  async function openUrlInNewTab(currentTab: any, url: string, message: any) {
-    let newTabPosition;
+  async function openUrlInNewTab(
+    currentTab: chrome.tabs.Tab | undefined,
+    url: string,
+    message: OpenLinkMessage,
+  ) {
+    let newTabPosition: number | undefined;
     if (currentTab) {
       switch (conf["newTabPosition"]) {
         case "left": {
@@ -350,10 +371,10 @@ export function createTabs(deps: TabsDeps): TabsUnit {
       active: message.tab.active,
       index: newTabPosition,
       pinned: message.tab.pinned,
-      openerTabId: currentTab.id,
+      openerTabId: currentTab?.id,
     });
-    if (message.scrollLeft || message.scrollTop) {
-      tabMessages[tab.id!] = {
+    if ((message.scrollLeft || message.scrollTop) && tab.id != null) {
+      tabMessages[tab.id] = {
         scrollLeft: message.scrollLeft,
         scrollTop: message.scrollTop,
       };
@@ -578,44 +599,52 @@ export function createTabs(deps: TabsDeps): TabsUnit {
         chrome.tabs.move(tab.id, { windowId, index: -1 });
       });
     },
-    openLink: async (message: any, sender: any) => {
-      const url = normalizeURL(message.url);
+    openLink: async (message: unknown, sender?: chrome.runtime.MessageSender) => {
+      const parsed = v.parse(openLinkSchema, message);
+      const url = normalizeURL(parsed.url);
       if (url.startsWith("javascript:")) {
-        sendTabMessage(sender.tab.id, 0, {
-          subject: "showBanner",
-          message: "JavaScript URLs are not allowed in such operation.",
-        });
+        if (sender?.tab?.id != null) {
+          sendTabMessage(sender.tab.id, 0, {
+            subject: "showBanner",
+            message: "JavaScript URLs are not allowed in such operation.",
+          });
+        }
         return;
       }
-      if (message.tab.tabbed) {
+      const forwarded: OpenLinkMessage = { ...parsed, url };
+      if (parsed.tab.tabbed) {
         if (
-          (sender.frameId !== 0 && chrome.runtime.getURL("frontend.html") === sender.url) ||
-          !sender.tab
+          (sender?.frameId !== 0 && chrome.runtime.getURL("frontend.html") === sender?.url) ||
+          !sender?.tab
         ) {
           // if current call was made from Omnibar, the sender.tab may be stale,
           // as sender was bound when port was created.
-          await openUrlInNewTab(await getActiveTab(), url, message);
+          await openUrlInNewTab(await getActiveTab(), url, forwarded);
         } else {
-          await openUrlInNewTab(sender.tab, url, message);
+          await openUrlInNewTab(sender.tab, url, forwarded);
         }
       } else {
         const tab = await chrome.tabs.update({
           url: url,
-          pinned: message.tab.pinned || sender.tab.pinned,
+          pinned: parsed.tab.pinned || sender?.tab?.pinned,
         });
-        if (message.scrollLeft || message.scrollTop) {
-          tabMessages[tab!.id!] = {
-            scrollLeft: message.scrollLeft,
-            scrollTop: message.scrollTop,
+        if (tab?.id != null && (parsed.scrollLeft || parsed.scrollTop)) {
+          tabMessages[tab.id] = {
+            scrollLeft: parsed.scrollLeft,
+            scrollTop: parsed.scrollTop,
           };
         }
       }
     },
-    viewSource: (message: any, sender: any, sendResponse: any) => {
-      message.url = "view-source:" + sender.tab.url;
+    viewSource: (message: unknown, sender?: chrome.runtime.MessageSender, sendResponse?) => {
+      const parsed = v.parse(viewSourceSchema, message);
       const openLink = handlers["openLink"];
       if (openLink) {
-        return openLink(message, sender, sendResponse);
+        return openLink(
+          { ...parsed, url: "view-source:" + (sender?.tab?.url ?? "") },
+          sender,
+          sendResponse,
+        );
       }
       return undefined;
     },
