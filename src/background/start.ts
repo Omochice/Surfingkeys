@@ -34,6 +34,22 @@ export type BackgroundConf = {
   interceptedErrors?: unknown[];
 };
 
+/**
+ * The per-browser glue the composition root injects: history search, raw settings load/save, the
+ * new-tab URL, and the Firefox-only container-name handler (a no-op on Chrome). Implemented by
+ * `chromeSpecifics`/`firefoxSpecifics`.
+ */
+export type BrowserAdapter = {
+  detectTabTitleChange: boolean;
+  getLatestHistoryItem: (text: string, maxResults: number) => Promise<chrome.history.HistoryItem[]>;
+  loadRawSettings: (
+    keys: string | readonly string[] | null | undefined,
+    defaultSet?: Record<string, unknown>,
+  ) => Promise<Record<string, unknown>>;
+  _setNewTabUrl: () => string;
+  _getContainerName: (self: Record<string, MessageHandler>) => MessageHandler | undefined;
+};
+
 // GitHub gist API responses are external data; each parsed body is validated so
 // the fields consumed below carry real types instead of any.
 const gistListSchema = v.array(
@@ -233,7 +249,7 @@ const Gist = (() => {
   return self;
 })();
 
-function start(browser: any): void {
+function start(browser: BrowserAdapter): void {
   const handlers: Record<string, MessageHandler> = {};
 
   const isMV3 = chrome.runtime.getManifest().manifest_version === 3;
@@ -455,7 +471,10 @@ function start(browser: any): void {
     const { text } = v.parse(textSchema, message);
     navigator.clipboard.writeText(text);
   };
-  handlers["getContainerName"] = browser._getContainerName(handlers);
+  const containerHandler = browser._getContainerName(handlers);
+  if (containerHandler) {
+    handlers["getContainerName"] = containerHandler;
+  }
   chrome.runtime.setUninstallURL(
     "http://brookhong.github.io/2018/01/30/why-did-you-uninstall-surfingkeys.html",
   );

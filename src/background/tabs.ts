@@ -3,7 +3,7 @@ import * as v from "valibot";
 
 import { chromeRuntimeError } from "../common/result";
 import { filterByTitleOrUrl } from "../common/utils";
-import type { BackgroundConf, MessageHandler } from "./start";
+import type { BackgroundConf, BrowserAdapter, MessageHandler } from "./start";
 import { createTabHistory } from "./tabHistory";
 
 // Repeat-count actions carry `repeats` (injected by the content-script RUNTIME
@@ -101,7 +101,8 @@ export function _roundBase(base: number, repeats: number, length: number) {
  */
 export type TabsDeps = {
   conf: BackgroundConf;
-  browser: any;
+  browser: Pick<BrowserAdapter, "_setNewTabUrl"> &
+    Partial<Pick<BrowserAdapter, "detectTabTitleChange">>;
   handlers: Record<string, MessageHandler>;
 };
 

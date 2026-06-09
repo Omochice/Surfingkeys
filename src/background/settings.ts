@@ -3,7 +3,7 @@ import * as v from "valibot";
 
 import { chromeRuntimeError } from "../common/result";
 import { request } from "./request";
-import type { BackgroundConf, MessageHandler } from "./start";
+import type { BackgroundConf, BrowserAdapter, MessageHandler } from "./start";
 
 // Settings fields read from storage are validated before use; storage is a
 // trust boundary, so each consumed field is narrowed from `unknown`.
@@ -112,7 +112,7 @@ export async function _save(
  */
 export type SettingsDeps = {
   conf: BackgroundConf;
-  browser: any;
+  browser: Pick<BrowserAdapter, "loadRawSettings">;
   sendTabMessage: (tabId: number, frameId: number, message: unknown) => void;
   tabMessages: Record<string, unknown>;
   setScrollPos: (tabId: number) => void;

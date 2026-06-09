@@ -1,6 +1,9 @@
 import { extendObject, getSubSettings } from "./settings";
 
-async function loadRawSettings(keys: string[], defaultSet?: any): Promise<any> {
+async function loadRawSettings(
+  keys: string | readonly string[] | null | undefined,
+  defaultSet?: Record<string, unknown>,
+): Promise<Record<string, unknown>> {
   const rawSet = defaultSet || {};
   const localSet = await chrome.storage.local.get(null);
   extendObject(rawSet, localSet);

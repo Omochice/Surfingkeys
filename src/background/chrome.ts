@@ -1,7 +1,10 @@
 import { filterByTitleOrUrl } from "../common/utils";
 import { _save, extendObject, getSubSettings } from "./settings";
 
-async function loadRawSettings(keys: string[], defaultSet?: any): Promise<any> {
+async function loadRawSettings(
+  keys: string | readonly string[] | null | undefined,
+  defaultSet?: Record<string, unknown>,
+): Promise<Record<string, unknown>> {
   const rawSet = defaultSet || {};
   const localSet = await chrome.storage.local.get(null);
   const localSavedAt = localSet["savedAt"] || 0;
@@ -37,7 +40,7 @@ function _setNewTabUrl(): string {
   return "chrome://newtab/";
 }
 
-function _getContainerName(_self: unknown): void {}
+function _getContainerName(_self: unknown): undefined {}
 
 async function getLatestHistoryItem(
   text: string,

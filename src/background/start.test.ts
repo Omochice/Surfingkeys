@@ -409,7 +409,7 @@ function bootWith(namespaces: Record<string, any>): MessageHandler {
     _setNewTabUrl: () => "about:newtab",
     loadRawSettings: (_keys: any, cb: any) => cb({}),
     detectTabTitleChange: false,
-    getLatestHistoryItem: () => {},
+    getLatestHistoryItem: () => Promise.resolve([]),
   };
   start(browser);
   expectDefined(dispatch);
