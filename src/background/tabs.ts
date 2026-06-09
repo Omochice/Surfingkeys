@@ -118,7 +118,7 @@ export type TabsUnit = {
     tabs: readonly T[],
     query: string,
   ) => readonly T[];
-  tabMessages: Record<string, any>;
+  tabMessages: Record<string, { scrollLeft?: number | undefined; scrollTop?: number | undefined }>;
   setScrollPos: (tabId: number) => void;
   newTabUrl: string;
 };
@@ -138,7 +138,10 @@ export function createTabs(deps: TabsDeps): TabsUnit {
 
   // data by tab id
   const tabActivated: Record<number, number> = {};
-  const tabMessages: Record<string, any> = {};
+  const tabMessages: Record<
+    string,
+    { scrollLeft?: number | undefined; scrollTop?: number | undefined }
+  > = {};
   const tabURLs: Record<number, Record<string, string>> = {};
 
   const newTabUrl = browser._setNewTabUrl();
@@ -163,8 +166,8 @@ export function createTabs(deps: TabsDeps): TabsUnit {
   }
   chrome.tabs.onRemoved.addListener(removeTab);
   function _setScrollPos_bg(tabId: number) {
-    if (Object.hasOwn(tabMessages, tabId)) {
-      const message = tabMessages[tabId];
+    const message = tabMessages[tabId];
+    if (message) {
       sendTabMessage(tabId, 0, {
         subject: "setScrollPos",
         scrollLeft: message.scrollLeft,
