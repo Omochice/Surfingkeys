@@ -95,6 +95,22 @@ const textSchema = v.object({ text: v.string() });
 const tokenSchema = v.object({ token: v.string() });
 const commentIndexSchema = v.object({ index: v.number() });
 const editCommentSchema = v.object({ index: v.number(), content: v.string() });
+const getDownloadsSchema = v.object({
+  query: v.optional(
+    v.object({
+      query: v.optional(v.array(v.string())),
+      state: v.optional(v.picklist(["in_progress", "interrupted", "complete"])),
+      paused: v.optional(v.boolean()),
+      urlRegex: v.optional(v.string()),
+      filenameRegex: v.optional(v.string()),
+      limit: v.optional(v.number()),
+      orderBy: v.optional(v.array(v.string())),
+    }),
+  ),
+});
+const localDataSchema = v.object({
+  data: v.union([v.array(v.string()), v.string(), v.record(v.string(), v.unknown())]),
+});
 
 type GistCommentResult = { status: number; content?: string; error?: string };
 
@@ -410,8 +426,9 @@ function start(browser: BrowserAdapter): void {
       chrome.downloads.setShelfEnabled(true);
     }
   };
-  handlers["getDownloads"] = async (message: any) => {
-    const downloads = await chrome.downloads.search(message.query);
+  handlers["getDownloads"] = async (message: unknown) => {
+    const { query } = v.parse(getDownloadsSchema, message);
+    const downloads = await chrome.downloads.search(query ?? {});
     return { downloads };
   };
   handlers["download"] = (message: unknown) => {
@@ -446,17 +463,18 @@ function start(browser: BrowserAdapter): void {
     await Promise.all(uids.map((u) => _removeURL(u)));
     return { response: "Done" };
   };
-  handlers["localData"] = async (message: any) => {
-    if (message.data.constructor === Object) {
-      void chrome.storage.local.set(message.data);
+  handlers["localData"] = async (message: unknown) => {
+    const { data } = v.parse(localDataSchema, message);
+    if (typeof data === "object" && !Array.isArray(data)) {
+      void chrome.storage.local.set(data);
       // broadcast the change also, such as lastKeys
       // we would set lastKeys in sync to avoid breaching chrome.storage.sync.MAX_WRITE_OPERATIONS_PER_MINUTE
-      void settings.broadcastSettings(message.data);
+      void settings.broadcastSettings(data);
       return undefined;
     }
     // string or array of string keys
-    const data = await chrome.storage.local.get(message.data);
-    return { data };
+    const result = await chrome.storage.local.get(data);
+    return { data: result };
   };
   handlers["captureVisibleTab"] = async () => {
     const dataUrl = await chrome.tabs.captureVisibleTab({ format: "png" });
