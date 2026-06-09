@@ -13,6 +13,14 @@ const reloadTabSchema = v.object({
   repeats: v.optional(v.number()),
   nocache: v.optional(v.boolean()),
 });
+const closeTabByIdsSchema = v.object({ tabIds: v.union([v.number(), v.array(v.number())]) });
+const focusTabSchema = v.object({ windowId: v.optional(v.number()), tabId: v.number() });
+const duplicateTabSchema = v.object({ active: v.optional(v.boolean()) });
+const windowIdSchema = v.object({ windowId: v.number() });
+const gatherTabsSchema = v.object({ tabs: v.array(v.object({ id: v.number() })) });
+const moveTabSchema = v.object({ step: v.number(), repeats: v.optional(v.number()) });
+const tabURLAccessedSchema = v.object({ url: v.string(), title: v.string() });
+const setZoomSchema = v.object({ zoomFactor: v.number(), repeats: v.optional(v.number()) });
 
 /** Clamps a target index to between 0 and length. */
 export function _fixTo(to: number, length: number) {
@@ -73,7 +81,7 @@ export function createTabs(deps: TabsDeps): TabsUnit {
   // data by tab id
   const tabActivated: Record<string, any> = {};
   const tabMessages: Record<string, any> = {};
-  const tabURLs: Record<string, any> = {};
+  const tabURLs: Record<number, Record<string, string>> = {};
 
   const newTabUrl = browser._setNewTabUrl();
 
@@ -378,14 +386,16 @@ export function createTabs(deps: TabsDeps): TabsUnit {
         });
       }
     },
-    closeTabByIds: (message: any) => {
-      chrome.tabs.remove(message.tabIds);
+    closeTabByIds: (message: unknown) => {
+      const { tabIds } = v.parse(closeTabByIdsSchema, message);
+      chrome.tabs.remove(Array.isArray(tabIds) ? tabIds : [tabIds]);
     },
-    focusTab: (message: any, sender: any) => {
-      if (message.windowId != null && sender.tab.windowId !== message.windowId) {
-        return focusTab(message.windowId, message.tabId);
+    focusTab: (message: unknown, sender?: chrome.runtime.MessageSender) => {
+      const { windowId, tabId } = v.parse(focusTabSchema, message);
+      if (windowId != null && sender?.tab?.windowId !== windowId) {
+        return focusTab(windowId, tabId);
       }
-      return chrome.tabs.update(message.tabId, {
+      return chrome.tabs.update(tabId, {
         active: true,
       });
     },
@@ -461,11 +471,12 @@ export function createTabs(deps: TabsDeps): TabsUnit {
       const tabs = await chrome.tabs.query({ currentWindow: true });
       await _closeTab(sender, tabs.length - sender.tab.index);
     },
-    tabOnly: async (_message: any, sender: any) => {
+    tabOnly: async (_message: unknown, sender?: chrome.runtime.MessageSender) => {
+      const senderTabId = sender?.tab?.id;
       const tabs = await chrome.tabs.query({ currentWindow: true });
       const ids = tabs
         .filter((t) => {
-          return t.id != sender.tab.id && !t.pinned;
+          return t.id != senderTabId && !t.pinned;
         })
         .map((t) => {
           return t.id!;
@@ -478,26 +489,34 @@ export function createTabs(deps: TabsDeps): TabsUnit {
         chrome.tabs.remove(tabs[0]!.id!);
       }
     },
-    muteTab: (_message: any, sender: any) => {
-      const tab = sender.tab;
+    muteTab: (_message: unknown, sender?: chrome.runtime.MessageSender) => {
+      const tab = sender?.tab;
+      if (tab?.id == null) {
+        return;
+      }
       chrome.tabs.update(tab.id, {
-        muted: !tab.mutedInfo.muted,
+        muted: !tab.mutedInfo?.muted,
       });
     },
     openLast: () => {
       chrome.sessions.restore();
     },
-    duplicateTab: async (message: any, sender: any) => {
-      await chrome.tabs.duplicate(sender.tab.id);
-      if (message.active === false) {
-        await chrome.tabs.update(sender.tab.id, { active: true });
+    duplicateTab: async (message: unknown, sender?: chrome.runtime.MessageSender) => {
+      const tabId = sender?.tab?.id;
+      if (tabId == null) {
+        return;
+      }
+      await chrome.tabs.duplicate(tabId);
+      if (v.parse(duplicateTabSchema, message).active === false) {
+        await chrome.tabs.update(tabId, { active: true });
       }
     },
     getWindows: async () => {
       const tabs = await chrome.tabs.query({ currentWindow: false });
-      const windows: Record<string, any> = {};
+      const windows: Record<string, { title?: string | undefined; url?: string | undefined }[]> =
+        {};
       tabs.forEach((t) => {
-        const tabsInWindow = windows[t.windowId] || [];
+        const tabsInWindow = windows[t.windowId] ?? [];
         tabsInWindow.push({ title: t.title, url: t.url });
         windows[t.windowId] = tabsInWindow;
       });
@@ -511,25 +530,36 @@ export function createTabs(deps: TabsDeps): TabsUnit {
         }),
       };
     },
-    moveToWindow: async (message: any, sender: any) => {
-      if (message.windowId === -1) {
-        chrome.windows.create({ tabId: sender.tab.id });
-      } else {
-        await chrome.tabs.move(sender.tab.id, { windowId: message.windowId, index: -1 });
-        await focusTab(message.windowId, sender.tab.id);
+    moveToWindow: async (message: unknown, sender?: chrome.runtime.MessageSender) => {
+      const { windowId } = v.parse(windowIdSchema, message);
+      const tabId = sender?.tab?.id;
+      if (tabId == null) {
+        return;
       }
-      previousWindowChoice = message.windowId;
+      if (windowId === -1) {
+        chrome.windows.create({ tabId });
+      } else {
+        await chrome.tabs.move(tabId, { windowId, index: -1 });
+        await focusTab(windowId, tabId);
+      }
+      previousWindowChoice = windowId;
     },
-    gatherWindows: async (_message: any, sender: any) => {
-      const windowId = sender.tab.windowId;
+    gatherWindows: async (_message: unknown, sender?: chrome.runtime.MessageSender) => {
+      const windowId = sender?.tab?.windowId;
+      if (windowId == null) {
+        return;
+      }
       const tabs = await chrome.tabs.query({ currentWindow: false });
       tabs.forEach((tab) => {
         chrome.tabs.move(tab.id!, { windowId, index: -1 });
       });
     },
-    gatherTabs: (message: any, sender: any) => {
-      const windowId = sender.tab.windowId;
-      message.tabs.forEach((tab: any) => {
+    gatherTabs: (message: unknown, sender?: chrome.runtime.MessageSender) => {
+      const windowId = sender?.tab?.windowId;
+      if (windowId == null) {
+        return;
+      }
+      v.parse(gatherTabsSchema, message).tabs.forEach((tab) => {
         chrome.tabs.move(tab.id, { windowId, index: -1 });
       });
     },
@@ -607,31 +637,36 @@ export function createTabs(deps: TabsDeps): TabsUnit {
         });
       }
     },
-    moveTab: async (message: any, sender: any) => {
-      const tabs = await chrome.tabs.query({ windowId: sender.tab.windowId });
-      const to = _fixTo(sender.tab.index + message.step * message.repeats, tabs.length);
-      chrome.tabs.move(sender.tab.id, {
+    moveTab: async (message: unknown, sender?: chrome.runtime.MessageSender) => {
+      const tab = sender?.tab;
+      if (tab?.id == null) {
+        return;
+      }
+      const { step, repeats } = v.parse(moveTabSchema, message);
+      const tabs = await chrome.tabs.query({ windowId: tab.windowId });
+      const to = _fixTo(tab.index + step * (repeats ?? 1), tabs.length);
+      chrome.tabs.move(tab.id, {
         index: to,
       });
     },
-    tabURLAccessed: (message: any, sender: any) => {
-      if (sender.tab) {
-        const tabId = sender.tab.id;
-        _setScrollPos_bg(tabId);
-        if (!Object.hasOwn(tabURLs, tabId)) {
-          tabURLs[tabId] = {};
-        }
-        tabURLs[tabId][message.url] = message.title;
-        return {
-          active: sender.tab.active,
-          index: conf["showTabIndices"] ? sender.tab.index + 1 : 0,
-        };
-      } else {
+    tabURLAccessed: (message: unknown, sender?: chrome.runtime.MessageSender) => {
+      const tab = sender?.tab;
+      if (tab?.id == null) {
         return {};
       }
+      const { url, title } = v.parse(tabURLAccessedSchema, message);
+      _setScrollPos_bg(tab.id);
+      const urls = tabURLs[tab.id] ?? {};
+      urls[url] = title;
+      tabURLs[tab.id] = urls;
+      return {
+        active: tab.active,
+        index: conf["showTabIndices"] ? tab.index + 1 : 0,
+      };
     },
-    getTabURLs: (_message: any, sender: any) => {
-      const tabURL = tabURLs[sender.tab.id] || {};
+    getTabURLs: (_message: unknown, sender?: chrome.runtime.MessageSender) => {
+      const tabId = sender?.tab?.id;
+      const tabURL = tabId != null ? (tabURLs[tabId] ?? {}) : {};
       const urls = Object.keys(tabURL).map((u) => {
         return {
           url: u,
@@ -642,14 +677,18 @@ export function createTabs(deps: TabsDeps): TabsUnit {
         urls: urls,
       };
     },
-    getTopURL: (_message: any, sender: any) => {
+    getTopURL: (_message: unknown, sender?: chrome.runtime.MessageSender) => {
       return {
-        url: sender.tab ? sender.tab.url : "",
+        url: sender?.tab?.url ?? "",
       };
     },
-    setZoom: async (message: any, sender: any) => {
-      const tabId = sender.tab.id;
-      const zoomFactor = message.zoomFactor * message.repeats;
+    setZoom: async (message: unknown, sender?: chrome.runtime.MessageSender) => {
+      const tabId = sender?.tab?.id;
+      if (tabId == null) {
+        return;
+      }
+      const setZoomMessage = v.parse(setZoomSchema, message);
+      const zoomFactor = setZoomMessage.zoomFactor * (setZoomMessage.repeats ?? 1);
       if (zoomFactor == 0) {
         const settings = await chrome.tabs.getZoomSettings(tabId);
         const defaultZoom = settings.defaultZoomFactor || 1;
