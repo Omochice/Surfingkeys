@@ -811,11 +811,12 @@ function createNormal(insert: InsertLike): NormalMode {
 
   self.addVIMark = (mark, url) => {
     url = url || window.location.href;
-    const mo: Record<string, { url: string; scrollLeft: number; scrollTop: number }> = {};
-    mo[mark] = {
-      url: url,
-      scrollLeft: document.scrollingElement!.scrollLeft,
-      scrollTop: document.scrollingElement!.scrollTop,
+    const mo: Record<string, { url: string; scrollLeft: number; scrollTop: number }> = {
+      [mark]: {
+        url: url,
+        scrollLeft: document.scrollingElement!.scrollLeft,
+        scrollTop: document.scrollingElement!.scrollTop,
+      },
     };
     RUNTIME("addVIMark", { mark: mo });
     showBanner(`Mark '${mark}' added for: ${url}.`);

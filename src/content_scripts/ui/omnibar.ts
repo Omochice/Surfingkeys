@@ -1465,8 +1465,7 @@ function OpenVIMarks(omnibar: any): any {
 }
 
 function SearchEngine(omnibar: any, front: any): any {
-  const self: any = {};
-  self.aliases = {};
+  const self: any = { aliases: {} };
 
   let _pendingRequest: ReturnType<typeof setTimeout> | undefined = undefined; // timeout ID
   function clearPendingRequest() {

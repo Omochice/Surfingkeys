@@ -736,8 +736,9 @@ export default function createDefaultMappings(api: SurfingkeysApi, ctx: ModeCont
   mapkey("yp", "#7Copy form data for POST on current page", () => {
     const aa: Record<string, unknown>[] = [];
     document.querySelectorAll("form").forEach((form) => {
-      const fd: Record<string, unknown> = {};
-      fd[(form.method || "get") + "::" + form.action] = getFormData(form);
+      const fd: Record<string, unknown> = {
+        [(form.method || "get") + "::" + form.action]: getFormData(form),
+      };
       aa.push(fd);
     });
     clipboard.write(JSON.stringify(aa, null, 4));

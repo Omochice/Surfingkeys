@@ -24,8 +24,7 @@ const createCommands = (normal: NormalLike, command: CommandFn, omnibar: Omnibar
     if (key == null) {
       return;
     }
-    const update: Record<string, unknown[]> = {};
-    update[key] = [];
+    const update: Record<string, unknown[]> = { [key]: [] };
     RUNTIME("updateInputHistory", update);
   });
   command("listSession", "list session", () => {
