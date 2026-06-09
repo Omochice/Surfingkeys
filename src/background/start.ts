@@ -96,13 +96,13 @@ const tokenSchema = v.object({ token: v.string() });
 const commentIndexSchema = v.object({ index: v.number() });
 const editCommentSchema = v.object({ index: v.number(), content: v.string() });
 
-const Gist = (() => {
-  const self: any = {};
+type GistCommentResult = { status: number; content?: string; error?: string };
 
+const Gist = (() => {
   // A 200 response with an empty or malformed body still throws in JSON.parse,
   // which would skip the settle that each helper relies on and re-hang the
   // runtime sender. Treat an unparseable body the same as a request failure.
-  const parseGist = (text: string): any | undefined => {
+  const parseGist = (text: string): unknown => {
     try {
       return JSON.parse(text);
     } catch {
@@ -146,8 +146,8 @@ const Gist = (() => {
 
   let _token: string;
   let _gist = "";
-  let _comments: any[] = [];
-  self.initGist = async (token: string): Promise<string> => {
+  let _comments: string[] = [];
+  const initGist = async (token: string): Promise<string> => {
     if (_token === token && _gist !== "") {
       return _gist;
     }
@@ -169,7 +169,7 @@ const Gist = (() => {
     );
     return Result.isSuccess(r) ? r.value : "";
   }
-  async function _readComment(cid: string): Promise<any> {
+  async function _readComment(cid: string): Promise<GistCommentResult> {
     const r = await request(`https://api.github.com/gists/${_gist}/comments/${cid}`, {
       Authorization: "token " + _token,
     });
@@ -193,7 +193,7 @@ const Gist = (() => {
     return { status: 0, content };
   }
   async function _listComment(): Promise<
-    { ok: true; comments: any[] } | { ok: false; error: string }
+    { ok: true; comments: string[] } | { ok: false; error: string }
   > {
     const r = await request(`https://api.github.com/gists/${_gist}/comments`, {
       Authorization: "token " + _token,
@@ -216,35 +216,39 @@ const Gist = (() => {
     );
     return Result.isSuccess(r) ? r.value : "";
   }
-  self.readComment = async (nr: number): Promise<any> => {
+  const readComment = async (nr: number): Promise<GistCommentResult> => {
     if (_gist === "") {
       return { status: 1, content: "Please call initGist first!" };
     }
-    if (nr < _comments.length) {
-      return _readComment(_comments[nr]);
+    const cached = _comments[nr];
+    if (cached !== undefined) {
+      return _readComment(cached);
     }
     const listed = await _listComment();
     if (!listed.ok) {
       return { status: 1, error: listed.error };
     }
-    if (nr < listed.comments.length) {
-      return _readComment(listed.comments[nr]);
+    const fresh = listed.comments[nr];
+    if (fresh !== undefined) {
+      return _readComment(fresh);
     }
     return { status: 1, content: "Register not exists!" };
   };
-  self.editComment = async (nr: number, clip: string): Promise<any> => {
+  const editComment = async (nr: number, clip: string): Promise<string | GistCommentResult> => {
     if (_gist === "") {
       return { status: 1, content: "Please call initGist first!" };
     }
-    if (nr < _comments.length) {
-      return _writeComment(_comments[nr], clip);
+    const cached = _comments[nr];
+    if (cached !== undefined) {
+      return _writeComment(cached, clip);
     }
     const listed = await _listComment();
     if (!listed.ok) {
       return { status: 1, error: listed.error };
     }
-    if (nr < listed.comments.length) {
-      return _writeComment(listed.comments[nr], clip);
+    const fresh = listed.comments[nr];
+    if (fresh !== undefined) {
+      return _writeComment(fresh, clip);
     }
     // Pad the comment list with placeholders up to the requested index, then
     // write the clip into the final new comment.
@@ -256,7 +260,7 @@ const Gist = (() => {
     return _newComment(clip);
   };
 
-  return self;
+  return { initGist, readComment, editComment };
 })();
 
 function start(browser: BrowserAdapter): void {
