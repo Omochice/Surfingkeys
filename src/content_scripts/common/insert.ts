@@ -82,18 +82,15 @@ function createInsert(): InsertMode {
           throw cause;
         }
       }
-    } else if (isEditable(element)) {
-      // for contenteditable div
-      if (element.childNodes.length > 0) {
-        // childNodes is a NodeList, which has no Array#at; use NodeList#item.
-        const node = element.childNodes.item(element.childNodes.length - 1);
-        if (node.nodeType === Node.TEXT_NODE) {
-          document.getSelection()!.setPosition(node, node.data.length);
-        } else if (node.querySelector(".CodeMirror-line")) {
-          setEndOfContenteditable(element);
-        } else {
-          document.getSelection()!.setPosition(node, node.childNodes.length);
-        }
+    } else if (isEditable(element) && element.childNodes.length > 0) {
+      // for contenteditable div; childNodes is a NodeList, which has no Array#at, so use NodeList#item.
+      const node = element.childNodes.item(element.childNodes.length - 1);
+      if (node.nodeType === Node.TEXT_NODE) {
+        document.getSelection()!.setPosition(node, node.data.length);
+      } else if (node.querySelector(".CodeMirror-line")) {
+        setEndOfContenteditable(element);
+      } else {
+        document.getSelection()!.setPosition(node, node.childNodes.length);
       }
     }
   }

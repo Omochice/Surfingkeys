@@ -63,52 +63,48 @@ function createUiHost(adapter: BrowserLike, onload: (uiHost: HTMLElement) => voi
         // an absent origin (e.g. an untrusted page's message) would make a later
         // postMessage throw a DOMException, so require it before activating.
         _message.origin != null &&
-        ["showStatus", "openOmnibar", "openFinder", "chooseTab"].includes(_message.action)
+        ["showStatus", "openOmnibar", "openFinder", "chooseTab"].includes(_message.action) &&
+        (!activeContent || activeContent.window !== event.source)
       ) {
-        if (!activeContent || activeContent.window !== event.source) {
-          // reset active Content
-
-          if (activeContent) {
-            activeContent.window.postMessage(
-              {
-                surfingkeys_content_data: {
-                  action: "deactivated",
-                  reason: `${_message.action}@${event.timeStamp}`,
-                },
-              },
-              activeContent.origin,
-            );
-          }
-
-          activeContent = {
-            window: event.source as Window,
-            origin: _message.origin,
-          };
-
+        // reset active Content
+        if (activeContent) {
           activeContent.window.postMessage(
             {
               surfingkeys_content_data: {
-                action: "activated",
+                action: "deactivated",
                 reason: `${_message.action}@${event.timeStamp}`,
               },
             },
             activeContent.origin,
           );
         }
+
+        activeContent = {
+          window: event.source as Window,
+          origin: _message.origin,
+        };
+
+        activeContent.window.postMessage(
+          {
+            surfingkeys_content_data: {
+              action: "activated",
+              reason: `${_message.action}@${event.timeStamp}`,
+            },
+          },
+          activeContent.origin,
+        );
       }
     } else if (_message.action && Object.hasOwn(_actions, _message.action)) {
       const action = _actions[_message.action];
       if (action) {
         action(_message);
       }
-    } else if (_message.toContent) {
+    } else if (_message.toContent && activeContent) {
       // forward message to content
-      if (activeContent) {
-        activeContent.window.postMessage(
-          { surfingkeys_content_data: _message },
-          activeContent.origin,
-        );
-      }
+      activeContent.window.postMessage(
+        { surfingkeys_content_data: _message },
+        activeContent.origin,
+      );
     }
     event.stopImmediatePropagation();
   }

@@ -124,10 +124,8 @@ export function createTabs(deps: TabsDeps): TabsUnit {
     }
   }
   chrome.tabs.onUpdated.addListener((tabId: number, changeInfo: any, tab: any) => {
-    if (changeInfo.status === "complete") {
-      if (tab.active) {
-        _tabActivated(tabId);
-      }
+    if (changeInfo.status === "complete" && tab.active) {
+      _tabActivated(tabId);
     }
     if (browser.detectTabTitleChange && changeInfo.title) {
       sendTabMessage(tabId, 0, {
@@ -277,11 +275,10 @@ export function createTabs(deps: TabsDeps): TabsUnit {
   function normalizeURL(url: string) {
     if (
       !/^view-source:|^javascript:/.test(url) &&
-      /^(?:https?:\/\/)?(?:[^@/\n]+@)?(?:www\.)?([^:/\n]+)/im.test(url)
+      /^(?:https?:\/\/)?(?:[^@/\n]+@)?(?:www\.)?([^:/\n]+)/im.test(url) &&
+      !/^[\w-]+?:/i.test(url)
     ) {
-      if (!/^[\w-]+?:/i.test(url)) {
-        url = "http://" + url;
-      }
+      url = "http://" + url;
     }
     return url;
   }
