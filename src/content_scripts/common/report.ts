@@ -3,16 +3,21 @@ import { dispatchSKEvent } from "./runtime";
 
 const formatMessage = (err: SkError): string => {
   switch (err.kind) {
-    case "chrome-runtime":
+    case "chrome-runtime": {
       return `[runtime exception] ${err.op}: ${String(err.cause)}`;
-    case "user-code":
+    }
+    case "user-code": {
       return `[user ${err.source}] ${String(err.cause)}`;
-    case "decode":
+    }
+    case "decode": {
       return `[decode] failed to parse: ${err.input}`;
-    case "http":
+    }
+    case "http": {
       return `[http${err.status != null ? ` ${err.status}` : ""}] ${err.url}: ${String(err.cause)}`;
-    case "dom-api":
+    }
+    case "dom-api": {
       return `[dom] ${err.op}: ${String(err.cause)}`;
+    }
   }
 };
 

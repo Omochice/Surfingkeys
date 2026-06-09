@@ -197,8 +197,9 @@ export function createTabs(deps: TabsDeps): TabsUnit {
         }
         break;
       }
-      default:
+      default: {
         break;
+      }
     }
   });
 
@@ -289,21 +290,26 @@ export function createTabs(deps: TabsDeps): TabsUnit {
     let newTabPosition;
     if (currentTab) {
       switch (conf["newTabPosition"]) {
-        case "left":
+        case "left": {
           newTabPosition = currentTab.index;
           break;
-        case "right":
+        }
+        case "right": {
           newTabPosition = currentTab.index + 1;
           break;
-        case "first":
+        }
+        case "first": {
           newTabPosition = 0;
           break;
-        case "last":
+        }
+        case "last": {
           break;
-        default:
+        }
+        default: {
           newTabPosition = currentTab.index + 1 + chromelikeNewTabPosition;
           chromelikeNewTabPosition++;
           break;
+        }
       }
     }
     const tab = await chrome.tabs.create({

@@ -602,12 +602,15 @@ function createNormal(insert: InsertLike): NormalMode {
     const clientWidth = isMainPage ? window.innerWidth : elm.clientWidth;
 
     switch (direction) {
-      case "vertical":
+      case "vertical": {
         return elm.scrollHeight > clientHeight + 1;
-      case "horizontal":
+      }
+      case "horizontal": {
         return elm.scrollWidth > clientWidth + 1;
-      default:
+      }
+      default: {
         return false;
+      }
     }
   }
 
@@ -679,42 +682,54 @@ function createNormal(insert: InsertLike): NormalMode {
     helpers.lastScrollTop = scrollNode.scrollTop;
     helpers.lastScrollLeft = scrollNode.scrollLeft;
     switch (type) {
-      case "down":
+      case "down": {
         helpers.skScrollBy(0, runtime.conf.scrollStepSize);
         break;
-      case "up":
+      }
+      case "up": {
         helpers.skScrollBy(0, -runtime.conf.scrollStepSize);
         break;
-      case "pageDown":
+      }
+      case "pageDown": {
         helpers.skScrollBy(0, Math.round(size[1] / 2));
         break;
-      case "fullPageDown":
+      }
+      case "fullPageDown": {
         helpers.skScrollBy(0, size[1]);
         break;
-      case "pageUp":
+      }
+      case "pageUp": {
         helpers.skScrollBy(0, -Math.round(size[1] / 2));
         break;
-      case "fullPageUp":
+      }
+      case "fullPageUp": {
         helpers.skScrollBy(0, -size[1]);
         break;
-      case "top":
+      }
+      case "top": {
         helpers.skScrollBy(0, -scrollNode.scrollTop);
         break;
-      case "bottom":
+      }
+      case "bottom": {
         helpers.skScrollBy(scrollNode.scrollLeft, scrollNode.scrollHeight - scrollNode.scrollTop);
         break;
-      case "left":
+      }
+      case "left": {
         helpers.skScrollBy(-Math.round(runtime.conf.scrollStepSize / 2), 0);
         break;
-      case "right":
+      }
+      case "right": {
         helpers.skScrollBy(Math.round(runtime.conf.scrollStepSize / 2), 0);
         break;
-      case "leftmost":
+      }
+      case "leftmost": {
         helpers.skScrollBy(-scrollNode.scrollLeft - 10, 0);
         break;
-      case "rightmost":
+      }
+      case "rightmost": {
         helpers.skScrollBy(scrollNode.scrollWidth - scrollNode.scrollLeft - size[0] + 20, 0);
         break;
+      }
       case "byRatio": {
         const y =
           Number.parseInt(String((RUNTIME.repeats * scrollNode.scrollHeight) / 100)) -
@@ -724,8 +739,9 @@ function createNormal(insert: InsertLike): NormalMode {
         helpers.skScrollBy(0, y);
         break;
       }
-      default:
+      default: {
         break;
+      }
     }
     dispatchSKEvent("observer", ["turnOff"]);
   };
