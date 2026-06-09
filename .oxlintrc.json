@@ -41,7 +41,8 @@
     "unicorn/switch-case-braces": "error",
     "unicorn/prefer-logical-operator-over-ternary": "error",
     "unicorn/no-lonely-if": "error",
-    "unicorn/prefer-negative-index": "error"
+    "unicorn/prefer-negative-index": "error",
+    "unicorn/numeric-separators-style": "error"
   },
   "env": {
     "builtin": true,
