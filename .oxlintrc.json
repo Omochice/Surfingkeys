@@ -37,7 +37,8 @@
     "unicorn/no-anonymous-default-export": "error",
     "unicorn/no-array-reduce": "error",
     "unicorn/prefer-string-raw": "error",
-    "unicorn/prefer-at": "error"
+    "unicorn/prefer-at": "error",
+    "unicorn/switch-case-braces": "error"
   },
   "env": {
     "builtin": true,
