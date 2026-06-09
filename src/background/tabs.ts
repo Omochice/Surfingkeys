@@ -624,7 +624,7 @@ export function createTabs(deps: TabsDeps): TabsUnit {
       const zoomFactor = message.zoomFactor * message.repeats;
       if (zoomFactor == 0) {
         const settings = await chrome.tabs.getZoomSettings(tabId);
-        const defaultZoom = settings.defaultZoomFactor ? settings.defaultZoomFactor : 1;
+        const defaultZoom = settings.defaultZoomFactor || 1;
         await chrome.tabs.setZoom(tabId, defaultZoom);
       } else {
         const zf = await chrome.tabs.getZoom(tabId);

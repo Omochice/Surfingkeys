@@ -72,8 +72,8 @@ function applyRuntimeConf(normal: Normal): void {
     RUNTIME(
       "getState",
       {
-        blocklistPattern: runtime.conf.blocklistPattern ? runtime.conf.blocklistPattern : undefined,
-        lurkingPattern: runtime.conf.lurkingPattern ? runtime.conf.lurkingPattern : undefined,
+        blocklistPattern: runtime.conf.blocklistPattern || undefined,
+        lurkingPattern: runtime.conf.lurkingPattern || undefined,
       },
       (resp) => {
         let state = resp.state;

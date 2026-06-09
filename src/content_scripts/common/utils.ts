@@ -170,7 +170,7 @@ function getDocumentOrigin(): string {
   // Lastly, posting a message to a page at a file: URL currently requires that the targetOrigin argument be "*".
   // file:// cannot be used as a security restriction; this restriction may be modified in the future.
   // Firefox provides window.origin instead of document.origin.
-  let origin = window.location.origin ? window.location.origin : "*";
+  let origin = window.location.origin || "*";
   if (origin === "file://" || origin === "null") {
     origin = "*";
   }
@@ -851,7 +851,7 @@ function initL10n(cb: (translate: (str: string) => string) => void): void {
       .then((l10n) => {
         if (typeof l10n[lang] === "object") {
           const table = l10n[lang];
-          cb((str) => (table[str] ? table[str] : str));
+          cb((str) => table[str] || str);
         } else {
           cb((str) => str);
         }

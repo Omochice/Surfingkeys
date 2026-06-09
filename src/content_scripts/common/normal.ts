@@ -353,7 +353,7 @@ function createNormal(insert: InsertLike): NormalMode {
       RUNTIME(
         "toggleBlocklist",
         {
-          blocklistPattern: runtime.conf.blocklistPattern ? runtime.conf.blocklistPattern : "",
+          blocklistPattern: runtime.conf.blocklistPattern || "",
         },
         (resp) => {
           if (resp.state === "disabled") {
@@ -462,7 +462,7 @@ function createNormal(insert: InsertLike): NormalMode {
       smoothScrollBy(x: number, y: number, d: number) {
         if (!keyHeld) {
           const prop: "scrollTop" | "scrollLeft" = y ? "scrollTop" : "scrollLeft";
-          const distance = y ? y : x;
+          const distance = y || x;
           const duration = d;
           let previousTimestamp = 0;
           let originValue = elm[prop];
