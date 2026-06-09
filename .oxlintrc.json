@@ -36,7 +36,8 @@
     "unicorn/prefer-regexp-test": "error",
     "unicorn/no-anonymous-default-export": "error",
     "unicorn/no-array-reduce": "error",
-    "unicorn/prefer-string-raw": "error"
+    "unicorn/prefer-string-raw": "error",
+    "unicorn/prefer-at": "error"
   },
   "env": {
     "builtin": true,
