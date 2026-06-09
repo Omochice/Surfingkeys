@@ -36,39 +36,43 @@ export function getSubSettings(
  * a `localPath` are never written there; local storage instead re-fetches and caches the snippets
  * from that path before saving.
  */
-export async function _save(storage: any, data: any): Promise<void> {
+export async function _save(
+  storage: { set: (items: Record<string, unknown>) => Promise<void> },
+  data: Record<string, unknown>,
+): Promise<void> {
   // Persist a shallow copy so the caller's object is never stripped or
   // reassigned. `updateSettings` reads `message.settings.snippets` right after
   // this returns; mutating it in place dropped the snippets and unregistered
   // the user script.
-  const toSave = { ...data };
+  const toSave: Record<string, unknown> = { ...data };
   if (storage === chrome.storage.sync) {
     // don't store snippets from localPath into sync storage, since sync storage has its quota.
-    if (toSave.localPath) {
-      delete toSave.snippets;
-      delete toSave.localPath;
+    if (toSave["localPath"]) {
+      delete toSave["snippets"];
+      delete toSave["localPath"];
     }
     if (Object.keys(toSave).length > 1) {
       await storage.set(toSave);
     }
-  } else if (toSave.localPath) {
-    delete toSave.snippets;
+  } else if (typeof toSave["localPath"] === "string") {
+    const localPath = toSave["localPath"];
+    delete toSave["snippets"];
     // try to fetch snippets from localPath and cache it in local storage.
-    const r = await request(toSave.localPath);
+    const r = await request(localPath);
     if (Result.isSuccess(r)) {
-      toSave.snippets = r.value;
+      toSave["snippets"] = r.value;
     } else {
       // Leave the cached snippets untouched on failure, but still persist so the
       // chained `afterSet` (and the `updateSettings` response) never hangs on a
       // bad/unreachable snippet URL.
-      console.error("Failed to fetch snippets from", toSave.localPath, r.error);
+      console.error("Failed to fetch snippets from", localPath, r.error);
     }
     // storage.set may throw (e.g. quota); swallow so a caller awaiting _save
     // (and the response it settles) never hangs on a bad snippet path.
     try {
       await storage.set(toSave);
     } catch (error) {
-      console.error("Failed to save snippets from", toSave.localPath, error);
+      console.error("Failed to save snippets from", localPath, error);
     }
   } else {
     await storage.set(toSave);
