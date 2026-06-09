@@ -693,7 +693,7 @@ const Front = (() => {
       keystroke.style.display = "none";
       self.flush();
     }
-    if (runtime.conf.richHintsForKeystroke > 0 && runtime.conf.richHintsForKeystroke < 10000) {
+    if (runtime.conf.richHintsForKeystroke > 0 && runtime.conf.richHintsForKeystroke < 10_000) {
       clearPendingHint();
     }
   };
@@ -730,7 +730,7 @@ const Front = (() => {
       const keys = keystrokeText() + KeyboardUtils.decodeKeystroke(message.keyHints.key);
       setKeystrokeText(keys);
 
-      if (runtime.conf.richHintsForKeystroke > 0 && runtime.conf.richHintsForKeystroke < 10000) {
+      if (runtime.conf.richHintsForKeystroke > 0 && runtime.conf.richHintsForKeystroke < 10_000) {
         _pendingHint = setTimeout(() => {
           showRichHints(message.keyHints);
         }, runtime.conf.richHintsForKeystroke);

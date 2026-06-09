@@ -55,7 +55,7 @@ document.addEventListener("surfingkeys:userSettingsLoaded", (evt) => {
     });
     const randomTip = document.getElementById("randomTip")!;
     setInterval(() => {
-      const i = Math.floor((Math.random() * 100000) % keys.length);
+      const i = Math.floor((Math.random() * 100_000) % keys.length);
       const cl = randomTip.classList;
       cl.remove("fadeOut");
       cl.remove("fadeIn");

@@ -66,7 +66,7 @@ export function createHistoryHandlers(
       const hours = message.hours || 0;
       chrome.history.deleteRange({
         startTime: 0,
-        endTime: Date.now() - (days * 86400 + hours * 3600) * 1000,
+        endTime: Date.now() - (days * 86_400 + hours * 3600) * 1000,
       });
     },
   };

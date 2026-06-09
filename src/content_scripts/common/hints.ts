@@ -595,7 +595,7 @@ div.hint-scrollable {
     if (firstHint && firstHint.style.zIndex == zIndices.get(firstHint)) {
       hints.forEach((hint, i) => {
         const z = Number.parseInt(hint.style.zIndex);
-        hint.style.zIndex = String(hints.length - i + 2147483000 - z);
+        hint.style.zIndex = String(hints.length - i + 2_147_483_000 - z);
       });
     } else {
       hints.forEach((hint) => {
@@ -632,7 +632,7 @@ div.hint-scrollable {
         continue;
       }
       const cp = Number.parseInt(middle);
-      if (cp < 0xffffffff) {
+      if (cp < 0xff_ff_ff_ff) {
         window.location.href = prefix + (cp + step) + suffix;
         return true;
       }
