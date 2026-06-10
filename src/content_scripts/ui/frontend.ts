@@ -493,15 +493,16 @@ const Front = (() => {
       buildUsage(metas, setUsage);
     });
   };
-  _actions["applyUserSettings"] = (message: any) => {
-    const conf = runtime.conf as Record<string, any>;
+  _actions["applyUserSettings"] = (message: { userSettings: Record<string, unknown> }) => {
+    const conf: Record<string, unknown> = runtime.conf;
     for (const k in message.userSettings) {
       if (Object.hasOwn(runtime.conf, k)) {
         conf[k] = message.userSettings[k];
       }
     }
-    if ("theme" in message.userSettings) {
-      setSanitizedContent(requireElement("#sk_theme"), message.userSettings.theme);
+    const theme = message.userSettings["theme"];
+    if (typeof theme === "string") {
+      setSanitizedContent(requireElement("#sk_theme"), theme);
     }
   };
   _actions["setHintsCharacters"] = (message: unknown) => {
@@ -537,10 +538,14 @@ const Front = (() => {
     };
     omnibar.command(message.name, message.description, proxyAction);
   };
-  _actions["getUsage"] = (message: any) => {
-    // send response in callback from buildUsage
-    delete message.ack;
-    buildUsage(message.metas, ({ groups, moreHelp }) => {
+  _actions["getUsage"] = (message: unknown) => {
+    // The ack flag the dispatcher may attach is irrelevant here; only metas and the correlation id
+    // are read, so validate just those and let the schema drop the rest.
+    const { metas, id } = v.parse(
+      v.object({ metas: v.array(usageMetaSchema), id: v.unknown() }),
+      message,
+    );
+    buildUsage(metas, ({ groups, moreHelp }) => {
       // Content gets the help as one HTML string; reassemble the per-group
       // <div> wrappers and the footer link (kept in sync with <Usage>).
       const usageHtml =
@@ -551,7 +556,7 @@ const Front = (() => {
           surfingkeys_uihost_data: {
             data: usageHtml,
             toContent: true,
-            id: message.id,
+            id: id,
           },
         },
         self.topOrigin,
