@@ -139,14 +139,14 @@ export default function createDefaultMappings(api: SurfingkeysApi, ctx: ModeCont
     dispatchSKEvent("ensureFrontEnd");
     if (window === top) {
       hints
-        .create("iframe", (element: any) => {
+        .create("iframe", (element: HTMLIFrameElement) => {
           element.scrollIntoView({
             behavior: "auto",
             block: "center",
             inline: "center",
           });
           normal.highlightElement(element);
-          element.contentWindow.focus();
+          element.contentWindow?.focus();
         })
         .then((hintsTotal) => {
           if (hintsTotal === 0) {
@@ -407,7 +407,7 @@ export default function createDefaultMappings(api: SurfingkeysApi, ctx: ModeCont
     hints.create("", hints.dispatchMouseClick, { mouseEvents: ["mouseout"] });
   });
   mapkey("ya", "#7Copy a link URL to the clipboard", () => {
-    hints.create("*[href]", (element: any) => {
+    hints.create("*[href]", (element: HTMLAnchorElement) => {
       clipboard.write(element.href);
     });
   });
@@ -467,7 +467,7 @@ export default function createDefaultMappings(api: SurfingkeysApi, ctx: ModeCont
     );
   });
   mapkey("yq", "#7Copy pre text", () => {
-    hints.create("pre", (element: any) => {
+    hints.create("pre", (element: HTMLElement) => {
       clipboard.write(element.innerText);
     });
   });
@@ -699,29 +699,33 @@ export default function createDefaultMappings(api: SurfingkeysApi, ctx: ModeCont
     clipboard.write(JSON.stringify(fd, null, 4));
   });
   mapkey(";pf", "#7Fill form with data from yf", () => {
-    hints.create("form", (element: any) => {
+    hints.create("form", (element: HTMLFormElement) => {
       const formKey = generateFormKey(element);
       clipboard.read((response) => {
         const result = v.safeParse(clipboardFormsSchema, parseJsonSafe(response.data.trim()));
         const forms: Record<string, Record<string, unknown>> = result.success ? result.output : {};
         const fd = forms[formKey];
         if (fd) {
-          element.querySelectorAll("input, textarea").forEach((ip: any) => {
+          element.querySelectorAll<HTMLInputElement>("input, textarea").forEach((ip) => {
             const value = fd[ip.name];
             if (Object.hasOwn(fd, ip.name) && ip.type !== "hidden") {
               if (ip.type === "radio") {
-                const op = element.querySelector(
+                const op = element.querySelector<HTMLInputElement>(
                   `input[name='${ip.name}'][value='${String(value)}']`,
                 );
                 if (op) {
                   op.checked = true;
                 }
               } else if (Array.isArray(value)) {
-                element.querySelectorAll(`input[name='${ip.name}']`).forEach((ip2: any) => {
-                  ip2.checked = false;
-                });
-                value.forEach((v: any) => {
-                  const op = element.querySelector(`input[name='${ip.name}'][value='${v}']`);
+                element
+                  .querySelectorAll<HTMLInputElement>(`input[name='${ip.name}']`)
+                  .forEach((ip2) => {
+                    ip2.checked = false;
+                  });
+                value.forEach((v) => {
+                  const op = element.querySelector<HTMLInputElement>(
+                    `input[name='${ip.name}'][value='${v}']`,
+                  );
                   if (op) {
                     op.checked = true;
                   }
@@ -970,7 +974,7 @@ export default function createDefaultMappings(api: SurfingkeysApi, ctx: ModeCont
     RUNTIME("viewSource", { tab: { tabbed: true } });
   });
   mapkey(";di", "#1Download image", () => {
-    hints.create("img", (element: any) => {
+    hints.create("img", (element: HTMLImageElement) => {
       RUNTIME("download", {
         url: element.src,
       });
