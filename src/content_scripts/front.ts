@@ -193,7 +193,12 @@ function createFront(
     }
   };
 
-  _actions["getSearchSuggestions"] = (message: any) => {
+  _actions["getSearchSuggestions"] = (message: {
+    url: string;
+    response: unknown;
+    requestUrl: string;
+    query: string;
+  }) => {
     let ret = null;
     if (Object.hasOwn(_listSuggestions, message.url)) {
       const listSuggestion = _listSuggestions[message.url];
