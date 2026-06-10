@@ -573,12 +573,14 @@ const Front = (() => {
         setPopupHtml(
           `<div>${message.question}</div><div><div class=sk_tab_hint>${hintLabels[0]}</div><span class=sk_tab_group_title>Ok</span><div class=sk_tab_hint>${hintLabels[1]}</div><span class=sk_tab_group_title>Cancel</span></div>`,
         );
-        const tabHints: any = _popup.querySelectorAll("div.sk_tab_hint");
+        const [okHint, cancelHint] = _popup.querySelectorAll<HTMLElement>("div.sk_tab_hint");
         _popup.style.textAlign = "center";
-        hintLink.set(tabHints[0], "Ok");
-        hintLabel.set(tabHints[0], hintLabels[0] ?? "");
-        hintLink.set(tabHints[1], "Cancel");
-        hintLabel.set(tabHints[1], hintLabels[1] ?? "");
+        if (okHint && cancelHint) {
+          hintLink.set(okHint, "Ok");
+          hintLabel.set(okHint, hintLabels[0] ?? "");
+          hintLink.set(cancelHint, "Cancel");
+          hintLabel.set(cancelHint, hintLabels[1] ?? "");
+        }
       },
       (matched) => {
         self.contentCommand({
@@ -878,7 +880,11 @@ const Front = (() => {
 
   sk_bubble_content.addEventListener(
     "mousewheel",
-    (evt: any) => {
+    (evt: Event) => {
+      // "mousewheel" is not in the typed event map, so the listener is seen as a bare Event.
+      if (!(evt instanceof WheelEvent)) {
+        return;
+      }
       if (
         (evt.deltaY > 0 &&
           sk_bubble_content.scrollTop + sk_bubble_content.offsetHeight >=
