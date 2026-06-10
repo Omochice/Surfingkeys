@@ -782,13 +782,17 @@ function createOmnibar(front: any, clipboard: any) {
 
   self.listBookmarkFolders = (cb?: (response: any, folders: any) => void) => {
     reportOnFail(
-      RUNTIME("getBookmarkFolders", null, (response: any) => {
-        bookmarkFolders = {};
-        response.folders.forEach((f: any) => {
-          bookmarkFolders[f.id] = f;
-        });
-        cb && cb(response, bookmarkFolders);
-      }),
+      RUNTIME(
+        "getBookmarkFolders",
+        null,
+        (response: { folders: { id: string; title?: string }[] }) => {
+          bookmarkFolders = {};
+          response.folders.forEach((f) => {
+            bookmarkFolders[f.id] = f;
+          });
+          cb && cb(response, bookmarkFolders);
+        },
+      ),
       reportError,
     );
   };
@@ -946,23 +950,27 @@ function OpenBookmarks(omnibar: any): any {
     const folderId = fi?.data.folderId;
     if (folderId && !this.activeTab) {
       reportOnFail(
-        RUNTIME("getBookmarks", { parentId: folderId }, (response: any) => {
-          const subItems = response.bookmarks;
-          for (const m of subItems) {
-            if (m.url) {
-              reportOnFail(
-                RUNTIME("openLink", {
-                  tab: {
-                    tabbed: true,
-                    active: false,
-                  },
-                  url: m.url,
-                }),
-                reportError,
-              );
+        RUNTIME(
+          "getBookmarks",
+          { parentId: folderId },
+          (response: { bookmarks: { url?: string }[] }) => {
+            const subItems = response.bookmarks;
+            for (const m of subItems) {
+              if (m.url) {
+                reportOnFail(
+                  RUNTIME("openLink", {
+                    tab: {
+                      tabbed: true,
+                      active: false,
+                    },
+                    url: m.url,
+                  }),
+                  reportError,
+                );
+              }
             }
-          }
-        }),
+          },
+        ),
         reportError,
       );
       self.inFolder.push({
