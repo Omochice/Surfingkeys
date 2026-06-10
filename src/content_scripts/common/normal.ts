@@ -237,7 +237,7 @@ function createNormal(insert: InsertLike): NormalMode {
     const realTarget = getRealEdit(event);
     const keyName = event.sk_keyName ?? "";
     const eventKey = (event as KeyboardEvent).key;
-    if (isEditable(realTarget) && event.isTrusted) {
+    if (realTarget && isEditable(realTarget) && event.isTrusted) {
       if (Mode.isSpecialKeyOf("<Esc>", keyName)) {
         realTarget.blur();
         insert.exit();
@@ -258,11 +258,11 @@ function createNormal(insert: InsertLike): NormalMode {
 
           let stealFocus = false;
           if (!isElementPartiallyInViewport(realTarget)) {
-            let n = realTarget;
-            while (n !== document.documentElement && !isNewlyCreated(n)) {
+            let n: HTMLElement | null = realTarget;
+            while (n && n !== document.documentElement && !isNewlyCreated(n)) {
               n = n.parentElement;
             }
-            stealFocus = n !== document.documentElement && isNewlyCreated(n);
+            stealFocus = n != null && n !== document.documentElement && isNewlyCreated(n);
           }
           if (stealFocus) {
             // steal focus from dynamically created input widget
@@ -303,7 +303,7 @@ function createNormal(insert: InsertLike): NormalMode {
     Mode.showStatus();
     if (runtime.conf.stealFocusOnLoad && !isInUIFrame()) {
       const elm = getRealEdit(event);
-      if (isEditable(elm)) {
+      if (elm && isEditable(elm)) {
         if (_passFocus || isAutoFocusMarked(elm)) {
           if (!runtime.conf.enableAutoFocus) {
             // prevent focus on input only when enableAutoFocus is turned off.
@@ -334,7 +334,7 @@ function createNormal(insert: InsertLike): NormalMode {
     }
 
     const realTarget = getRealEdit(event);
-    if (isEditable(realTarget)) {
+    if (realTarget && isEditable(realTarget)) {
       // keep cursor where it is
       insert.enter(realTarget, true);
     } else {

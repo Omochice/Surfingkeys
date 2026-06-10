@@ -321,28 +321,38 @@ function dispatchMouseEvent(
   });
 }
 
-function getRealEdit(event?: Event): any {
-  let rt: any = event ? event.target : document.activeElement;
+/** True when the element exposes the text-input editing surface (value/selection APIs). */
+function isTextInput(element: Element | null): element is HTMLInputElement | HTMLTextAreaElement {
+  return element instanceof HTMLInputElement || element instanceof HTMLTextAreaElement;
+}
+
+function getRealEdit(event?: Event): HTMLElement | null {
+  const target = event ? event.target : document.activeElement;
+  if (target === window) {
+    return document.body;
+  }
+  let rt: Element | null = target instanceof Element ? target : null;
   // on some pages like chrome://history/, input is in shadowRoot of several other recursive shadowRoots.
-  while (rt && rt.shadowRoot) {
+  while (rt?.shadowRoot) {
     if (rt.shadowRoot.activeElement) {
       rt = rt.shadowRoot.activeElement;
-    } else if (rt.shadowRoot.querySelector("input, textarea, select")) {
-      rt = rt.shadowRoot.querySelector("input, textarea, select");
-      break;
     } else {
+      const nested = rt.shadowRoot.querySelector("input, textarea, select");
+      if (nested) {
+        rt = nested;
+      }
       break;
     }
   }
-  if (rt === window) {
-    rt = document.body;
-  }
-  return rt;
+  return rt instanceof HTMLElement ? rt : null;
 }
 
 function toggleQuote(): void {
-  const elm = getRealEdit(),
-    val = elm.value;
+  const elm = getRealEdit();
+  if (!isTextInput(elm)) {
+    return;
+  }
+  const val = elm.value;
   elm.value = /^"|"$/.test(val) ? val.replace(/^"?(.*?)"?$/, "$1") : '"' + val + '"';
 }
 
@@ -1251,6 +1261,7 @@ export {
   getRealRect,
   getTextNodePos,
   getTextNodes,
+  isTextInput,
   getTextRect,
   getVisibleElements,
   getWordUnderCursor,
