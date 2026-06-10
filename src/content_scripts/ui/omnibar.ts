@@ -861,15 +861,19 @@ function createOmnibar(front: any, clipboard: any) {
     OpenURLs("Recently closed", self, () => {
       return new Promise((resolve) => {
         reportOnFail(
-          RUNTIME("getRecentlyClosed", null, (response: any) => {
-            resolve(
-              filterByTitleOrUrl(
-                response.urls,
-                self.input.value,
-                runtime.getCaseSensitive(self.input.value),
-              ),
-            );
-          }),
+          RUNTIME(
+            "getRecentlyClosed",
+            null,
+            (response: { urls: { title?: string; url?: string }[] }) => {
+              resolve(
+                filterByTitleOrUrl(
+                  response.urls,
+                  self.input.value,
+                  runtime.getCaseSensitive(self.input.value),
+                ),
+              );
+            },
+          ),
           reportError,
         );
       });
@@ -880,7 +884,7 @@ function createOmnibar(front: any, clipboard: any) {
     OpenURLs("Tab History", self, () => {
       return new Promise((resolve) => {
         reportOnFail(
-          RUNTIME("getTabURLs", null, (response: any) => {
+          RUNTIME("getTabURLs", null, (response: { urls: { title?: string; url?: string }[] }) => {
             resolve(
               filterByTitleOrUrl(
                 response.urls,
