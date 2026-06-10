@@ -22,7 +22,8 @@ let _browser: BrowserAdapter = {};
 
 type Api = ReturnType<typeof createAPI>;
 type Normal = ReturnType<typeof createNormal>;
-type Modes = { normal: Normal; front: any; api: Api };
+type Front = ReturnType<typeof createFront>;
+type Modes = { normal: Normal; front: Front; api: Api };
 
 const userConfPromise = new Promise<typeof runtime.conf>((resolve) => {
   document.addEventListener(
