@@ -811,7 +811,7 @@ function createOmnibar(front: any, clipboard: any) {
               query: self.input.value,
               sortByMostUsed: runtime.conf.historyMUOrder,
             },
-            (response: any) => {
+            (response: { history: { title?: string; url?: string }[] }) => {
               resolve(response.history);
             },
           ),
@@ -825,36 +825,44 @@ function createOmnibar(front: any, clipboard: any) {
     OpenURLs("", self, () => {
       return new Promise((resolve) => {
         reportOnFail(
-          RUNTIME("getTabs", { queryInfo: runtime.conf.omnibarTabsQuery }, (response: any) => {
-            let results = response.tabs;
-            reportOnFail(
-              RUNTIME("getTopSites", null, (response2: any) => {
-                results = results.concat(response2.urls);
-                results = filterByTitleOrUrl(
-                  results,
-                  self.input.value,
-                  runtime.getCaseSensitive(self.input.value),
-                );
-                self.listBookmarkFolders(() => {
-                  reportOnFail(
-                    RUNTIME(
-                      "getAllURLs",
-                      {
-                        maxResults: self.getHistoryCacheSize() - results.length,
-                        query: self.input.value,
-                      },
-                      (response3: any) => {
-                        results = results.concat(response3.urls);
-                        resolve(results);
-                      },
-                    ),
-                    reportError,
-                  );
-                });
-              }),
-              reportError,
-            );
-          }),
+          RUNTIME(
+            "getTabs",
+            { queryInfo: runtime.conf.omnibarTabsQuery },
+            (response: { tabs: { title?: string; url?: string }[] }) => {
+              let results: readonly { title?: string; url?: string }[] = response.tabs;
+              reportOnFail(
+                RUNTIME(
+                  "getTopSites",
+                  null,
+                  (response2: { urls: { title?: string; url?: string }[] }) => {
+                    results = results.concat(response2.urls);
+                    results = filterByTitleOrUrl(
+                      results,
+                      self.input.value,
+                      runtime.getCaseSensitive(self.input.value),
+                    );
+                    self.listBookmarkFolders(() => {
+                      reportOnFail(
+                        RUNTIME(
+                          "getAllURLs",
+                          {
+                            maxResults: self.getHistoryCacheSize() - results.length,
+                            query: self.input.value,
+                          },
+                          (response3: { urls: { title?: string; url?: string }[] }) => {
+                            results = results.concat(response3.urls);
+                            resolve(results);
+                          },
+                        ),
+                        reportError,
+                      );
+                    });
+                  },
+                ),
+                reportError,
+              );
+            },
+          ),
           reportError,
         );
       });
