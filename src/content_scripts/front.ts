@@ -398,7 +398,11 @@ function createFront(
     self.openOmnibar({ type: "OmniQuery", extra: args.query, style: args.style });
   };
 
-  const _keyHints: { accumulated: string; candidates: Record<string, any>; key: string } = {
+  const _keyHints: {
+    accumulated: string;
+    candidates: Record<string, { annotation?: string | string[] | undefined }>;
+    key: string;
+  } = {
     accumulated: "",
     candidates: {},
     key: "",
@@ -520,7 +524,11 @@ function createFront(
         linger_time: linger_time,
       });
     },
-    showBubble: (pos: any, msg: any, noPointerEvents: boolean) => {
+    showBubble: (
+      pos: QueryPos & { winWidth?: number; winHeight?: number; winX?: number; winY?: number },
+      msg: string,
+      noPointerEvents: boolean,
+    ) => {
       if (msg.length > 0) {
         pos.winWidth = window.innerWidth;
         pos.winHeight = window.innerHeight;
@@ -550,7 +558,7 @@ function createFront(
         action: "hideKeystroke",
       });
     },
-    showKeystroke: (key: string, mode: any) => {
+    showKeystroke: (key: string, mode: { mappings: Trie }) => {
       _keyHints.accumulated += key;
       _keyHints.key = key;
       _keyHints.candidates = {};
@@ -559,7 +567,7 @@ function createFront(
       if (root) {
         root
           .getMetas(() => true)
-          .forEach((m: any) => {
+          .forEach((m) => {
             _keyHints.candidates[m.word] = {
               annotation: m.annotation,
             };
@@ -586,20 +594,18 @@ function createFront(
         height: 0,
         width: 100,
       },
-      (_pos: any, queryResult: any) => {
-        if (queryResult.constructor.name !== "Array") {
-          queryResult = [queryResult];
-        }
+      (_pos: QueryPos, queryResult: unknown) => {
+        const words: unknown[] = Array.isArray(queryResult) ? queryResult : [queryResult];
         if (getBrowserName() === "Chrome") {
           const sentence = visual.findSentenceOf(response.query);
           if (sentence.length > 0) {
-            queryResult.push(sentence);
+            words.push(sentence);
           }
         }
 
         self.command({
           action: "updateOmnibarResult",
-          words: queryResult,
+          words: words,
         });
       },
     );
@@ -702,7 +708,7 @@ function createFront(
         self.performInlineQuery(
           _message.query ?? "",
           _message.pos,
-          (pos: any, queryResult: any) => {
+          (pos: QueryPos, queryResult: unknown) => {
             (event.source as Window).postMessage(
               {
                 surfingkeys_content_data: {
