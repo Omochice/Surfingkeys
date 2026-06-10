@@ -355,7 +355,7 @@ function createNormal(insert: InsertLike): NormalMode {
         {
           blocklistPattern: runtime.conf.blocklistPattern || "",
         },
-        (resp) => {
+        (resp: { state: string; blocklist: Record<string, unknown>; url?: string }) => {
           if (resp.state === "disabled") {
             if (Object.hasOwn(resp.blocklist, ".*")) {
               showBanner(
@@ -857,7 +857,7 @@ function createNormal(insert: InsertLike): NormalMode {
   };
 
   self.captureElement = (elm) => {
-    RUNTIME("getCaptureSize", null, (response) => {
+    RUNTIME("getCaptureSize", null, (response: { width: number }) => {
       const scale = response.width / window.innerWidth;
 
       elm.scrollTop = 0;
@@ -936,7 +936,7 @@ function createNormal(insert: InsertLike): NormalMode {
               dx = elm.scrollLeft * scale;
             }
             setTimeout(() => {
-              RUNTIME("captureVisibleTab", null, (response) => {
+              RUNTIME("captureVisibleTab", null, (response: { dataUrl: string }) => {
                 img.src = response.dataUrl;
               });
             }, 1000);
@@ -951,7 +951,7 @@ function createNormal(insert: InsertLike): NormalMode {
             dy = elm.scrollTop * scale;
           }
           setTimeout(() => {
-            RUNTIME("captureVisibleTab", null, (response) => {
+            RUNTIME("captureVisibleTab", null, (response: { dataUrl: string }) => {
               img.src = response.dataUrl;
             });
           }, 1000);
@@ -960,7 +960,7 @@ function createNormal(insert: InsertLike): NormalMode {
 
       // wait 500 millisecond for keystrokes of Surfingkeys to hide
       setTimeout(() => {
-        RUNTIME("captureVisibleTab", null, (response) => {
+        RUNTIME("captureVisibleTab", null, (response: { dataUrl: string }) => {
           img.src = response.dataUrl;
         });
       }, 500);

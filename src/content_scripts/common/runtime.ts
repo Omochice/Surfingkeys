@@ -32,10 +32,10 @@ function dispatchSKEvent(type: SKEventType, args?: unknown, target: EventTarget 
 }
 
 type RuntimeFn = {
-  (
+  <R = unknown>(
     action: string,
     args?: Record<string, unknown> | null,
-    callback?: (response: any) => void,
+    callback?: (response: R) => void,
   ): Result.Result<void, ChromeRuntimeError>;
   /** Pending repeat count shared with the mode system; set per key action. */
   repeats: number;
@@ -57,7 +57,7 @@ type RuntimeFn = {
 const RUNTIME = function (
   action: string,
   args?: Record<string, unknown> | null,
-  callback?: (response: any) => void,
+  callback?: (response: unknown) => void,
 ): Result.Result<void, ChromeRuntimeError> {
   const actionsRepeatBackground = [
     "closeTab",
@@ -271,7 +271,7 @@ const getTopURLPromise = new Promise<string>((resolve) => {
   if (window === top) {
     resolve(window.location.href);
   } else {
-    RUNTIME("getTopURL", null, (rs) => {
+    RUNTIME("getTopURL", null, (rs: { url: string }) => {
       resolve(rs.url);
     });
   }

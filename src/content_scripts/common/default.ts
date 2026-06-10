@@ -168,7 +168,7 @@ export default function createDefaultMappings(api: SurfingkeysApi, ctx: ModeCont
   mapkey("yg", "#7Capture current page", () => {
     front.toggleStatus(false);
     setTimeout(() => {
-      RUNTIME("captureVisibleTab", null, (response) => {
+      RUNTIME("captureVisibleTab", null, (response: { dataUrl: string }) => {
         front.toggleStatus(true);
         showPopup(`<img src='${response.dataUrl}' />`);
       });
@@ -531,15 +531,19 @@ export default function createDefaultMappings(api: SurfingkeysApi, ctx: ModeCont
     "gp",
     "#4Go to the playing tab",
     () => {
-      RUNTIME("getTabs", { queryInfo: { audible: true } }, (response) => {
-        if (response.tabs?.at(0)) {
-          const tab = response.tabs[0];
-          RUNTIME("focusTab", {
-            windowId: tab.windowId,
-            tabId: tab.id,
-          });
-        }
-      });
+      RUNTIME(
+        "getTabs",
+        { queryInfo: { audible: true } },
+        (response: { tabs?: { windowId: number; id: number }[] }) => {
+          const tab = response.tabs?.[0];
+          if (tab) {
+            RUNTIME("focusTab", {
+              windowId: tab.windowId,
+              tabId: tab.id,
+            });
+          }
+        },
+      );
     },
     { repeatIgnore: true },
   );
@@ -615,7 +619,7 @@ export default function createDefaultMappings(api: SurfingkeysApi, ctx: ModeCont
       {
         key: "RAW",
       },
-      (response) => {
+      (response: { settings: unknown }) => {
         clipboard.write(JSON.stringify(response.settings, regExpReplacer, 4));
       },
     );
@@ -661,7 +665,7 @@ export default function createDefaultMappings(api: SurfingkeysApi, ctx: ModeCont
       {
         key: "OmniQueryHistory",
       },
-      (response) => {
+      (response: { settings: { OmniQueryHistory: string[] } }) => {
         clipboard.write(response.settings.OmniQueryHistory.join("\n"));
       },
     );

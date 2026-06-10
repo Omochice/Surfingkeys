@@ -75,7 +75,7 @@ function applyRuntimeConf(normal: Normal): void {
         blocklistPattern: runtime.conf.blocklistPattern || undefined,
         lurkingPattern: runtime.conf.lurkingPattern || undefined,
       },
-      (resp) => {
+      (resp: { state: string }) => {
         let state = resp.state;
         if (state === "disabled") {
           normal.disable();

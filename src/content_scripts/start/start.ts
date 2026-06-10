@@ -5,7 +5,7 @@ import { RUNTIME } from "../common/runtime";
 import { hide, once, setSanitizedContent, show } from "../common/utils";
 
 reportOnFail(
-  RUNTIME("getTopSites", null, (response) => {
+  RUNTIME("getTopSites", null, (response: { urls: { url: string; title: string }[] }) => {
     const urls = response.urls.map((u: { url: string; title: string }) => {
       const favUrl = browser.runtime.getURL(`/_favicon/?pageUrl=${encodeURIComponent(u.url)}`);
       return `<li><a href="${u.url}"><i style="background:url(${favUrl}) no-repeat"></i>${u.title}</a></li>`;
