@@ -22,6 +22,9 @@ function isInUIFrame() {
   );
 }
 
+/** Options accepted by the mapkey family: a domain filter plus arbitrary forwarded flags. */
+type MapkeyOptions = { domain?: RegExp; codeHasParameter?: number; [key: string]: unknown };
+
 function _isDomainApplicable(domain?: RegExp) {
   return !domain || domain.test(document.location.href) || domain.test(window.origin);
 }
@@ -38,7 +41,7 @@ function cmap(
 }
 
 const userDefinedFunctions: Record<string, (...args: unknown[]) => void> = {};
-function mapkey(keys: string, annotation: string | string[], jscode: any, options?: any) {
+function mapkey(keys: string, annotation: string | string[], jscode: any, options?: MapkeyOptions) {
   if (!options || _isDomainApplicable(options.domain)) {
     const opt = options || {};
     userDefinedFunctions[`normal:${keys}`] = jscode;
@@ -46,13 +49,23 @@ function mapkey(keys: string, annotation: string | string[], jscode: any, option
     dispatchSKEvent("api", ["mapkey", keys, annotation, opt]);
   }
 }
-function imapkey(keys: string, annotation: string | string[], jscode: any, options?: any) {
+function imapkey(
+  keys: string,
+  annotation: string | string[],
+  jscode: any,
+  options?: MapkeyOptions,
+) {
   if (!options || _isDomainApplicable(options.domain)) {
     userDefinedFunctions[`insert:${keys}`] = jscode;
     dispatchSKEvent("api", ["imapkey", keys, annotation, options]);
   }
 }
-function vmapkey(keys: string, annotation: string | string[], jscode: any, options?: any) {
+function vmapkey(
+  keys: string,
+  annotation: string | string[],
+  jscode: any,
+  options?: MapkeyOptions,
+) {
   if (!options || _isDomainApplicable(options.domain)) {
     userDefinedFunctions[`visual:${keys}`] = jscode;
     dispatchSKEvent("api", ["vmapkey", keys, annotation, options]);
@@ -361,7 +374,13 @@ const api = {
   },
 };
 
-const initUserScripts = (extensionRootUrl: string, uf: (api: any, settings: any) => void) => {
+/** The Surfingkeys API object handed to user snippet functions. */
+type UserScriptApi = typeof api;
+
+const initUserScripts = (
+  extensionRootUrl: string,
+  uf: (api: UserScriptApi, settings: Record<string, unknown>) => void,
+) => {
   EXTENSION_ROOT_URL = extensionRootUrl;
   if (isInUIFrame()) return;
   userScriptTask = () => {
