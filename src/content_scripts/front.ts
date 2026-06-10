@@ -60,6 +60,9 @@ type BrowserLike = {
 /** The anchor rectangle an inline-query bubble is positioned against. */
 type QueryPos = { top: number; left: number; height: number; width: number };
 
+/** A user-registered search-suggestion parser: turns a raw response into suggestion rows. */
+type ListSuggestionFn = (response: unknown, opts: { url: string; query: string }) => unknown;
+
 function createFront(
   insert: InsertLike,
   normal: NormalLike,
@@ -125,14 +128,14 @@ function createFront(
     }
   }
 
-  const _listSuggestions: Record<string, any> = {};
+  const _listSuggestions: Record<string, ListSuggestionFn> = {};
   self.addSearchAlias = (
     alias: string,
     prompt: string,
     url: string,
     suggestionURL?: string,
-    listSuggestion?: any,
-    options?: any,
+    listSuggestion?: ListSuggestionFn,
+    options?: Record<string, unknown>,
   ) => {
     if (suggestionURL && listSuggestion) {
       _listSuggestions[suggestionURL] = listSuggestion;
