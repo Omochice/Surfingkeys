@@ -556,14 +556,20 @@ function createOmnibar(front: any, clipboard: any) {
     return buildOmnibarResult(li, { uid, url: b.url });
   };
 
-  self.createItemFromRawHtml = ({ html, props }: { html: string; props?: any }) => {
+  self.createItemFromRawHtml = ({
+    html,
+    props,
+  }: {
+    html: string;
+    props?: Partial<OmnibarResult["data"]>;
+  }) => {
     const li = createElementWithContent("li", html);
     // User suggestion handlers pass their data fields (url, copy, ...) via `props`; route them
     // into the result's data instead of assigning them as expandos on the <li>.
     return buildOmnibarResult(li, typeof props === "object" ? props : {});
   };
 
-  self.detectAndInsertURLItem = (str: string, toList: any[]) => {
+  self.detectAndInsertURLItem = (str: string, toList: { title?: string; url?: string }[]) => {
     const urlPat = /^(?:https?:\/\/)?(?:[^@/\n]+@)?(?:www\.)?([^:/\n\s]+)\.([^:/\n\s]+)/i;
     const urlPat1 = /^https?:\/\/(?:[^@/\n]+@)?([^:/\n\s]+)/i;
     if (urlPat.test(str)) {
@@ -752,7 +758,10 @@ function createOmnibar(front: any, clipboard: any) {
     return this.activeTab;
   };
 
-  self.listResults = (items: any, renderItem: (b: any) => OmnibarResult | null | undefined) => {
+  self.listResults = <T>(
+    items: readonly T[] | null | undefined,
+    renderItem: (b: T) => OmnibarResult | null | undefined,
+  ) => {
     if (!items || items.length === 0) {
       setResults([]);
       setFocusedIndex(-1);
@@ -763,7 +772,7 @@ function createOmnibar(front: any, clipboard: any) {
     // handlers and key bindings read from the store); collect them for <ResultList> to render
     // reactively. No data is read back off the <li> any more.
     const built: OmnibarResult[] = [];
-    displayItems.forEach((b: any) => {
+    displayItems.forEach((b) => {
       const result = renderItem(b);
       if (result) {
         built.push(result);
@@ -784,8 +793,8 @@ function createOmnibar(front: any, clipboard: any) {
     }
   };
 
-  self.listWords = (words: any[]) => {
-    self.listResults(words, (w: any) => {
+  self.listWords = (words: string[]) => {
+    self.listResults(words, (w: string) => {
       const li = createElementWithContent("li", `⌕ ${w}`);
       return buildOmnibarResult(li, { query: w });
     });
@@ -805,7 +814,12 @@ function createOmnibar(front: any, clipboard: any) {
     handlers[name] = hdl;
   };
 
-  self.listBookmarkFolders = (cb?: (response: any, folders: any) => void) => {
+  self.listBookmarkFolders = (
+    cb?: (
+      response: { folders: { id: string; title?: string }[] },
+      folders: Record<string, { id: string; title?: string }>,
+    ) => void,
+  ) => {
     reportOnFail(
       RUNTIME(
         "getBookmarkFolders",
@@ -944,7 +958,7 @@ function createOmnibar(front: any, clipboard: any) {
   self.addHandler("OmniQuery", OmniQuery(self, front));
   self.addHandler("UserURLs", OpenUserURLs(self));
 
-  front._actions["updateOmnibarResult"] = (message: any) => {
+  front._actions["updateOmnibarResult"] = (message: { words: string[] }) => {
     self.listWords(message.words);
   };
   return self;
