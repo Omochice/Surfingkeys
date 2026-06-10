@@ -451,13 +451,13 @@ function createFront(
       });
       onDialogResponseOk = onOk;
     },
-    applySettingsFromSnippets: (us: any) => {
+    applySettingsFromSnippets: (us: Record<string, unknown>) => {
       applyUICommand({
         action: "applyUserSettings",
         userSettings: us,
       });
-      const cloneUS = JSON.parse(JSON.stringify(us, regExpReplacer));
-      const conf = runtime.conf as Record<string, any>;
+      const cloneUS: Record<string, unknown> = JSON.parse(JSON.stringify(us, regExpReplacer));
+      const conf: Record<string, unknown> = runtime.conf;
       // overrides local settings from snippets
       for (const k in cloneUS) {
         if (Object.hasOwn(runtime.conf, k)) {
@@ -489,7 +489,7 @@ function createFront(
         old_keystroke: old_keystroke,
       });
     },
-    addVimMap: (lhs: string, rhs: string, ctx: any) => {
+    addVimMap: (lhs: string, rhs: string, ctx: unknown) => {
       applyUICommand({
         action: "addVimMap",
         lhs: lhs,
@@ -497,7 +497,7 @@ function createFront(
         ctx: ctx,
       });
     },
-    addVimKeyMap: (vimKeyMap: any) => {
+    addVimKeyMap: (vimKeyMap: unknown) => {
       applyUICommand({
         action: "addVimKeyMap",
         vimKeyMap,
@@ -651,7 +651,7 @@ function createFront(
     visual.visualClear();
   };
 
-  _actions["visualEnter"] = (message: any) => {
+  _actions["visualEnter"] = (message: { query: string }) => {
     clearPendingQuery();
     visual.visualEnter(message.query);
   };
@@ -660,7 +660,7 @@ function createFront(
     visual.emptySelection();
   };
 
-  _actions["executeUserCommand"] = (message: any) => {
+  _actions["executeUserCommand"] = (message: { name: string; args: unknown }) => {
     dispatchSKEvent("user", ["executeUserCommand", message.name, message.args]);
   };
 
@@ -740,7 +740,7 @@ function createFront(
             if (!ret.then) {
               ret = Promise.resolve(ret);
             }
-            ret.then((data: any) =>
+            ret.then((data: unknown) =>
               runtime.postTopMessage({
                 surfingkeys_uihost_data: {
                   data,
