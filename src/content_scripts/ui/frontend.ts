@@ -74,18 +74,22 @@ const Front = (() => {
   createDefaultMappings(api, ctx);
 
   const _actions: Record<string, (message?: any) => any> = self._actions;
-  const _callbacks: Record<string, (msg: any) => any> = {};
-  self.contentCommand = (args: any, successById?: (msg: any) => any) => {
-    args.toContent = true;
-    args.id = generateQuickGuid();
+  const _callbacks: Record<string, (msg: unknown) => unknown> = {};
+  self.contentCommand = (
+    args: Record<string, unknown>,
+    successById?: (msg: unknown) => unknown,
+  ) => {
+    args["toContent"] = true;
+    const id = generateQuickGuid();
+    args["id"] = id;
     if (successById) {
-      args.ack = true;
-      _callbacks[args.id] = successById;
+      args["ack"] = true;
+      _callbacks[id] = successById;
     }
     top!.postMessage({ surfingkeys_uihost_data: args }, self.topOrigin);
   };
 
-  self.postMessage = (args: any) => {
+  self.postMessage = (args: Record<string, unknown>) => {
     top!.postMessage({ surfingkeys_uihost_data: args }, self.topOrigin);
   };
 
