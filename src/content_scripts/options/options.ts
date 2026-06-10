@@ -5,10 +5,10 @@ import { reportError } from "../common/report";
 import type { StoredSettings } from "../common/runtime";
 import { hide, requireElement, show } from "../common/utils";
 
-type RuntimeFn = (
+type RuntimeFn = <R = unknown>(
   action: string,
   args?: Record<string, unknown> | null,
-  callback?: (resp: any) => void,
+  callback?: (resp: R) => void,
 ) => Result.Result<void, ChromeRuntimeError>;
 type KeyboardUtilsLike = {
   encodeKeystroke(k: string): string;
@@ -125,7 +125,7 @@ export default function optionsMain(
             showAdvanced: newFlag,
           },
         },
-        (resp) => {
+        (resp: { error?: string }) => {
           if (resp.error) {
             showBanner(resp.error, 3000);
           } else {
@@ -143,7 +143,7 @@ export default function optionsMain(
         "WARNING! This will clear all your settings. Click this again to continue.";
     } else {
       reportOnFail(
-        RUNTIME("resetSettings", null, (response) => {
+        RUNTIME("resetSettings", null, (response: { settings: StoredSettings }) => {
           renderSettings(response.settings);
           renderKeyMappings(response.settings);
           showBanner("Settings reset", 1000);
@@ -183,7 +183,7 @@ export default function optionsMain(
           {
             url: localPath,
           },
-          (res) => {
+          (res: StoredSettings & { status?: number | string; snippets?: string }) => {
             showBanner(res.status + " to load settings from " + localPath, 5000);
             renderKeyMappings(res);
             if (res.snippets && res.snippets.length) {
