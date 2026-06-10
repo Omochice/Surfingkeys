@@ -991,14 +991,14 @@ const StatusBar = (() => {
 })();
 
 const Find = (() => {
-  const self: any = new Mode("Find", "/");
+  const self = new Mode("Find", "/");
 
   self
-    .addEventListener("keydown", (event: any) => {
+    .addEventListener("keydown", (event) => {
       // prevent this event to be handled by Surfingkeys' other listeners
       event.sk_suppressed = true;
     })
-    .addEventListener("mousedown", (event: any) => {
+    .addEventListener("mousedown", (event) => {
       if (event.target !== input) {
         // user clicks on somewhere else
         reset();
@@ -1006,7 +1006,7 @@ const Find = (() => {
       event.sk_suppressed = true;
     });
 
-  let input: any;
+  let input: HTMLInputElement | null = null;
   let historyInc = 0;
   let userInput = "";
   function reset() {
@@ -1022,19 +1022,23 @@ const Find = (() => {
    * @returns {undefined}
    * @instance
    */
-  self.open = () => {
+  const open = () => {
     StatusBar.show(["/", { html: '<input id="sk_find" class="sk_theme"/>' }]);
-    input = Front.statusBar.querySelector("input");
-    input.oninput = () => {
-      if (input.value.length && input.value !== ".") {
+    const inputEl: HTMLInputElement | null = Front.statusBar.querySelector("input");
+    input = inputEl;
+    if (inputEl == null) {
+      return;
+    }
+    inputEl.oninput = () => {
+      if (inputEl.value.length && inputEl.value !== ".") {
         Front.visualCommand({
           action: "visualUpdate",
-          query: input.value,
+          query: inputEl.value,
         });
         // To find in usage popup will set focus and selection elsewhere
         // we need bring it back
-        input.focus();
-        input.setSelectionRange(input.value.length, input.value.length);
+        inputEl.focus();
+        inputEl.setSelectionRange(inputEl.value.length, inputEl.value.length);
       }
     };
     let findHistory: string[] = [];
@@ -1043,13 +1047,13 @@ const Find = (() => {
       {
         key: "findHistory",
       },
-      (response: any) => {
+      (response: { settings: { findHistory: string[] } }) => {
         userInput = "";
         findHistory = response.settings.findHistory;
         historyInc = findHistory.length;
       },
     );
-    input.onkeydown = (event: any) => {
+    inputEl.onkeydown = (event) => {
       let query: string | undefined;
       if (Mode.isSpecialKeyOf("<Esc>", event.sk_keyName ?? "")) {
         reset();
@@ -1057,8 +1061,8 @@ const Find = (() => {
           action: "visualClear",
         });
       } else if (event.keyCode === KeyboardUtils.keyCodes["enter"]) {
-        query = input.value;
-        if (query!.length && query !== ".") {
+        query = inputEl.value;
+        if (query.length && query !== ".") {
           if (event.ctrlKey) {
             query = String.raw`\b` + query + String.raw`\b`;
           }
@@ -1074,12 +1078,16 @@ const Find = (() => {
         event.keyCode === KeyboardUtils.keyCodes["downArrow"]
       ) {
         if (findHistory.length) {
-          [input.value, historyInc] = rotateInput(
+          const [rotated, nextInc] = rotateInput(
             findHistory,
             event.keyCode === KeyboardUtils.keyCodes["downArrow"],
             historyInc,
             userInput,
           );
+          // rotateInput only yields undefined for an out-of-range index, which the length guard
+          // above rules out; keep the current value in that impossible case rather than "undefined".
+          inputEl.value = rotated ?? inputEl.value;
+          historyInc = nextInc;
           Front.visualCommand({
             action: "visualUpdate",
             query: query,
@@ -1087,15 +1095,15 @@ const Find = (() => {
           event.preventDefault();
         }
       } else {
-        userInput = input.value;
+        userInput = inputEl.value;
         historyInc = findHistory.length;
       }
     };
-    input.focus();
+    inputEl.focus();
     Front.startInputGuard();
     self.enter();
   };
-  return self;
+  return Object.assign(self, { open });
 })();
 
 export default Front;
