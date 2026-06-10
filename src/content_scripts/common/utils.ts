@@ -259,34 +259,33 @@ function initSKFunctionListener(
   document.addEventListener(
     `surfingkeys:${name}`,
     (evt) => {
-      const ce = evt as CustomEvent<any[]>;
+      const ce = evt as CustomEvent<unknown[]>;
       const args = ce.detail;
       const fk = args.shift();
       if (capture) {
         const target = ce.target;
-        if (
-          args.length > 0 &&
-          args[0].constructor.name === "Array" &&
-          args[0][0] === "__EVENT_TARGET__"
-        ) {
+        const first = args[0];
+        if (args.length > 0 && Array.isArray(first) && first[0] === "__EVENT_TARGET__") {
           // restore args from evt.target, see src/content_scripts/common/hints.js:442
-          args[0][0] = target;
+          first[0] = target;
         } else {
           args.push(target);
         }
       }
 
-      if (Object.hasOwn(callbacks, fk)) {
-        const cb = callbacks[fk];
-        if (cb) {
-          cb(...args);
+      if (typeof fk === "string") {
+        if (Object.hasOwn(callbacks, fk)) {
+          const cb = callbacks[fk];
+          if (cb) {
+            cb(...args);
+          }
+          delete callbacks[fk];
         }
-        delete callbacks[fk];
-      }
-      if (Object.hasOwn(interfaces, fk)) {
-        const iface = interfaces[fk];
-        if (iface) {
-          iface(...args);
+        if (Object.hasOwn(interfaces, fk)) {
+          const iface = interfaces[fk];
+          if (iface) {
+            iface(...args);
+          }
         }
       }
     },
@@ -1104,7 +1103,10 @@ function removeAttributes(el: HTMLElement): void {
   }
 }
 
-function httpRequest(args: Record<string, unknown>, onSuccess: (response: any) => void): void {
+function httpRequest<R = unknown>(
+  args: Record<string, unknown>,
+  onSuccess: (response: R) => void,
+): void {
   args["method"] = "get";
   RUNTIME("request", args, onSuccess);
 }
