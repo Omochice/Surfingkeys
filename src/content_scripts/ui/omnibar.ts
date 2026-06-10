@@ -429,7 +429,7 @@ function createOmnibar(front: OmnibarFront, clipboard: { write(text: string): vo
   });
 
   const handlers: Record<string, OmnibarHandler> = {};
-  let bookmarkFolders: any;
+  let bookmarkFolders: Record<string, BookmarkFolder> | null;
 
   let lastInput = "";
   // Initialised to an empty object so that listResults can safely read
@@ -692,7 +692,7 @@ function createOmnibar(front: OmnibarFront, clipboard: { write(text: string): vo
       uid = "H" + url;
     } else if (Object.hasOwn(b, "dateAdded")) {
       type = "⭐";
-      additional = `<span class=omnibar_folder>@ ${bookmarkFolders[b.parentId ?? ""].title || ""}</span> <span class=omnibar_timestamp># ${timeStampString(b.dateAdded ?? 0)}</span>`;
+      additional = `<span class=omnibar_folder>@ ${bookmarkFolders?.[b.parentId ?? ""]?.title || ""}</span> <span class=omnibar_timestamp># ${timeStampString(b.dateAdded ?? 0)}</span>`;
       uid = "B" + b.id;
     } else if (Object.hasOwn(b, "width")) {
       type = "🔖";
@@ -1000,11 +1000,12 @@ function createOmnibar(front: OmnibarFront, clipboard: { write(text: string): vo
         "getBookmarkFolders",
         null,
         (response: { folders: { id: string; title?: string }[] }) => {
-          bookmarkFolders = {};
+          const folders: Record<string, BookmarkFolder> = {};
           response.folders.forEach((f) => {
-            bookmarkFolders[f.id] = f;
+            folders[f.id] = f;
           });
-          cb && cb(response, bookmarkFolders);
+          bookmarkFolders = folders;
+          cb && cb(response, folders);
         },
       ),
       reportError,
