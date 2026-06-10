@@ -184,9 +184,10 @@ function createFront(
     }
   }
 
-  _actions["updateInlineQuery"] = (message: any) => {
-    if (message.word) {
-      self.performInlineQueryOnSelection(message.word);
+  _actions["updateInlineQuery"] = (message: unknown) => {
+    const { word } = v.parse(v.object({ word: v.optional(v.string()) }), message);
+    if (word) {
+      self.performInlineQueryOnSelection(word);
     } else {
       querySelectedWord();
     }
@@ -411,8 +412,9 @@ function createFront(
   };
 
   let onDialogResponseOk: (() => void) | null = null;
-  _actions["dialogResponse"] = (message: any) => {
-    if (message.result === "Ok" && onDialogResponseOk) {
+  _actions["dialogResponse"] = (message: unknown) => {
+    const { result } = v.parse(v.object({ result: v.optional(v.string()) }), message);
+    if (result === "Ok" && onDialogResponseOk) {
       onDialogResponseOk();
     } else {
       onDialogResponseOk = null;
