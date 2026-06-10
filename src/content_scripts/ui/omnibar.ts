@@ -93,7 +93,7 @@ function createOmnibar(front: any, clipboard: any) {
       const idx = focusedIndex();
       if (fi && fi.data.uid) {
         reportOnFail(
-          RUNTIME("removeURL", { uid: fi.data.uid }, (ret: any) => {
+          RUNTIME("removeURL", { uid: fi.data.uid }, (ret: { response: string }) => {
             if (ret.response !== "Done") {
               return;
             }
@@ -181,7 +181,7 @@ function createOmnibar(front: any, clipboard: any) {
         text = fi.data.url;
       } else if (_page) {
         text = _page
-          .map((p: any) => {
+          .map((p: { url?: string }) => {
             return p.url;
           })
           .join("\n");
@@ -201,7 +201,7 @@ function createOmnibar(front: any, clipboard: any) {
         .filter((u) => u);
       if (uids.length) {
         reportOnFail(
-          RUNTIME("removeURL", { uid: uids }, (ret: any) => {
+          RUNTIME("removeURL", { uid: uids }, (ret: { response: string }) => {
             if (ret.response === "Done") {
               if (handler && handler.getResults) {
                 handler.getResults();
