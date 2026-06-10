@@ -346,16 +346,32 @@ function toggleQuote(): void {
   elm.value = /^"|"$/.test(val) ? val.replace(/^"?(.*?)"?$/, "$1") : '"' + val + '"';
 }
 
-function isEditable(element: any): boolean {
+function isEditable(element: unknown): boolean {
+  if (!(element instanceof Element)) {
+    return false;
+  }
+  const formElement =
+    element instanceof HTMLInputElement ||
+    element instanceof HTMLTextAreaElement ||
+    element instanceof HTMLSelectElement
+      ? element
+      : null;
+  if (formElement?.disabled) {
+    return false;
+  }
+  const { localName } = element;
+  if (localName === "textarea" || localName === "select") {
+    return true;
+  }
+  if (element instanceof HTMLElement && element.isContentEditable) {
+    return true;
+  }
+  if (element.matches(runtime.conf.editableSelector)) {
+    return true;
+  }
   return (
-    element &&
-    !element.disabled &&
-    (element.localName === "textarea" ||
-      element.localName === "select" ||
-      element.isContentEditable ||
-      (element.matches && element.matches(runtime.conf.editableSelector)) ||
-      (element.localName === "input" &&
-        /^(?!button|checkbox|file|hidden|image|radio|reset|submit)/i.test(element.type)))
+    formElement instanceof HTMLInputElement &&
+    /^(?!button|checkbox|file|hidden|image|radio|reset|submit)/i.test(formElement.type)
   );
 }
 
