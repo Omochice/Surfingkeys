@@ -665,8 +665,12 @@ const Front = (() => {
     self.statusBar.querySelector("input").focus();
   };
 
-  _actions["showStatus"] = (message: any) => {
-    StatusBar.show(message.contents, message.duration);
+  _actions["showStatus"] = (message: unknown) => {
+    const { contents, duration } = v.parse(
+      v.object({ contents: v.unknown(), duration: v.optional(v.number()) }),
+      message,
+    );
+    StatusBar.show(contents, duration);
   };
 
   initSKFunctionListener("front", {
