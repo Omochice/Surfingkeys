@@ -90,13 +90,18 @@ const Front = (() => {
   };
 
   let pressedHintKeys = "";
-  let _display: any;
+  // The active overlay element carries onHide/onHit expandos the front sets on it.
+  type DisplayElement = HTMLElement & {
+    onHide?: () => void;
+    onHit?: ((matched: unknown) => void) | undefined;
+  };
+  let _display: DisplayElement | null = null;
   self.addEventListener("keydown", (event: KeyboardEvent) => {
     if (Mode.isSpecialKeyOf("<Esc>", event.sk_keyName ?? "")) {
       self.hidePopup();
       event.sk_stopPropagation = true;
     } else if (_display && _display.style.display !== "none") {
-      const tabHints = _display.querySelectorAll("div>div.sk_tab_hint");
+      const tabHints = _display.querySelectorAll<HTMLElement>("div>div.sk_tab_hint");
       if (tabHints.length > 0) {
         const key = event.sk_keyName ?? "";
         const characters = hints.getCharacters().toLowerCase();
@@ -109,7 +114,7 @@ const Front = (() => {
           pressedHintKeys = pressedHintKeys + key.toUpperCase();
           const hintState = refreshHints(tabHints, pressedHintKeys);
           if (hintState.matched) {
-            _display.onHit(hintState.matched);
+            _display.onHit?.(hintState.matched);
             pressedHintKeys = "";
             self.hidePopup();
           } else if (hintState.candidates === 0) {
@@ -271,7 +276,7 @@ const Front = (() => {
   };
   self.hidePopup = _actions["hidePopup"];
 
-  function setDisplay(td: any, render?: () => void) {
+  function setDisplay(td: DisplayElement, render?: () => void) {
     if (_display && _display.style.display !== "none") {
       _display.style.display = "none";
       _display.onHide && _display.onHide();
@@ -282,7 +287,11 @@ const Front = (() => {
     self.startInputGuard();
   }
 
-  function showElement(td: any, render?: () => void, onHit?: (matched: any) => void) {
+  function showElement(
+    td: DisplayElement,
+    render?: () => void,
+    onHit?: (matched: unknown) => void,
+  ) {
     self.enter(0, true);
     td.onHit = onHit;
     setDisplay(td, render);
@@ -348,10 +357,17 @@ const Front = (() => {
               renderTabs(response.tabs);
             },
             (matched) => {
-              RUNTIME("focusTab", {
-                windowId: matched.windowId,
-                tabId: matched.id,
-              });
+              if (
+                matched &&
+                typeof matched === "object" &&
+                "windowId" in matched &&
+                "id" in matched
+              ) {
+                RUNTIME("focusTab", {
+                  windowId: matched.windowId,
+                  tabId: matched.id,
+                });
+              }
             },
           );
         }
