@@ -57,6 +57,9 @@ type BrowserLike = {
   focusFrontend?: (ifr: HTMLIFrameElement) => void;
 };
 
+/** The anchor rectangle an inline-query bubble is positioned against. */
+type QueryPos = { top: number; left: number; height: number; width: number };
+
 function createFront(
   insert: InsertLike,
   normal: NormalLike,
@@ -157,11 +160,11 @@ function createFront(
   };
 
   const _actions: Record<string, (message: any) => any> = {};
-  let skCallbacks: Record<string, (res: any) => void> = {};
+  let skCallbacks: Record<string, (res: unknown) => void> = {};
 
   self.performInlineQueryOnSelection = (word: string) => {
     const b = document.getSelection()!.getRangeAt(0).getClientRects()[0];
-    self.performInlineQuery(word, b, (pos: any, queryResult: any) => {
+    self.performInlineQuery(word, b, (pos: QueryPos, queryResult: unknown) => {
       if (queryResult) {
         dispatchSKEvent("front", [
           "showBubble",
@@ -274,7 +277,7 @@ function createFront(
     });
   };
 
-  self.getUsage = (cb: (data: any) => void) => {
+  self.getUsage = (cb: (data: unknown) => void) => {
     self.command(
       {
         action: "getUsage",
@@ -310,18 +313,18 @@ function createFront(
    *   `SearchEngine`, `Commands`, `OmniQuery` and `UserURLs`.
    * @name Front.openOmnibar
    */
-  self.openOmnibar = (args: any) => {
-    args.action = "openOmnibar";
+  self.openOmnibar = (args: Record<string, unknown>) => {
+    args["action"] = "openOmnibar";
     self.command(args);
   };
 
   let _inlineQuery = false;
   // Called as both (result) and (pos, result) across the messaging paths.
-  let _showQueryResult: ((...args: any[]) => void) | undefined;
+  let _showQueryResult: ((...args: unknown[]) => void) | undefined;
   self.performInlineQuery = (
     query: string,
-    pos: any,
-    showQueryResult: (pos: any, res: any) => void,
+    pos: QueryPos,
+    showQueryResult: (pos: QueryPos, res: unknown) => void,
   ) => {
     if (document.dictEnabled != null) {
       if (window.location.href.startsWith("chrome://dictorium-query/")) {
@@ -391,7 +394,7 @@ function createFront(
   self.registerInlineQuery = () => {
     _inlineQuery = true;
   };
-  self.openOmniquery = (args: any) => {
+  self.openOmniquery = (args: { query?: string; style?: string }) => {
     self.openOmnibar({ type: "OmniQuery", extra: args.query, style: args.style });
   };
 
