@@ -33,6 +33,9 @@ import { SearchInput } from "./components/SearchInput";
 import { buildFolderResult, buildOmnibarResult, orderItemsForDisplay } from "./omnibarResult";
 import type { OmnibarResult } from "./omnibarResult";
 
+/** A bookmark folder row as returned by the background `getBookmarkFolders`/`listBookmarkFolders`. */
+type BookmarkFolder = { id: string; title: string };
+
 function createOmnibar(front: any, clipboard: any) {
   const self: any = new Mode("Omnibar");
 
@@ -935,7 +938,7 @@ function OpenBookmarks(omnibar: any): any {
   };
 
   let folderOnly = false;
-  let currentFolderId: any;
+  let currentFolderId: string | undefined;
   let lastFocused = 0;
 
   function onFolderUp() {
@@ -1040,7 +1043,7 @@ function OpenBookmarks(omnibar: any): any {
     currentFolderId = undefined;
   };
 
-  self.onKeydown = function (event: any) {
+  self.onKeydown = function (event: KeyboardEvent) {
     let eaten = false;
     if (event.keyCode === KeyboardUtils.keyCodes["comma"]) {
       folderOnly = !folderOnly;
@@ -1109,13 +1112,13 @@ function AddBookmark(omnibar: any): any {
     focusFirstCandidate: true,
     prompt: "add bookmark",
   };
-  let folders: any[];
+  let folders: BookmarkFolder[];
 
-  self.onOpen = (arg: any) => {
+  self.onOpen = (arg: unknown) => {
     self.page = arg;
-    omnibar.listBookmarkFolders((response: any) => {
+    omnibar.listBookmarkFolders((response: { folders: BookmarkFolder[] }) => {
       folders = response.folders;
-      omnibar.listResults(folders.slice(), (f: any) => {
+      omnibar.listResults(folders.slice(), (f: BookmarkFolder) => {
         return buildFolderResult(f.title, f.id);
       });
       reportOnFail(
@@ -1125,7 +1128,7 @@ function AddBookmark(omnibar: any): any {
             omnibar.setPrompt("edit bookmark");
             const idx = omnibar
               .results()
-              .findIndex((r: any) => r.data.folder === String(b?.parentId));
+              .findIndex((r: OmnibarResult) => r.data.folder === String(b?.parentId));
             if (idx !== -1) {
               omnibar.focusItem(idx);
             }
@@ -1177,17 +1180,19 @@ function AddBookmark(omnibar: any): any {
         const targetFolder = folders.filter((f) => {
           return f.title === `/${path.slice(0, l).join("/")}/`;
         });
-        if (targetFolder.length) {
-          self.page.folder = targetFolder[0].id;
+        const tf = targetFolder[0];
+        if (tf) {
+          self.page.folder = tf.id;
           self.page.path = path.slice(l);
           folderName = "/" + path.join("/");
           break;
         }
       }
-      if (self.page.folder == null) {
-        self.page.folder = folders[0].id;
+      const firstFolder = folders[0];
+      if (self.page.folder == null && firstFolder) {
+        self.page.folder = firstFolder.id;
         self.page.path = path;
-        folderName = `${folders[0].title}${path.join("/")}`;
+        folderName = `${firstFolder.title}${path.join("/")}`;
       }
     }
     reportOnFail(
@@ -1208,7 +1213,7 @@ function AddBookmark(omnibar: any): any {
         ? b.title.includes(query)
         : b.title.toLowerCase().includes(query.toLowerCase());
     });
-    omnibar.listResults(matches, (f: any) => {
+    omnibar.listResults(matches, (f: BookmarkFolder) => {
       return buildFolderResult(f.title, f.id);
     });
   };
