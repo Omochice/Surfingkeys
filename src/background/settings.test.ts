@@ -164,7 +164,11 @@ describe("_save", () => {
 
 describe("createSettings — getState", () => {
   /** Drives the getState handler and returns the computed state string. */
-  async function stateFor(blocklist: any, message: any = {}, senderUrl = "https://example.com/") {
+  async function stateFor(
+    blocklist: Record<string, number>,
+    message: Record<string, unknown> = {},
+    senderUrl = "https://example.com/",
+  ) {
     const { unit } = makeUnit({
       browser: { loadRawSettings: vi.fn().mockResolvedValue({ blocklist }) },
     });
@@ -370,7 +374,10 @@ describe("createSettings — loadSettings (via getSettings handler)", () => {
 });
 
 describe("createSettings — toggleBlocklist", () => {
-  function makeTabsChrome(localSet: any, syncSet: any) {
+  function makeTabsChrome(
+    localSet: (...args: unknown[]) => unknown,
+    syncSet: (...args: unknown[]) => unknown,
+  ) {
     g.chrome.storage = { local: { set: localSet }, sync: { set: syncSet } };
     g.chrome.tabs = {
       query: vi.fn().mockResolvedValue([]),
@@ -1212,7 +1219,7 @@ describe("createSettings — appendNonce leaves a non-http URL unchanged", () =>
 });
 
 describe("createSettings — registerUserScript register/unregister branches", () => {
-  function chromeWithUserScripts(getScripts: any) {
+  function chromeWithUserScripts(getScripts: (...args: unknown[]) => unknown) {
     const register = vi.fn();
     const unregister = vi.fn();
     g.chrome.userScripts = { configureWorld: vi.fn(), getScripts, register, unregister };
