@@ -185,6 +185,23 @@ type Omnibar = {
   openFocused: (this: OmnibarHandler) => boolean;
 };
 
+/**
+ * The slice of the front the omnibar talks to. `_actions` is assignment-only here (the front
+ * dispatches them), so a `never` parameter accepts handlers of any message shape without `any`;
+ * contentCommand is generic over its response so each caller types its own callback.
+ */
+type OmnibarFront = {
+  hidePopup: () => void;
+  openOmnibar: (args: OmnibarShowArgs) => void;
+  postMessage: (msg: Record<string, unknown>) => void;
+  topOrigin: string;
+  _actions: Record<string, (message: never) => void>;
+  contentCommand: <R = unknown>(
+    args: Record<string, unknown>,
+    successById?: (msg: R) => void,
+  ) => void;
+};
+
 /** The open spec the front passes through `ui.onShow`: which handler to use plus its open options. */
 type OmnibarShowArgs = {
   type: string;
@@ -199,7 +216,7 @@ type OmnibarElement = HTMLElement & {
   onHide: () => void;
 };
 
-function createOmnibar(front: any, clipboard: any) {
+function createOmnibar(front: OmnibarFront, clipboard: { write(text: string): void }) {
   const self: any = new Mode("Omnibar");
 
   self
@@ -1587,7 +1604,7 @@ function CloseTabs(omnibar: Omnibar): OmnibarHandler {
   return self;
 }
 
-function OpenWindows(omnibar: Omnibar, front: any): OmnibarHandler {
+function OpenWindows(omnibar: Omnibar, front: OmnibarFront): OmnibarHandler {
   const self: OmnibarHandler = {
     prompt: "Move current tab to window",
   };
@@ -1716,7 +1733,7 @@ function OpenVIMarks(omnibar: Omnibar): OmnibarHandler {
   return self;
 }
 
-function SearchEngine(omnibar: Omnibar, front: any): SearchEngineHandler {
+function SearchEngine(omnibar: Omnibar, front: OmnibarFront): SearchEngineHandler {
   const self: SearchEngineHandler = { aliases: {} };
 
   let _pendingRequest: ReturnType<typeof setTimeout> | undefined = undefined; // timeout ID
@@ -1884,7 +1901,7 @@ function SearchEngine(omnibar: Omnibar, front: any): SearchEngineHandler {
   return self;
 }
 
-function Commands(omnibar: Omnibar, front: any): OmnibarHandler {
+function Commands(omnibar: Omnibar, front: OmnibarFront): OmnibarHandler {
   const self: OmnibarHandler = {
     focusFirstCandidate: false,
     prompt: ":",
@@ -1980,7 +1997,7 @@ function Commands(omnibar: Omnibar, front: any): OmnibarHandler {
   return self;
 }
 
-function OmniQuery(omnibar: Omnibar, front: any): OmnibarHandler {
+function OmniQuery(omnibar: Omnibar, front: OmnibarFront): OmnibarHandler {
   const self: OmnibarHandler = {
     prompt: "ǭ",
   };
