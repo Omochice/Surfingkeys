@@ -101,8 +101,15 @@ function vmap(
 const functionsToListSuggestions: Record<string, (response: unknown, request: unknown) => unknown> =
   {};
 
-let inlineQuery: any;
-let hintsFunction: any;
+/** A user-registered inline-query dictionary service. */
+type InlineQuery = {
+  url: string | ((query: string) => string);
+  headers?: Record<string, string>;
+  parseResult: (res: unknown) => unknown;
+};
+
+let inlineQuery: InlineQuery | undefined;
+let hintsFunction: ((element: HTMLElement, shiftKey: boolean) => void) | undefined;
 let onClipboardReadFn: (resp: unknown) => void;
 let userScriptTask: () => void = () => {};
 let hintsCreationResolve: ((found: number) => void) | null;
@@ -147,18 +154,21 @@ initSKFunctionListener(
       }
     },
     performInlineQuery: (query: string, callbackId: string) => {
-      const url =
-        typeof inlineQuery.url === "function" ? inlineQuery.url(query) : inlineQuery.url + query;
+      const iq = inlineQuery;
+      if (!iq) {
+        return;
+      }
+      const url = typeof iq.url === "function" ? iq.url(query) : iq.url + query;
       httpRequest(
         {
           url,
-          headers: inlineQuery.headers,
+          headers: iq.headers,
         },
-        (res: any) => {
+        (res: { error?: unknown }) => {
           if (res.error) {
             dispatchSKEvent("front", [callbackId, `${res.error} on ${url}`]);
           } else {
-            dispatchSKEvent("front", [callbackId, inlineQuery.parseResult(res)]);
+            dispatchSKEvent("front", [callbackId, iq.parseResult(res)]);
           }
         },
       );
@@ -190,14 +200,16 @@ function addSearchAlias(
   search_url: string,
   search_leader_key?: string,
   suggestion_url?: string,
-  callback_to_parse_suggestion?: any,
+  callback_to_parse_suggestion?: (response: unknown, request: unknown) => unknown,
   only_this_site_key?: string,
-  options?: any,
+  options?: Record<string, unknown>,
 ) {
   if (![...alias].every((c) => c.charCodeAt(0) <= 0x7f)) {
     throw `Invalid alias ${alias}, which must be ASCII characters.`;
   }
-  functionsToListSuggestions[suggestion_url!] = callback_to_parse_suggestion;
+  if (suggestion_url != null && callback_to_parse_suggestion != null) {
+    functionsToListSuggestions[suggestion_url] = callback_to_parse_suggestion;
+  }
   dispatchSKEvent("api", [
     "addSearchAlias",
     alias,
@@ -211,18 +223,17 @@ function addSearchAlias(
   ]);
 }
 
-function createCssSelectorForElements(cssSelector: string, elements: any): number {
-  if (elements instanceof HTMLElement) {
-    elements = [elements];
-  } else if (Array.isArray(elements)) {
-    elements = elements.filter((m) => m instanceof HTMLElement);
-  } else {
-    elements = [];
-  }
-  elements.forEach((m: HTMLElement) => {
+function createCssSelectorForElements(cssSelector: string, elements: unknown): number {
+  const list: HTMLElement[] =
+    elements instanceof HTMLElement
+      ? [elements]
+      : Array.isArray(elements)
+        ? elements.filter((m): m is HTMLElement => m instanceof HTMLElement)
+        : [];
+  list.forEach((m) => {
     m.classList.add(cssSelector);
   });
-  return elements.length;
+  return list.length;
 }
 
 const api = {
@@ -268,38 +279,44 @@ const api = {
     write: (text: string) => {
       dispatchSKEvent("api", ["clipboard:write", text]);
     },
-    read: (cb: (resp: any) => void) => {
+    read: (cb: (resp: unknown) => void) => {
       onClipboardReadFn = cb;
       dispatchSKEvent("api", ["clipboard:read"]);
     },
   },
   Hints: {
-    click: (links: any, force?: boolean) => {
+    click: (links: unknown, force?: boolean) => {
+      let selector: unknown = links;
       if (typeof links !== "string") {
         const hintsClicking = "surfingkeys--hints--clicking";
         if (createCssSelectorForElements(hintsClicking, links) === 0) {
           return;
         }
-        links = `.${hintsClicking}`;
+        selector = `.${hintsClicking}`;
       }
-      dispatchSKEvent("api", ["hints:click", links, force]);
+      dispatchSKEvent("api", ["hints:click", selector, force]);
     },
-    create: (cssSelector: any, onHintKey: any, attrs?: any) => {
+    create: (
+      cssSelector: unknown,
+      onHintKey: (element: HTMLElement, shiftKey: boolean) => void,
+      attrs?: Record<string, unknown>,
+    ) => {
+      let selector: unknown = cssSelector;
       if (typeof cssSelector !== "string") {
         const hintsCreating = "surfingkeys--hints--creating";
         if (createCssSelectorForElements(hintsCreating, cssSelector) === 0) {
           return false;
         }
-        cssSelector = `.${hintsCreating}`;
+        selector = `.${hintsCreating}`;
       }
       hintsFunction = onHintKey;
       const promise = new Promise<number>((resolve) => {
         hintsCreationResolve = resolve;
       });
-      dispatchSKEvent("api", ["hints:create", cssSelector, "user", attrs]);
+      dispatchSKEvent("api", ["hints:create", selector, "user", attrs]);
       return promise;
     },
-    dispatchMouseClick: (element: any) => {
+    dispatchMouseClick: (element: HTMLElement) => {
       dispatchSKEvent("hints", ["dispatchMouseClick"], element);
     },
     style: (css: string, mode?: string) => {
@@ -332,11 +349,11 @@ const api = {
     },
   },
   Front: {
-    registerInlineQuery: (args: any) => {
+    registerInlineQuery: (args: InlineQuery) => {
       inlineQuery = args;
       dispatchSKEvent("api", ["front:registerInlineQuery"]);
     },
-    openOmnibar: (args: any) => {
+    openOmnibar: (args: Record<string, unknown>) => {
       dispatchSKEvent("api", ["front:openOmnibar", args]);
     },
     showBanner,
