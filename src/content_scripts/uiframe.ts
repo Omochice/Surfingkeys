@@ -21,10 +21,10 @@ type BrowserLike = {
   getBackFocusFromFrontend?: () => void;
   focusFrontend?: (ifr: HTMLIFrameElement) => void;
 };
-type UiHost = HTMLDivElement & { tryDetach(): void };
+export type UiHost = HTMLDivElement & { tryDetach(): void };
 type ActiveContent = { window: Window; origin: string } | null;
 
-function createUiHost(adapter: BrowserLike, onload: (uiHost: HTMLElement) => void): void {
+function createUiHost(adapter: BrowserLike, onload: (uiHost: UiHost) => void): void {
   const uiHost = document.createElement("div") as UiHost;
   uiHost.style.display = "block";
   uiHost.style.opacity = "1";

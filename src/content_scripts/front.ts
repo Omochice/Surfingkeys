@@ -19,6 +19,7 @@ import {
   tabOpenLink,
 } from "./common/utils";
 import createUiHost from "./uiframe";
+import type { UiHost } from "./uiframe";
 
 // Any page can postMessage to this window, so the inbound envelope is external
 // data; validate its shape before dispatching. looseObject preserves unknown
@@ -81,10 +82,10 @@ function createFront(
     }
   }
 
-  let frontendPromise: Promise<any> | undefined;
+  let frontendPromise: Promise<UiHost> | undefined;
 
   function newFrontEnd() {
-    frontendPromise = new Promise((resolve) => {
+    frontendPromise = new Promise<UiHost>((resolve) => {
       createUiHost(browser, (res) => {
         resolve(res);
         applyUserSettings();
@@ -619,7 +620,7 @@ function createFront(
     if (window === top && frontendPromise) {
       frontendPromise.then((uiHost) => {
         const active = document.activeElement;
-        if (uiHost.shadowRoot.contains(active) && active instanceof HTMLElement) {
+        if (uiHost.shadowRoot?.contains(active) && active instanceof HTMLElement) {
           // fix for Firefox, blur from iframe for frontend after Omnibar closed.
           active.blur();
         }
