@@ -4,10 +4,10 @@ export {};
 const disableAll = document.getElementById("disableAll")!;
 const version = "Surfingkeys " + chrome.runtime.getManifest().version;
 
-function RUNTIME(
+function RUNTIME<R = unknown>(
   action: string,
   args?: Record<string, unknown>,
-  callback?: (response: any) => void,
+  callback?: (response: R) => void,
 ) {
   const a: Record<string, unknown> = args || {};
   a["action"] = action;
@@ -32,7 +32,7 @@ RUNTIME(
   {
     key: "blocklist",
   },
-  (response) => {
+  (response: { settings: { blocklist: Record<string, unknown> } }) => {
     updateStatus(response.settings.blocklist);
   },
 );
@@ -43,7 +43,7 @@ disableAll.addEventListener("click", () => {
     {
       domain: ".*",
     },
-    (response) => {
+    (response: { blocklist: Record<string, unknown> }) => {
       updateStatus(response.blocklist);
     },
   );
