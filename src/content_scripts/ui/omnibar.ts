@@ -1076,10 +1076,10 @@ function OpenBookmarks(omnibar: any): any {
       reportError,
     );
   };
-  self.onResponse = (response: any) => {
+  self.onResponse = (response: { bookmarks: { url?: string }[] }) => {
     let items = response.bookmarks;
     if (folderOnly) {
-      items = items.filter((b: any) => {
+      items = items.filter((b) => {
         return !Object.hasOwn(b, "url") || b.url == null;
       });
     }
@@ -1375,9 +1375,13 @@ function OpenWindows(omnibar: any, front: any): any {
   self.getResults = () => {
     omnibar.cachedPromise = new Promise((resolve) => {
       reportOnFail(
-        RUNTIME("getWindows", { query: "" }, (response: any) => {
-          resolve(response.windows);
-        }),
+        RUNTIME(
+          "getWindows",
+          { query: "" },
+          (response: { windows: { title?: string; url?: string }[] }) => {
+            resolve(response.windows);
+          },
+        ),
         reportError,
       );
     });
