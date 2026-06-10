@@ -86,14 +86,15 @@ function createFront(
     });
   }
 
-  const _callbacks: Record<string, (msg: any) => any> = {};
-  self.command = (args: any, successById?: (msg: any) => any) => {
-    args.toFrontend = true;
-    args.origin = getDocumentOrigin();
-    args.id = generateQuickGuid();
+  const _callbacks: Record<string, (msg: unknown) => unknown> = {};
+  self.command = (args: Record<string, unknown>, successById?: (msg: unknown) => unknown) => {
+    args["toFrontend"] = true;
+    args["origin"] = getDocumentOrigin();
+    const id = generateQuickGuid();
+    args["id"] = id;
     if (successById) {
-      args.ack = true;
-      _callbacks[args.id] = successById;
+      args["ack"] = true;
+      _callbacks[id] = successById;
     }
     if (window !== top) {
       runtime.postTopMessage({ surfingkeys_uihost_data: args });
@@ -101,12 +102,12 @@ function createFront(
       if (!frontendPromise) {
         // no need to create frontend iframe if the action is to hide key stroke
         // and frontend UI must be created after document.body is ready(#2132)
-        if (args.action === "hideKeystroke" || document.body === null) {
+        if (args["action"] === "hideKeystroke" || document.body === null) {
           return;
         }
         newFrontEnd();
       }
-      frontendPromise!.then(() => {
+      frontendPromise?.then(() => {
         runtime.postTopMessage({ surfingkeys_uihost_data: args });
       });
     }
