@@ -45,6 +45,16 @@ type WindowItem = { id: string; isPreviousChoice?: boolean; tabs: TabItem[] };
 /** A history row as returned by the history query functions feeding OpenURLs. */
 type HistoryItem = { title?: string; url?: string; visitCount?: number; lastVisitTime?: number };
 
+/** A search-engine suggestion: a raw-HTML row, a URL row, or a bare query string. */
+type SearchSuggestion = string | { html: string } | { url: string };
+
+/** A registered `:`-command: its callback plus the help metadata parseAnnotation derives. */
+type CommandMeta = {
+  code: (args: string[]) => void;
+  feature_group?: number | undefined;
+  annotation?: string | string[] | undefined;
+};
+
 function createOmnibar(front: any, clipboard: any) {
   const self: any = new Mode("Omnibar");
 
@@ -1536,7 +1546,7 @@ function SearchEngine(omnibar: any, front: any): any {
       _pendingRequest = undefined;
     }
   }
-  self.onOpen = (arg: any) => {
+  self.onOpen = (arg: string) => {
     Object.assign(self, self.aliases[arg]);
     const q = omnibar.input.value;
     if (q.length) {
@@ -1581,14 +1591,14 @@ function SearchEngine(omnibar: any, front: any): any {
     );
     return this.activeTab;
   };
-  function listSuggestions(suggestions: any[]) {
+  function listSuggestions(suggestions: SearchSuggestion[]) {
     omnibar.detectAndInsertURLItem(omnibar.input.value, suggestions);
     const query = encodeURIComponent(omnibar.input.value);
     const rxp = regexFromString(query, runtime.getCaseSensitive(query), true);
-    omnibar.listResults(suggestions, (w: any) => {
-      if (Object.hasOwn(w, "html")) {
+    omnibar.listResults(suggestions, (w: SearchSuggestion) => {
+      if (typeof w === "object" && "html" in w) {
         return omnibar.createItemFromRawHtml(w);
-      } else if (Object.hasOwn(w, "url")) {
+      } else if (typeof w === "object" && "url" in w) {
         return omnibar.createURLItem(w, rxp);
       } else {
         const li = createElementWithContent("li", `⌕ ${w}`);
@@ -1635,7 +1645,13 @@ function SearchEngine(omnibar: any, front: any): any {
     }, runtime.conf.omnibarSuggestionTimeout);
   };
 
-  front._actions["addSearchAlias"] = (message: any) => {
+  front._actions["addSearchAlias"] = (message: {
+    alias: string;
+    prompt: string;
+    url: string;
+    suggestionURL: string;
+    options?: { favicon_url?: string };
+  }) => {
     self.aliases[message.alias] = {
       prompt: `${message.prompt}`,
       url: message.url,
@@ -1658,7 +1674,7 @@ function SearchEngine(omnibar: any, front: any): any {
         iconUrl.hash = "";
       }
       reportOnFail(
-        RUNTIME("requestImage", { url: iconUrl.href }, (response: any) => {
+        RUNTIME("requestImage", { url: iconUrl.href }, (response: { text: string } | null) => {
           if (response) {
             localStorage.setItem(searchEngineIconStorageKey, response.text);
             self.aliases[message.alias].prompt = {
@@ -1670,10 +1686,10 @@ function SearchEngine(omnibar: any, front: any): any {
       );
     }
   };
-  front._actions["removeSearchAlias"] = (message: any) => {
+  front._actions["removeSearchAlias"] = (message: { alias: string }) => {
     delete self.aliases[message.alias];
   };
-  front._actions["getSearchAliases"] = (message: any) => {
+  front._actions["getSearchAliases"] = (message: { id: unknown }) => {
     front.postMessage({
       aliases: self.aliases,
       toContent: true,
@@ -1689,7 +1705,7 @@ function Commands(omnibar: any, front: any): any {
     focusFirstCandidate: false,
     prompt: ":",
   };
-  const items: Record<string, any> = {};
+  const items: Record<string, CommandMeta> = {};
 
   self.onOpen = () => {
     omnibar.resultsDiv.className = "commands";
@@ -1725,10 +1741,10 @@ function Commands(omnibar: any, front: any): any {
       return cmd === "" || c.includes(cmd);
     });
     if (candidates.length) {
-      omnibar.listResults(candidates, (c: any) => {
+      omnibar.listResults(candidates, (c: string) => {
         const li = createElementWithContent(
           "li",
-          `${c}<span class=annotation>${htmlEncode(items[c].annotation)}</span>`,
+          `${c}<span class=annotation>${htmlEncode(String(items[c]?.annotation ?? ""))}</span>`,
         );
         return buildOmnibarResult(li, { cmd: c });
       });
@@ -1755,27 +1771,26 @@ function Commands(omnibar: any, front: any): any {
 
   function execute(cmdline: string) {
     const args = parseCommandLine(cmdline);
-    const cmd = args.shift()!;
-    if (Object.hasOwn(items, cmd)) {
-      const meta = items[cmd];
+    const cmd = args.shift() ?? "";
+    const meta = items[cmd];
+    if (meta) {
       meta.code.call(meta.code, args);
     } else {
       showBanner(`Unsupported command: ${cmdline}.`, 3000);
     }
   }
 
-  front._actions["executeCommand"] = (message: any) => {
+  front._actions["executeCommand"] = (message: { cmdline: string }) => {
     execute(message.cmdline);
   };
 
-  omnibar.command = (cmd: string, annotation: string, jscode: any) => {
-    const cmd_code: any = {
-      code: jscode,
-    };
+  omnibar.command = (cmd: string, annotation: string, jscode: (args: string[]) => void) => {
     const ag = parseAnnotation({ annotation: annotation, feature_group: 13 });
-    cmd_code.feature_group = ag.feature_group;
-    cmd_code.annotation = ag.annotation;
-    items[cmd] = cmd_code;
+    items[cmd] = {
+      code: jscode,
+      feature_group: ag.feature_group,
+      annotation: ag.annotation,
+    };
   };
 
   return self;
@@ -1786,11 +1801,11 @@ function OmniQuery(omnibar: any, front: any): any {
     prompt: "ǭ",
   };
 
-  function onlyUnique(value: any, index: number, arr: any[]) {
+  function onlyUnique(value: string, index: number, arr: string[]) {
     return arr.indexOf(value) === index;
   }
   let _words: string[];
-  self.onOpen = (arg: any) => {
+  self.onOpen = (arg?: string) => {
     if (arg && document.dictEnabled == null) {
       omnibar.setQuery(arg);
       front.contentCommand({
@@ -1802,7 +1817,7 @@ function OmniQuery(omnibar: any, front: any): any {
       {
         action: "getPageText",
       },
-      (message: any) => {
+      (message: { data: string }) => {
         const splitRegex = /[^a-zA-Z]+/;
         _words = message.data.toLowerCase().split(splitRegex).filter(onlyUnique);
       },
@@ -1815,7 +1830,7 @@ function OmniQuery(omnibar: any, front: any): any {
       return w.includes(iw);
     });
     if (candidates.length) {
-      omnibar.listResults(candidates, (w: any) => {
+      omnibar.listResults(candidates, (w: string) => {
         return buildOmnibarResult(createElementWithContent("li", w), {});
       });
     }
