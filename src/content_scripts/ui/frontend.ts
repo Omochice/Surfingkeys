@@ -209,10 +209,21 @@ const Front = (() => {
   self.flush = () => {
     _state.nextState();
   };
-  self.visualCommand = (args: any) => {
+  self.visualCommand = (args: { action: string; query?: string }) => {
     if (_usage.style.display !== "none") {
-      // visual mode in frontend.html, such as help
-      (visual as any)[args.action](args.query);
+      // visual mode in frontend.html, such as help: only the in-frame find dispatches here, so the
+      // three find actions are exhaustive (other actions are forwarded to content below).
+      switch (args.action) {
+        case "visualClear":
+          visual.visualClear();
+          break;
+        case "visualUpdate":
+          visual.visualUpdate(args.query ?? "");
+          break;
+        case "visualEnter":
+          visual.visualEnter(args.query ?? "");
+          break;
+      }
     } else {
       // visual mode for all content windows
       self.contentCommand(args);
