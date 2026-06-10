@@ -732,8 +732,12 @@ const Front = (() => {
   };
 
   _actions["showStatus"] = (message: unknown) => {
+    const statusCell = v.union([v.string(), v.object({ html: v.string() })]);
     const { contents, duration } = v.parse(
-      v.object({ contents: v.unknown(), duration: v.optional(v.number()) }),
+      v.object({
+        contents: v.array(v.nullish(statusCell)),
+        duration: v.optional(v.number()),
+      }),
       message,
     );
     StatusBar.show(contents, duration);
@@ -943,7 +947,6 @@ const Front = (() => {
  * @kind function
  */
 const StatusBar = (() => {
-  const self: any = {};
   let timerHide: ReturnType<typeof setTimeout> | null = null;
   const ui = Front.statusBar;
 
@@ -961,7 +964,7 @@ const StatusBar = (() => {
     ui,
   );
 
-  self.show = (contents: any[], duration?: number) => {
+  const show = (contents: (StatusCell | null | undefined)[], duration?: number): void => {
     if (timerHide) {
       clearTimeout(timerHide);
       timerHide = null;
@@ -970,8 +973,9 @@ const StatusBar = (() => {
     // the trailing cells (e.g. find clears mode+search but keeps results).
     const next = cells().slice();
     for (let i = 0; i < contents.length; i++) {
-      if (contents[i] != null) {
-        next[i] = contents[i];
+      const cell = contents[i];
+      if (cell != null) {
+        next[i] = cell;
       }
     }
     setCells(next);
@@ -979,11 +983,11 @@ const StatusBar = (() => {
     Front.flush();
     if (duration) {
       timerHide = setTimeout(() => {
-        self.show(["", "", "", ""]);
+        show(["", "", "", ""]);
       }, duration);
     }
   };
-  return self;
+  return { show };
 })();
 
 const Find = (() => {
