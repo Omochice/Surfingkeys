@@ -68,7 +68,7 @@ function createFront(
   // postMessage; its surface is consumed untyped across the messaging boundary.
   const self: any = {};
 
-  const _uiUserSettings: any[] = [];
+  const _uiUserSettings: Record<string, unknown>[] = [];
   function applyUserSettings() {
     for (const cmd of _uiUserSettings) {
       self.command(cmd);
@@ -112,7 +112,7 @@ function createFront(
     }
   };
 
-  function applyUICommand(cmd: any) {
+  function applyUICommand(cmd: Record<string, unknown>) {
     _uiUserSettings.push(cmd);
     if (frontendPromise) {
       frontendPromise.then(() => {
