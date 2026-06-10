@@ -1254,9 +1254,13 @@ function OpenTabs(omnibar: any): any {
         Math.ceil(window.innerWidth / 26),
       );
       reportOnFail(
-        RUNTIME("getTabs", getTabsArgs, (response: any) => {
-          resolve(response.tabs);
-        }),
+        RUNTIME(
+          "getTabs",
+          getTabsArgs,
+          (response: { tabs: { title?: string; url?: string }[] }) => {
+            resolve(response.tabs);
+          },
+        ),
         reportError,
       );
     });
@@ -1307,9 +1311,13 @@ function CloseTabs(omnibar: any): any {
     self.prompt = "close tabs";
     omnibar.cachedPromise = new Promise((resolve) => {
       reportOnFail(
-        RUNTIME("getTabs", { queryInfo: { currentWindow: true } }, (response: any) => {
-          resolve(response.tabs);
-        }),
+        RUNTIME(
+          "getTabs",
+          { queryInfo: { currentWindow: true } },
+          (response: { tabs: { title?: string; url?: string }[] }) => {
+            resolve(response.tabs);
+          },
+        ),
         reportError,
       );
     });
