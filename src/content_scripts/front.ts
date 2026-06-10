@@ -236,7 +236,10 @@ function createFront(
     id: "sk_frame",
   });
   markSurfingKeysElement(frameElement);
-  function highlightElement(sn: any) {
+  function highlightElement(sn: {
+    rect: { top: number; left: number; width: number; height: number };
+    duration?: number;
+  }) {
     document.documentElement.append(frameElement);
     const rect = sn.rect;
     frameElement.style.top = rect.top + "px";
