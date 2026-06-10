@@ -384,7 +384,7 @@ export default function optionsMain(
 
     let _key = "";
     const keyPickerDiv = requireElement("#keyPicker");
-    self.addEventListener("keydown", (event: any) => {
+    self.addEventListener("keydown", (event: KeyboardEvent) => {
       if (event.keyCode === 27) {
         hide(keyPickerDiv);
         self.exit();
@@ -396,8 +396,10 @@ export default function optionsMain(
       } else if (event.keyCode === 13) {
         hide(keyPickerDiv);
         self.exit();
-        setSanitizedContent(_elm, _key !== "" ? htmlEncode(_key) : "🚫");
-        _elm.dataset["custom"] = _key;
+        if (_elm) {
+          setSanitizedContent(_elm, _key !== "" ? htmlEncode(_key) : "🚫");
+          _elm.dataset["custom"] = _key;
+        }
         const realDefMap: Record<string, string> = {};
         Array.from(basicMappingsDiv.querySelectorAll("kbd")).forEach((el) => {
           const n = el.dataset["custom"];
@@ -414,7 +416,8 @@ export default function optionsMain(
           reportError,
         );
       } else {
-        if (event.sk_keyName.length > 1) {
+        const keyName = event.sk_keyName ?? "";
+        if (keyName.length > 1) {
           const keyStr = JSON.stringify(
             {
               metaKey: event.metaKey,
@@ -429,18 +432,18 @@ export default function optionsMain(
             null,
             4,
           );
-          reportIssue(`Unrecognized key event: ${event.sk_keyName}`, keyStr);
+          reportIssue(`Unrecognized key event: ${keyName}`, keyStr);
         } else {
-          _key += KeyboardUtils.decodeKeystroke(event.sk_keyName);
+          _key += KeyboardUtils.decodeKeystroke(keyName);
           showKey();
         }
       }
       event.sk_stopPropagation = true;
     });
 
-    let _elm: any;
+    let _elm: HTMLElement | null = null;
     const _enter = self.enter;
-    self.enter = (elm: any) => {
+    self.enter = (elm: HTMLElement) => {
       _enter.call(self);
 
       _key = elm.innerText;
