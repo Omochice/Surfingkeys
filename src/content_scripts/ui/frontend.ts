@@ -91,7 +91,7 @@ const Front = (() => {
 
   let pressedHintKeys = "";
   let _display: any;
-  self.addEventListener("keydown", (event: any) => {
+  self.addEventListener("keydown", (event: KeyboardEvent) => {
     if (Mode.isSpecialKeyOf("<Esc>", event.sk_keyName ?? "")) {
       self.hidePopup();
       event.sk_stopPropagation = true;
@@ -333,26 +333,30 @@ const Front = (() => {
   }
   _actions["chooseTab"] = () => {
     const tabsThreshold = Math.min(runtime.conf.tabsThreshold, Math.ceil(window.innerWidth / 26));
-    RUNTIME("getTabs", { queryInfo: { currentWindow: true }, tabsThreshold }, (response: any) => {
-      if (response.tabs.length > tabsThreshold) {
-        showElement(_omnibar, () => {
-          _omnibar.onShow({ type: "Tabs" });
-        });
-      } else if (response.tabs.length > 0) {
-        showElement(
-          _tabs,
-          () => {
-            renderTabs(response.tabs);
-          },
-          (matched) => {
-            RUNTIME("focusTab", {
-              windowId: matched.windowId,
-              tabId: matched.id,
-            });
-          },
-        );
-      }
-    });
+    RUNTIME(
+      "getTabs",
+      { queryInfo: { currentWindow: true }, tabsThreshold },
+      (response: { tabs: unknown[] }) => {
+        if (response.tabs.length > tabsThreshold) {
+          showElement(_omnibar, () => {
+            _omnibar.onShow({ type: "Tabs" });
+          });
+        } else if (response.tabs.length > 0) {
+          showElement(
+            _tabs,
+            () => {
+              renderTabs(response.tabs);
+            },
+            (matched) => {
+              RUNTIME("focusTab", {
+                windowId: matched.windowId,
+                tabId: matched.id,
+              });
+            },
+          );
+        }
+      },
+    );
   };
   self.chooseTab = _actions["chooseTab"];
 
