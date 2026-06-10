@@ -784,7 +784,7 @@ export default function createDefaultMappings(api: SurfingkeysApi, ctx: ModeCont
     "https://www.google.com/search?q=",
     "s",
     "https://www.google.com/complete/search?client=chrome-omni&gs_ri=chrome-ext&oit=1&cp=1&pgcl=7&q=",
-    (response: any) => {
+    (response: { text: string }) => {
       const result = v.safeParse(openSearchSuggestSchema, parseJsonSafe(response.text));
       return result.success ? result.output[1] : [];
     },
@@ -795,7 +795,7 @@ export default function createDefaultMappings(api: SurfingkeysApi, ctx: ModeCont
     "https://duckduckgo.com/?q=",
     "s",
     "https://duckduckgo.com/ac/?q=",
-    (response: any) => {
+    (response: { text: string }) => {
       const result = v.safeParse(duckduckgoSuggestSchema, parseJsonSafe(response.text));
       return result.success ? result.output.map((r) => r.phrase) : [];
     },
@@ -806,9 +806,9 @@ export default function createDefaultMappings(api: SurfingkeysApi, ctx: ModeCont
     "https://www.baidu.com/s?wd=",
     "s",
     "https://suggestion.baidu.com/su?cb=&wd=",
-    (response: any) => {
+    (response: { text: string }) => {
       const res = response.text.match(/,s:\[("[^\]]+")]}/);
-      return res ? res[1].replaceAll('"', "").split(",") : [];
+      return res?.[1] ? res[1].replaceAll('"', "").split(",") : [];
     },
   );
 
@@ -818,7 +818,7 @@ export default function createDefaultMappings(api: SurfingkeysApi, ctx: ModeCont
     "https://en.wikipedia.org/wiki/",
     "s",
     "https://en.wikipedia.org/w/api.php?action=opensearch&format=json&formatversion=2&namespace=0&limit=40&search=",
-    (response: any) => {
+    (response: { text: string }) => {
       const result = v.safeParse(openSearchSuggestSchema, parseJsonSafe(response.text));
       return result.success ? result.output[1] : [];
     },
@@ -829,7 +829,7 @@ export default function createDefaultMappings(api: SurfingkeysApi, ctx: ModeCont
     "https://www.bing.com/search?setmkt=en-us&setlang=en-us&q=",
     "s",
     "https://api.bing.com/osjson.aspx?query=",
-    (response: any) => {
+    (response: { text: string }) => {
       const result = v.safeParse(openSearchSuggestSchema, parseJsonSafe(response.text));
       return result.success ? result.output[1] : [];
     },
@@ -841,7 +841,7 @@ export default function createDefaultMappings(api: SurfingkeysApi, ctx: ModeCont
     "https://github.com/search?q=",
     "s",
     "https://api.github.com/search/repositories?order=desc&q=",
-    (response: any) => {
+    (response: { text: string }) => {
       const result = v.safeParse(githubRepoSuggestSchema, parseJsonSafe(response.text));
       return result.success
         ? result.output.items.map((r) => ({ title: r.description, url: r.html_url }))
@@ -854,7 +854,7 @@ export default function createDefaultMappings(api: SurfingkeysApi, ctx: ModeCont
     "https://www.youtube.com/results?search_query=",
     "s",
     "https://clients1.google.com/complete/search?client=youtube&ds=yt&callback=cb&q=",
-    (response: any) => {
+    (response: { text: string }) => {
       const result = v.safeParse(youtubeSuggestSchema, parseJsonSafe(response.text.slice(9, -1)));
       return result.success ? result.output[1].map((d) => d[0]) : [];
     },
