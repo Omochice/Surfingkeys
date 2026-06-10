@@ -425,13 +425,13 @@ function createFront(
   };
 
   skCallbacks = initSKFunctionListener("front", {
-    showPopup: (content: any) => {
+    showPopup: (content: string) => {
       self.command({
         action: "showPopup",
         content,
       });
     },
-    showDialog: (question: any, onOk: () => void) => {
+    showDialog: (question: string, onOk: () => void) => {
       self.command({
         action: "showDialog",
         question,
