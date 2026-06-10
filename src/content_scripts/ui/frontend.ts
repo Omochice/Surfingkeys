@@ -561,7 +561,7 @@ const Front = (() => {
     );
   };
 
-  _actions["openOmnibar"] = (message: any) => {
+  _actions["openOmnibar"] = (message: { style?: string }) => {
     showElement(_omnibar, () => {
       _omnibar.onShow(message);
       const style = message.style || "";
@@ -606,7 +606,20 @@ const Front = (() => {
     );
     showBanner(content, linger_time);
   };
-  _actions["showBubble"] = (message: any) => {
+  _actions["showBubble"] = (message: {
+    position: {
+      left: number;
+      top: number;
+      winX: number;
+      winY: number;
+      winWidth: number;
+      winHeight: number;
+      width: number;
+      height: number;
+    };
+    content: string;
+    noPointerEvents?: boolean;
+  }) => {
     const pos = message.position;
     pos.left += pos.winX;
     pos.top += pos.winY;
@@ -752,7 +765,7 @@ const Front = (() => {
     }
   };
 
-  _actions["initFrontend"] = (message: any) => {
+  _actions["initFrontend"] = (message: { origin: string; winSize: unknown }) => {
     self.topOrigin = message.origin;
     self.topSize = message.winSize;
     return Date.now();
