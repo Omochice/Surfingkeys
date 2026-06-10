@@ -182,7 +182,7 @@ type Omnibar = {
       folders: Record<string, { id: string; title?: string }>,
     ) => void,
   ) => void;
-  openFocused: (this: OmnibarHandler) => boolean;
+  openFocused: (this: OmnibarHandler) => boolean | undefined;
 };
 
 /**
@@ -599,7 +599,7 @@ function createOmnibar(front: OmnibarFront, clipboard: { write(text: string): vo
     }
   });
 
-  function _onIput(this: any) {
+  function _onIput(this: HTMLInputElement) {
     if (lastInput !== self.input.value) {
       lastInput = self.input.value;
     }
@@ -881,7 +881,7 @@ function createOmnibar(front: OmnibarFront, clipboard: { write(text: string): vo
     return input.match(regex);
   };
 
-  self.openFocused = function (this: any) {
+  self.openFocused = function (this: OmnibarHandler) {
     const fi = focusedResult();
     let url;
     if (fi) {
@@ -1160,7 +1160,7 @@ function OpenBookmarks(omnibar: Omnibar): OpenBookmarksHandler {
   }
 
   self.onEnter = function (this: OmnibarHandler) {
-    let ret = false;
+    let ret: boolean | undefined = false;
     const fi = omnibar.focusedResult();
     const folderId = fi?.data.folderId;
     if (folderId && !this.activeTab) {
@@ -1766,7 +1766,7 @@ function SearchEngine(omnibar: Omnibar, front: OmnibarFront): SearchEngineHandle
       omnibar.setQuery(fi.data.query);
     }
   };
-  self.onEnter = function (this: any) {
+  self.onEnter = function (this: OmnibarHandler) {
     const fi = omnibar.focusedResult();
     let url;
     if (fi) {
