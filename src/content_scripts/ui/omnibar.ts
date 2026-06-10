@@ -421,16 +421,16 @@ function createOmnibar(front: any, clipboard: any) {
     }
     handler.onInput && handler.onInput.call(this);
   }
-  function _onKeyDown(evt: any) {
+  function _onKeyDown(evt: KeyboardEvent) {
     if (handler && handler.onKeydown && handler.onKeydown.call(evt.target, evt)) {
       return;
     }
-    if (Mode.isSpecialKeyOf("<Esc>", evt.sk_keyName)) {
+    if (Mode.isSpecialKeyOf("<Esc>", evt.sk_keyName ?? "")) {
       front.hidePopup();
       evt.preventDefault();
     } else if (evt.keyCode === KeyboardUtils.keyCodes["enter"]) {
       handler.activeTab = !evt.ctrlKey;
-      handler.tabbed = self.tabbed ^ evt.shiftKey;
+      handler.tabbed = self.tabbed ^ Number(evt.shiftKey);
       handler.onEnter() && front.hidePopup();
     } else if (evt.keyCode === KeyboardUtils.keyCodes["space"]) {
       const cursor = self.input.selectionStart;
@@ -516,10 +516,13 @@ function createOmnibar(front: any, clipboard: any) {
     } else if (b.type && b.type.length === 2 && b.type.charCodeAt(0) > 255) {
       type = b.type;
     }
-    let li: any = createElementWithContent("li", `<div class="icon">${type}</div>`);
+    let li = createElementWithContent("li", `<div class="icon">${type}</div>`);
     if (Object.hasOwn(b, "favIconUrl")) {
       li = createElementWithContent("li", `<img class="icon"/>`);
-      attachFaviconToImgSrc(b, li.querySelector("img"));
+      const img = li.querySelector("img");
+      if (img) {
+        attachFaviconToImgSrc(b, img);
+      }
     }
     li.appendChild(
       createElementWithContent(
@@ -532,7 +535,7 @@ function createOmnibar(front: any, clipboard: any) {
   };
 
   self.createItemFromRawHtml = ({ html, props }: { html: string; props?: any }) => {
-    const li: any = createElementWithContent("li", html);
+    const li = createElementWithContent("li", html);
     // User suggestion handlers pass their data fields (url, copy, ...) via `props`; route them
     // into the result's data instead of assigning them as expandos on the <li>.
     return buildOmnibarResult(li, typeof props === "object" ? props : {});
