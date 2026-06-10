@@ -85,7 +85,7 @@ type HintsMode = Mode & {
   create(
     cssSelector: string | Element[] | RegExp,
     onHintKey: ((element: any) => void) | null,
-    attrs?: Record<string, any>,
+    attrs?: Record<string, unknown>,
   ): Promise<number>;
   mouseoutLastElement(): void;
   style(css: string, mode?: string): void;
@@ -863,12 +863,13 @@ div.hint-scrollable {
     hintsHost.shadowRoot!.appendChild(holder);
   }
 
-  function createHintsForElements(elements: Element[], attrs?: Record<string, any>): number {
+  function createHintsForElements(elements: Element[], attrs?: Record<string, unknown>): number {
     attrs = attrs || {};
     for (const attr in attrs) {
       behaviours[attr] = attrs[attr];
     }
-    self.statusLine = (attrs && attrs["statusLine"]) || "Hints to click";
+    const statusLine = attrs["statusLine"];
+    self.statusLine = (typeof statusLine === "string" && statusLine) || "Hints to click";
 
     const filtered = filterInvisibleElements(elements as HTMLElement[]);
     if (filtered.length > 0) {
@@ -879,7 +880,7 @@ div.hint-scrollable {
 
   function createHintsForClick(
     cssSelector: string | Element[],
-    attrs?: Record<string, any>,
+    attrs?: Record<string, unknown>,
   ): number {
     self.statusLine = "Hints to click";
 
@@ -915,11 +916,12 @@ div.hint-scrollable {
     return elements.length;
   }
 
-  function createHintsForTextNode(rxp: RegExp, attrs?: Record<string, any>): number {
+  function createHintsForTextNode(rxp: RegExp, attrs?: Record<string, unknown>): number {
     for (const attr in attrs) {
       behaviours[attr] = attrs[attr];
     }
-    self.statusLine = (attrs && attrs["statusLine"]) || "Hints to select text";
+    const statusLine = attrs?.["statusLine"];
+    self.statusLine = (typeof statusLine === "string" && statusLine) || "Hints to select text";
 
     const visible = getVisibleElements((e, v) => {
       const aa = e.childNodes;
@@ -1018,7 +1020,7 @@ div.hint-scrollable {
 
   function createHintsImpl(
     cssSelector: string | Element[] | RegExp,
-    attrs?: Record<string, any>,
+    attrs?: Record<string, unknown>,
   ): number {
     placeHintsHost(hintsHost);
     if (cssSelector instanceof RegExp) {

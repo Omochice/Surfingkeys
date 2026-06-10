@@ -23,7 +23,7 @@ type HintsLike = {
   create(
     cssSelector: string | Element[] | RegExp,
     onHintKey: ((element: any) => void) | null,
-    attrs?: Record<string, any>,
+    attrs?: Record<string, unknown>,
   ): Promise<number>;
 };
 
