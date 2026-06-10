@@ -667,23 +667,29 @@ export default function createDefaultMappings(api: SurfingkeysApi, ctx: ModeCont
     );
   });
 
-  function getFormData(form: HTMLFormElement, format?: string): Record<string, any> | string {
+  function getFormData(
+    form: HTMLFormElement,
+    format?: string,
+  ): Record<string, FormDataEntryValue | FormDataEntryValue[]> | string {
     const formData = new FormData(form);
     if (format === "json") {
-      const obj: Record<string, any> = {};
+      const obj: Record<string, FormDataEntryValue | FormDataEntryValue[]> = {};
 
-      formData.forEach((value: any, key) => {
+      formData.forEach((value, key) => {
         if (Object.hasOwn(obj, key)) {
-          if (value.length) {
+          // Only non-empty string values collapse a repeated field into an array (file
+          // entries have no length and were skipped here historically).
+          if (typeof value === "string" && value.length) {
             const p = obj[key];
-            if (p.constructor.name === "Array") {
+            if (Array.isArray(p)) {
               p.push(value);
             } else {
-              obj[key] = [];
-              if (p.length) {
-                obj[key].push(p);
+              const arr: FormDataEntryValue[] = [];
+              if (typeof p === "string" && p.length) {
+                arr.push(p);
               }
-              obj[key].push(value);
+              arr.push(value);
+              obj[key] = arr;
             }
           }
         } else {
