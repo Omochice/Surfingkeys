@@ -1859,8 +1859,8 @@ function OpenUserURLs(omnibar: any): any {
     prompt: "UserURLs",
   };
 
-  let _items: any[];
-  self.onOpen = (args: any) => {
+  let _items: { title?: string; url?: string }[];
+  self.onOpen = (args: { title?: string; url?: string }[]) => {
     _items = args;
     self.onInput();
   };
