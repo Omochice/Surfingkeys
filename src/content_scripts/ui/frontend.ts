@@ -384,16 +384,29 @@ const Front = (() => {
   };
   self.chooseTab = _actions["chooseTab"];
 
-  function localizeAnnotation(locale: (s: string) => string, annotation: any) {
-    if (annotation.constructor.name === "Array") {
-      const fmt = annotation[0];
-      return format(locale(fmt), ...annotation.slice(1));
-    } else {
-      return locale(annotation);
+  // A single help entry: the keystroke plus its annotation, which may be a plain string or a
+  // [format, ...args] tuple that localizeAnnotation expands. Matches getAnnotations' return shape.
+  type UsageMeta = {
+    word: string;
+    feature_group?: number | undefined;
+    annotation?: string | string[] | undefined;
+  };
+
+  function localizeAnnotation(
+    locale: (s: string) => string,
+    annotation: string | string[] | undefined,
+  ): string {
+    if (Array.isArray(annotation)) {
+      const [fmt, ...args] = annotation;
+      return format(locale(fmt ?? ""), ...args);
     }
+    return locale(annotation ?? "");
   }
 
-  function buildUsage(metas: any[], cb: (result: { groups: string[]; moreHelp: string }) => void) {
+  function buildUsage(
+    metas: UsageMeta[],
+    cb: (result: { groups: string[]; moreHelp: string }) => void,
+  ) {
     const feature_groups = [
       "Help", // 0
       "Mouse Click", // 1
@@ -469,8 +482,13 @@ const Front = (() => {
       }),
     _usage,
   );
+  const usageMetaSchema = v.object({
+    word: v.string(),
+    feature_group: v.optional(v.number()),
+    annotation: v.optional(v.union([v.string(), v.array(v.string())])),
+  });
   _actions["showUsage"] = (message: unknown) => {
-    const { metas } = v.parse(v.object({ metas: v.array(v.unknown()) }), message);
+    const { metas } = v.parse(v.object({ metas: v.array(usageMetaSchema) }), message);
     showElement(_usage, () => {
       buildUsage(metas, setUsage);
     });
