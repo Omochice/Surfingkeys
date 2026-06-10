@@ -277,7 +277,7 @@ export default function optionsMain(
           {
             action: "getSearchAliases",
           },
-          (response: any) => {
+          (response: { aliases: Record<string, unknown> }) => {
             if (Object.keys(response.aliases).length > 0) {
               r(response.aliases);
             } else {
