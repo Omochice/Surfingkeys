@@ -35,7 +35,10 @@ import { buildFolderResult, buildOmnibarResult, orderItemsForDisplay } from "./o
 import type { OmnibarResult } from "./omnibarResult";
 
 /** A bookmark folder row as returned by the background `getBookmarkFolders`/`listBookmarkFolders`. */
-type BookmarkFolder = { id: string; title: string };
+type BookmarkFolder = { id: string; title?: string };
+
+/** A configured search engine alias. */
+type SearchAlias = { prompt: PromptValue; url: string; suggestionURL: string };
 
 /** A tab row as returned by the background `getTabs`; only title/url are read by the omnibar. */
 type TabItem = { title?: string; url?: string };
@@ -45,6 +48,27 @@ type WindowItem = { id: string; isPreviousChoice?: boolean; tabs: TabItem[] };
 
 /** A history row as returned by the history query functions feeding OpenURLs. */
 type HistoryItem = { title?: string; url?: string; visitCount?: number; lastVisitTime?: number };
+
+/**
+ * The broad shape `createURLItem`/`listURLs` accept: a bookmark, history entry, tab or folder row.
+ * Every field is optional because the source determines which are present; the renderer branches on
+ * `Object.hasOwn` to decide the row type.
+ */
+type URLItem = {
+  title?: string;
+  url?: string;
+  uid?: string;
+  id?: string | number;
+  parentId?: string | number;
+  lastVisitTime?: number;
+  visitCount?: number;
+  dateAdded?: number;
+  windowId?: number;
+  width?: number;
+  favIconUrl?: string;
+  type?: string;
+  html?: string;
+};
 
 /** A search-engine suggestion: a raw-HTML row, a URL row, or a bare query string. */
 type SearchSuggestion = string | { html: string } | { url: string };
@@ -76,6 +100,59 @@ type OmnibarHandler = {
   onTabKey?: () => void;
   getResults?: () => void;
   rotateInput?: (backward: boolean) => void;
+};
+
+/** The SearchEngine handler additionally exposes its alias registry and the active alias' urls. */
+type SearchEngineHandler = OmnibarHandler & {
+  aliases: Record<string, SearchAlias>;
+  url?: string;
+  suggestionURL?: string;
+};
+
+/**
+ * The omnibar API surface the per-type handlers drive (a subset of the controller `self`). Handlers
+ * receive this as their `omnibar` argument. `cachedPromise` is a shared slot the controller clears
+ * on close; each handler resolves it with its own type and reads it back through a local typed
+ * promise.
+ */
+type Omnibar = {
+  input: HTMLInputElement;
+  resultsDiv: HTMLElement;
+  cachedPromise?: Promise<unknown>;
+  command?: (cmd: string, annotation: string, jscode: (args: string[]) => void) => void;
+  results: () => OmnibarResult[];
+  focusedIndex: () => number;
+  focusedResult: () => OmnibarResult | undefined;
+  focusItem: (index: number) => void;
+  setPrompt: (val: PromptValue) => void;
+  setQuery: (val: string) => void;
+  setPlaceholder: (val: string) => void;
+  triggerInput: () => void;
+  getItems: () => unknown;
+  getHistoryCacheSize: () => number;
+  highlight: (rxp: RegExp | null, str: string) => string;
+  createURLItem: (b: URLItem, rxp: RegExp | null) => OmnibarResult;
+  createItemFromRawHtml: (arg: {
+    html: string;
+    props?: Partial<OmnibarResult["data"]>;
+  }) => OmnibarResult;
+  detectAndInsertURLItem: (
+    str: string,
+    toList: (string | { title?: string; url?: string; html?: string })[],
+  ) => void;
+  listURLs: (items: readonly URLItem[], showFolder: boolean) => void;
+  listResults: <T>(
+    items: readonly T[] | null | undefined,
+    renderItem: (b: T) => OmnibarResult | null | undefined,
+  ) => void;
+  listWords: (words: string[]) => void;
+  listBookmarkFolders: (
+    cb?: (
+      response: { folders: { id: string; title?: string }[] },
+      folders: Record<string, { id: string; title?: string }>,
+    ) => void,
+  ) => void;
+  openFocused: (this: OmnibarHandler) => boolean;
 };
 
 /** The open spec the front passes through `ui.onShow`: which handler to use plus its open options. */
@@ -607,7 +684,10 @@ function createOmnibar(front: any, clipboard: any) {
     return buildOmnibarResult(li, typeof props === "object" ? props : {});
   };
 
-  self.detectAndInsertURLItem = (str: string, toList: { title?: string; url?: string }[]) => {
+  self.detectAndInsertURLItem = (
+    str: string,
+    toList: (string | { title?: string; url?: string; html?: string })[],
+  ) => {
     const urlPat = /^(?:https?:\/\/)?(?:[^@/\n]+@)?(?:www\.)?([^:/\n\s]+)\.([^:/\n\s]+)/i;
     const urlPat1 = /^https?:\/\/(?:[^@/\n]+@)?([^:/\n\s]+)/i;
     if (urlPat.test(str)) {
@@ -762,7 +842,7 @@ function createOmnibar(front: any, clipboard: any) {
     } else {
       url = self.input.value;
       if (!self.isUrl(url)) {
-        url = searchEngine.aliases[runtime.conf.defaultSearchEngine].url + url;
+        url = (searchEngine.aliases[runtime.conf.defaultSearchEngine]?.url ?? "") + url;
       }
     }
     let type = "";
@@ -1002,7 +1082,7 @@ function createOmnibar(front: any, clipboard: any) {
   return self;
 }
 
-function OpenBookmarks(omnibar: any): any {
+function OpenBookmarks(omnibar: Omnibar): OmnibarHandler {
   const self: any = {
     prompt: "bookmark",
     inFolder: [],
@@ -1178,7 +1258,7 @@ function OpenBookmarks(omnibar: any): any {
   return self;
 }
 
-function AddBookmark(omnibar: any): any {
+function AddBookmark(omnibar: Omnibar): OmnibarHandler {
   const self: any = {
     focusFirstCandidate: true,
     prompt: "add bookmark",
@@ -1190,7 +1270,7 @@ function AddBookmark(omnibar: any): any {
     omnibar.listBookmarkFolders((response: { folders: BookmarkFolder[] }) => {
       folders = response.folders;
       omnibar.listResults(folders.slice(), (f: BookmarkFolder) => {
-        return buildFolderResult(f.title, f.id);
+        return buildFolderResult(f.title ?? "", f.id);
       });
       reportOnFail(
         RUNTIME("getBookmark", null, (resp: { bookmarks: { parentId?: string | number }[] }) => {
@@ -1238,32 +1318,31 @@ function AddBookmark(omnibar: any): any {
       self.page.folder = fi.data.folder;
       folderName = fi.data.text.slice(2);
     } else {
-      let path = omnibar.input.value;
-      path = path.split("/");
-      const title = path.pop();
-      if (title.length) {
+      const segments = omnibar.input.value.split("/");
+      const title = segments.pop();
+      if (title != null && title.length) {
         self.page.title = title;
       }
-      path = path.filter((p: string) => {
+      const parts = segments.filter((p) => {
         return p.length > 0;
       });
-      for (let l = path.length; l > 0; l--) {
+      for (let l = parts.length; l > 0; l--) {
         const targetFolder = folders.filter((f) => {
-          return f.title === `/${path.slice(0, l).join("/")}/`;
+          return f.title === `/${parts.slice(0, l).join("/")}/`;
         });
         const tf = targetFolder[0];
         if (tf) {
           self.page.folder = tf.id;
-          self.page.path = path.slice(l);
-          folderName = "/" + path.join("/");
+          self.page.path = parts.slice(l);
+          folderName = "/" + parts.join("/");
           break;
         }
       }
       const firstFolder = folders[0];
       if (self.page.folder == null && firstFolder) {
         self.page.folder = firstFolder.id;
-        self.page.path = path;
-        folderName = `${firstFolder.title}${path.join("/")}`;
+        self.page.path = parts;
+        folderName = `${firstFolder.title ?? ""}${parts.join("/")}`;
       }
     }
     reportOnFail(
@@ -1280,12 +1359,13 @@ function AddBookmark(omnibar: any): any {
     const query = omnibar.input.value;
     const caseSensitive = runtime.getCaseSensitive(query);
     const matches = folders.filter((b) => {
+      const title = b.title ?? "";
       return caseSensitive
-        ? b.title.includes(query)
-        : b.title.toLowerCase().includes(query.toLowerCase());
+        ? title.includes(query)
+        : title.toLowerCase().includes(query.toLowerCase());
     });
     omnibar.listResults(matches, (f: BookmarkFolder) => {
-      return buildFolderResult(f.title, f.id);
+      return buildFolderResult(f.title ?? "", f.id);
     });
   };
 
@@ -1294,9 +1374,9 @@ function AddBookmark(omnibar: any): any {
 
 function OpenURLs(
   prompt: PromptValue,
-  omnibar: any,
+  omnibar: Omnibar,
   queryFn: () => Promise<readonly HistoryItem[]>,
-): any {
+): OmnibarHandler {
   const self: any = { prompt };
   let sequenceNumber: number;
 
@@ -1305,8 +1385,10 @@ function OpenURLs(
     queryFn().then((urls) => {
       if (myseq === sequenceNumber) {
         const val = omnibar.input.value;
-        omnibar.detectAndInsertURLItem(val, urls);
-        omnibar.listURLs(urls, false);
+        // detectAndInsertURLItem prepends to the list, so copy the readonly query result first.
+        const list = [...urls];
+        omnibar.detectAndInsertURLItem(val, list);
+        omnibar.listURLs(list, false);
       }
     });
   };
@@ -1545,7 +1627,7 @@ function OpenWindows(omnibar: any, front: any): any {
   return self;
 }
 
-function OpenVIMarks(omnibar: any): any {
+function OpenVIMarks(omnibar: Omnibar): OmnibarHandler {
   const self: any = {
     focusFirstCandidate: true,
     prompt: "VIMarks",
@@ -1592,7 +1674,7 @@ function OpenVIMarks(omnibar: any): any {
   return self;
 }
 
-function SearchEngine(omnibar: any, front: any): any {
+function SearchEngine(omnibar: Omnibar, front: any): SearchEngineHandler {
   const self: any = { aliases: {} };
 
   let _pendingRequest: ReturnType<typeof setTimeout> | undefined = undefined; // timeout ID
@@ -1608,7 +1690,7 @@ function SearchEngine(omnibar: any, front: any): any {
     if (q.length) {
       const b = q.match(/^(site:\S+\s*).*/);
       if (b) {
-        omnibar.input.setSelectionRange(b[1].length, q.length);
+        omnibar.input.setSelectionRange((b[1] ?? "").length, q.length);
       }
       omnibar.triggerInput();
     }
@@ -1756,7 +1838,7 @@ function SearchEngine(omnibar: any, front: any): any {
   return self;
 }
 
-function Commands(omnibar: any, front: any): any {
+function Commands(omnibar: Omnibar, front: any): OmnibarHandler {
   const self: any = {
     focusFirstCandidate: false,
     prompt: ":",
@@ -1810,7 +1892,7 @@ function Commands(omnibar: any, front: any): any {
   self.onTabKey = () => {
     const fi = omnibar.focusedResult();
     if (fi) {
-      omnibar.setQuery(fi.data.cmd);
+      omnibar.setQuery(fi.data.cmd ?? "");
     }
   };
 
@@ -1852,7 +1934,7 @@ function Commands(omnibar: any, front: any): any {
   return self;
 }
 
-function OmniQuery(omnibar: any, front: any): any {
+function OmniQuery(omnibar: Omnibar, front: any): OmnibarHandler {
   const self: any = {
     prompt: "ǭ",
   };
@@ -1909,7 +1991,7 @@ function OmniQuery(omnibar: any, front: any): any {
   return self;
 }
 
-function OpenUserURLs(omnibar: any): any {
+function OpenUserURLs(omnibar: Omnibar): OmnibarHandler {
   const self: any = {
     focusFirstCandidate: true,
     prompt: "UserURLs",
