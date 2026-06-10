@@ -225,15 +225,18 @@ const Front = (() => {
       // visual mode in frontend.html, such as help: only the in-frame find dispatches here, so the
       // three find actions are exhaustive (other actions are forwarded to content below).
       switch (args.action) {
-        case "visualClear":
+        case "visualClear": {
           visual.visualClear();
           break;
-        case "visualUpdate":
+        }
+        case "visualUpdate": {
           visual.visualUpdate(args.query ?? "");
           break;
-        case "visualEnter":
+        }
+        case "visualEnter": {
           visual.visualEnter(args.query ?? "");
           break;
+        }
       }
     } else {
       // visual mode for all content windows

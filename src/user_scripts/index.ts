@@ -241,12 +241,12 @@ function addSearchAlias(
 }
 
 function createCssSelectorForElements(cssSelector: string, elements: unknown): number {
-  const list: HTMLElement[] =
-    elements instanceof HTMLElement
-      ? [elements]
-      : Array.isArray(elements)
-        ? elements.filter((m): m is HTMLElement => m instanceof HTMLElement)
-        : [];
+  let list: HTMLElement[] = [];
+  if (elements instanceof HTMLElement) {
+    list = [elements];
+  } else if (Array.isArray(elements)) {
+    list = elements.filter((m): m is HTMLElement => m instanceof HTMLElement);
+  }
   list.forEach((m) => {
     m.classList.add(cssSelector);
   });

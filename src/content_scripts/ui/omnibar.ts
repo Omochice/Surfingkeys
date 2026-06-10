@@ -1395,10 +1395,9 @@ function AddBookmark(omnibar: Omnibar): AddBookmarkHandler {
         return p.length > 0;
       });
       for (let l = parts.length; l > 0; l--) {
-        const targetFolder = folders.filter((f) => {
+        const tf = folders.find((f) => {
           return f.title === `/${parts.slice(0, l).join("/")}/`;
         });
-        const tf = targetFolder[0];
         if (tf) {
           page.folder = tf.id;
           page.path = parts.slice(l);
