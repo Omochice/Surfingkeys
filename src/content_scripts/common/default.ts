@@ -629,7 +629,11 @@ export default function createDefaultMappings(api: SurfingkeysApi, ctx: ModeCont
   });
   mapkey("yY", "#7Copy all tabs's url", () => {
     RUNTIME("getTabs", null, (response) => {
-      clipboard.write(response.tabs.map((tab: any) => tab.url).join("\n"));
+      const { tabs } = v.parse(
+        v.object({ tabs: v.array(v.object({ url: v.optional(v.string()) })) }),
+        response,
+      );
+      clipboard.write(tabs.map((tab) => tab.url ?? "").join("\n"));
     });
   });
   mapkey("yh", "#7Copy current page's host", () => {
@@ -951,8 +955,12 @@ export default function createDefaultMappings(api: SurfingkeysApi, ctx: ModeCont
         query: { state: "in_progress" },
       },
       (response) => {
-        const items = response.downloads.map((o: any) => {
-          return o.url;
+        const { downloads } = v.parse(
+          v.object({ downloads: v.array(v.object({ url: v.optional(v.string()) })) }),
+          response,
+        );
+        const items = downloads.map((o) => {
+          return o.url ?? "";
         });
         clipboard.write(items.join(","));
       },
@@ -978,7 +986,11 @@ export default function createDefaultMappings(api: SurfingkeysApi, ctx: ModeCont
   });
   mapkey(";yh", "#13Yank histories", () => {
     RUNTIME("getHistory", {}, (response) => {
-      clipboard.write(response.history.map((h: any) => h.url).join("\n"));
+      const { history } = v.parse(
+        v.object({ history: v.array(v.object({ url: v.optional(v.string()) })) }),
+        response,
+      );
+      clipboard.write(history.map((h) => h.url ?? "").join("\n"));
     });
   });
   mapkey(";ph", "#13Put histories from clipboard", () => {
