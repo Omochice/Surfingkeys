@@ -16,6 +16,12 @@ type KeyboardUtilsLike = {
 };
 type ModeCtor = new (name: string) => any;
 
+/** A search-engine alias as the omnibar reports it: a label or an `{ html }` icon prompt. */
+type AliasInfo = { prompt: string | { html: string } };
+
+/** A default keystroke binding the options page lets the user re-map, with its help annotation. */
+type BasicMapping = { origin: string; annotation: string | string[] | undefined };
+
 export default function optionsMain(
   RUNTIME: RuntimeFn,
   KeyboardUtils: KeyboardUtilsLike,
@@ -206,7 +212,7 @@ export default function optionsMain(
   }
   requireElement("#save_button").onclick = saveSettings;
 
-  let basicMappings: any[] = [
+  const basicMappingKeys: string[] = [
     "d",
     "R",
     "f",
@@ -260,9 +266,10 @@ export default function optionsMain(
     ";j",
   ];
 
+  let basicMappings: BasicMapping[] = [];
   document.addEventListener("surfingkeys:defaultSettingsLoaded", (evt) => {
     const { normal } = (evt as CustomEvent).detail;
-    basicMappings = basicMappings
+    basicMappings = basicMappingKeys
       .map((w) => {
         const binding = normal.mappings.find(KeyboardUtils.encodeKeystroke(w));
         return binding ? { origin: w, annotation: binding.meta.annotation } : null;
@@ -270,14 +277,20 @@ export default function optionsMain(
       .filter((m) => m !== null);
   });
 
-  function renderSearchAlias(frontCommand: any, disabledSearchAliases: Record<string, any>): void {
-    new Promise<Record<string, any>>((r) => {
+  function renderSearchAlias(
+    frontCommand: (
+      args: Record<string, unknown>,
+      callback: (response: { aliases: Record<string, AliasInfo> }) => void,
+    ) => void,
+    disabledSearchAliases: Record<string, string>,
+  ): void {
+    new Promise<Record<string, AliasInfo>>((r) => {
       const getSearchAliases = () => {
         frontCommand(
           {
             action: "getSearchAliases",
           },
-          (response: { aliases: Record<string, unknown> }) => {
+          (response: { aliases: Record<string, AliasInfo> }) => {
             if (Object.keys(response.aliases).length > 0) {
               r(response.aliases);
             } else {
@@ -341,13 +354,14 @@ export default function optionsMain(
   function renderKeyMappings(rs: StoredSettings): void {
     initL10n((locale) => {
       const customization = basicMappings.map((w) => {
-        let newKey = w.origin;
+        let newKey: string | undefined = w.origin;
         if (rs.basicMappings && Object.hasOwn(rs.basicMappings, w.origin)) {
           newKey = rs.basicMappings[w.origin];
         }
+        const annotation = typeof w.annotation === "string" ? w.annotation : "";
         return `<div>
-                    <span class=annotation>${locale(w.annotation)}</span>
-                    <span class=kbd-span><kbd data-origin="${w.origin}" data-custom="${newKey}">${newKey ? htmlEncode(newKey) : "🚫"}</kbd></span>
+                    <span class=annotation>${locale(annotation)}</span>
+                    <span class=kbd-span><kbd data-origin="${w.origin}" data-custom="${newKey ?? ""}">${newKey ? htmlEncode(newKey) : "🚫"}</kbd></span>
                 </div>`;
       });
 
