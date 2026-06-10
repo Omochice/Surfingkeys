@@ -457,8 +457,9 @@ const Front = (() => {
       setSanitizedContent(requireElement("#sk_theme"), message.userSettings.theme);
     }
   };
-  _actions["setHintsCharacters"] = (message: any) => {
-    hints.setCharacters(message.characters);
+  _actions["setHintsCharacters"] = (message: unknown) => {
+    const { characters } = v.parse(v.object({ characters: v.string() }), message);
+    hints.setCharacters(characters);
   };
   _actions["addMapkey"] = (message: any) => {
     const specialKey = Mode.specialKeys[message.old_keystroke];
@@ -589,8 +590,12 @@ const Front = (() => {
       self.flush();
     }, timems);
   }
-  _actions["showBanner"] = (message: any) => {
-    showBanner(message.content, message.linger_time);
+  _actions["showBanner"] = (message: unknown) => {
+    const { content, linger_time } = v.parse(
+      v.object({ content: v.string(), linger_time: v.optional(v.number()) }),
+      message,
+    );
+    showBanner(content, linger_time);
   };
   _actions["showBubble"] = (message: any) => {
     const pos = message.position;
