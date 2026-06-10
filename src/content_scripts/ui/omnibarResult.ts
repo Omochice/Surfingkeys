@@ -15,7 +15,7 @@ export type OmnibarResult = {
     windowId?: number;
     folderId?: string;
     folder_name?: string;
-    cmd?: any;
+    cmd?: string;
     folder?: string;
     text: string;
   };

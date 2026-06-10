@@ -1690,7 +1690,7 @@ function Commands(omnibar: any, front: any): any {
           if (candidates.length) {
             omnibar.listResults(candidates, (c: unknown) => {
               const li = createElementWithContent("li", String(c));
-              return buildOmnibarResult(li, { cmd: c });
+              return buildOmnibarResult(li, { cmd: String(c) });
             });
           }
         },
