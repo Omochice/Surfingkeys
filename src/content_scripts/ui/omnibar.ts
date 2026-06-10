@@ -1458,29 +1458,38 @@ function OpenVIMarks(omnibar: any): any {
 
   self.onOpen = () => {
     const query = omnibar.input.value;
-    const urls: any[] = [];
+    const urls: { title: string; type: string; uid: string; url: string }[] = [];
     reportOnFail(
-      RUNTIME("getSettings", { key: "marks" }, (response: any) => {
-        for (const m in response.settings.marks) {
-          let markInfo = response.settings.marks[m];
-          if (typeof markInfo === "string") {
-            markInfo = {
-              url: markInfo,
-              scrollLeft: 0,
-              scrollTop: 0,
-            };
+      RUNTIME(
+        "getSettings",
+        { key: "marks" },
+        (response: {
+          settings: {
+            marks: Record<
+              string,
+              string | { url: string; scrollLeft?: number; scrollTop?: number }
+            >;
+          };
+        }) => {
+          for (const m in response.settings.marks) {
+            const raw = response.settings.marks[m];
+            if (raw == null) {
+              continue;
+            }
+            const markInfo =
+              typeof raw === "string" ? { url: raw, scrollLeft: 0, scrollTop: 0 } : raw;
+            if (query === "" || markInfo.url.includes(query)) {
+              urls.push({
+                title: m,
+                type: "🔗",
+                uid: "M" + m,
+                url: markInfo.url,
+              });
+            }
           }
-          if (query === "" || markInfo.url.includes(query)) {
-            urls.push({
-              title: m,
-              type: "🔗",
-              uid: "M" + m,
-              url: markInfo.url,
-            });
-          }
-        }
-        omnibar.listURLs(urls, false);
-      }),
+          omnibar.listURLs(urls, false);
+        },
+      ),
       reportError,
     );
   };
