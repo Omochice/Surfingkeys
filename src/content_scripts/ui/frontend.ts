@@ -441,9 +441,10 @@ const Front = (() => {
       }),
     _usage,
   );
-  _actions["showUsage"] = (message: any) => {
+  _actions["showUsage"] = (message: unknown) => {
+    const { metas } = v.parse(v.object({ metas: v.array(v.unknown()) }), message);
     showElement(_usage, () => {
-      buildUsage(message.metas, setUsage);
+      buildUsage(metas, setUsage);
     });
   };
   _actions["applyUserSettings"] = (message: any) => {
@@ -461,14 +462,22 @@ const Front = (() => {
     const { characters } = v.parse(v.object({ characters: v.string() }), message);
     hints.setCharacters(characters);
   };
-  _actions["addMapkey"] = (message: any) => {
-    const specialKey = Mode.specialKeys[message.old_keystroke];
+  _actions["addMapkey"] = (message: unknown) => {
+    const { old_keystroke, new_keystroke, mode } = v.parse(
+      v.object({
+        old_keystroke: v.string(),
+        new_keystroke: v.string(),
+        mode: v.optional(v.string()),
+      }),
+      message,
+    );
+    const specialKey = Mode.specialKeys[old_keystroke];
     if (specialKey != null) {
-      specialKey.push(message.new_keystroke);
-    } else if (Object.hasOwn(modes, message.mode)) {
-      const mode = modes[message.mode];
-      if (mode != null) {
-        mapInMode(mode, message.new_keystroke, message.old_keystroke);
+      specialKey.push(new_keystroke);
+    } else if (mode != null && Object.hasOwn(modes, mode)) {
+      const targetMode = modes[mode];
+      if (targetMode != null) {
+        mapInMode(targetMode, new_keystroke, old_keystroke);
       }
     }
   };
