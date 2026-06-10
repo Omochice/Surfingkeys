@@ -95,6 +95,14 @@ const Front = (() => {
     onHide?: () => void;
     onHit?: ((matched: unknown) => void) | undefined;
   };
+  // The omnibar overlay exposes onShow, set by its Solid component, to (re)render for a given open spec.
+  type OmnibarElement = DisplayElement & {
+    onShow: (message: Record<string, unknown>) => void;
+  };
+  // The bubble overlay carries a noPointerEvents flag the positioning code toggles per message.
+  type BubbleElement = DisplayElement & {
+    noPointerEvents?: boolean | undefined;
+  };
   let _display: DisplayElement | null = null;
   self.addEventListener("keydown", (event: KeyboardEvent) => {
     if (Mode.isSpecialKeyOf("<Esc>", event.sk_keyName ?? "")) {
@@ -207,15 +215,15 @@ const Front = (() => {
     }
   };
 
-  const _omnibar: any = document.getElementById("sk_omnibar");
+  const _omnibar = requireElement<OmnibarElement>("#sk_omnibar");
   self.statusBar = document.getElementById("sk_status");
   const _usage = requireElement("#sk_usage");
   const _popup = requireElement("#sk_popup");
   const _tabs = requireElement("#sk_tabs");
   const _banner = requireElement("#sk_banner");
-  const _bubble: any = document.getElementById("sk_bubble");
-  const sk_bubble_content: any = _bubble.querySelector("div.sk_bubble_content");
-  const sk_bubble_arrow = _bubble.querySelector("div.sk_arrow") as HTMLElement;
+  const _bubble = requireElement<BubbleElement>("#sk_bubble");
+  const sk_bubble_content = requireElement("#sk_bubble div.sk_bubble_content");
+  const sk_bubble_arrow = requireElement("#sk_bubble div.sk_arrow");
   const sk_bubbleClassList = sk_bubble_content.classList;
   const [bubbleHtml, setBubbleHtml] = createSignal("");
   render(
@@ -245,7 +253,7 @@ const Front = (() => {
       sk_bubbleClassList.add("sk_scroller_indicator_middle");
     }
   };
-  const keystroke: any = document.getElementById("sk_keystroke");
+  const keystroke = requireElement("#sk_keystroke");
   const [keystrokeText, setKeystrokeText] = createSignal("");
   const [keystrokeHtml, setKeystrokeHtml] = createSignal("");
   const [keystrokeRich, setKeystrokeRich] = createSignal(false);
@@ -585,7 +593,7 @@ const Front = (() => {
     showElement(_omnibar, () => {
       _omnibar.onShow(message);
       const style = message.style || "";
-      setSanitizedContent(_omnibar.querySelector("style"), `#sk_omnibar {${style}}`);
+      setSanitizedContent(requireElement("#sk_omnibar style"), `#sk_omnibar {${style}}`);
     });
   };
   self.openOmnibar = _actions["openOmnibar"];
