@@ -22,6 +22,13 @@ import {
 
 // Parse JSON without throwing: malformed input becomes undefined so callers can
 // route it through schema validation and a graceful fallback.
+/**
+ * A text-anchor / clickable-text hint match: the text node, the offset within it, and the matched
+ * text. `offset === 0` means the whole node's data is the match; otherwise element[2] holds the
+ * text.
+ */
+type TextAnchorMatch = [CharacterData, number, string];
+
 const parseJsonSafe = (text: string): unknown => {
   try {
     return JSON.parse(text);
@@ -97,7 +104,7 @@ export default function createDefaultMappings(api: SurfingkeysApi, ctx: ModeCont
     visual.toggle("z");
   });
   mapkey("yv", "#7Yank text of an element", () => {
-    hints.create(runtime.conf.textAnchorPat, (element: any) => {
+    hints.create(runtime.conf.textAnchorPat, (element: TextAnchorMatch) => {
       clipboard.write(element[1] === 0 ? element[0].data.trim() : element[2].trim());
     });
   });
@@ -105,7 +112,7 @@ export default function createDefaultMappings(api: SurfingkeysApi, ctx: ModeCont
     const textToYank: string[] = [];
     hints.create(
       runtime.conf.textAnchorPat,
-      (element: any) => {
+      (element: TextAnchorMatch) => {
         textToYank.push(element[1] === 0 ? element[0].data.trim() : element[2].trim());
         clipboard.write(textToYank.join("\n"));
       },
@@ -225,7 +232,7 @@ export default function createDefaultMappings(api: SurfingkeysApi, ctx: ModeCont
   mapkey("O", "#1Open detected links from text", () => {
     hints.create(
       runtime.conf.clickablePat,
-      (element: any) => {
+      (element: TextAnchorMatch) => {
         window.location.assign(element[2]);
       },
       { statusLine: "Open detected links from text" },
@@ -325,7 +332,7 @@ export default function createDefaultMappings(api: SurfingkeysApi, ctx: ModeCont
   });
 
   mapkey("cq", "#7Query word with Hints", () => {
-    hints.create(runtime.conf.textAnchorPat, (element: any) => {
+    hints.create(runtime.conf.textAnchorPat, (element: TextAnchorMatch) => {
       const word = element[2].trim().replace(/[^A-z].*$/, "");
       const b = getTextNodePos(element[0], element[1], element[2].length);
       front.performInlineQuery(
@@ -387,15 +394,17 @@ export default function createDefaultMappings(api: SurfingkeysApi, ctx: ModeCont
   mapkey("<Ctrl-h>", "#1Mouse over elements.", () => {
     hints.create(
       "",
-      (element: any) => {
+      (element: HTMLElement) => {
         if (chrome.surfingkeys) {
           const r = element.getClientRects()[0];
-          chrome.surfingkeys.sendMouseEvent(
-            2,
-            Math.round(r.x + r.width / 2),
-            Math.round(r.y + r.height / 2),
-            0,
-          );
+          if (r) {
+            chrome.surfingkeys.sendMouseEvent(
+              2,
+              Math.round(r.x + r.width / 2),
+              Math.round(r.y + r.height / 2),
+              0,
+            );
+          }
         } else {
           hints.dispatchMouseClick(element);
         }
@@ -415,7 +424,7 @@ export default function createDefaultMappings(api: SurfingkeysApi, ctx: ModeCont
     const linksToYank: string[] = [];
     hints.create(
       "*[href]",
-      (element: any) => {
+      (element: HTMLAnchorElement) => {
         linksToYank.push(element.href);
         clipboard.write(linksToYank.join("\n"));
       },
@@ -433,11 +442,12 @@ export default function createDefaultMappings(api: SurfingkeysApi, ctx: ModeCont
     return tds;
   }
   mapkey("yc", "#7Copy a column of a table", () => {
-    hints.create(getTableColumnHeads(), (element: any) => {
-      const column = Array.from(element.closest("table").querySelectorAll("tr")).map((tr: any) => {
-        return tr.children.length > element.cellIndex
-          ? tr.children[element.cellIndex].innerText
-          : "";
+    hints.create(getTableColumnHeads(), (element: HTMLTableCellElement) => {
+      const table = element.closest("table");
+      const trs = table ? Array.from(table.querySelectorAll<HTMLTableRowElement>("tr")) : [];
+      const column = trs.map((tr) => {
+        const cell = tr.children[element.cellIndex];
+        return cell instanceof HTMLElement ? cell.innerText : "";
       });
       clipboard.write(column.join("\n"));
     });
@@ -446,14 +456,13 @@ export default function createDefaultMappings(api: SurfingkeysApi, ctx: ModeCont
     let rows: string[] | null = null;
     hints.create(
       getTableColumnHeads(),
-      (element: any) => {
-        const column: string[] = Array.from(element.closest("table").querySelectorAll("tr")).map(
-          (tr: any) => {
-            return tr.children.length > element.cellIndex
-              ? tr.children[element.cellIndex].innerText
-              : "";
-          },
-        );
+      (element: HTMLTableCellElement) => {
+        const table = element.closest("table");
+        const trs = table ? Array.from(table.querySelectorAll<HTMLTableRowElement>("tr")) : [];
+        const column: string[] = trs.map((tr) => {
+          const cell = tr.children[element.cellIndex];
+          return cell instanceof HTMLElement ? cell.innerText : "";
+        });
         if (!rows) {
           rows = column;
         } else {
@@ -569,9 +578,12 @@ export default function createDefaultMappings(api: SurfingkeysApi, ctx: ModeCont
     front.openOmnibar({ type: "Commands" });
   });
   mapkey("yi", "#7Yank text of an input", () => {
-    hints.create("input, textarea, select", (element: any) => {
-      clipboard.write(element.value);
-    });
+    hints.create(
+      "input, textarea, select",
+      (element: HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement) => {
+        clipboard.write(element.value);
+      },
+    );
   });
   mapkey("x", "#3Close current tab", () => {
     RUNTIME("closeTab");
