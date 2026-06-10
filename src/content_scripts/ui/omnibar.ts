@@ -679,19 +679,20 @@ function createOmnibar(front: OmnibarFront, clipboard: { write(text: string): vo
         });
   };
 
-  self.createURLItem = (b: any, rxp: RegExp | null) => {
-    b.title = b.title && b.title !== "" ? b.title : unwrapOr(tryDecodeURI(b.url), b.url);
+  self.createURLItem = (b: URLItem, rxp: RegExp | null) => {
+    const url = b.url ?? "";
+    const title = b.title && b.title !== "" ? b.title : unwrapOr(tryDecodeURI(url), url);
     let type = "🔥";
     let additional = "";
     let uid = b.uid;
     if (Object.hasOwn(b, "lastVisitTime")) {
       type = "🕜";
-      additional = `<span class=omnibar_timestamp># ${timeStampString(b.lastVisitTime)}</span>`;
+      additional = `<span class=omnibar_timestamp># ${timeStampString(b.lastVisitTime ?? 0)}</span>`;
       additional += `<span class=omnibar_visitcount> (${b.visitCount})</span>`;
-      uid = "H" + b.url;
+      uid = "H" + url;
     } else if (Object.hasOwn(b, "dateAdded")) {
       type = "⭐";
-      additional = `<span class=omnibar_folder>@ ${bookmarkFolders[b.parentId].title || ""}</span> <span class=omnibar_timestamp># ${timeStampString(b.dateAdded)}</span>`;
+      additional = `<span class=omnibar_folder>@ ${bookmarkFolders[b.parentId ?? ""].title || ""}</span> <span class=omnibar_timestamp># ${timeStampString(b.dateAdded ?? 0)}</span>`;
       uid = "B" + b.id;
     } else if (Object.hasOwn(b, "width")) {
       type = "🔖";
@@ -705,13 +706,16 @@ function createOmnibar(front: OmnibarFront, clipboard: { write(text: string): vo
       li = createElementWithContent("li", `<img class="icon"/>`);
       const img = li.querySelector("img");
       if (img) {
-        attachFaviconToImgSrc(b, img);
+        attachFaviconToImgSrc(
+          b.favIconUrl != null ? { url, favIconUrl: b.favIconUrl } : { url },
+          img,
+        );
       }
     }
     li.appendChild(
       createElementWithContent(
         "div",
-        `<div class="title">${self.highlight(rxp, htmlEncode(b.title))} ${additional}</div><div class="url">${self.highlight(rxp, htmlEncode(unwrapOr(tryDecodeURIComponent(b.url), b.url)))}</div>`,
+        `<div class="title">${self.highlight(rxp, htmlEncode(title))} ${additional}</div><div class="url">${self.highlight(rxp, htmlEncode(unwrapOr(tryDecodeURIComponent(url), url)))}</div>`,
         { class: "text-container" },
       ),
     );

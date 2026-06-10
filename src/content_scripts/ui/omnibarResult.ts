@@ -7,16 +7,18 @@ import type { ResultListItem } from "./components/ResultList";
  * stored these as expandos on each `<li>`).
  */
 export type OmnibarResult = {
+  // Optional fields explicitly admit `undefined`: handlers build the data bag from item shapes whose
+  // fields may be absent, so an explicit `undefined` must be assignable under exactOptionalPropertyTypes.
   data: {
-    uid?: string;
-    url?: string;
-    copy?: string;
-    query?: string;
-    windowId?: number;
-    folderId?: string;
-    folder_name?: string;
-    cmd?: string;
-    folder?: string;
+    uid?: string | undefined;
+    url?: string | undefined;
+    copy?: string | undefined;
+    query?: string | undefined;
+    windowId?: number | undefined;
+    folderId?: string | undefined;
+    folder_name?: string | undefined;
+    cmd?: string | undefined;
+    folder?: string | undefined;
     text: string;
   };
 } & ResultListItem;
