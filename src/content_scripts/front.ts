@@ -395,7 +395,7 @@ function createFront(
     key: "",
   };
 
-  self.showStatus = (msgs: any, duration?: number) => {
+  self.showStatus = (msgs: unknown, duration?: number) => {
     // when showModeStatus is on, showStatus will cause uiHost injected too early
     // which could break some host scripts from sites in Firefox.
     const waitForHostScripts = getBrowserName() === "Firefox" ? 1000 : 0;
@@ -621,7 +621,7 @@ function createFront(
     }
   }
 
-  _actions["visualUpdate"] = (message: any) => {
+  _actions["visualUpdate"] = (message: { query: string }) => {
     clearPendingQuery();
     _pendingQuery = setTimeout(() => {
       visual.visualUpdate(message.query);
