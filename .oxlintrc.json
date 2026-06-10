@@ -8,6 +8,7 @@
   "rules": {
     "typescript/no-this-alias": "off",
     "typescript/consistent-type-assertions": ["warn", { "assertionStyle": "never" }],
+    "typescript/no-explicit-any": "warn",
     "typescript/consistent-type-definitions": ["error", "type"],
     "no-unused-expressions": ["error", { "allowShortCircuit": true, "allowTernary": true }],
     "curly": ["error", "multi-line"],
@@ -53,6 +54,12 @@
       "files": ["src/globals.d.ts"],
       "rules": {
         "typescript/consistent-type-definitions": "off"
+      }
+    },
+    {
+      "files": ["**/*.test.ts"],
+      "rules": {
+        "typescript/no-explicit-any": "off"
       }
     }
   ]
