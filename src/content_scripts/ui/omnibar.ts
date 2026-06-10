@@ -1422,7 +1422,7 @@ function OpenURLs(
   return self;
 }
 
-function OpenTabs(omnibar: any): any {
+function OpenTabs(omnibar: Omnibar): OmnibarHandler {
   const self: any = {
     focusFirstCandidate: true,
   };
@@ -1432,8 +1432,10 @@ function OpenTabs(omnibar: any): any {
     filter?: string;
     tabsThreshold?: number;
   } = {};
+  // A locally-typed view of the shared cache slot so onInput reads typed tabs.
+  let tabsPromise: Promise<TabItem[]> | undefined;
   self.getResults = () => {
-    omnibar.cachedPromise = new Promise((resolve) => {
+    tabsPromise = new Promise<TabItem[]>((resolve) => {
       getTabsArgs.tabsThreshold = Math.min(
         runtime.conf.tabsThreshold,
         Math.ceil(window.innerWidth / 26),
@@ -1449,6 +1451,7 @@ function OpenTabs(omnibar: any): any {
         reportError,
       );
     });
+    omnibar.cachedPromise = tabsPromise;
   };
   self.onOpen = (args?: { action?: string; filter?: string }) => {
     if (args && args.action === "gather") {
@@ -1475,7 +1478,7 @@ function OpenTabs(omnibar: any): any {
     self.onInput();
   };
   self.onInput = () => {
-    omnibar.cachedPromise.then((cached: TabItem[]) => {
+    tabsPromise?.then((cached) => {
       const filtered = filterByTitleOrUrl(
         cached,
         omnibar.input.value,
@@ -1487,14 +1490,16 @@ function OpenTabs(omnibar: any): any {
   return self;
 }
 
-function CloseTabs(omnibar: any): any {
+function CloseTabs(omnibar: Omnibar): OmnibarHandler {
   const self: any = {
     focusFirstCandidate: true,
   };
 
+  // A locally-typed view of the shared cache slot so onInput reads typed tabs.
+  let tabsPromise: Promise<TabItem[]> | undefined;
   self.onOpen = () => {
     self.prompt = "close tabs";
-    omnibar.cachedPromise = new Promise((resolve) => {
+    tabsPromise = new Promise<TabItem[]>((resolve) => {
       reportOnFail(
         RUNTIME(
           "getTabs",
@@ -1506,10 +1511,11 @@ function CloseTabs(omnibar: any): any {
         reportError,
       );
     });
+    omnibar.cachedPromise = tabsPromise;
     self.onInput();
   };
   self.onInput = () => {
-    omnibar.cachedPromise.then((cached: TabItem[]) => {
+    tabsPromise?.then((cached) => {
       const filtered = filterByTitleOrUrl(
         cached,
         omnibar.input.value,
@@ -1544,24 +1550,23 @@ function CloseTabs(omnibar: any): any {
   return self;
 }
 
-function OpenWindows(omnibar: any, front: any): any {
+function OpenWindows(omnibar: Omnibar, front: any): OmnibarHandler {
   const self: any = {
     prompt: "Move current tab to window",
   };
 
+  // A locally-typed view of the shared cache slot so onInput reads typed windows.
+  let windowsPromise: Promise<WindowItem[]> | undefined;
   self.getResults = () => {
-    omnibar.cachedPromise = new Promise((resolve) => {
+    windowsPromise = new Promise<WindowItem[]>((resolve) => {
       reportOnFail(
-        RUNTIME(
-          "getWindows",
-          { query: "" },
-          (response: { windows: { title?: string; url?: string }[] }) => {
-            resolve(response.windows);
-          },
-        ),
+        RUNTIME("getWindows", { query: "" }, (response: { windows: WindowItem[] }) => {
+          resolve(response.windows);
+        }),
         reportError,
       );
     });
+    omnibar.cachedPromise = windowsPromise;
   };
   self.onEnter = () => {
     const fi = omnibar.focusedResult();
@@ -1578,7 +1583,7 @@ function OpenWindows(omnibar: any, front: any): any {
     self.onInput();
   };
   self.onInput = () => {
-    omnibar.cachedPromise.then((cached: WindowItem[]) => {
+    windowsPromise?.then((cached) => {
       if (cached.length === 0) {
         reportOnFail(RUNTIME("moveToWindow", { windowId: -1 }), reportError);
         front.hidePopup();
