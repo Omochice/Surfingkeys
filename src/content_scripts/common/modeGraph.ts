@@ -12,7 +12,14 @@ import createVisual from "./visual";
  */
 type FrontLike = {
   executeCommand(cmd: string): void;
-  addSearchAlias?: (...args: any[]) => void;
+  addSearchAlias?: (
+    alias: string,
+    prompt: string,
+    search_url: string,
+    suggestion_url?: string,
+    callback?: (response: unknown, request: unknown) => unknown,
+    options?: { skipMaps?: boolean; favicon_url?: string },
+  ) => void;
   removeSearchAlias(alias: string): void;
   openOmnibar(args: unknown): void;
   openOmniquery(args: unknown): void;
