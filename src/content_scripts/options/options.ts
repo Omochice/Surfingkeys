@@ -14,6 +14,9 @@ type KeyboardUtilsLike = {
   encodeKeystroke(k: string): string;
   decodeKeystroke(k: string): string;
 };
+// The injected Mode constructor produces a structural self augmented with editor expandos below;
+// its instance type is `any` for the same reason the other mode selfs are.
+// eslint-disable-next-line typescript/no-explicit-any
 type ModeCtor = new (name: string) => any;
 
 /** A search-engine alias as the omnibar reports it: a label or an `{ html }` icon prompt. */
@@ -38,7 +41,11 @@ export default function optionsMain(
   setSanitizedContent: (elm: Element, str: string) => void,
   showBanner: (msg: string, timeout?: number) => void,
 ): void {
+  // Structural editor self: createMappingEditor returns a Mode augmented with editor expandos
+  // (container/setValue/getValue/...), so both the holder and its return type are `any`.
+  // eslint-disable-next-line typescript/no-explicit-any
   let mappingsEditor: any = null;
+  // eslint-disable-next-line typescript/no-explicit-any
   function createMappingEditor(elmId: string): any {
     const existing = document.getElementById(elmId);
     let textarea: HTMLTextAreaElement;

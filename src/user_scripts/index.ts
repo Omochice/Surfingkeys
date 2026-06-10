@@ -41,6 +41,7 @@ function cmap(
 }
 
 const userDefinedFunctions: Record<string, (...args: unknown[]) => void> = {};
+// eslint-disable-next-line typescript/no-explicit-any -- user keypress handler of arbitrary signature
 function mapkey(keys: string, annotation: string | string[], jscode: any, options?: MapkeyOptions) {
   if (!options || _isDomainApplicable(options.domain)) {
     const opt = options || {};
@@ -52,6 +53,7 @@ function mapkey(keys: string, annotation: string | string[], jscode: any, option
 function imapkey(
   keys: string,
   annotation: string | string[],
+  // eslint-disable-next-line typescript/no-explicit-any -- user keypress handler of arbitrary signature
   jscode: any,
   options?: MapkeyOptions,
 ) {
@@ -63,6 +65,7 @@ function imapkey(
 function vmapkey(
   keys: string,
   annotation: string | string[],
+  // eslint-disable-next-line typescript/no-explicit-any -- user keypress handler of arbitrary signature
   jscode: any,
   options?: MapkeyOptions,
 ) {
@@ -73,6 +76,7 @@ function vmapkey(
 }
 
 const userDefinedCommands: Record<string, (...args: unknown[]) => void> = {};
+// eslint-disable-next-line typescript/no-explicit-any -- user command callback of arbitrary signature
 function addCommand(name: string, description: string, action: (...args: any[]) => void) {
   userDefinedCommands[name] = action;
   dispatchSKEvent("front", ["addCommand", name, description]);

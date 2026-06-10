@@ -71,8 +71,9 @@ function createFront(
   visual: VisualLike,
   browser: BrowserLike,
 ) {
-  // `self` is the dynamic front stub talking to pages/frontend.html via
-  // postMessage; its surface is consumed untyped across the messaging boundary.
+  // Structural self: the dynamic front stub is built up with dozens of expando methods across this
+  // factory and consumed untyped across the postMessage boundary; typing it needs a full rewrite.
+  // eslint-disable-next-line typescript/no-explicit-any
   const self: any = {};
 
   const _uiUserSettings: Record<string, unknown>[] = [];
@@ -163,6 +164,9 @@ function createFront(
     });
   };
 
+  // Dispatch registry: handlers are stored with their own concrete message types then invoked with a
+  // parsed message; an `unknown` parameter would reject those typed handlers (contravariance).
+  // eslint-disable-next-line typescript/no-explicit-any
   const _actions: Record<string, (message: any) => any> = {};
   let skCallbacks: Record<string, (res: unknown) => void> = {};
 

@@ -217,6 +217,9 @@ type OmnibarElement = HTMLElement & {
 };
 
 function createOmnibar(front: OmnibarFront, clipboard: { write(text: string): void }) {
+  // Structural self: a Mode augmented in place with ~40 expandos across this factory; typing it
+  // requires `as` (forbidden) or a full Object.assign rewrite of the closure graph.
+  // eslint-disable-next-line typescript/no-explicit-any
   const self: any = new Mode("Omnibar");
 
   self

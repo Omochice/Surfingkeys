@@ -51,6 +51,9 @@ const Front = (() => {
   Mode.init();
   const { clipboard, insert, normal, hints, visual } = createModeGraph();
 
+  // Structural self: a Mode augmented in place with the whole Front API; typing it would need `as`
+  // (forbidden) or a full Object.assign rewrite of the closures that reference it.
+  // eslint-disable-next-line typescript/no-explicit-any
   const self: any = new Mode("Front");
   self._actions = {};
   self.topSize = [0, 0];
@@ -58,10 +61,15 @@ const Front = (() => {
   self.addDestroyListener = (task: () => void) => {
     destroyListeners.push(task);
   };
+  // createOmnibar returns its structural `self` (an augmented Mode), so its type is `any` at source.
+  // eslint-disable-next-line typescript/no-explicit-any
   const omnibar: any = createOmnibar(self, clipboard);
 
   createCommands(normal, omnibar.command, omnibar);
 
+  // Heterogeneous mode registry: the values are distinct mode shapes (Insert/Normal/Visual/Omnibar)
+  // with no common index-compatible interface, and mapInMode reads them with optional mappings.
+  // eslint-disable-next-line typescript/no-explicit-any
   const modes: Record<string, any> = {
     Insert: insert,
     Normal: normal,
@@ -73,6 +81,9 @@ const Front = (() => {
   const api = createAPI(ctx);
   createDefaultMappings(api, ctx);
 
+  // Dispatch registry: handlers are stored with their own concrete message types then invoked with a
+  // parsed message; an `unknown` parameter would reject those typed handlers (contravariance).
+  // eslint-disable-next-line typescript/no-explicit-any
   const _actions: Record<string, (message?: any) => any> = self._actions;
   const _callbacks: Record<string, (msg: unknown) => unknown> = {};
   self.contentCommand = (
@@ -544,6 +555,8 @@ const Front = (() => {
     }
   };
   _actions["addCommand"] = (message: { name: string; description: string }) => {
+    // User command callback: forwards whatever arguments the user-defined command was invoked with.
+    // eslint-disable-next-line typescript/no-explicit-any
     const proxyAction = (...args: any[]) => {
       self.contentCommand({
         action: "executeUserCommand",

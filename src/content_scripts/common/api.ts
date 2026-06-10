@@ -21,6 +21,8 @@ import {
 type ModeWithMappings = { name: string; mappings: Trie; map_node: Trie };
 
 type KeyTarget = {
+  // User keypress handler of arbitrary signature (see mapkey's jscode).
+  // eslint-disable-next-line typescript/no-explicit-any
   code: (...args: any[]) => void;
   repeatIgnore?: boolean;
   feature_group?: number;
@@ -32,6 +34,8 @@ type MapOptions = { domain?: RegExp; repeatIgnore?: boolean; codeHasParameter?: 
 function createAPI(ctx: ModeContext) {
   const { clipboard, insert, normal, hints, visual, front } = ctx;
   function createKeyTarget(
+    // User keypress handler of arbitrary signature (see mapkey's jscode).
+    // eslint-disable-next-line typescript/no-explicit-any
     code: (...args: any[]) => void,
     ag: Annotation | null,
     repeatIgnore?: boolean,
@@ -65,6 +69,9 @@ function createAPI(ctx: ModeContext) {
     mode: ModeWithMappings,
     keys: string,
     annotation: string | string[],
+    // User keypress handler of arbitrary signature; `unknown[]` would reject user callbacks that
+    // declare typed parameters (e.g. (mark: string) => void).
+    // eslint-disable-next-line typescript/no-explicit-any
     jscode: (...args: any[]) => void,
     options?: MapOptions,
   ): void {
@@ -126,6 +133,9 @@ function createAPI(ctx: ModeContext) {
   function mapkey(
     keys: string,
     annotation: string | string[],
+    // User keypress handler of arbitrary signature; `unknown[]` would reject user callbacks that
+    // declare typed parameters (e.g. (mark: string) => void).
+    // eslint-disable-next-line typescript/no-explicit-any
     jscode: (...args: any[]) => void,
     options?: MapOptions,
   ): void {
@@ -149,6 +159,9 @@ function createAPI(ctx: ModeContext) {
   function vmapkey(
     keys: string,
     annotation: string | string[],
+    // User keypress handler of arbitrary signature; `unknown[]` would reject user callbacks that
+    // declare typed parameters (e.g. (mark: string) => void).
+    // eslint-disable-next-line typescript/no-explicit-any
     jscode: (...args: any[]) => void,
     options?: MapOptions,
   ): void {
@@ -172,6 +185,9 @@ function createAPI(ctx: ModeContext) {
   function imapkey(
     keys: string,
     annotation: string | string[],
+    // User keypress handler of arbitrary signature; `unknown[]` would reject user callbacks that
+    // declare typed parameters (e.g. (mark: string) => void).
+    // eslint-disable-next-line typescript/no-explicit-any
     jscode: (...args: any[]) => void,
     options?: MapOptions,
   ): void {
@@ -448,6 +464,9 @@ function createAPI(ctx: ModeContext) {
     search_url: string,
     search_leader_key?: string,
     suggestion_url?: string,
+    // User-provided suggestion parser; callers type its response/request for their own engine, which
+    // an `unknown` parameter would reject (contravariance).
+    // eslint-disable-next-line typescript/no-explicit-any
     callback_to_parse_suggestion?: (...args: any[]) => unknown,
     only_this_site_key?: string,
     options?: { skipMaps?: boolean; favicon_url?: string },

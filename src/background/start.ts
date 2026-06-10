@@ -18,11 +18,15 @@ import { createTabs } from "./tabs";
 // The dispatch slot is intentionally loose: each handler narrows `message` (and
 // `sender`) for itself, and the dispatcher only inspects the returned value's
 // then-able-ness, so the registry stays callable with any handler shape.
+/* eslint-disable typescript/no-explicit-any -- heterogeneous dispatch registry: each handler narrows
+   message/sender for itself and the dispatcher only checks the return's then-ableness, so the slot
+   must stay callable with any handler shape (an `unknown` parameter would reject the typed handlers). */
 export type MessageHandler = (
   message: any,
   sender?: any,
   sendResponse?: (result: any) => void,
 ) => any;
+/* eslint-enable typescript/no-explicit-any */
 
 /**
  * The fixed-shape subset of settings the background keeps in memory. Settings only ever updates

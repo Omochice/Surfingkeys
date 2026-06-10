@@ -72,6 +72,9 @@ type HintsMode = Mode & {
   setNumeric(): void;
   setCharacters(chars: string): void;
   getCharacters(): string;
+  // Hint target is polymorphic (a DOM element or a text-anchor tuple); callers register callbacks
+  // typed for their own specific target shape, which an `unknown`/union parameter would reject.
+  // eslint-disable-next-line typescript/no-explicit-any
   dispatchMouseClick(element: any): void;
   click(links: string | Element[], force?: boolean): void;
   previousPage(): boolean;
@@ -84,6 +87,9 @@ type HintsMode = Mode & {
   getSelector(): string | Element[] | RegExp;
   create(
     cssSelector: string | Element[] | RegExp,
+    // Callers pass callbacks typed for their specific hint target (HTMLElement, anchor tuple, ...);
+    // a union/unknown parameter would make those per-callsite-typed callbacks unassignable.
+    // eslint-disable-next-line typescript/no-explicit-any
     onHintKey: ((element: any) => void) | null,
     attrs?: Record<string, unknown>,
   ): Promise<number>;
@@ -481,6 +487,8 @@ div.hint-scrollable {
   });
   let shiftKey = false;
   let _lastCreateAttrs: { activeInput?: number; [key: string]: unknown } = {};
+  // Holds a caller-provided onHintKey typed for its own hint target shape (see create()'s parameter).
+  // eslint-disable-next-line typescript/no-explicit-any
   let _onHintKey: ((element: any) => void) | null = self.dispatchMouseClick;
   let _cssSelector: string | Element[] | RegExp = "";
 
@@ -509,6 +517,9 @@ div.hint-scrollable {
   function handleHint(evt?: Event & { keyCode?: number }): void {
     const hints = holder.querySelectorAll<HTMLElement>("div:not(:empty)");
     const hintState = refreshHints(hints, prefix);
+    // The matched hint payload is polymorphic (element, text-anchor array, or label) and branched on
+    // below via constructor checks; it is handed to the caller's onHintKey typed for that shape.
+    // eslint-disable-next-line typescript/no-explicit-any
     const elm: any = hintState.matched;
     if (elm) {
       normal.appendKeysForRepeat("Hints", prefix);

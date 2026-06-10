@@ -250,9 +250,14 @@ function showPopup(msg: string): void {
 
 function initSKFunctionListener(
   name: string,
+  // Heterogeneous handler registry: each listener has its own concrete parameter list and is invoked
+  // with the event's spread detail, so no single non-any signature accepts and calls them all.
+  // eslint-disable-next-line typescript/no-explicit-any
   interfaces: Record<string, (...args: any[]) => void>,
   capture?: boolean,
+  // eslint-disable-next-line typescript/no-explicit-any
 ): Record<string, (...args: any[]) => void> {
+  // eslint-disable-next-line typescript/no-explicit-any
   const callbacks: Record<string, (...args: any[]) => void> = {};
 
   const opts = capture ? { capture: true } : {};
@@ -1151,6 +1156,10 @@ function getCssSelectorsOfEditable(): string {
 // here by refreshHints. Lets HintElement drop these expandos. `link` is the
 // arbitrary payload (target element or string) the caller stored, hence `any`.
 const hintLabel = new WeakMap<HTMLElement, string>();
+// Hint payload store: values are a heterogeneous mix (HTMLElement for regional hints, a label string,
+// or a { id, windowId } tab descriptor) consumed polymorphically; `unknown` would cascade narrowing
+// across every matched-payload reader.
+// eslint-disable-next-line typescript/no-explicit-any
 const hintLink = new WeakMap<HTMLElement, any>();
 
 type Hint = HTMLElement;

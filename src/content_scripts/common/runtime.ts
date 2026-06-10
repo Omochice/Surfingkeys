@@ -110,6 +110,9 @@ const RUNTIME = function (
 } as RuntimeFn;
 
 type MessageHandler = (
+  // Dispatch registry: handlers narrow the message themselves; a shared `unknown` parameter would
+  // reject handlers declared with their own concrete message type (contravariance).
+  // eslint-disable-next-line typescript/no-explicit-any
   msg: any,
   sender: unknown,
   sendResponse: (response?: unknown) => void,

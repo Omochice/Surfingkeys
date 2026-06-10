@@ -134,6 +134,9 @@ function createUiHost(adapter: BrowserLike, onload: (uiHost: UiHost) => void): v
 
   let lastStateOfPointerEvents = "none";
   let _origOverflowY: string | undefined;
+  // Dispatch registry: handlers are stored with their own response types then invoked with a parsed
+  // message; an `unknown` parameter would reject those typed handlers (contravariance).
+  // eslint-disable-next-line typescript/no-explicit-any
   const _actions: Record<string, (response: any) => void> = {};
   let activeContent: ActiveContent = null;
   _actions["initFrontendAck"] = () => {
