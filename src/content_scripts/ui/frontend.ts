@@ -586,7 +586,7 @@ const Front = (() => {
     showPopup(message.content);
   };
 
-  _actions["showDialog"] = (message: any) => {
+  _actions["showDialog"] = (message: { question: string }) => {
     showElement(
       _popup,
       () => {
@@ -745,7 +745,7 @@ const Front = (() => {
     openFinder: () => {
       Find.open();
     },
-    showStatus: (contents: any, duration?: number) => {
+    showStatus: (contents: (StatusCell | null | undefined)[], duration?: number) => {
       StatusBar.show(contents, duration);
     },
   });
@@ -778,13 +778,25 @@ const Front = (() => {
     }
   };
 
-  function showRichHints(keyHints: any) {
+  // The keystroke hint payload: the key just pressed, the keys accumulated so far, and the candidate
+  // continuations keyed by full keystroke, each carrying the annotation localizeAnnotation expands.
+  type KeyHints = {
+    key: string;
+    accumulated: string;
+    candidates: Record<string, { annotation: string | string[] | undefined }>;
+  };
+
+  function showRichHints(keyHints: KeyHints) {
     initL10n((locale) => {
       const cc = keyHints.candidates;
       const words = Object.keys(cc)
         .toSorted()
         .map((w) => {
-          const annotation = localizeAnnotation(locale, cc[w].annotation);
+          const candidate = cc[w];
+          if (candidate == null) {
+            return "";
+          }
+          const annotation = localizeAnnotation(locale, candidate.annotation);
           if (annotation) {
             const nextKey = w.slice(keyHints.accumulated.length);
             return `<div><span class=kbd-span><kbd>${htmlEncode(KeyboardUtils.decodeKeystroke(keyHints.accumulated))}<span class=candidates>${htmlEncode(KeyboardUtils.decodeKeystroke(nextKey))}</span></kbd></span><span class=annotation>${annotation}</span></div>`;
@@ -800,7 +812,7 @@ const Front = (() => {
       }
     });
   }
-  _actions["showKeystroke"] = (message: { keyHints: { key: string } }) => {
+  _actions["showKeystroke"] = (message: { keyHints: KeyHints }) => {
     if (keystroke.style.display !== "none" && keystrokeRich()) {
       showRichHints(message.keyHints);
     } else {
