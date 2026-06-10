@@ -1254,7 +1254,11 @@ function AddBookmark(omnibar: any): any {
   return self;
 }
 
-function OpenURLs(prompt: PromptValue, omnibar: any, queryFn: () => Promise<any>): any {
+function OpenURLs(
+  prompt: PromptValue,
+  omnibar: any,
+  queryFn: () => Promise<readonly HistoryItem[]>,
+): any {
   const self: any = { prompt };
   let sequenceNumber: number;
 
@@ -1268,7 +1272,7 @@ function OpenURLs(prompt: PromptValue, omnibar: any, queryFn: () => Promise<any>
       }
     });
   };
-  self.onOpen = (arg: any) => {
+  self.onOpen = (arg?: string) => {
     if (arg) {
       omnibar.setQuery(arg);
     }
