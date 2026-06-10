@@ -8,6 +8,7 @@ import type createNormal from "./common/normal";
 import { reportError } from "./common/report";
 import { RUNTIME, dispatchSKEvent, runtime } from "./common/runtime";
 import type { StoredSettings } from "./common/runtime";
+import type { TrieMeta } from "./common/trie";
 import { applyUserSettings } from "./common/utils";
 
 // This module owns the single concern of applying stored/user settings onto the
@@ -28,7 +29,7 @@ export function applyBasicMappings(
   mappings: Record<string, string>,
 ): void {
   const originKeys = new Set(Object.keys(mappings));
-  const originMappings: Record<string, any> = {};
+  const originMappings: Record<string, TrieMeta> = {};
   for (const originKey in mappings) {
     const newKey = mappings[originKey];
     if (newKey == null) {
@@ -39,7 +40,7 @@ export function applyBasicMappings(
     // such as the `a` in above example.
     if (originKeys.has(newKey)) {
       const target = normal.mappings.find(newKey);
-      if (target) {
+      if (target?.meta) {
         originMappings[newKey] = target.meta;
       }
     }
@@ -57,10 +58,14 @@ export function applyBasicMappings(
 }
 
 export function ensureRegex(regexName: string): void {
-  const conf = runtime.conf as Record<string, any>;
+  const conf: Record<string, unknown> = runtime.conf;
   const r = conf[regexName];
-  if (r && r.source && !(r instanceof RegExp)) {
-    conf[regexName] = new RegExp(r.source, r.flags);
+  if (r != null && typeof r === "object" && !(r instanceof RegExp) && "source" in r) {
+    const source = r.source;
+    const flags = "flags" in r ? r.flags : undefined;
+    if (typeof source === "string") {
+      conf[regexName] = new RegExp(source, typeof flags === "string" ? flags : undefined);
+    }
   }
 }
 
@@ -103,7 +108,7 @@ function applyRuntimeConf(normal: Normal): void {
 }
 
 export function applySettings(api: Api, normal: Normal, rs: StoredSettings): void {
-  const conf = runtime.conf as Record<string, any>;
+  const conf: Record<string, unknown> = runtime.conf;
   for (const k in rs) {
     if (Object.hasOwn(runtime.conf, k)) {
       conf[k] = rs[k];
