@@ -17,6 +17,7 @@ import {
   getBrowserName,
   htmlEncode,
   parseAnnotation,
+  requireElement,
   scrollIntoViewIfNeeded,
   showBanner,
   toggleQuote,
@@ -55,18 +56,33 @@ type CommandMeta = {
   annotation?: string | string[] | undefined;
 };
 
+/** The open spec the front passes through `ui.onShow`: which handler to use plus its open options. */
+type OmnibarShowArgs = {
+  type: string;
+  tabbed?: boolean;
+  pref?: string;
+  extra?: unknown;
+};
+
+/** The omnibar root element, carrying the onShow/onHide expandos the front drives it through. */
+type OmnibarElement = HTMLElement & {
+  onShow: (args: OmnibarShowArgs) => void;
+  onHide: () => void;
+};
+
 function createOmnibar(front: any, clipboard: any) {
   const self: any = new Mode("Omnibar");
 
   self
-    .addEventListener("keydown", (event: any) => {
+    .addEventListener("keydown", (event: KeyboardEvent) => {
       if (event.sk_keyName?.length) {
         Mode.handleMapKey.call(self, event);
       }
       event.sk_suppressed = true;
     })
-    .addEventListener("mousedown", (event: any) => {
-      if (!ui.contains(event.target)) {
+    .addEventListener("mousedown", (event: MouseEvent) => {
+      const target = event.target;
+      if (!(target instanceof Node) || !ui.contains(target)) {
         front.hidePopup();
       }
       event.sk_suppressed = true;
@@ -275,7 +291,7 @@ function createOmnibar(front: any, clipboard: any) {
   // value is always overwritten by ui.onShow before any user-facing operation.
   let handler: any = {};
   let lastHandler: any = null;
-  const ui: any = document.getElementById("sk_omnibar");
+  const ui = requireElement<OmnibarElement>("#sk_omnibar");
 
   self.triggerInput = () => {
     _onIput.call(self.input);
@@ -341,8 +357,8 @@ function createOmnibar(front: any, clipboard: any) {
     }
   }
 
-  const promptSpan = ui.querySelector("#sk_omnibarSearchArea>span.prompt");
-  const resultPageSpan = ui.querySelector("#sk_omnibarSearchArea>span.resultPage");
+  const promptSpan = requireElement("#sk_omnibarSearchArea>span.prompt");
+  const resultPageSpan = requireElement("#sk_omnibarSearchArea>span.resultPage");
   self.resultsDiv = ui.querySelector("#sk_omnibarSearchResult");
 
   render(
@@ -650,8 +666,8 @@ function createOmnibar(front: any, clipboard: any) {
     });
   }
 
-  let _savedAargs: any;
-  ui.onShow = (args: any) => {
+  let _savedAargs: OmnibarShowArgs;
+  ui.onShow = (args: OmnibarShowArgs) => {
     handler = handlers[args.type];
     _savedAargs = args;
     ui.classList.remove("sk_omnibar_middle");
