@@ -1108,13 +1108,13 @@ function AddBookmark(omnibar: any): any {
         return buildFolderResult(f.title, f.id);
       });
       reportOnFail(
-        RUNTIME("getBookmark", null, (resp: any) => {
+        RUNTIME("getBookmark", null, (resp: { bookmarks: { parentId?: string | number }[] }) => {
           if (resp.bookmarks.length) {
             const b = resp.bookmarks[0];
             omnibar.setPrompt("edit bookmark");
             const idx = omnibar
               .results()
-              .findIndex((r: any) => r.data.folder === String(b.parentId));
+              .findIndex((r: any) => r.data.folder === String(b?.parentId));
             if (idx !== -1) {
               omnibar.focusItem(idx);
             }
@@ -1671,15 +1671,19 @@ function Commands(omnibar: any, front: any): any {
     }
 
     reportOnFail(
-      RUNTIME("getSettings", { key: "cmdHistory" }, (response: any) => {
-        const candidates = response.settings.cmdHistory;
-        if (candidates.length) {
-          omnibar.listResults(candidates, (c: any) => {
-            const li = createElementWithContent("li", c);
-            return buildOmnibarResult(li, { cmd: c });
-          });
-        }
-      }),
+      RUNTIME(
+        "getSettings",
+        { key: "cmdHistory" },
+        (response: { settings: { cmdHistory: string[] } }) => {
+          const candidates = response.settings.cmdHistory;
+          if (candidates.length) {
+            omnibar.listResults(candidates, (c: unknown) => {
+              const li = createElementWithContent("li", String(c));
+              return buildOmnibarResult(li, { cmd: c });
+            });
+          }
+        },
+      ),
       reportError,
     );
   };
