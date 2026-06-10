@@ -36,6 +36,15 @@ import type { OmnibarResult } from "./omnibarResult";
 /** A bookmark folder row as returned by the background `getBookmarkFolders`/`listBookmarkFolders`. */
 type BookmarkFolder = { id: string; title: string };
 
+/** A tab row as returned by the background `getTabs`; only title/url are read by the omnibar. */
+type TabItem = { title?: string; url?: string };
+
+/** A window row as returned by the background `getWindows`. */
+type WindowItem = { id: string; isPreviousChoice?: boolean; tabs: TabItem[] };
+
+/** A history row as returned by the history query functions feeding OpenURLs. */
+type HistoryItem = { title?: string; url?: string; visitCount?: number; lastVisitTime?: number };
+
 function createOmnibar(front: any, clipboard: any) {
   const self: any = new Mode("Omnibar");
 
@@ -1251,12 +1260,12 @@ function OpenURLs(prompt: PromptValue, omnibar: any, queryFn: () => Promise<any>
     runtime.conf.historyMUOrder = !runtime.conf.historyMUOrder;
     queryFn().then((historyItems) => {
       if (runtime.conf.historyMUOrder) {
-        historyItems = historyItems.toSorted((a: any, b: any) => {
-          return b.visitCount - a.visitCount;
+        historyItems = historyItems.toSorted((a: HistoryItem, b: HistoryItem) => {
+          return (b.visitCount ?? 0) - (a.visitCount ?? 0);
         });
       } else {
-        historyItems = historyItems.toSorted((a: any, b: any) => {
-          return b.lastVisitTime - a.lastVisitTime;
+        historyItems = historyItems.toSorted((a: HistoryItem, b: HistoryItem) => {
+          return (b.lastVisitTime ?? 0) - (a.lastVisitTime ?? 0);
         });
       }
       omnibar.listURLs(historyItems, false);
@@ -1270,7 +1279,11 @@ function OpenTabs(omnibar: any): any {
     focusFirstCandidate: true,
   };
 
-  let getTabsArgs: any = {};
+  let getTabsArgs: {
+    queryInfo?: { currentWindow: boolean };
+    filter?: string;
+    tabsThreshold?: number;
+  } = {};
   self.getResults = () => {
     omnibar.cachedPromise = new Promise((resolve) => {
       getTabsArgs.tabsThreshold = Math.min(
@@ -1289,7 +1302,7 @@ function OpenTabs(omnibar: any): any {
       );
     });
   };
-  self.onOpen = (args: any) => {
+  self.onOpen = (args?: { action?: string; filter?: string }) => {
     if (args && args.action === "gather") {
       self.prompt = "Gather filtered tabs into current window";
       self.onEnter = () => {
@@ -1314,7 +1327,7 @@ function OpenTabs(omnibar: any): any {
     self.onInput();
   };
   self.onInput = () => {
-    omnibar.cachedPromise.then((cached: any) => {
+    omnibar.cachedPromise.then((cached: TabItem[]) => {
       const filtered = filterByTitleOrUrl(
         cached,
         omnibar.input.value,
@@ -1348,16 +1361,16 @@ function CloseTabs(omnibar: any): any {
     self.onInput();
   };
   self.onInput = () => {
-    omnibar.cachedPromise.then((cached: any) => {
+    omnibar.cachedPromise.then((cached: TabItem[]) => {
       const filtered = filterByTitleOrUrl(
         cached,
         omnibar.input.value,
         runtime.getCaseSensitive(omnibar.input.value),
       );
-      filtered.forEach((tab: any) => {
+      filtered.forEach((tab: TabItem) => {
         const r = Result.try({
-          try: () => new URL(tab.url),
-          catch: (cause) => decodeError(tab.url, cause),
+          try: () => new URL(tab.url ?? ""),
+          catch: (cause) => decodeError(tab.url ?? "", cause),
         });
         if (Result.isSuccess(r)) {
           tab.url = r.value.origin + r.value.pathname;
@@ -1368,11 +1381,11 @@ function CloseTabs(omnibar: any): any {
   };
   self.onEnter = () => {
     const tabIds: number[] = [];
-    omnibar.results().forEach((r: any) => {
+    omnibar.results().forEach((r: OmnibarResult) => {
       const uid = r.data.uid;
       if (uid && uid[0] === "T") {
         const parts = uid.slice(1).split(":");
-        tabIds.push(Number.parseInt(parts[1]));
+        tabIds.push(Number.parseInt(parts[1] ?? ""));
       }
     });
     if (tabIds.length > 0) {
@@ -1417,7 +1430,7 @@ function OpenWindows(omnibar: any, front: any): any {
     self.onInput();
   };
   self.onInput = () => {
-    omnibar.cachedPromise.then((cached: any) => {
+    omnibar.cachedPromise.then((cached: WindowItem[]) => {
       if (cached.length === 0) {
         reportOnFail(RUNTIME("moveToWindow", { windowId: -1 }), reportError);
         front.hidePopup();
@@ -1427,9 +1440,9 @@ function OpenWindows(omnibar: any, front: any): any {
       let rxp: RegExp | null = null;
       if (query && query.length) {
         rxp = regexFromString(query, runtime.getCaseSensitive(query), false);
-        filtered = cached.filter((w: any) => {
+        filtered = cached.filter((w: WindowItem) => {
           for (const t of w.tabs) {
-            if (rxp!.test(t.title) || rxp!.test(t.url)) {
+            if (rxp!.test(t.title ?? "") || rxp!.test(t.url ?? "")) {
               return true;
             }
           }
@@ -1437,28 +1450,28 @@ function OpenWindows(omnibar: any, front: any): any {
         });
       }
       rxp = regexFromString(query, runtime.getCaseSensitive(query), true);
-      omnibar.listResults(filtered, (w: any) => {
+      omnibar.listResults(filtered, (w: WindowItem) => {
         const li = createElementWithContent("li");
         li.classList.add("window");
         if (w.isPreviousChoice) {
           li.classList.add("focused");
         }
-        w.tabs.forEach((t: any) => {
+        w.tabs.forEach((t: TabItem) => {
           const div = createElementWithContent("div", "", { class: "tab_in_window" });
           div.appendChild(
-            createElementWithContent("div", omnibar.highlight(rxp, t.title), {
+            createElementWithContent("div", omnibar.highlight(rxp, t.title ?? ""), {
               class: "title",
             }),
           );
           div.appendChild(
-            createElementWithContent("div", omnibar.highlight(rxp, new URL(t.url).origin), {
+            createElementWithContent("div", omnibar.highlight(rxp, new URL(t.url ?? "").origin), {
               class: "url",
             }),
           );
           li.appendChild(div);
         });
         // Join every tab URL so the copy-line binding can yank all tabs in this window at once.
-        const url = w.tabs.map((t: any) => t.url).join("\n");
+        const url = w.tabs.map((t: TabItem) => t.url).join("\n");
         return buildOmnibarResult(li, { windowId: Number.parseInt(w.id), url });
       });
     });
