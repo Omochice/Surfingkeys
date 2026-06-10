@@ -5,6 +5,7 @@ import { render } from "solid-js/web";
 import { decodeError, reportOnFail, unwrapOr } from "../../common/result";
 import { filterByTitleOrUrl, regexFromString } from "../../common/utils";
 import { debounce } from "../common/debounce";
+import type { DebouncedFunction } from "../common/debounce";
 import KeyboardUtils from "../common/keyboardUtils";
 import Mode from "../common/mode";
 import { reportError } from "../common/report";
@@ -110,6 +111,33 @@ type SearchEngineHandler = OmnibarHandler & {
   url?: string | undefined;
   suggestionURL?: string | undefined;
 };
+
+/**
+ * OpenBookmarks tracks the folder breadcrumb it descended through and a typed getBookmarks
+ * callback.
+ */
+type OpenBookmarksHandler = OmnibarHandler & {
+  inFolder: {
+    prompt?: PromptValue | undefined;
+    folderId?: string | undefined;
+    focused: number;
+  }[];
+  onResponse?(response: { bookmarks: { url?: string }[] }): void;
+};
+
+/** The bookmark page AddBookmark builds up before creating the bookmark. */
+type BookmarkPage = {
+  url?: string | undefined;
+  title?: string | undefined;
+  folder?: string | undefined;
+  path?: string[] | undefined;
+};
+
+/** AddBookmark carries the page being edited. */
+type AddBookmarkHandler = OmnibarHandler & { page?: BookmarkPage };
+
+/** OpenURLs debounces its onInput, so it keeps the cancelable variant. */
+type OpenURLsHandler = OmnibarHandler & { onInput?: DebouncedFunction };
 
 /**
  * The omnibar API surface the per-type handlers drive (a subset of the controller `self`). Handlers
@@ -1084,8 +1112,8 @@ function createOmnibar(front: any, clipboard: any) {
   return self;
 }
 
-function OpenBookmarks(omnibar: Omnibar): OmnibarHandler {
-  const self: any = {
+function OpenBookmarks(omnibar: Omnibar): OpenBookmarksHandler {
+  const self: OpenBookmarksHandler = {
     prompt: "bookmark",
     inFolder: [],
   };
@@ -1096,6 +1124,9 @@ function OpenBookmarks(omnibar: Omnibar): OmnibarHandler {
 
   function onFolderUp() {
     const fl = self.inFolder.pop();
+    if (!fl) {
+      return;
+    }
     if (fl.folderId) {
       currentFolderId = fl.folderId;
       reportOnFail(
@@ -1107,11 +1138,11 @@ function OpenBookmarks(omnibar: Omnibar): OmnibarHandler {
       reportOnFail(RUNTIME("getBookmarks", null, self.onResponse), reportError);
     }
     self.prompt = fl.prompt;
-    omnibar.setPrompt(self.prompt);
+    omnibar.setPrompt(self.prompt ?? "");
     lastFocused = fl.focused;
   }
 
-  self.onEnter = function (this: any) {
+  self.onEnter = function (this: OmnibarHandler) {
     let ret = false;
     const fi = omnibar.focusedResult();
     const folderId = fi?.data.folderId;
@@ -1153,7 +1184,7 @@ function OpenBookmarks(omnibar: Omnibar): OmnibarHandler {
         focused: omnibar.focusedIndex(),
       });
       self.prompt = fi.data.folder_name;
-      omnibar.setPrompt(self.prompt);
+      omnibar.setPrompt(self.prompt ?? "");
       omnibar.setQuery("");
       currentFolderId = folderId;
       lastFocused = 0;
@@ -1185,7 +1216,7 @@ function OpenBookmarks(omnibar: Omnibar): OmnibarHandler {
         reportOnFail(RUNTIME("getBookmarks", null, self.onResponse), reportError);
       }
       if (omnibar.input.value !== "") {
-        self.onInput();
+        self.onInput?.();
       }
     });
   };
@@ -1260,14 +1291,14 @@ function OpenBookmarks(omnibar: Omnibar): OmnibarHandler {
   return self;
 }
 
-function AddBookmark(omnibar: Omnibar): OmnibarHandler {
-  const self: any = {
+function AddBookmark(omnibar: Omnibar): AddBookmarkHandler {
+  const self: AddBookmarkHandler = {
     focusFirstCandidate: true,
     prompt: "add bookmark",
   };
   let folders: BookmarkFolder[];
 
-  self.onOpen = (arg: unknown) => {
+  self.onOpen = (arg: BookmarkPage) => {
     self.page = arg;
     omnibar.listBookmarkFolders((response: { folders: BookmarkFolder[] }) => {
       folders = response.folders;
@@ -1297,7 +1328,7 @@ function AddBookmark(omnibar: Omnibar): OmnibarHandler {
             omnibar.input.select();
 
             // trigger omnibar input matching
-            self.onInput();
+            self.onInput?.();
           }
         }),
         reportError,
@@ -1313,17 +1344,21 @@ function AddBookmark(omnibar: Omnibar): OmnibarHandler {
   };
 
   self.onEnter = () => {
-    self.page.path = [];
+    const page = self.page;
+    if (!page) {
+      return false;
+    }
+    page.path = [];
     const fi = omnibar.focusedResult();
     let folderName: string | undefined;
     if (fi) {
-      self.page.folder = fi.data.folder;
+      page.folder = fi.data.folder;
       folderName = fi.data.text.slice(2);
     } else {
       const segments = omnibar.input.value.split("/");
       const title = segments.pop();
       if (title != null && title.length) {
-        self.page.title = title;
+        page.title = title;
       }
       const parts = segments.filter((p) => {
         return p.length > 0;
@@ -1334,21 +1369,21 @@ function AddBookmark(omnibar: Omnibar): OmnibarHandler {
         });
         const tf = targetFolder[0];
         if (tf) {
-          self.page.folder = tf.id;
-          self.page.path = parts.slice(l);
+          page.folder = tf.id;
+          page.path = parts.slice(l);
           folderName = "/" + parts.join("/");
           break;
         }
       }
       const firstFolder = folders[0];
-      if (self.page.folder == null && firstFolder) {
-        self.page.folder = firstFolder.id;
-        self.page.path = parts;
+      if (page.folder == null && firstFolder) {
+        page.folder = firstFolder.id;
+        page.path = parts;
         folderName = `${firstFolder.title ?? ""}${parts.join("/")}`;
       }
     }
     reportOnFail(
-      RUNTIME("createBookmark", { page: self.page }, () => {
+      RUNTIME("createBookmark", { page: page }, () => {
         showBanner(`Bookmark created at ${folderName}.`, 3000);
       }),
       reportError,
@@ -1378,8 +1413,8 @@ function OpenURLs(
   prompt: PromptValue,
   omnibar: Omnibar,
   queryFn: () => Promise<readonly HistoryItem[]>,
-): OmnibarHandler {
-  const self: any = { prompt };
+): OpenURLsHandler {
+  const self: OpenURLsHandler = { prompt };
   let sequenceNumber: number;
 
   const queryAndList = () => {
@@ -1403,7 +1438,7 @@ function OpenURLs(
   };
   self.onInput = debounce(queryAndList, 200);
   self.onClose = () => {
-    self.onInput.cancel();
+    self.onInput?.cancel();
   };
 
   self.onReset = () => {
