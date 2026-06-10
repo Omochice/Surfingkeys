@@ -37,7 +37,7 @@ function cmap(
   }
 }
 
-const userDefinedFunctions: Record<string, (...args: any[]) => void> = {};
+const userDefinedFunctions: Record<string, (...args: unknown[]) => void> = {};
 function mapkey(keys: string, annotation: string | string[], jscode: any, options?: any) {
   if (!options || _isDomainApplicable(options.domain)) {
     const opt = options || {};
@@ -59,7 +59,7 @@ function vmapkey(keys: string, annotation: string | string[], jscode: any, optio
   }
 }
 
-const userDefinedCommands: Record<string, (...args: any[]) => void> = {};
+const userDefinedCommands: Record<string, (...args: unknown[]) => void> = {};
 function addCommand(name: string, description: string, action: (...args: any[]) => void) {
   userDefinedCommands[name] = action;
   dispatchSKEvent("front", ["addCommand", name, description]);
@@ -98,17 +98,18 @@ function vmap(
   dispatchSKEvent("api", ["vmap", new_keystroke, old_keystroke, domain, new_annotation]);
 }
 
-const functionsToListSuggestions: Record<string, (...args: any[]) => any> = {};
+const functionsToListSuggestions: Record<string, (response: unknown, request: unknown) => unknown> =
+  {};
 
 let inlineQuery: any;
 let hintsFunction: any;
-let onClipboardReadFn: (resp: any) => void;
+let onClipboardReadFn: (resp: unknown) => void;
 let userScriptTask: () => void = () => {};
 let hintsCreationResolve: ((found: number) => void) | null;
 initSKFunctionListener(
   "user",
   {
-    callUserFunction: (keys: string, para: any) => {
+    callUserFunction: (keys: string, para: unknown) => {
       if (Object.hasOwn(userDefinedFunctions, keys)) {
         const fn = userDefinedFunctions[keys];
         if (fn) {
@@ -116,7 +117,7 @@ initSKFunctionListener(
         }
       }
     },
-    executeUserCommand: (name: string, args: any[]) => {
+    executeUserCommand: (name: string, args: unknown[]) => {
       if (Object.hasOwn(userDefinedCommands, name)) {
         const cmd = userDefinedCommands[name];
         if (cmd) {
@@ -124,7 +125,12 @@ initSKFunctionListener(
         }
       }
     },
-    getSearchSuggestions: async (url: string, response: any, request: any, callbackId: string) => {
+    getSearchSuggestions: async (
+      url: string,
+      response: unknown,
+      request: unknown,
+      callbackId: string,
+    ) => {
       if (Object.hasOwn(functionsToListSuggestions, url)) {
         const fn = functionsToListSuggestions[url];
         if (!fn) return;
@@ -160,10 +166,10 @@ initSKFunctionListener(
     runUserScript: () => {
       userScriptTask();
     },
-    onClipboardRead: (resp: any) => {
+    onClipboardRead: (resp: unknown) => {
       onClipboardReadFn(resp);
     },
-    onHintClicked: (shiftKey: boolean, element: any) => {
+    onHintClicked: (shiftKey: boolean, element: HTMLElement) => {
       if (typeof hintsFunction === "function") {
         hintsFunction(element, shiftKey);
       }
