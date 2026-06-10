@@ -56,6 +56,28 @@ type CommandMeta = {
   annotation?: string | string[] | undefined;
 };
 
+/**
+ * A per-type omnibar handler (OpenBookmarks, OpenTabs, SearchEngine, …). Every hook is optional —
+ * the controller probes each before calling — and handlers carry their own extra state on top of
+ * this shared shape. `activeTab`/`tabbed` are written by the controller right before `onEnter`.
+ */
+type OmnibarHandler = {
+  prompt?: PromptValue;
+  focusFirstCandidate?: boolean;
+  omnibarPosition?: "top" | "middle" | "bottom";
+  activeTab?: boolean;
+  tabbed?: number | boolean;
+  onOpen?: (extra?: unknown) => void;
+  onClose?: () => void;
+  onInput?: () => void;
+  onEnter?: () => boolean | undefined;
+  onKeydown?: (event: KeyboardEvent) => boolean;
+  onReset?: () => void;
+  onTabKey?: () => void;
+  getResults?: () => void;
+  rotateInput?: (backward: boolean) => void;
+};
+
 /** The open spec the front passes through `ui.onShow`: which handler to use plus its open options. */
 type OmnibarShowArgs = {
   type: string;
@@ -282,15 +304,15 @@ function createOmnibar(front: any, clipboard: any) {
     },
   });
 
-  const handlers: Record<string, any> = {};
+  const handlers: Record<string, OmnibarHandler> = {};
   let bookmarkFolders: any;
 
   let lastInput = "";
   // Initialised to an empty object so that listResults can safely read
   // handler.focusFirstCandidate before onShow assigns the real handler. The
   // value is always overwritten by ui.onShow before any user-facing operation.
-  let handler: any = {};
-  let lastHandler: any = null;
+  let handler: OmnibarHandler = {};
+  let lastHandler: OmnibarHandler | null = null;
   const ui = requireElement<OmnibarElement>("#sk_omnibar");
 
   self.triggerInput = () => {
@@ -305,7 +327,7 @@ function createOmnibar(front: any, clipboard: any) {
       Object.assign(searchEngine, searchEngine.aliases[alias]);
       setResults([]);
       setFocusedIndex(-1);
-      setPrompt(handler.prompt);
+      setPrompt(handler.prompt ?? "");
       setResultPage("");
       _items = null;
       self.collapsingPoint = val;
@@ -324,7 +346,7 @@ function createOmnibar(front: any, clipboard: any) {
     if (lastHandler && handler !== lastHandler && (val === self.collapsingPoint || val === "")) {
       handler = lastHandler;
       lastHandler = null;
-      setPrompt(handler.prompt);
+      setPrompt(handler.prompt ?? "");
       if (val.length) {
         setQuery(val.slice(0, -1));
       }
@@ -469,7 +491,7 @@ function createOmnibar(front: any, clipboard: any) {
     } else if (evt.keyCode === KeyboardUtils.keyCodes["enter"]) {
       handler.activeTab = !evt.ctrlKey;
       handler.tabbed = self.tabbed ^ Number(evt.shiftKey);
-      handler.onEnter() && front.hidePopup();
+      handler.onEnter?.() && front.hidePopup();
     } else if (evt.keyCode === KeyboardUtils.keyCodes["space"]) {
       const cursor = self.input.selectionStart;
       const textBeforeCursor = self.input.value.slice(0, cursor);
@@ -668,7 +690,7 @@ function createOmnibar(front: any, clipboard: any) {
 
   let _savedAargs: OmnibarShowArgs;
   ui.onShow = (args: OmnibarShowArgs) => {
-    handler = handlers[args.type];
+    handler = handlers[args.type] ?? {};
     _savedAargs = args;
     ui.classList.remove("sk_omnibar_middle");
     ui.classList.remove("sk_omnibar_bottom");
@@ -690,7 +712,7 @@ function createOmnibar(front: any, clipboard: any) {
     self.resultsDiv.className = "";
     handler.onOpen && handler.onOpen(args.extra);
     lastHandler = handler;
-    setPrompt(handler.prompt);
+    setPrompt(handler.prompt ?? "");
     setResultPage("");
     ui.scrollTop = 0;
   };
@@ -823,7 +845,7 @@ function createOmnibar(front: any, clipboard: any) {
     setFocusedIndex(-1);
   };
 
-  self.addHandler = (name: string, hdl: any) => {
+  self.addHandler = (name: string, hdl: OmnibarHandler) => {
     if (!hdl.onEnter) {
       hdl.onEnter = self.openFocused.bind(hdl);
     }
