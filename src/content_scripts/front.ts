@@ -271,7 +271,7 @@ function createFront(
         action: "getUsage",
         metas: getAllAnnotations(),
       },
-      (response: any) => {
+      (response: { data: unknown }) => {
         cb(response.data);
       },
     );
@@ -564,7 +564,7 @@ function createFront(
     toggleStatus: self.toggleStatus,
   });
 
-  _actions["omnibar_query_entered"] = (response: any) => {
+  _actions["omnibar_query_entered"] = (response: { query: string }) => {
     reportOnFail(RUNTIME("updateInputHistory", { OmniQuery: response.query }), reportError);
     self.performInlineQuery(
       response.query,
