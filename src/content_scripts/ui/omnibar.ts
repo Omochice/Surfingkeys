@@ -370,7 +370,7 @@ function createOmnibar(front: OmnibarFront, clipboard: { write(text: string): vo
           })
           .join("\n");
       }
-      clipboard.write(text);
+      clipboard.write(text ?? "");
 
       setInputVisible(true);
     },
@@ -759,9 +759,9 @@ function createOmnibar(front: OmnibarFront, clipboard: { write(text: string): vo
   };
 
   let _start: number;
-  let _items: any;
+  let _items: readonly URLItem[] | null;
   let _showFolder: boolean;
-  let _page: any;
+  let _page: URLItem[];
 
   self.getPageSize = () => {
     return runtime.conf.omnibarMaxResults;
@@ -771,7 +771,7 @@ function createOmnibar(front: OmnibarFront, clipboard: { write(text: string): vo
     return runtime.conf.omnibarHistoryCacheSize;
   };
 
-  self.listURLs = (items: any[], showFolder: boolean) => {
+  self.listURLs = (items: readonly URLItem[], showFolder: boolean) => {
     _start = 1;
     _items = items;
     _showFolder = showFolder;
@@ -786,6 +786,9 @@ function createOmnibar(front: OmnibarFront, clipboard: { write(text: string): vo
   };
 
   function _listResultPage() {
+    if (_items == null) {
+      return;
+    }
     const si = (_start - 1) * runtime.conf.omnibarMaxResults;
     let ei = si + runtime.conf.omnibarMaxResults;
     ei = ei > _items.length ? _items.length : ei;
@@ -800,9 +803,9 @@ function createOmnibar(front: OmnibarFront, clipboard: { write(text: string): vo
     if (query.length) {
       rxp = regexFromString(query, runtime.getCaseSensitive(query), true);
     }
-    self.listResults(_page, (b: any) => {
+    self.listResults(_page, (b: URLItem) => {
       if (Object.hasOwn(b, "html")) {
-        return self.createItemFromRawHtml(b);
+        return self.createItemFromRawHtml({ html: b.html ?? "" });
       } else if (Object.hasOwn(b, "url") && b.url != null) {
         if (getBrowserName() === "Firefox" && /^(place|data):/i.test(b.url)) {
           return null;
@@ -811,9 +814,12 @@ function createOmnibar(front: OmnibarFront, clipboard: { write(text: string): vo
       } else if (_showFolder) {
         const li = createElementWithContent(
           "li",
-          `<div class="title">▷ ${self.highlight(rxp, b.title)}</div>`,
+          `<div class="title">▷ ${self.highlight(rxp, b.title ?? "")}</div>`,
         );
-        return buildOmnibarResult(li, { folder_name: b.title, folderId: b.id });
+        return buildOmnibarResult(li, {
+          folder_name: b.title,
+          folderId: b.id == null ? undefined : String(b.id),
+        });
       }
       return undefined;
     });
