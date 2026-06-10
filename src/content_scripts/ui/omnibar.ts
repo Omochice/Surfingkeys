@@ -1553,7 +1553,7 @@ function SearchEngine(omnibar: any, front: any): any {
         encodeURIComponent(omnibar.input.value),
       );
       reportOnFail(
-        RUNTIME("request", { method: "get", url: requestUrl }, (resp: any) => {
+        RUNTIME("request", { method: "get", url: requestUrl }, (resp: unknown) => {
           front.contentCommand(
             {
               action: "getSearchSuggestions",
@@ -1562,12 +1562,9 @@ function SearchEngine(omnibar: any, front: any): any {
               requestUrl,
               response: resp,
             },
-            (resp2: any) => {
-              let data = resp2.data;
-              if (!Array.isArray(data)) {
-                data = [];
-              }
-              listSuggestions(data);
+            (resp2: unknown) => {
+              const raw = resp2 && typeof resp2 === "object" && "data" in resp2 ? resp2.data : [];
+              listSuggestions(Array.isArray(raw) ? raw : []);
             },
           );
         }),
