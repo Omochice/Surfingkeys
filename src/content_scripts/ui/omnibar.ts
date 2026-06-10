@@ -86,27 +86,29 @@ type CommandMeta = {
  * this shared shape. `activeTab`/`tabbed` are written by the controller right before `onEnter`.
  */
 type OmnibarHandler = {
-  prompt?: PromptValue;
+  prompt?: PromptValue | undefined;
   focusFirstCandidate?: boolean;
   omnibarPosition?: "top" | "middle" | "bottom";
   activeTab?: boolean;
   tabbed?: number | boolean;
-  onOpen?: (extra?: unknown) => void;
-  onClose?: () => void;
-  onInput?: () => void;
-  onEnter?: () => boolean | undefined;
-  onKeydown?: (event: KeyboardEvent) => boolean;
-  onReset?: () => void;
-  onTabKey?: () => void;
-  getResults?: () => void;
-  rotateInput?: (backward: boolean) => void;
+  // Method syntax (rather than arrow properties) so a handler may declare a narrower onOpen extra or
+  // onKeydown event than the controller's call site; the registry is intentionally bivariant here.
+  onOpen?(extra?: unknown): void;
+  onClose?(): void;
+  onInput?(): void;
+  onEnter?(): boolean | undefined;
+  onKeydown?(event: KeyboardEvent): boolean;
+  onReset?(): void;
+  onTabKey?(): void;
+  getResults?(): void;
+  rotateInput?(backward: boolean): void;
 };
 
 /** The SearchEngine handler additionally exposes its alias registry and the active alias' urls. */
 type SearchEngineHandler = OmnibarHandler & {
   aliases: Record<string, SearchAlias>;
-  url?: string;
-  suggestionURL?: string;
+  url?: string | undefined;
+  suggestionURL?: string | undefined;
 };
 
 /**
@@ -1423,7 +1425,7 @@ function OpenURLs(
 }
 
 function OpenTabs(omnibar: Omnibar): OmnibarHandler {
-  const self: any = {
+  const self: OmnibarHandler = {
     focusFirstCandidate: true,
   };
 
@@ -1474,8 +1476,8 @@ function OpenTabs(omnibar: Omnibar): OmnibarHandler {
         getTabsArgs.filter = args.filter;
       }
     }
-    self.getResults();
-    self.onInput();
+    self.getResults?.();
+    self.onInput?.();
   };
   self.onInput = () => {
     tabsPromise?.then((cached) => {
@@ -1491,7 +1493,7 @@ function OpenTabs(omnibar: Omnibar): OmnibarHandler {
 }
 
 function CloseTabs(omnibar: Omnibar): OmnibarHandler {
-  const self: any = {
+  const self: OmnibarHandler = {
     focusFirstCandidate: true,
   };
 
@@ -1512,7 +1514,7 @@ function CloseTabs(omnibar: Omnibar): OmnibarHandler {
       );
     });
     omnibar.cachedPromise = tabsPromise;
-    self.onInput();
+    self.onInput?.();
   };
   self.onInput = () => {
     tabsPromise?.then((cached) => {
@@ -1551,7 +1553,7 @@ function CloseTabs(omnibar: Omnibar): OmnibarHandler {
 }
 
 function OpenWindows(omnibar: Omnibar, front: any): OmnibarHandler {
-  const self: any = {
+  const self: OmnibarHandler = {
     prompt: "Move current tab to window",
   };
 
@@ -1579,8 +1581,8 @@ function OpenWindows(omnibar: Omnibar, front: any): OmnibarHandler {
   };
   self.onOpen = () => {
     omnibar.setPlaceholder("Press enter without focusing an item to move to a new window.");
-    self.getResults();
-    self.onInput();
+    self.getResults?.();
+    self.onInput?.();
   };
   self.onInput = () => {
     windowsPromise?.then((cached) => {
@@ -1633,7 +1635,7 @@ function OpenWindows(omnibar: Omnibar, front: any): OmnibarHandler {
 }
 
 function OpenVIMarks(omnibar: Omnibar): OmnibarHandler {
-  const self: any = {
+  const self: OmnibarHandler = {
     focusFirstCandidate: true,
     prompt: "VIMarks",
   };
@@ -1680,7 +1682,7 @@ function OpenVIMarks(omnibar: Omnibar): OmnibarHandler {
 }
 
 function SearchEngine(omnibar: Omnibar, front: any): SearchEngineHandler {
-  const self: any = { aliases: {} };
+  const self: SearchEngineHandler = { aliases: {} };
 
   let _pendingRequest: ReturnType<typeof setTimeout> | undefined = undefined; // timeout ID
   function clearPendingRequest() {
@@ -1718,9 +1720,12 @@ function SearchEngine(omnibar: Omnibar, front: any): SearchEngineHandler {
     if (fi) {
       url =
         fi.data.url ||
-        constructSearchURL(self.url, encodeURIComponent(fi.data.query || omnibar.input.value));
+        constructSearchURL(
+          self.url ?? "",
+          encodeURIComponent(fi.data.query || omnibar.input.value),
+        );
     } else {
-      url = constructSearchURL(self.url, encodeURIComponent(omnibar.input.value));
+      url = constructSearchURL(self.url ?? "", encodeURIComponent(omnibar.input.value));
     }
     reportOnFail(
       RUNTIME("openLink", {
@@ -1764,7 +1769,7 @@ function SearchEngine(omnibar: Omnibar, front: any): SearchEngineHandler {
     // E.g. github.com's API rate-limits after only 10 unauthenticated requests.
     _pendingRequest = setTimeout(() => {
       const requestUrl = constructSearchURL(
-        self.suggestionURL,
+        self.suggestionURL ?? "",
         encodeURIComponent(omnibar.input.value),
       );
       reportOnFail(
@@ -1795,15 +1800,16 @@ function SearchEngine(omnibar: Omnibar, front: any): SearchEngineHandler {
     suggestionURL: string;
     options?: { favicon_url?: string };
   }) => {
-    self.aliases[message.alias] = {
+    const alias: SearchAlias = {
       prompt: `${message.prompt}`,
       url: message.url,
       suggestionURL: message.suggestionURL,
     };
+    self.aliases[message.alias] = alias;
     const searchEngineIconStorageKey = `surfingkeys.searchEngineIcon.${message.prompt}`;
     const searchEngineIcon = localStorage.getItem(searchEngineIconStorageKey);
     if (searchEngineIcon) {
-      self.aliases[message.alias].prompt = {
+      alias.prompt = {
         html: `<img src="${searchEngineIcon}" alt="${message.prompt}" style="width: 20px;" />`,
       };
     } else if (front.topOrigin.startsWith("http")) {
@@ -1820,7 +1826,7 @@ function SearchEngine(omnibar: Omnibar, front: any): SearchEngineHandler {
         RUNTIME("requestImage", { url: iconUrl.href }, (response: { text: string } | null) => {
           if (response) {
             localStorage.setItem(searchEngineIconStorageKey, response.text);
-            self.aliases[message.alias].prompt = {
+            alias.prompt = {
               html: `<img src="${response.text}" alt="${message.prompt}" style="width: 20px;" />`,
             };
           }
@@ -1844,7 +1850,7 @@ function SearchEngine(omnibar: Omnibar, front: any): SearchEngineHandler {
 }
 
 function Commands(omnibar: Omnibar, front: any): OmnibarHandler {
-  const self: any = {
+  const self: OmnibarHandler = {
     focusFirstCandidate: false,
     prompt: ":",
   };
@@ -1940,7 +1946,7 @@ function Commands(omnibar: Omnibar, front: any): OmnibarHandler {
 }
 
 function OmniQuery(omnibar: Omnibar, front: any): OmnibarHandler {
-  const self: any = {
+  const self: OmnibarHandler = {
     prompt: "ǭ",
   };
 
@@ -1997,7 +2003,7 @@ function OmniQuery(omnibar: Omnibar, front: any): OmnibarHandler {
 }
 
 function OpenUserURLs(omnibar: Omnibar): OmnibarHandler {
-  const self: any = {
+  const self: OmnibarHandler = {
     focusFirstCandidate: true,
     prompt: "UserURLs",
   };
@@ -2005,7 +2011,7 @@ function OpenUserURLs(omnibar: Omnibar): OmnibarHandler {
   let _items: { title?: string; url?: string }[];
   self.onOpen = (args: { title?: string; url?: string }[]) => {
     _items = args;
-    self.onInput();
+    self.onInput?.();
   };
 
   self.onInput = () => {
