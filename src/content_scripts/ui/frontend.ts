@@ -152,7 +152,7 @@ const Front = (() => {
         ).filter((n) => {
           return n.style.display !== "none";
         });
-        const pe = visibleDivs.map((d: any) => {
+        const pe = visibleDivs.map((d: HTMLElement & { noPointerEvents?: boolean }) => {
           const id = d.id;
           const divNoPointerEvents = ["sk_keystroke", "sk_banner"];
           if (divNoPointerEvents.includes(id)) {
