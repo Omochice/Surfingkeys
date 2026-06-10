@@ -32,7 +32,7 @@ import { Keystroke as KeystrokeView } from "./components/Keystroke";
 import { Popup as PopupView } from "./components/Popup";
 import { StatusBar as StatusBarView } from "./components/StatusBar";
 import type { StatusCell } from "./components/StatusBar";
-import { Tabs as TabsView } from "./components/Tabs";
+import { Tabs as TabsView, type TabsTab } from "./components/Tabs";
 import { Usage as UsageView } from "./components/Usage";
 import createOmnibar from "./omnibar";
 
@@ -307,7 +307,7 @@ const Front = (() => {
   }
 
   const [tabsState, setTabsState] = createSignal<{
-    tabs: any[];
+    tabs: TabsTab[];
     hintLabels: string[];
     vertical: boolean;
     unitWidth: number;
@@ -332,7 +332,7 @@ const Front = (() => {
     _tabs,
   );
 
-  function renderTabs(tabs: any[]) {
+  function renderTabs(tabs: TabsTab[]) {
     const verticalTabs = runtime.conf.verticalTabs;
     // The container class drives the layout; the per-tab styling lives in the
     // component. The inline fallback below depends on the rendered height, so
@@ -353,7 +353,7 @@ const Front = (() => {
     RUNTIME(
       "getTabs",
       { queryInfo: { currentWindow: true }, tabsThreshold },
-      (response: { tabs: unknown[] }) => {
+      (response: { tabs: TabsTab[] }) => {
         if (response.tabs.length > tabsThreshold) {
           showElement(_omnibar, () => {
             _omnibar.onShow({ type: "Tabs" });
