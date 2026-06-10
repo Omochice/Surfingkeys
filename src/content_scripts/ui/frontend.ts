@@ -481,7 +481,7 @@ const Front = (() => {
       }
     }
   };
-  _actions["addCommand"] = (message: any) => {
+  _actions["addCommand"] = (message: { name: string; description: string }) => {
     const proxyAction = (...args: any[]) => {
       self.contentCommand({
         action: "executeUserCommand",
@@ -531,7 +531,7 @@ const Front = (() => {
     showElement(_popup);
   }
 
-  _actions["showPopup"] = (message: any) => {
+  _actions["showPopup"] = (message: { content: string }) => {
     showPopup(message.content);
   };
 
@@ -687,7 +687,7 @@ const Front = (() => {
   self.toggleStatus = (visible: boolean) => {
     self.statusBar.style.display = visible ? "" : "none";
   };
-  _actions["toggleStatus"] = (message: any) => {
+  _actions["toggleStatus"] = (message: { visible: boolean }) => {
     self.toggleStatus(message.visible);
   };
 
@@ -734,7 +734,7 @@ const Front = (() => {
       }
     });
   }
-  _actions["showKeystroke"] = (message: any) => {
+  _actions["showKeystroke"] = (message: { keyHints: { key: string } }) => {
     if (keystroke.style.display !== "none" && keystrokeRich()) {
       showRichHints(message.keyHints);
     } else {
