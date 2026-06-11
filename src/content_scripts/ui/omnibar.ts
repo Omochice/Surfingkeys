@@ -216,20 +216,33 @@ type OmnibarElement = HTMLElement & {
   onHide: () => void;
 };
 
-function createOmnibar(front: OmnibarFront, clipboard: { write(text: string): void }) {
-  // Structural self: a Mode augmented in place with ~40 expandos across this factory; typing it
-  // requires `as` (forbidden) or a full Object.assign rewrite of the closure graph.
-  // eslint-disable-next-line typescript/no-explicit-any
-  const self: any = new Mode("Omnibar");
+/**
+ * The full omnibar controller: a Mode carrying the handler-facing {@link Omnibar} surface plus the
+ * members the front and the command registry reach.
+ */
+type OmnibarMode = Mode &
+  Omnibar & {
+    mappings: Trie;
+    map_node: Trie;
+    expandAlias(alias: string, val: string): boolean;
+    collapseAlias(): boolean;
+    getPageSize(): number;
+    html(content: string): void;
+    isUrl(input: string): boolean | RegExpMatchArray | null;
+    addHandler(name: string, hdl: OmnibarHandler): void;
+  };
 
-  self
-    .addEventListener("keydown", (event: KeyboardEvent) => {
+function createOmnibar(front: OmnibarFront, clipboard: { write(text: string): void }): OmnibarMode {
+  const mode = new Mode("Omnibar");
+
+  mode
+    .addEventListener("keydown", (event) => {
       if (event.sk_keyName?.length) {
-        Mode.handleMapKey.call(self, event);
+        Mode.handleMapKey.call(mode, event);
       }
       event.sk_suppressed = true;
     })
-    .addEventListener("mousedown", (event: MouseEvent) => {
+    .addEventListener("mousedown", (event) => {
       const target = event.target;
       if (!(target instanceof Node) || !ui.contains(target)) {
         front.hidePopup();
@@ -237,8 +250,7 @@ function createOmnibar(front: OmnibarFront, clipboard: { write(text: string): vo
       event.sk_suppressed = true;
     });
 
-  self.mappings = new Trie();
-  self.map_node = self.mappings;
+  const mappings = new Trie();
 
   // The result list is a reactive store driven by a Solid <ResultList>; the
   // focused row is an index rather than a `.focused` DOM class, and the
@@ -247,21 +259,15 @@ function createOmnibar(front: OmnibarFront, clipboard: { write(text: string): vo
   const [focusedIndex, setFocusedIndex] = createSignal(-1);
   const [resultPage, setResultPage] = createSignal("");
   const [prompt, setPrompt] = createSignal<PromptValue>("");
-  self.setPrompt = setPrompt;
   const [query, setQuery] = createSignal("");
   const [inputVisible, setInputVisible] = createSignal(true);
   const [placeholder, setPlaceholder] = createSignal("");
-  self.setQuery = setQuery;
-  self.setPlaceholder = setPlaceholder;
+  // Exposed (through the assembled mode below) so the per-type handlers can
+  // read the focused row from the store instead of querying the DOM.
   const focusedResult = (): OmnibarResult | undefined => {
     const i = focusedIndex();
     return i >= 0 ? results()[i] : undefined;
   };
-  // Exposed so the per-type handlers can read the focused row from the store
-  // instead of querying the DOM.
-  self.results = results;
-  self.focusedIndex = focusedIndex;
-  self.focusedResult = focusedResult;
 
   function getPosition() {
     let p = runtime.conf.omnibarPosition;
@@ -272,7 +278,7 @@ function createOmnibar(front: OmnibarFront, clipboard: { write(text: string): vo
   }
 
   let savedFocused = -1;
-  self.mappings.add(KeyboardUtils.encodeKeystroke("<Ctrl-d>"), {
+  mappings.add(KeyboardUtils.encodeKeystroke("<Ctrl-d>"), {
     annotation: "Delete focused item from bookmark or history",
     feature_group: 8,
     code: function () {
@@ -307,9 +313,7 @@ function createOmnibar(front: OmnibarFront, clipboard: { write(text: string): vo
     setTimeout(cb, 100);
   }
 
-  const searchEngine = SearchEngine(self, front);
-
-  self.mappings.add(KeyboardUtils.encodeKeystroke("<Ctrl-j>"), {
+  mappings.add(KeyboardUtils.encodeKeystroke("<Ctrl-j>"), {
     annotation: "Toggle Omnibar's position",
     feature_group: 8,
     code: function () {
@@ -323,7 +327,7 @@ function createOmnibar(front: OmnibarFront, clipboard: { write(text: string): vo
     },
   });
 
-  self.mappings.add(KeyboardUtils.encodeKeystroke("<Ctrl-.>"), {
+  mappings.add(KeyboardUtils.encodeKeystroke("<Ctrl-.>"), {
     annotation: "Show results of next page",
     feature_group: 8,
     code: function () {
@@ -338,7 +342,7 @@ function createOmnibar(front: OmnibarFront, clipboard: { write(text: string): vo
     },
   });
 
-  self.mappings.add(KeyboardUtils.encodeKeystroke("<Ctrl-,>"), {
+  mappings.add(KeyboardUtils.encodeKeystroke("<Ctrl-,>"), {
     annotation: "Show results of previous page",
     feature_group: 8,
     code: function () {
@@ -353,7 +357,7 @@ function createOmnibar(front: OmnibarFront, clipboard: { write(text: string): vo
     },
   });
 
-  self.mappings.add(KeyboardUtils.encodeKeystroke("<Ctrl-c>"), {
+  mappings.add(KeyboardUtils.encodeKeystroke("<Ctrl-c>"), {
     annotation: "Copy selected item url or all listed item urls",
     feature_group: 8,
     code: function () {
@@ -379,7 +383,7 @@ function createOmnibar(front: OmnibarFront, clipboard: { write(text: string): vo
     },
   });
 
-  self.mappings.add(KeyboardUtils.encodeKeystroke("<Ctrl-D>"), {
+  mappings.add(KeyboardUtils.encodeKeystroke("<Ctrl-D>"), {
     annotation: "Delete all listed items from bookmark or history",
     feature_group: 8,
     code: function () {
@@ -402,7 +406,7 @@ function createOmnibar(front: OmnibarFront, clipboard: { write(text: string): vo
     },
   });
 
-  self.mappings.add(KeyboardUtils.encodeKeystroke("<Ctrl-r>"), {
+  mappings.add(KeyboardUtils.encodeKeystroke("<Ctrl-r>"), {
     annotation: "Re-sort history by visitCount or lastVisitTime",
     feature_group: 8,
     code: function () {
@@ -412,7 +416,7 @@ function createOmnibar(front: OmnibarFront, clipboard: { write(text: string): vo
     },
   });
 
-  self.mappings.add(KeyboardUtils.encodeKeystroke("<Esc>"), {
+  mappings.add(KeyboardUtils.encodeKeystroke("<Esc>"), {
     annotation: "Close Omnibar",
     feature_group: 8,
     code: function () {
@@ -420,7 +424,7 @@ function createOmnibar(front: OmnibarFront, clipboard: { write(text: string): vo
     },
   });
 
-  self.mappings.add(KeyboardUtils.encodeKeystroke("<Ctrl-m>"), {
+  mappings.add(KeyboardUtils.encodeKeystroke("<Ctrl-m>"), {
     annotation: "Create vim-like mark for selected item",
     feature_group: 8,
     code: function (mark: string) {
@@ -440,13 +444,16 @@ function createOmnibar(front: OmnibarFront, clipboard: { write(text: string): vo
   // value is always overwritten by ui.onShow before any user-facing operation.
   let handler: OmnibarHandler = {};
   let lastHandler: OmnibarHandler | null = null;
+  // Whether Enter should open in a new tab, taken from the open spec on each show.
+  let _tabbed: boolean = true;
   const ui = requireElement<OmnibarElement>("#sk_omnibar");
 
-  self.triggerInput = () => {
+  const triggerInput = (): void => {
     _onIput.call(self.input);
   };
 
-  self.expandAlias = (alias: string, val: string) => {
+  let _collapsingPoint: string | undefined;
+  const expandAlias = (alias: string, val: string): boolean => {
     let eaten = false;
     if (handler !== searchEngine && alias.length && Object.hasOwn(searchEngine.aliases, alias)) {
       lastHandler = handler;
@@ -457,7 +464,7 @@ function createOmnibar(front: OmnibarFront, clipboard: { write(text: string): vo
       setPrompt(handler.prompt ?? "");
       setResultPage("");
       _items = null;
-      self.collapsingPoint = val;
+      _collapsingPoint = val;
       setQuery(val);
       if (val.length) {
         self.triggerInput();
@@ -467,10 +474,10 @@ function createOmnibar(front: OmnibarFront, clipboard: { write(text: string): vo
     return eaten;
   };
 
-  self.collapseAlias = () => {
+  const collapseAlias = (): boolean => {
     let eaten = false;
     const val = self.input.value;
-    if (lastHandler && handler !== lastHandler && (val === self.collapsingPoint || val === "")) {
+    if (lastHandler && handler !== lastHandler && (val === _collapsingPoint || val === "")) {
       handler = lastHandler;
       lastHandler = null;
       setPrompt(handler.prompt ?? "");
@@ -483,7 +490,7 @@ function createOmnibar(front: OmnibarFront, clipboard: { write(text: string): vo
     return eaten;
   };
 
-  self.focusItem = (index: number) => {
+  const focusItem = (index: number): void => {
     if (index >= 0 && index < results().length) {
       setFocusedIndex(index);
     }
@@ -508,7 +515,7 @@ function createOmnibar(front: OmnibarFront, clipboard: { write(text: string): vo
 
   const promptSpan = requireElement("#sk_omnibarSearchArea>span.prompt");
   const resultPageSpan = requireElement("#sk_omnibarSearchArea>span.resultPage");
-  self.resultsDiv = ui.querySelector("#sk_omnibarSearchResult");
+  const resultsDiv = requireElement("#sk_omnibarSearchResult");
 
   render(
     () =>
@@ -532,8 +539,10 @@ function createOmnibar(front: OmnibarFront, clipboard: { write(text: string): vo
   // The search input is created via createRoot so the rendered <input> element
   // can be inserted at the exact position the layout (the `#sk_omnibarSearchArea>input`
   // CSS selector) requires: between span.prompt and span.resultPage. The ref
-  // exposes the DOM node as self.input so the controller's imperative ops
-  // (focus, selectionStart, setSelectionRange, dispatchEvent) keep working.
+  // captures the DOM node, exposed below as the mode's `input`, so the
+  // controller's imperative ops (focus, selectionStart, setSelectionRange,
+  // dispatchEvent) keep working.
+  let inputElement: HTMLInputElement | undefined;
   createRoot(() => {
     const inputEl = SearchInput({
       get value() {
@@ -553,7 +562,7 @@ function createOmnibar(front: OmnibarFront, clipboard: { write(text: string): vo
         _onKeyDown(evt);
       },
       ref: (el: HTMLInputElement) => {
-        self.input = el;
+        inputElement = el;
       },
     }) as HTMLInputElement;
     ui.querySelector("#sk_omnibarSearchArea")!.insertBefore(inputEl, resultPageSpan);
@@ -585,17 +594,17 @@ function createOmnibar(front: OmnibarFront, clipboard: { write(text: string): vo
         },
         onSelect: onResultSelect,
       }),
-    self.resultsDiv,
+    resultsDiv,
   );
   // Scroll the focused row into view once Solid has applied the focused class.
   createEffect(() => {
     if (focusedIndex() < 0) {
       return;
     }
-    const fi = self.resultsDiv.querySelector("li.focused") as HTMLElement | null;
+    const fi = resultsDiv.querySelector("li.focused") as HTMLElement | null;
     if (fi) {
       const fiRect = fi.getBoundingClientRect();
-      const resultsRect = self.resultsDiv.getBoundingClientRect();
+      const resultsRect = resultsDiv.getBoundingClientRect();
       if (fiRect.top < resultsRect.top || fiRect.bottom > resultsRect.bottom) {
         fi.scrollIntoView(fiRect.top < resultsRect.top);
       }
@@ -617,33 +626,33 @@ function createOmnibar(front: OmnibarFront, clipboard: { write(text: string): vo
       evt.preventDefault();
     } else if (evt.keyCode === KeyboardUtils.keyCodes["enter"]) {
       handler.activeTab = !evt.ctrlKey;
-      handler.tabbed = self.tabbed ^ Number(evt.shiftKey);
+      handler.tabbed = Number(_tabbed) ^ Number(evt.shiftKey);
       handler.onEnter?.() && front.hidePopup();
     } else if (evt.keyCode === KeyboardUtils.keyCodes["space"]) {
       const cursor = self.input.selectionStart;
-      const textBeforeCursor = self.input.value.slice(0, cursor);
-      const newQuery = self.input.value.slice(cursor);
+      const textBeforeCursor = self.input.value.slice(0, cursor ?? 0);
+      const newQuery = self.input.value.slice(cursor ?? 0);
       self.expandAlias(textBeforeCursor, newQuery) && evt.preventDefault();
     } else if (evt.keyCode === KeyboardUtils.keyCodes["backspace"]) {
       self.collapseAlias() && evt.preventDefault();
     }
   }
 
-  self.mappings.add(KeyboardUtils.encodeKeystroke("<Tab>"), {
+  mappings.add(KeyboardUtils.encodeKeystroke("<Tab>"), {
     annotation: "Forward cycle through the candidates.",
     feature_group: 8,
     code: function () {
       rotateResult(getPosition() === "bottom");
     },
   });
-  self.mappings.add(KeyboardUtils.encodeKeystroke("<Shift-Tab>"), {
+  mappings.add(KeyboardUtils.encodeKeystroke("<Shift-Tab>"), {
     annotation: "Backward cycle through the candidates.",
     feature_group: 8,
     code: function () {
       rotateResult(getPosition() !== "bottom");
     },
   });
-  self.mappings.add(KeyboardUtils.encodeKeystroke("<Ctrl-n>"), {
+  mappings.add(KeyboardUtils.encodeKeystroke("<Ctrl-n>"), {
     annotation: "Forward cycle through the input history.",
     feature_group: 8,
     code: function () {
@@ -654,7 +663,7 @@ function createOmnibar(front: OmnibarFront, clipboard: { write(text: string): vo
       }
     },
   });
-  self.mappings.add(KeyboardUtils.encodeKeystroke("<Ctrl-p>"), {
+  mappings.add(KeyboardUtils.encodeKeystroke("<Ctrl-p>"), {
     annotation: "Backward cycle through the input history.",
     feature_group: 8,
     code: function () {
@@ -665,13 +674,13 @@ function createOmnibar(front: OmnibarFront, clipboard: { write(text: string): vo
       }
     },
   });
-  self.mappings.add(KeyboardUtils.encodeKeystroke("<Ctrl-'>"), {
+  mappings.add(KeyboardUtils.encodeKeystroke("<Ctrl-'>"), {
     annotation: "Toggle quotes in an input element",
     feature_group: 8,
     code: toggleQuote,
   });
 
-  self.highlight = (rxp: RegExp | null, str: string) => {
+  const highlight = (rxp: RegExp | null, str: string): string => {
     if (str.slice(0, 11) === "data:image/") {
       str = str.slice(0, 1024);
     }
@@ -682,7 +691,7 @@ function createOmnibar(front: OmnibarFront, clipboard: { write(text: string): vo
         });
   };
 
-  self.createURLItem = (b: URLItem, rxp: RegExp | null) => {
+  const createURLItem = (b: URLItem, rxp: RegExp | null): OmnibarResult => {
     const url = b.url ?? "";
     const title = b.title && b.title !== "" ? b.title : unwrapOr(tryDecodeURI(url), url);
     let type = "🔥";
@@ -725,23 +734,23 @@ function createOmnibar(front: OmnibarFront, clipboard: { write(text: string): vo
     return buildOmnibarResult(li, { uid, url: b.url });
   };
 
-  self.createItemFromRawHtml = ({
+  const createItemFromRawHtml = ({
     html,
     props,
   }: {
     html: string;
     props?: Partial<OmnibarResult["data"]>;
-  }) => {
+  }): OmnibarResult => {
     const li = createElementWithContent("li", html);
     // User suggestion handlers pass their data fields (url, copy, ...) via `props`; route them
     // into the result's data instead of assigning them as expandos on the <li>.
     return buildOmnibarResult(li, typeof props === "object" ? props : {});
   };
 
-  self.detectAndInsertURLItem = (
+  const detectAndInsertURLItem = (
     str: string,
     toList: (string | { title?: string; url?: string; html?: string })[],
-  ) => {
+  ): void => {
     const urlPat = /^(?:https?:\/\/)?(?:[^@/\n]+@)?(?:www\.)?([^:/\n\s]+)\.([^:/\n\s]+)/i;
     const urlPat1 = /^https?:\/\/(?:[^@/\n]+@)?([^:/\n\s]+)/i;
     if (urlPat.test(str)) {
@@ -766,15 +775,15 @@ function createOmnibar(front: OmnibarFront, clipboard: { write(text: string): vo
   let _showFolder: boolean;
   let _page: URLItem[];
 
-  self.getPageSize = () => {
+  const getPageSize = (): number => {
     return runtime.conf.omnibarMaxResults;
   };
 
-  self.getHistoryCacheSize = () => {
+  const getHistoryCacheSize = (): number => {
     return runtime.conf.omnibarHistoryCacheSize;
   };
 
-  self.listURLs = (items: readonly URLItem[], showFolder: boolean) => {
+  const listURLs = (items: readonly URLItem[], showFolder: boolean): void => {
     _start = 1;
     _items = items;
     _showFolder = showFolder;
@@ -784,7 +793,7 @@ function createOmnibar(front: OmnibarFront, clipboard: { write(text: string): vo
       savedFocused = -1;
     }
   };
-  self.getItems = () => {
+  const getItems = (): readonly URLItem[] | null => {
     return _items;
   };
 
@@ -836,20 +845,20 @@ function createOmnibar(front: OmnibarFront, clipboard: { write(text: string): vo
     ui.classList.remove("sk_omnibar_bottom");
     ui.classList.add("sk_omnibar_" + getPosition());
     if (getPosition() === "bottom") {
-      self.resultsDiv.remove();
-      document.querySelector("#sk_omnibarSearchArea")!.before(self.resultsDiv);
+      resultsDiv.remove();
+      document.querySelector("#sk_omnibarSearchArea")!.before(resultsDiv);
     } else {
-      self.resultsDiv.remove();
-      ui.append(self.resultsDiv);
+      resultsDiv.remove();
+      ui.append(resultsDiv);
     }
 
-    self.tabbed = args.tabbed != null ? args.tabbed : true;
+    _tabbed = args.tabbed != null ? args.tabbed : true;
     self.input.focus();
-    self.enter();
+    mode.enter();
     if (args.pref) {
       setQuery(args.pref);
     }
-    self.resultsDiv.className = "";
+    resultsDiv.className = "";
     handler.onOpen && handler.onOpen(args.extra);
     lastHandler = handler;
     setPrompt(handler.prompt ?? "");
@@ -872,14 +881,14 @@ function createOmnibar(front: OmnibarFront, clipboard: { write(text: string): vo
     setFocusedIndex(-1);
     lastHandler = null;
     handler?.onClose?.();
-    self.exit();
+    mode.exit();
     // Reset to an empty object (not null) so a late async callback reading
     // handler.* after the popup closes hits a harmless no-op rather than a
     // null-deref. onShow always reassigns the real handler before next use.
     handler = {};
   };
 
-  self.isUrl = (input: string) => {
+  const isUrl = (input: string): boolean | RegExpMatchArray | null => {
     if (/\s+/.test(input)) {
       return false;
     }
@@ -894,7 +903,7 @@ function createOmnibar(front: OmnibarFront, clipboard: { write(text: string): vo
     return input.match(regex);
   };
 
-  self.openFocused = function (this: OmnibarHandler) {
+  const openFocused = function (this: OmnibarHandler): boolean | undefined {
     const fi = focusedResult();
     let url;
     if (fi) {
@@ -936,10 +945,10 @@ function createOmnibar(front: OmnibarFront, clipboard: { write(text: string): vo
     return this.activeTab;
   };
 
-  self.listResults = <T>(
+  const listResults = <T>(
     items: readonly T[] | null | undefined,
     renderItem: (b: T) => OmnibarResult | null | undefined,
-  ) => {
+  ): void => {
     if (!items || items.length === 0) {
       setResults([]);
       setFocusedIndex(-1);
@@ -963,7 +972,7 @@ function createOmnibar(front: OmnibarFront, clipboard: { write(text: string): vo
       setFocusedIndex(-1);
     }
     if (getPosition() === "bottom" && built.length > 0) {
-      const lis = self.resultsDiv.querySelectorAll("#sk_omnibarSearchResult>ul>li");
+      const lis = resultsDiv.querySelectorAll("#sk_omnibarSearchResult>ul>li");
       if (lis.length) {
         // querySelectorAll returns a NodeList, which has no Array#at; use NodeList#item.
         scrollIntoViewIfNeeded(lis.item(lis.length - 1));
@@ -971,33 +980,33 @@ function createOmnibar(front: OmnibarFront, clipboard: { write(text: string): vo
     }
   };
 
-  self.listWords = (words: string[]) => {
+  const listWords = (words: string[]): void => {
     self.listResults(words, (w: string) => {
       const li = createElementWithContent("li", `⌕ ${w}`);
       return buildOmnibarResult(li, { query: w });
     });
   };
 
-  self.html = (content: string) => {
+  const html = (content: string): void => {
     // Show a single raw-HTML row through the store so the Solid mount that
     // owns resultsDiv is not clobbered by a direct innerHTML write.
     setResults([{ html: content, data: { text: "" } }]);
     setFocusedIndex(-1);
   };
 
-  self.addHandler = (name: string, hdl: OmnibarHandler) => {
+  const addHandler = (name: string, hdl: OmnibarHandler): void => {
     if (!hdl.onEnter) {
       hdl.onEnter = self.openFocused.bind(hdl);
     }
     handlers[name] = hdl;
   };
 
-  self.listBookmarkFolders = (
+  const listBookmarkFolders = (
     cb?: (
       response: { folders: { id: string; title?: string }[] },
       folders: Record<string, { id: string; title?: string }>,
     ) => void,
-  ) => {
+  ): void => {
     reportOnFail(
       RUNTIME(
         "getBookmarkFolders",
@@ -1014,6 +1023,46 @@ function createOmnibar(front: OmnibarFront, clipboard: { write(text: string): vo
       reportError,
     );
   };
+
+  // The Solid mounts above run synchronously, so the search input ref has
+  // fired by now; fail loudly if the layout changed underneath us.
+  if (inputElement == null) {
+    throw new Error("omnibar search input failed to render");
+  }
+
+  const self: OmnibarMode = Object.assign(mode, {
+    mappings,
+    map_node: mappings,
+    input: inputElement,
+    resultsDiv,
+    setPrompt,
+    setQuery,
+    setPlaceholder,
+    results,
+    focusedIndex,
+    focusedResult,
+    focusItem,
+    triggerInput,
+    expandAlias,
+    collapseAlias,
+    highlight,
+    createURLItem,
+    createItemFromRawHtml,
+    detectAndInsertURLItem,
+    getPageSize,
+    getHistoryCacheSize,
+    listURLs,
+    getItems,
+    isUrl,
+    openFocused,
+    listResults,
+    listWords,
+    html,
+    addHandler,
+    listBookmarkFolders,
+  });
+
+  const searchEngine = SearchEngine(self, front);
 
   self.addHandler("Bookmarks", OpenBookmarks(self));
   self.addHandler("AddBookmark", AddBookmark(self));
