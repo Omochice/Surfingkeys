@@ -16,7 +16,7 @@ import { getRealEdit, isEditable, isTextInput } from "./utils";
 export function nextNonWord(str: string, dir: number, cur: number): number {
   const nonWord = /\W/;
   cur = cur + dir;
-  for (;;) {
+  while (true) {
     if (cur < 0) {
       cur = 0;
       break;
