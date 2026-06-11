@@ -1809,13 +1809,17 @@ function SearchEngine(omnibar: Omnibar, front: OmnibarFront): SearchEngineHandle
     const query = encodeURIComponent(omnibar.input.value);
     const rxp = regexFromString(query, runtime.getCaseSensitive(query), true);
     omnibar.listResults(suggestions, (w: SearchSuggestion) => {
-      if (typeof w === "object" && "html" in w) {
+      // `suggestions` is asserted as SearchSuggestion[] but originates from untrusted resp2.data, so
+      // guard against null (which `typeof` reports as "object", making `in` throw) and stringify the
+      // bare-query fallback to keep a non-string out of OmnibarResult.data.query.
+      if (w != null && typeof w === "object" && "html" in w) {
         return omnibar.createItemFromRawHtml(w);
-      } else if (typeof w === "object" && "url" in w) {
+      } else if (w != null && typeof w === "object" && "url" in w) {
         return omnibar.createURLItem(w, rxp);
       } else {
-        const li = createElementWithContent("li", `⌕ ${w}`);
-        return buildOmnibarResult(li, { query: w });
+        const text = String(w);
+        const li = createElementWithContent("li", `⌕ ${text}`);
+        return buildOmnibarResult(li, { query: text });
       }
     });
   }
