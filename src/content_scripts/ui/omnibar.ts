@@ -188,7 +188,9 @@ type Omnibar = {
 /**
  * The slice of the front the omnibar talks to. `_actions` is assignment-only here (the front
  * dispatches them), so a `never` parameter accepts handlers of any message shape without `any`;
- * contentCommand is generic over its response so each caller types its own callback.
+ * contentCommand is generic over its response so each caller types its own callback. It is declared
+ * as a method so its callback parameter is checked bivariantly, which lets the front's
+ * unknown-typed implementation satisfy it.
  */
 type OmnibarFront = {
   hidePopup: () => void;
@@ -196,10 +198,7 @@ type OmnibarFront = {
   postMessage: (msg: Record<string, unknown>) => void;
   topOrigin: string;
   _actions: Record<string, (message: never) => void>;
-  contentCommand: <R = unknown>(
-    args: Record<string, unknown>,
-    successById?: (msg: R) => void,
-  ) => void;
+  contentCommand<R = unknown>(args: Record<string, unknown>, successById?: (msg: R) => void): void;
 };
 
 /** The open spec the front passes through `ui.onShow`: which handler to use plus its open options. */

@@ -8,7 +8,10 @@ type CommandFn = (
   handler: (args: string[]) => void | boolean,
 ) => void;
 type OmnibarLike = {
-  listResults(items: unknown[], renderer: (s: unknown) => HTMLElement): void;
+  // The renderer's return is passed through to the omnibar's result store. The real omnibar
+  // expects its OmnibarResult rows there, while the session/queue commands below still hand it
+  // raw <li> elements (a leftover from the pre-Solid list), so the slot is typed pass-through.
+  listResults(items: unknown[], renderer: (s: unknown) => unknown): void;
   listWords(words: string[]): void;
 };
 
