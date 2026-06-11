@@ -420,18 +420,24 @@ describe("createNormal scroll — byRatio positions relative to scrollHeight", (
 // ─── isScrollKeyInHints ───────────────────────────────────────────────────────
 
 describe("createNormal isScrollKeyInHints", () => {
-  // isScrollKeyInHints looks up self.mappings[key] as a plain property on the
-  // Trie instance. Because Trie stores children in a private Map (not as named
-  // properties), bracket access always returns undefined and the function
-  // always returns false regardless of what is registered. These tests pin that
-  // observable contract so a future refactor that fixes the lookup is noticed.
-  it("returns false even for a key bound to a scroll mapping (lookup misses the Trie's private Map)", () => {
+  it("returns true for a key whose scroll binding is marked for Hints mode", () => {
     const normal = createNormal(insertStub);
 
-    // "e" is registered as a scroll mapping in createNormal, yet the bracket
-    // lookup on the Trie instance cannot see it, so the result is false. This
-    // pins the current (buggy) contract so a fix to the lookup is noticed.
+    // "j" is bound through bindScrollForHints, so it may also scroll in Hints mode.
+    expect(normal.isScrollKeyInHints("j")).toBe(true);
+  });
+
+  it("returns false for a scroll binding not marked for Hints mode", () => {
+    const normal = createNormal(insertStub);
+
+    // "e" scrolls in Normal mode but is not registered as a Hints-mode scroll key.
     expect(normal.isScrollKeyInHints("e")).toBe(false);
+  });
+
+  it("returns false for an unbound key", () => {
+    const normal = createNormal(insertStub);
+
+    expect(normal.isScrollKeyInHints("q")).toBe(false);
   });
 });
 

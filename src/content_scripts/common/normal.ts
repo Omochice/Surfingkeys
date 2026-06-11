@@ -1001,16 +1001,17 @@ function createNormal(insert: InsertLike): NormalMode {
     },
   });
 
-  type ScrollCode = (() => void) & { isSKScrollInHints?: boolean };
-  const bindScrollForHints = (action: string): ScrollCode => {
-    const f: ScrollCode = scroll.bind(undefined, action);
-    // indicate that the key bound with this function is a key to scroll page and can be used to scroll in Hints mode.
-    f.isSKScrollInHints = true;
+  // Bound scroll actions that may also be used to scroll in Hints mode, tracked in a side table
+  // instead of an expando flag on the function.
+  const hintScrollCodes = new WeakSet<(...args: string[]) => void>();
+  const bindScrollForHints = (action: string): (() => void) => {
+    const f = scroll.bind(undefined, action);
+    hintScrollCodes.add(f);
     return f;
   };
   const isScrollKeyInHints = (key: string): boolean => {
-    const bound = (mappings as unknown as Record<string, { meta?: TrieMetaWithScroll }>)[key];
-    return !!(bound && bound.meta && bound.meta.code && bound.meta.code.isSKScrollInHints);
+    const code = mappings.find(key)?.meta?.code;
+    return code != null && hintScrollCodes.has(code);
   };
 
   mappings.add("e", {
@@ -1196,7 +1197,5 @@ function createNormal(insert: InsertLike): NormalMode {
 
   return self;
 }
-
-type TrieMetaWithScroll = { code?: (() => void) & { isSKScrollInHints?: boolean } };
 
 export default createNormal;
