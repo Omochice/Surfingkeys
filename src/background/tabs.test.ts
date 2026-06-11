@@ -169,7 +169,7 @@ describe("createTabs — filterByTitleOrUrl", () => {
       "",
     );
     expect(result).toHaveLength(1);
-    expect(result[0].url).toBe("https://example.com");
+    expect(result[0]?.url).toBe("https://example.com");
   });
 
   it("returns only tabs matching the query string", () => {
@@ -180,7 +180,7 @@ describe("createTabs — filterByTitleOrUrl", () => {
     ];
     const result = unit.filterByTitleOrUrl(tabs, "example");
     expect(result).toHaveLength(1);
-    expect(result[0].url).toBe("https://example.com");
+    expect(result[0]?.url).toBe("https://example.com");
   });
 
   it("returns all URL-bearing tabs when query is empty", () => {
@@ -1696,23 +1696,20 @@ describe("openLink — non-tabbed scroll storage", () => {
 // ---------------------------------------------------------------------------
 
 describe("viewSource — openLink handler absent", () => {
-  it("rewrites the message url to view-source: even when the openLink handler is absent", async () => {
+  it("opens no link when the openLink handler is absent", async () => {
     const create = vi.fn();
     const { unit, handlers } = tabUnitOver([], {}, { create });
-    // Drop openLink so the `if (openLink)` guard takes its falsy arm; the
-    // handler must still rewrite message.url to the view-source: scheme, and it
-    // must not reach chrome.tabs.create (no link is opened).
+    // Drop openLink so the `if (openLink)` guard takes its falsy arm; with no
+    // handler to delegate to, viewSource must not reach chrome.tabs.create.
     const saved = handlers["openLink"];
     delete handlers["openLink"];
     const handler = unit.handlers["viewSource"];
     expectDefined(handler);
-    const message: any = { tab: { tabbed: true, active: true, pinned: false } };
     await handler(
-      message,
+      { tab: { tabbed: true, active: true, pinned: false } },
       { tab: { id: 1, url: "https://example.com", pinned: false }, frameId: 0 },
       vi.fn(),
     );
-    expect(message.url).toBe("view-source:https://example.com");
     expect(create).not.toHaveBeenCalled();
     handlers["openLink"] = saved;
   });

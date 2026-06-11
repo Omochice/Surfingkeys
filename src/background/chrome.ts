@@ -1,7 +1,10 @@
 import { filterByTitleOrUrl } from "../common/utils";
 import { _save, extendObject, getSubSettings } from "./settings";
 
-async function loadRawSettings(keys: string[], defaultSet?: any): Promise<any> {
+async function loadRawSettings(
+  keys: string | readonly string[] | null | undefined,
+  defaultSet?: Record<string, unknown>,
+): Promise<Record<string, unknown>> {
   const rawSet = defaultSet || {};
   const localSet = await chrome.storage.local.get(null);
   const localSavedAt = localSet["savedAt"] || 0;
@@ -16,7 +19,7 @@ async function loadRawSettings(keys: string[], defaultSet?: any): Promise<any> {
     try {
       await _save(chrome.storage.sync, localSet);
     } catch (error) {
-      subset.error =
+      subset["error"] =
         "Settings sync may not work thoroughly because of: " +
         (Error.isError(error) ? error.message : String(error));
     }
@@ -37,10 +40,13 @@ function _setNewTabUrl(): string {
   return "chrome://newtab/";
 }
 
-function _getContainerName(_self: unknown): void {}
+function _getContainerName(_self: unknown): undefined {}
 
-async function getLatestHistoryItem(text: string, maxResults: number): Promise<any[]> {
-  let results: any[] = [];
+async function getLatestHistoryItem(
+  text: string,
+  maxResults: number,
+): Promise<chrome.history.HistoryItem[]> {
+  let results: chrome.history.HistoryItem[] = [];
   let endTime = Date.now();
   // chrome.history.search has no substring filter, so widen the time window and
   // re-filter locally, looping until enough matches are collected or history is

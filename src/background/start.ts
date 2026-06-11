@@ -15,11 +15,47 @@ import { createTabs } from "./tabs";
  * Extracted background units export a `Record<string, MessageHandler>` map that the composition
  * root registers into the dispatch registry.
  */
+// The dispatch slot is intentionally loose: each handler narrows `message` (and
+// `sender`) for itself, and the dispatcher only inspects the returned value's
+// then-able-ness, so the registry stays callable with any handler shape.
+/* eslint-disable typescript/no-explicit-any -- heterogeneous dispatch registry: each handler narrows
+   message/sender for itself and the dispatcher only checks the return's then-ableness, so the slot
+   must stay callable with any handler shape (an `unknown` parameter would reject the typed handlers). */
 export type MessageHandler = (
   message: any,
   sender?: any,
   sendResponse?: (result: any) => void,
 ) => any;
+/* eslint-enable typescript/no-explicit-any */
+
+/**
+ * The fixed-shape subset of settings the background keeps in memory. Settings only ever updates
+ * keys already present here (the `updateSettings` loop guards with `Object.hasOwn(conf, k)`), so
+ * the shape never grows beyond these five fields.
+ */
+export type BackgroundConf = {
+  focusAfterClosed?: string;
+  tabsMRUOrder?: boolean;
+  newTabPosition?: string;
+  showTabIndices?: boolean;
+  interceptedErrors?: unknown[];
+};
+
+/**
+ * The per-browser glue the composition root injects: history search, raw settings load/save, the
+ * new-tab URL, and the Firefox-only container-name handler (a no-op on Chrome). Implemented by
+ * `chromeSpecifics`/`firefoxSpecifics`.
+ */
+export type BrowserAdapter = {
+  detectTabTitleChange: boolean;
+  getLatestHistoryItem: (text: string, maxResults: number) => Promise<chrome.history.HistoryItem[]>;
+  loadRawSettings: (
+    keys: string | readonly string[] | null | undefined,
+    defaultSet?: Record<string, unknown>,
+  ) => Promise<Record<string, unknown>>;
+  _setNewTabUrl: () => string;
+  _getContainerName: (self: Record<string, MessageHandler>) => MessageHandler | undefined;
+};
 
 // GitHub gist API responses are external data; each parsed body is validated so
 // the fields consumed below carry real types instead of any.
@@ -36,13 +72,57 @@ const gistCommentSchema = v.object({ body: v.string() });
 // hex string), so accept both and normalize to string for use in request URLs.
 const gistCommentListSchema = v.array(v.object({ id: v.union([v.string(), v.number()]) }));
 
-const Gist = (() => {
-  const self: any = {};
+// Every runtime message carries an `action` to dispatch on (set by the
+// content-script RUNTIME helper); `needResponse` flags whether the sender awaits.
+const messageEnvelopeSchema = v.object({
+  action: v.string(),
+  needResponse: v.optional(v.boolean()),
+});
 
+// Request payloads for the standalone background handlers cross the
+// chrome.runtime boundary, so each is validated before its fields are used.
+const setIconSchema = v.object({ status: v.optional(v.string()) });
+const requestSchema = v.object({
+  url: v.string(),
+  headers: v.optional(v.record(v.string(), v.string())),
+  data: v.optional(v.string()),
+});
+const urlSchema = v.object({ url: v.string() });
+const closeDownloadsShelfSchema = v.object({ clearHistory: v.optional(v.boolean()) });
+const downloadSchema = v.object({
+  url: v.string(),
+  filename: v.optional(v.string()),
+  saveAs: v.optional(v.boolean()),
+});
+const removeURLSchema = v.object({ uid: v.union([v.string(), v.array(v.string())]) });
+const textSchema = v.object({ text: v.string() });
+const tokenSchema = v.object({ token: v.string() });
+const commentIndexSchema = v.object({ index: v.number() });
+const editCommentSchema = v.object({ index: v.number(), content: v.string() });
+const getDownloadsSchema = v.object({
+  query: v.optional(
+    v.object({
+      query: v.optional(v.array(v.string())),
+      state: v.optional(v.picklist(["in_progress", "interrupted", "complete"])),
+      paused: v.optional(v.boolean()),
+      urlRegex: v.optional(v.string()),
+      filenameRegex: v.optional(v.string()),
+      limit: v.optional(v.number()),
+      orderBy: v.optional(v.array(v.string())),
+    }),
+  ),
+});
+const localDataSchema = v.object({
+  data: v.union([v.array(v.string()), v.string(), v.record(v.string(), v.unknown())]),
+});
+
+type GistCommentResult = { status: number; content?: string; error?: string };
+
+const Gist = (() => {
   // A 200 response with an empty or malformed body still throws in JSON.parse,
   // which would skip the settle that each helper relies on and re-hang the
   // runtime sender. Treat an unparseable body the same as a request failure.
-  const parseGist = (text: string): any | undefined => {
+  const parseGist = (text: string): unknown => {
     try {
       return JSON.parse(text);
     } catch {
@@ -86,8 +166,8 @@ const Gist = (() => {
 
   let _token: string;
   let _gist = "";
-  let _comments: any[] = [];
-  self.initGist = async (token: string): Promise<string> => {
+  let _comments: string[] = [];
+  const initGist = async (token: string): Promise<string> => {
     if (_token === token && _gist !== "") {
       return _gist;
     }
@@ -109,7 +189,7 @@ const Gist = (() => {
     );
     return Result.isSuccess(r) ? r.value : "";
   }
-  async function _readComment(cid: string): Promise<any> {
+  async function _readComment(cid: string): Promise<GistCommentResult> {
     const r = await request(`https://api.github.com/gists/${_gist}/comments/${cid}`, {
       Authorization: "token " + _token,
     });
@@ -133,7 +213,7 @@ const Gist = (() => {
     return { status: 0, content };
   }
   async function _listComment(): Promise<
-    { ok: true; comments: any[] } | { ok: false; error: string }
+    { ok: true; comments: string[] } | { ok: false; error: string }
   > {
     const r = await request(`https://api.github.com/gists/${_gist}/comments`, {
       Authorization: "token " + _token,
@@ -156,35 +236,39 @@ const Gist = (() => {
     );
     return Result.isSuccess(r) ? r.value : "";
   }
-  self.readComment = async (nr: number): Promise<any> => {
+  const readComment = async (nr: number): Promise<GistCommentResult> => {
     if (_gist === "") {
       return { status: 1, content: "Please call initGist first!" };
     }
-    if (nr < _comments.length) {
-      return _readComment(_comments[nr]);
+    const cached = _comments[nr];
+    if (cached !== undefined) {
+      return _readComment(cached);
     }
     const listed = await _listComment();
     if (!listed.ok) {
       return { status: 1, error: listed.error };
     }
-    if (nr < listed.comments.length) {
-      return _readComment(listed.comments[nr]);
+    const fresh = listed.comments[nr];
+    if (fresh !== undefined) {
+      return _readComment(fresh);
     }
     return { status: 1, content: "Register not exists!" };
   };
-  self.editComment = async (nr: number, clip: string): Promise<any> => {
+  const editComment = async (nr: number, clip: string): Promise<string | GistCommentResult> => {
     if (_gist === "") {
       return { status: 1, content: "Please call initGist first!" };
     }
-    if (nr < _comments.length) {
-      return _writeComment(_comments[nr], clip);
+    const cached = _comments[nr];
+    if (cached !== undefined) {
+      return _writeComment(cached, clip);
     }
     const listed = await _listComment();
     if (!listed.ok) {
       return { status: 1, error: listed.error };
     }
-    if (nr < listed.comments.length) {
-      return _writeComment(listed.comments[nr], clip);
+    const fresh = listed.comments[nr];
+    if (fresh !== undefined) {
+      return _writeComment(fresh, clip);
     }
     // Pad the comment list with placeholders up to the requested index, then
     // write the clip into the final new comment.
@@ -196,15 +280,15 @@ const Gist = (() => {
     return _newComment(clip);
   };
 
-  return self;
+  return { initGist, readComment, editComment };
 })();
 
-function start(browser: any): void {
+function start(browser: BrowserAdapter): void {
   const handlers: Record<string, MessageHandler> = {};
 
   const isMV3 = chrome.runtime.getManifest().manifest_version === 3;
 
-  const conf: Record<string, any> = {
+  const conf: BackgroundConf = {
     focusAfterClosed: "right",
     tabsMRUOrder: true,
     newTabPosition: "default",
@@ -212,39 +296,46 @@ function start(browser: any): void {
     interceptedErrors: [],
   };
 
-  function handleMessage(_message: any, _sender: any, _sendResponse: any) {
-    const handler = Object.hasOwn(handlers, _message.action)
-      ? handlers[_message.action]
-      : undefined;
-    if (!handler) {
-      console.log("[unexpected runtime message] " + JSON.stringify(_message));
+  function handleMessage(
+    rawMessage: unknown,
+    sender: chrome.runtime.MessageSender,
+    sendResponse: (response?: unknown) => void,
+  ) {
+    const envelope = v.safeParse(messageEnvelopeSchema, rawMessage);
+    const handler =
+      envelope.success && Object.hasOwn(handlers, envelope.output.action)
+        ? handlers[envelope.output.action]
+        : undefined;
+    if (!handler || !envelope.success) {
+      console.log("[unexpected runtime message] " + JSON.stringify(rawMessage));
       return undefined;
     }
-    const result = handler(_message, _sender, _sendResponse);
+    const result = handler(rawMessage, sender, sendResponse);
     // Asynchronous handlers resolve to the response value; bridge it to
     // sendResponse and keep the channel open, settling even on rejection so a
     // throwing handler never hangs the sender.
     if (result instanceof Promise) {
-      if (!_message.needResponse) {
+      if (!envelope.output.needResponse) {
         void result.catch(() => {});
         return undefined;
       }
       void result.then(
-        (value) => _sendResponse(value),
-        (error) => _sendResponse({ error: String(error) }),
+        (value) => sendResponse(value),
+        (error) => sendResponse({ error: String(error) }),
       );
       return true;
     }
     // Synchronous handlers return their payload directly.
-    if (_message.needResponse && result) {
-      _sendResponse(result);
+    if (envelope.output.needResponse && result) {
+      sendResponse(result);
     }
     return undefined;
   }
   chrome.runtime.onMessage.addListener(handleMessage);
   if (isMV3) {
-    chrome.runtime.onUserScriptMessage.addListener((m: any, s: any, r: any) => {
-      m.fromUserScript = true;
+    // `fromUserScript` was written here but never read, so the message is
+    // forwarded to the shared dispatcher unchanged.
+    chrome.runtime.onUserScriptMessage.addListener((m, s, r) => {
       handleMessage(m, s, r);
     });
     chrome.runtime.onInstalled.addListener(() => {
@@ -276,27 +367,30 @@ function start(browser: any): void {
   Object.assign(handlers, createBookmarkHandlers());
   Object.assign(handlers, createHistoryHandlers(browser, tabs.filterByTitleOrUrl));
 
-  handlers["setSurfingkeysIcon"] = (message: any, sender: any, _sendResponse: any) => {
+  handlers["setSurfingkeysIcon"] = (message: unknown, sender?: chrome.runtime.MessageSender) => {
+    const { status } = v.parse(setIconSchema, message);
     let icon = "icons/48.png";
-    if (message.status === "disabled") {
+    if (status === "disabled") {
       icon = "icons/48-x.png";
-    } else if (message.status === "lurking") {
+    } else if (status === "lurking") {
       icon = "icons/48-l.png";
     }
     const browserAction = isMV3 ? chrome.action : chrome.browserAction;
     browserAction.setIcon({
       path: icon,
-      tabId: sender.tab ? sender.tab.id : undefined,
+      tabId: sender?.tab?.id,
     });
   };
-  handlers["request"] = async (message: any) => {
-    const r = await request(message.url, message.headers, message.data);
+  handlers["request"] = async (message: unknown) => {
+    const { url, headers, data } = v.parse(requestSchema, message);
+    const r = await request(url, headers, data);
     return Result.isSuccess(r) ? { text: r.value } : { error: String(r.error.cause) };
   };
-  handlers["requestImage"] = async (message: any) => {
+  handlers["requestImage"] = async (message: unknown) => {
+    const { url } = v.parse(urlSchema, message);
     const r = await Result.try({
       try: async () => {
-        const res = await fetch(message.url, { method: "GET" });
+        const res = await fetch(url, { method: "GET" });
         const img = await createImageBitmap(await res.blob());
         const canvas = new OffscreenCanvas(img.width, img.height);
         canvas.getContext("2d")!.drawImage(img, 0, 0, canvas.width, canvas.height);
@@ -327,24 +421,23 @@ function start(browser: any): void {
   handlers["quit"] = () => {
     void _quit();
   };
-  handlers["closeDownloadsShelf"] = (message: any, _sender: any, _sendResponse: any) => {
-    if (message.clearHistory) {
+  handlers["closeDownloadsShelf"] = (message: unknown) => {
+    const { clearHistory } = v.parse(closeDownloadsShelfSchema, message);
+    if (clearHistory) {
       chrome.downloads.erase({ urlRegex: ".*" });
     } else {
       chrome.downloads.setShelfEnabled(false);
       chrome.downloads.setShelfEnabled(true);
     }
   };
-  handlers["getDownloads"] = async (message: any) => {
-    const downloads = await chrome.downloads.search(message.query);
+  handlers["getDownloads"] = async (message: unknown) => {
+    const { query } = v.parse(getDownloadsSchema, message);
+    const downloads = await chrome.downloads.search(query ?? {});
     return { downloads };
   };
-  handlers["download"] = (message: any, _sender: any, _sendResponse: any) => {
-    chrome.downloads.download({
-      url: message.url,
-      filename: message.filename,
-      saveAs: message.saveAs,
-    });
+  handlers["download"] = (message: unknown) => {
+    const { url, filename, saveAs } = v.parse(downloadSchema, message);
+    chrome.downloads.download({ url, filename, saveAs });
   };
   async function _removeURL(uid: string): Promise<void> {
     const type = uid[0];
@@ -363,26 +456,29 @@ function start(browser: any): void {
       await chrome.tabs.remove(parts[1]!);
     } else if (type === "M") {
       const data = await settings.loadSettings("marks");
-      delete data.marks[uid];
-      await settings.updateAndPostSettings({ marks: data.marks });
+      const marks = v.parse(v.record(v.string(), v.record(v.string(), v.unknown())), data["marks"]);
+      delete marks[uid];
+      await settings.updateAndPostSettings({ marks });
     }
   }
-  handlers["removeURL"] = async (message: any) => {
-    const uids = typeof message.uid === "string" ? [message.uid] : message.uid;
-    await Promise.all(uids.map((u: string) => _removeURL(u)));
+  handlers["removeURL"] = async (message: unknown) => {
+    const { uid } = v.parse(removeURLSchema, message);
+    const uids = typeof uid === "string" ? [uid] : uid;
+    await Promise.all(uids.map((u) => _removeURL(u)));
     return { response: "Done" };
   };
-  handlers["localData"] = async (message: any) => {
-    if (message.data.constructor === Object) {
-      void chrome.storage.local.set(message.data);
+  handlers["localData"] = async (message: unknown) => {
+    const { data } = v.parse(localDataSchema, message);
+    if (typeof data === "object" && !Array.isArray(data)) {
+      void chrome.storage.local.set(data);
       // broadcast the change also, such as lastKeys
       // we would set lastKeys in sync to avoid breaching chrome.storage.sync.MAX_WRITE_OPERATIONS_PER_MINUTE
-      void settings.broadcastSettings(message.data);
+      void settings.broadcastSettings(data);
       return undefined;
     }
     // string or array of string keys
-    const data = await chrome.storage.local.get(message.data);
-    return { data };
+    const result = await chrome.storage.local.get(data);
+    return { data: result };
   };
   handlers["captureVisibleTab"] = async () => {
     const dataUrl = await chrome.tabs.captureVisibleTab({ format: "png" });
@@ -397,22 +493,32 @@ function start(browser: any): void {
     img.close();
     return size;
   };
-  handlers["initGist"] = async (message: any) => {
-    return { gist: await Gist.initGist(message.token) };
+  handlers["initGist"] = async (message: unknown) => {
+    const { token } = v.parse(tokenSchema, message);
+    return { gist: await Gist.initGist(token) };
   };
-  handlers["readComment"] = (message: any) => Gist.readComment(message.index);
-  handlers["editComment"] = async (message: any) => {
-    return { gistResp: await Gist.editComment(message.index, message.content) };
+  handlers["readComment"] = (message: unknown) => {
+    const { index } = v.parse(commentIndexSchema, message);
+    return Gist.readComment(index);
+  };
+  handlers["editComment"] = async (message: unknown) => {
+    const { index, content } = v.parse(editCommentSchema, message);
+    return { gistResp: await Gist.editComment(index, content) };
   };
 
-  handlers["openIncognito"] = (message: any, _sender: any, _sendResponse: any) => {
-    chrome.windows.create({ url: message.url, incognito: true });
+  handlers["openIncognito"] = (message: unknown) => {
+    const { url } = v.parse(urlSchema, message);
+    chrome.windows.create({ url, incognito: true });
   };
 
-  handlers["writeClipboard"] = (message: any, _sender: any, _sendResponse: any) => {
-    navigator.clipboard.writeText(message.text);
+  handlers["writeClipboard"] = (message: unknown) => {
+    const { text } = v.parse(textSchema, message);
+    navigator.clipboard.writeText(text);
   };
-  handlers["getContainerName"] = browser._getContainerName(handlers);
+  const containerHandler = browser._getContainerName(handlers);
+  if (containerHandler) {
+    handlers["getContainerName"] = containerHandler;
+  }
   chrome.runtime.setUninstallURL(
     "http://brookhong.github.io/2018/01/30/why-did-you-uninstall-surfingkeys.html",
   );

@@ -1,11 +1,42 @@
 import { Result } from "@praha/byethrow";
+import * as v from "valibot";
 
 import { chromeRuntimeError } from "../common/result";
 import { request } from "./request";
-import type { MessageHandler } from "./start";
+import type { BackgroundConf, BrowserAdapter, MessageHandler } from "./start";
+
+// Settings fields read from storage are validated before use; storage is a
+// trust boundary, so each consumed field is narrowed from `unknown`.
+const patternSchema = v.optional(v.object({ source: v.string(), flags: v.string() }));
+const blocklistSchema = v.record(v.string(), v.unknown());
+const mouseSelectToQuerySchema = v.optional(v.array(v.string()));
+const marksSchema = v.record(v.string(), v.record(v.string(), v.unknown()));
+const togglePatternMessageSchema = v.object({
+  blocklistPattern: patternSchema,
+  lurkingPattern: patternSchema,
+});
+const mouseQueryMessageSchema = v.object({ origin: v.string() });
+const addVIMarkMessageSchema = v.object({ mark: v.record(v.string(), v.unknown()) });
+const jumpVIMarkMessageSchema = v.object({ mark: v.string() });
+const urlMessageSchema = v.object({ url: v.string() });
+const inputHistorySchema = v.optional(v.array(v.string()));
+const sessionsSchema = v.record(v.string(), v.record(v.string(), v.unknown()));
+const sessionTabsSchema = v.object({ tabs: v.array(v.array(v.string())) });
+const createSessionMessageSchema = v.object({
+  name: v.string(),
+  quitAfterSaved: v.optional(v.boolean()),
+});
+const sessionNameMessageSchema = v.object({ name: v.string() });
+const getSettingsMessageSchema = v.object({
+  key: v.optional(v.union([v.string(), v.array(v.string()), v.null()])),
+});
+const updateSettingsMessageSchema = v.object({
+  scope: v.optional(v.string()),
+  settings: v.record(v.string(), v.unknown()),
+});
 
 /** Shallow-merges every own enumerable property of `ss` onto `target` in place. */
-export function extendObject(target: any, ss: any): void {
+export function extendObject(target: Record<string, unknown>, ss: Record<string, unknown>): void {
   for (const k in ss) {
     target[k] = ss[k];
   }
@@ -15,20 +46,19 @@ export function extendObject(target: any, ss: any): void {
  * Projects `set` to the requested `keys`. A null/undefined/"" key set returns the whole object; a
  * single key or an array of keys returns just that subset.
  */
-export function getSubSettings(set: any, keys: any): any {
-  let subset: any;
+export function getSubSettings(
+  set: Record<string, unknown>,
+  keys: string | readonly string[] | null | undefined,
+): Record<string, unknown> {
   if (!keys) {
     // if null/undefined/""
-    subset = set;
-  } else {
-    if (!Array.isArray(keys)) {
-      keys = [keys];
-    }
-    subset = {};
-    keys.forEach((k: string) => {
-      subset[k] = set[k];
-    });
+    return set;
   }
+  const keyList = Array.isArray(keys) ? keys : [keys];
+  const subset: Record<string, unknown> = {};
+  keyList.forEach((k: string) => {
+    subset[k] = set[k];
+  });
   return subset;
 }
 
@@ -37,39 +67,43 @@ export function getSubSettings(set: any, keys: any): any {
  * a `localPath` are never written there; local storage instead re-fetches and caches the snippets
  * from that path before saving.
  */
-export async function _save(storage: any, data: any): Promise<void> {
+export async function _save(
+  storage: { set: (items: Record<string, unknown>) => Promise<void> },
+  data: Record<string, unknown>,
+): Promise<void> {
   // Persist a shallow copy so the caller's object is never stripped or
   // reassigned. `updateSettings` reads `message.settings.snippets` right after
   // this returns; mutating it in place dropped the snippets and unregistered
   // the user script.
-  const toSave = { ...data };
+  const toSave: Record<string, unknown> = { ...data };
   if (storage === chrome.storage.sync) {
     // don't store snippets from localPath into sync storage, since sync storage has its quota.
-    if (toSave.localPath) {
-      delete toSave.snippets;
-      delete toSave.localPath;
+    if (toSave["localPath"]) {
+      delete toSave["snippets"];
+      delete toSave["localPath"];
     }
     if (Object.keys(toSave).length > 1) {
       await storage.set(toSave);
     }
-  } else if (toSave.localPath) {
-    delete toSave.snippets;
+  } else if (typeof toSave["localPath"] === "string") {
+    const localPath = toSave["localPath"];
+    delete toSave["snippets"];
     // try to fetch snippets from localPath and cache it in local storage.
-    const r = await request(toSave.localPath);
+    const r = await request(localPath);
     if (Result.isSuccess(r)) {
-      toSave.snippets = r.value;
+      toSave["snippets"] = r.value;
     } else {
       // Leave the cached snippets untouched on failure, but still persist so the
       // chained `afterSet` (and the `updateSettings` response) never hangs on a
       // bad/unreachable snippet URL.
-      console.error("Failed to fetch snippets from", toSave.localPath, r.error);
+      console.error("Failed to fetch snippets from", localPath, r.error);
     }
     // storage.set may throw (e.g. quota); swallow so a caller awaiting _save
     // (and the response it settles) never hangs on a bad snippet path.
     try {
       await storage.set(toSave);
     } catch (error) {
-      console.error("Failed to save snippets from", toSave.localPath, error);
+      console.error("Failed to save snippets from", localPath, error);
     }
   } else {
     await storage.set(toSave);
@@ -84,10 +118,10 @@ export async function _save(storage: any, data: any): Promise<void> {
  * actions that drive tab navigation.
  */
 export type SettingsDeps = {
-  conf: Record<string, any>;
-  browser: any;
-  sendTabMessage: (tabId: number, frameId: number, message: any) => void;
-  tabMessages: Record<string, any>;
+  conf: BackgroundConf;
+  browser: Pick<BrowserAdapter, "loadRawSettings">;
+  sendTabMessage: (tabId: number, frameId: number, message: unknown) => void;
+  tabMessages: Record<string, unknown>;
   setScrollPos: (tabId: number) => void;
   handlers: Record<string, MessageHandler>;
   newTabUrl: string;
@@ -101,9 +135,11 @@ export type SettingsDeps = {
  */
 export type SettingsUnit = {
   handlers: Record<string, MessageHandler>;
-  loadSettings: (keys: any) => Promise<any>;
-  updateAndPostSettings: (diffSettings: any) => Promise<void>;
-  broadcastSettings: (data: any) => Promise<void>;
+  loadSettings: (
+    keys: string | readonly string[] | null | undefined,
+  ) => Promise<Record<string, unknown>>;
+  updateAndPostSettings: (diffSettings: Record<string, unknown>) => Promise<void>;
+  broadcastSettings: (data: Record<string, unknown>) => Promise<void>;
 };
 
 /**
@@ -120,7 +156,9 @@ export function createSettings(deps: SettingsDeps): SettingsUnit {
 
   const isMV3 = chrome.runtime.getManifest().manifest_version === 3;
 
-  async function loadSettings(keys: any): Promise<any> {
+  async function loadSettings(
+    keys: string | readonly string[] | null | undefined,
+  ): Promise<Record<string, unknown>> {
     const tmpSet = {
       blocklist: {},
       marks: {},
@@ -129,20 +167,21 @@ export function createSettings(deps: SettingsDeps): SettingsUnit {
       sessions: {},
     };
 
-    const set = await browser.loadRawSettings(keys, tmpSet);
-    if (set.localPath) {
-      const r = await request(appendNonce(set.localPath));
+    const set: Record<string, unknown> = await browser.loadRawSettings(keys, tmpSet);
+    const localPath = set["localPath"];
+    if (typeof localPath === "string") {
+      const r = await request(appendNonce(localPath));
       if (Result.isSuccess(r)) {
-        set.snippets = r.value;
+        set["snippets"] = r.value;
       } else {
-        set.error = "Failed to read snippets from " + set.localPath;
+        set["error"] = "Failed to read snippets from " + localPath;
       }
     }
     return set;
   }
 
-  async function _updateSettings(diffSettings: any): Promise<void> {
-    diffSettings.savedAt = Date.now();
+  async function _updateSettings(diffSettings: Record<string, unknown>): Promise<void> {
+    diffSettings["savedAt"] = Date.now();
     await _save(chrome.storage.local, diffSettings);
     // The sync write is fire-and-forget (local is the source of truth), but a
     // rejection here (e.g. sync quota) must be caught: an unhandled rejection can
@@ -152,42 +191,49 @@ export function createSettings(deps: SettingsDeps): SettingsUnit {
     });
   }
 
-  async function _broadcastSettings(data: any): Promise<void> {
+  async function _broadcastSettings(data: Record<string, unknown>): Promise<void> {
     const tabs = await chrome.tabs.query({});
     tabs.forEach((tab) => {
-      sendTabMessage(tab.id!, -1, {
-        subject: "settingsUpdated",
-        settings: data,
-      });
+      if (tab.id != null) {
+        sendTabMessage(tab.id, -1, {
+          subject: "settingsUpdated",
+          settings: data,
+        });
+      }
     });
   }
 
-  async function _updateAndPostSettings(diffSettings: any): Promise<void> {
+  async function _updateAndPostSettings(diffSettings: Record<string, unknown>): Promise<void> {
     await _broadcastSettings(diffSettings);
     await _updateSettings(diffSettings);
   }
 
-  function getSenderUrl(sender: any) {
+  function getSenderUrl(sender: chrome.runtime.MessageSender): string | undefined {
     // use the tab's url if sender is a frame with blank url.
-    return sender.frameId !== 0 && sender.url === "about:blank" ? sender.tab.url : sender.url;
+    return sender.frameId !== 0 && sender.url === "about:blank" ? sender.tab?.url : sender.url;
   }
-  function _getState(set: any, url: any, blocklistPattern: any, lurkingPattern: any) {
-    if (set.blocklist[".*"]) {
+  function _getState(
+    blocklist: Record<string, unknown>,
+    url: URL | null,
+    blocklistPattern: { source: string; flags: string } | undefined,
+    lurkingPattern: { source: string; flags: string } | undefined,
+  ) {
+    if (blocklist[".*"]) {
       return "disabled";
     }
     if (url) {
-      if (set.blocklist[url.origin]) {
+      if (blocklist[url.origin]) {
         return "disabled";
       }
       if (blocklistPattern) {
-        blocklistPattern = new RegExp(blocklistPattern.source, blocklistPattern.flags);
-        if (blocklistPattern.test(url.href)) {
+        const re = new RegExp(blocklistPattern.source, blocklistPattern.flags);
+        if (re.test(url.href)) {
           return "disabled";
         }
       }
       if (lurkingPattern) {
-        lurkingPattern = new RegExp(lurkingPattern.source, lurkingPattern.flags);
-        if (lurkingPattern.test(url.href)) {
+        const re = new RegExp(lurkingPattern.source, lurkingPattern.flags);
+        if (re.test(url.href)) {
           return "lurking";
         }
       }
@@ -205,7 +251,7 @@ export function createSettings(deps: SettingsDeps): SettingsUnit {
     return url;
   }
 
-  async function _loadSettingsFromUrl(url: string): Promise<any> {
+  async function _loadSettingsFromUrl(url: string): Promise<{ status: string; snippets?: string }> {
     const r = await request(appendNonce(url));
     if (Result.isSuccess(r)) {
       const resp = r.value;
@@ -216,12 +262,12 @@ export function createSettings(deps: SettingsDeps): SettingsUnit {
     return { status: "Failed" };
   }
 
-  async function registerUserScript(snippets: any): Promise<void> {
+  async function registerUserScript(snippets: unknown): Promise<void> {
     if (!isUserScriptsAvailable()) {
       return;
     }
     const userScriptId = "settingsSnippets";
-    if (snippets) {
+    if (typeof snippets === "string" && snippets) {
       const r = await chrome.userScripts.getScripts({ ids: [userScriptId] });
       const code = `import('./api.js').then((module) => {module.default("${chrome.runtime.getURL("/")}", (api, settings) => {${snippets}\n})});`;
       const script = {
@@ -246,16 +292,16 @@ export function createSettings(deps: SettingsDeps): SettingsUnit {
     }
   }
 
-  async function onFullSettingsRequested(data: any): Promise<void> {
-    data.isMV3 = isMV3;
-    data.isUserScriptsAvailable = isUserScriptsAvailable();
+  async function onFullSettingsRequested(data: Record<string, unknown>): Promise<void> {
+    data["isMV3"] = isMV3;
+    data["isUserScriptsAvailable"] = isUserScriptsAvailable();
     if (isMV3) {
-      data.showAdvanced = data.isUserScriptsAvailable && data.showAdvanced;
+      data["showAdvanced"] = data["isUserScriptsAvailable"] && data["showAdvanced"];
     }
 
-    if (data.isUserScriptsAvailable && data.showAdvanced) {
-      await registerUserScript(data.snippets);
-    } else if (data.isUserScriptsAvailable) {
+    if (data["isUserScriptsAvailable"] && data["showAdvanced"]) {
+      await registerUserScript(data["snippets"]);
+    } else if (data["isUserScriptsAvailable"]) {
       await registerUserScript(null);
     }
   }
@@ -269,79 +315,93 @@ export function createSettings(deps: SettingsDeps): SettingsUnit {
   }
 
   const handlersMap: Record<string, MessageHandler> = {
-    toggleBlocklist: async (message: any, sender: any) => {
+    toggleBlocklist: async (message: unknown, sender?: chrome.runtime.MessageSender) => {
+      if (!sender) {
+        return undefined;
+      }
+      const { blocklistPattern, lurkingPattern } = v.parse(togglePatternMessageSchema, message);
       const data = await loadSettings("blocklist");
+      const blocklist = v.parse(blocklistSchema, data["blocklist"]);
+      const senderUrl = getSenderUrl(sender);
       let origin = ".*";
-      const senderOrigin = sender.origin || new URL(getSenderUrl(sender)).origin;
+      const senderOrigin = sender.origin || (senderUrl != null ? new URL(senderUrl).origin : "");
       if (
         chrome.runtime.getURL("/").toLowerCase().indexOf(senderOrigin.toLowerCase()) !== 0 &&
         senderOrigin !== "null"
       ) {
         origin = senderOrigin;
       }
-      if (Object.hasOwn(data.blocklist, origin)) {
-        delete data.blocklist[origin];
+      if (Object.hasOwn(blocklist, origin)) {
+        delete blocklist[origin];
       } else {
-        data.blocklist[origin] = 1;
+        blocklist[origin] = 1;
       }
-      await _updateAndPostSettings({ blocklist: data.blocklist });
+      await _updateAndPostSettings({ blocklist });
       return {
         state: _getState(
-          data,
-          sender.tab ? new URL(getSenderUrl(sender)) : null,
-          message.blocklistPattern,
-          message.lurkingPattern,
+          blocklist,
+          sender.tab && senderUrl != null ? new URL(senderUrl) : null,
+          blocklistPattern,
+          lurkingPattern,
         ),
-        blocklist: data.blocklist,
+        blocklist,
         url: origin,
       };
     },
-    toggleMouseQuery: async (message: any, sender: any) => {
+    toggleMouseQuery: async (message: unknown, sender?: chrome.runtime.MessageSender) => {
+      const { origin } = v.parse(mouseQueryMessageSchema, message);
       const data = await loadSettings("mouseSelectToQuery");
-      if (sender.tab && sender.tab.url.indexOf(chrome.runtime.getURL("/")) !== 0) {
-        const mouseSelectToQuery = data.mouseSelectToQuery || [];
-        const idx = mouseSelectToQuery.indexOf(message.origin);
+      const senderTabUrl = sender?.tab?.url;
+      if (senderTabUrl != null && senderTabUrl.indexOf(chrome.runtime.getURL("/")) !== 0) {
+        const mouseSelectToQuery =
+          v.parse(mouseSelectToQuerySchema, data["mouseSelectToQuery"]) ?? [];
+        const idx = mouseSelectToQuery.indexOf(origin);
         if (idx === -1) {
-          mouseSelectToQuery.push(message.origin);
+          mouseSelectToQuery.push(origin);
         } else {
           mouseSelectToQuery.splice(idx, 1);
         }
-        await _updateAndPostSettings({ mouseSelectToQuery: mouseSelectToQuery });
+        await _updateAndPostSettings({ mouseSelectToQuery });
       }
     },
-    getState: async (message: any, sender: any) => {
+    getState: async (message: unknown, sender?: chrome.runtime.MessageSender) => {
+      const { blocklistPattern, lurkingPattern } = v.parse(togglePatternMessageSchema, message);
       const data = await loadSettings(["blocklist"]);
-      if (sender.tab) {
+      if (sender?.tab) {
+        const senderUrl = getSenderUrl(sender);
         return {
           state: _getState(
-            data,
-            new URL(getSenderUrl(sender)),
-            message.blocklistPattern,
-            message.lurkingPattern,
+            v.parse(blocklistSchema, data["blocklist"]),
+            senderUrl != null ? new URL(senderUrl) : null,
+            blocklistPattern,
+            lurkingPattern,
           ),
         };
       }
       return undefined;
     },
-    addVIMark: async (message: any) => {
+    addVIMark: async (message: unknown) => {
+      const { mark } = v.parse(addVIMarkMessageSchema, message);
       const data = await loadSettings("marks");
-      extendObject(data.marks, message.mark);
-      await _updateAndPostSettings({ marks: data.marks });
+      const marks = v.parse(marksSchema, data["marks"]);
+      extendObject(marks, mark);
+      await _updateAndPostSettings({ marks });
     },
-    jumpVIMark: async (message: any, sender: any, sendResponse: any) => {
+    jumpVIMark: async (message: unknown, sender?: chrome.runtime.MessageSender, sendResponse?) => {
+      const { mark } = v.parse(jumpVIMarkMessageSchema, message);
       const data = await loadSettings("marks");
-      const marks = data.marks;
-      if (!Object.hasOwn(marks, message.mark)) {
+      const marks = v.parse(marksSchema, data["marks"]);
+      const markInfo = marks[mark];
+      if (!markInfo) {
         return undefined;
       }
-      const markInfo = marks[message.mark];
       const allTabs = await chrome.tabs.query({});
       const tabs = allTabs.filter((t) => {
-        return t.url === markInfo.url;
+        return t.url === markInfo["url"];
       });
 
       if (tabs.length === 0) {
-        markInfo.tab = {
+        markInfo["tab"] = {
           tabbed: true,
           active: true,
         };
@@ -351,16 +411,20 @@ export function createSettings(deps: SettingsDeps): SettingsUnit {
         }
         return undefined;
       }
-      if (markInfo.scrollLeft || markInfo.scrollTop) {
-        tabMessages[tabs[0]!.id!] = {
-          scrollLeft: markInfo.scrollLeft,
-          scrollTop: markInfo.scrollTop,
+      const firstTabId = tabs[0]?.id;
+      if (firstTabId == null) {
+        return undefined;
+      }
+      if (markInfo["scrollLeft"] || markInfo["scrollTop"]) {
+        tabMessages[firstTabId] = {
+          scrollLeft: markInfo["scrollLeft"],
+          scrollTop: markInfo["scrollTop"],
         };
       }
-      if (tabs[0]!.id === sender.tab.id) {
-        _setScrollPos_bg(tabs[0]!.id!);
+      if (firstTabId === sender?.tab?.id) {
+        _setScrollPos_bg(firstTabId);
       } else {
-        chrome.tabs.update(tabs[0]!.id!, {
+        chrome.tabs.update(firstTabId, {
           active: true,
         });
       }
@@ -375,33 +439,44 @@ export function createSettings(deps: SettingsDeps): SettingsUnit {
       await _broadcastSettings(data);
       return { settings: data };
     },
-    loadSettingsFromUrl: (message: any) => _loadSettingsFromUrl(message.url),
-    getSettings: async (message: any) => {
-      let data: any;
-      if (message.key === "RAW") {
-        message.key = "";
-        data = await browser.loadRawSettings(message.key);
+    loadSettingsFromUrl: (message: unknown) =>
+      _loadSettingsFromUrl(v.parse(urlMessageSchema, message).url),
+    getSettings: async (message: unknown) => {
+      const parsed = v.parse(getSettingsMessageSchema, message);
+      let key = parsed.key;
+      let data: Record<string, unknown>;
+      if (key === "RAW") {
+        key = "";
+        data = await browser.loadRawSettings(key);
       } else {
-        data = await loadSettings(message.key);
+        data = await loadSettings(key);
       }
-      if (message.key == null) {
+      if (key == null) {
         await onFullSettingsRequested(data);
       }
       return { settings: data };
     },
-    updateSettings: async (message: any) => {
+    updateSettings: async (message: unknown) => {
+      const { scope, settings } = v.parse(updateSettingsMessageSchema, message);
       const error = "";
-      if (message.scope === "snippets") {
+      if (scope === "snippets") {
         // For settings from snippets, don't broadcast the update
         // neither persist into storage
-        for (const k in message.settings) {
-          if (Object.hasOwn(conf, k)) {
-            conf[k] = message.settings[k];
+        const confKeys = [
+          "focusAfterClosed",
+          "tabsMRUOrder",
+          "newTabPosition",
+          "showTabIndices",
+          "interceptedErrors",
+        ] as const;
+        for (const k of confKeys) {
+          if (Object.hasOwn(settings, k)) {
+            Object.assign(conf, { [k]: settings[k] });
           }
         }
         return { error };
       }
-      if (message.settings.showAdvanced && isMV3) {
+      if (settings["showAdvanced"] && isMV3) {
         if (!isUserScriptsAvailable()) {
           return {
             error:
@@ -412,32 +487,33 @@ export function createSettings(deps: SettingsDeps): SettingsUnit {
           csp: "script-src 'self' 'unsafe-eval'",
           messaging: true,
         });
-        await _updateAndPostSettings(message.settings);
-        await registerUserScript(message.settings.snippets);
+        await _updateAndPostSettings(settings);
+        await registerUserScript(settings["snippets"]);
         return { error };
       }
-      await _updateAndPostSettings(message.settings);
+      await _updateAndPostSettings(settings);
       return { error };
     },
-    updateInputHistory: async (message: any) => {
+    updateInputHistory: async (message: unknown) => {
+      const record = v.parse(v.record(v.string(), v.unknown()), message);
       let key: string | undefined = undefined;
-      let value: any;
-      for (const k in message) {
+      let value: unknown;
+      for (const k in record) {
         key = k + "History";
-        value = message[k];
+        value = record[k];
         break;
       }
       if (!key) {
         return undefined;
       }
       const data = await loadSettings(key);
-      let curr = data[key] || [];
-      const toUpdate: Record<string, any> = {};
-      if (value.constructor.name === "Array") {
+      let curr = v.parse(inputHistorySchema, data[key]) ?? [];
+      const toUpdate: Record<string, unknown> = {};
+      if (Array.isArray(value)) {
         toUpdate[key] = value;
         await _updateAndPostSettings(toUpdate);
-      } else if (value.trim().length && value !== ".") {
-        curr = curr.filter((c: string) => {
+      } else if (typeof value === "string" && value.trim().length && value !== ".") {
+        curr = curr.filter((c) => {
           return c.trim().length && c !== value && c !== ".";
         });
         curr.unshift(value);
@@ -449,44 +525,46 @@ export function createSettings(deps: SettingsDeps): SettingsUnit {
       }
       return { history: curr };
     },
-    createSession: async (message: any) => {
+    createSession: async (message: unknown) => {
+      const { name, quitAfterSaved } = v.parse(createSessionMessageSchema, message);
       const data = await loadSettings("sessions");
+      const sessions = v.parse(sessionsSchema, data["sessions"]);
       const tabs = await chrome.tabs.query({});
-      const tabGroup: Record<string, any[]> = {};
+      const tabGroup: Record<number, (string | undefined)[]> = {};
       tabs.forEach((tab) => {
-        if (tab && tab.index !== void 0) {
-          if (!Object.hasOwn(tabGroup, tab.windowId)) {
-            tabGroup[tab.windowId] = [];
-          }
-          const group = tabGroup[tab.windowId];
-          if (group && tab.url !== newTabUrl) {
+        if (tab.index !== undefined) {
+          const group = tabGroup[tab.windowId] ?? [];
+          if (tab.url !== newTabUrl) {
             group.push(tab.url);
           }
+          tabGroup[tab.windowId] = group;
         }
       });
-      const tabg = [];
+      const tabg: (string | undefined)[][] = [];
       for (const k in tabGroup) {
         const group = tabGroup[k];
         if (group && group.length) {
           tabg.push(group);
         }
       }
-      data.sessions[message.name] = {};
-      data.sessions[message.name]["tabs"] = tabg;
+      sessions[name] = { tabs: tabg };
       await _updateAndPostSettings({
-        sessions: data.sessions,
+        sessions,
       });
-      if (message.quitAfterSaved) {
+      if (quitAfterSaved) {
         _quit();
       }
     },
-    openSession: async (message: any) => {
+    openSession: async (message: unknown) => {
+      const { name } = v.parse(sessionNameMessageSchema, message);
       const data = await loadSettings("sessions");
-      if (!Object.hasOwn(data.sessions, message.name)) {
+      const sessions = v.parse(sessionsSchema, data["sessions"]);
+      const session = sessions[name];
+      if (!session) {
         return;
       }
-      const urls = data.sessions[message.name]["tabs"];
-      urls[0].forEach((url: string) => {
+      const { tabs: urls } = v.parse(sessionTabsSchema, session);
+      urls[0]?.forEach((url) => {
         chrome.tabs.create({
           url: url,
           active: false,
@@ -494,11 +572,10 @@ export function createSettings(deps: SettingsDeps): SettingsUnit {
         });
       });
       for (let i = 1; i < urls.length; i++) {
-        const a = urls[i];
         const win = await chrome.windows.create({});
-        a.forEach((url: string) => {
+        urls[i]?.forEach((url) => {
           chrome.tabs.create({
-            windowId: win!.id,
+            windowId: win?.id,
             url: url,
             active: false,
             pinned: false,
@@ -512,11 +589,13 @@ export function createSettings(deps: SettingsDeps): SettingsUnit {
         }),
       );
     },
-    deleteSession: async (message: any) => {
+    deleteSession: async (message: unknown) => {
+      const { name } = v.parse(sessionNameMessageSchema, message);
       const data = await loadSettings("sessions");
-      delete data.sessions[message.name];
+      const sessions = v.parse(sessionsSchema, data["sessions"]);
+      delete sessions[name];
       await _updateAndPostSettings({
-        sessions: data.sessions,
+        sessions,
       });
     },
   };

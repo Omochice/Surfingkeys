@@ -12,10 +12,20 @@ import createVisual from "./visual";
  */
 type FrontLike = {
   executeCommand(cmd: string): void;
-  addSearchAlias?: (...args: any[]) => void;
+  addSearchAlias?: (
+    alias: string,
+    prompt: string,
+    search_url: string,
+    suggestion_url?: string,
+    callback?: (response: unknown, request: unknown) => unknown,
+    options?: { skipMaps?: boolean; favicon_url?: string },
+  ) => void;
   removeSearchAlias(alias: string): void;
   openOmnibar(args: unknown): void;
   openOmniquery(args: unknown): void;
+  // Forwarded verbatim to a dynamic front method and an any-typed action registry; a narrower
+  // parameter would break either the assignment from the real front or the forwarding target.
+  // eslint-disable-next-line typescript/no-explicit-any
   registerInlineQuery: (...args: any[]) => void;
   setHintsCharacters?: (chars: string) => void;
   chooseTab(): void;

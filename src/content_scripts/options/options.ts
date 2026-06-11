@@ -5,16 +5,25 @@ import { reportError } from "../common/report";
 import type { StoredSettings } from "../common/runtime";
 import { hide, requireElement, show } from "../common/utils";
 
-type RuntimeFn = (
+type RuntimeFn = <R = unknown>(
   action: string,
   args?: Record<string, unknown> | null,
-  callback?: (resp: any) => void,
+  callback?: (resp: R) => void,
 ) => Result.Result<void, ChromeRuntimeError>;
 type KeyboardUtilsLike = {
   encodeKeystroke(k: string): string;
   decodeKeystroke(k: string): string;
 };
+// The injected Mode constructor produces a structural self augmented with editor expandos below;
+// its instance type is `any` for the same reason the other mode selfs are.
+// eslint-disable-next-line typescript/no-explicit-any
 type ModeCtor = new (name: string) => any;
+
+/** A search-engine alias as the omnibar reports it: a label or an `{ html }` icon prompt. */
+type AliasInfo = { prompt: string | { html: string } };
+
+/** A default keystroke binding the options page lets the user re-map, with its help annotation. */
+type BasicMapping = { origin: string; annotation: string | string[] | undefined };
 
 export default function optionsMain(
   RUNTIME: RuntimeFn,
@@ -32,7 +41,11 @@ export default function optionsMain(
   setSanitizedContent: (elm: Element, str: string) => void,
   showBanner: (msg: string, timeout?: number) => void,
 ): void {
+  // Structural editor self: createMappingEditor returns a Mode augmented with editor expandos
+  // (container/setValue/getValue/...), so both the holder and its return type are `any`.
+  // eslint-disable-next-line typescript/no-explicit-any
   let mappingsEditor: any = null;
+  // eslint-disable-next-line typescript/no-explicit-any
   function createMappingEditor(elmId: string): any {
     const existing = document.getElementById(elmId);
     let textarea: HTMLTextAreaElement;
@@ -119,7 +132,7 @@ export default function optionsMain(
             showAdvanced: newFlag,
           },
         },
-        (resp) => {
+        (resp: { error?: string }) => {
           if (resp.error) {
             showBanner(resp.error, 3000);
           } else {
@@ -137,7 +150,7 @@ export default function optionsMain(
         "WARNING! This will clear all your settings. Click this again to continue.";
     } else {
       reportOnFail(
-        RUNTIME("resetSettings", null, (response) => {
+        RUNTIME("resetSettings", null, (response: { settings: StoredSettings }) => {
           renderSettings(response.settings);
           renderKeyMappings(response.settings);
           showBanner("Settings reset", 1000);
@@ -177,7 +190,7 @@ export default function optionsMain(
           {
             url: localPath,
           },
-          (res) => {
+          (res: StoredSettings & { status?: number | string; snippets?: string }) => {
             showBanner(res.status + " to load settings from " + localPath, 5000);
             renderKeyMappings(res);
             if (res.snippets && res.snippets.length) {
@@ -206,7 +219,7 @@ export default function optionsMain(
   }
   requireElement("#save_button").onclick = saveSettings;
 
-  let basicMappings: any[] = [
+  const basicMappingKeys: string[] = [
     "d",
     "R",
     "f",
@@ -260,9 +273,10 @@ export default function optionsMain(
     ";j",
   ];
 
+  let basicMappings: BasicMapping[] = [];
   document.addEventListener("surfingkeys:defaultSettingsLoaded", (evt) => {
     const { normal } = (evt as CustomEvent).detail;
-    basicMappings = basicMappings
+    basicMappings = basicMappingKeys
       .map((w) => {
         const binding = normal.mappings.find(KeyboardUtils.encodeKeystroke(w));
         return binding ? { origin: w, annotation: binding.meta.annotation } : null;
@@ -270,14 +284,20 @@ export default function optionsMain(
       .filter((m) => m !== null);
   });
 
-  function renderSearchAlias(frontCommand: any, disabledSearchAliases: Record<string, any>): void {
-    new Promise<Record<string, any>>((r) => {
+  function renderSearchAlias(
+    frontCommand: (
+      args: Record<string, unknown>,
+      callback: (response: { aliases: Record<string, AliasInfo> }) => void,
+    ) => void,
+    disabledSearchAliases: Record<string, string>,
+  ): void {
+    new Promise<Record<string, AliasInfo>>((r) => {
       const getSearchAliases = () => {
         frontCommand(
           {
             action: "getSearchAliases",
           },
-          (response: any) => {
+          (response: { aliases: Record<string, AliasInfo> }) => {
             if (Object.keys(response.aliases).length > 0) {
               r(response.aliases);
             } else {
@@ -341,13 +361,14 @@ export default function optionsMain(
   function renderKeyMappings(rs: StoredSettings): void {
     initL10n((locale) => {
       const customization = basicMappings.map((w) => {
-        let newKey = w.origin;
+        let newKey: string | undefined = w.origin;
         if (rs.basicMappings && Object.hasOwn(rs.basicMappings, w.origin)) {
           newKey = rs.basicMappings[w.origin];
         }
+        const annotation = typeof w.annotation === "string" ? w.annotation : "";
         return `<div>
-                    <span class=annotation>${locale(w.annotation)}</span>
-                    <span class=kbd-span><kbd data-origin="${w.origin}" data-custom="${newKey}">${newKey ? htmlEncode(newKey) : "🚫"}</kbd></span>
+                    <span class=annotation>${locale(annotation)}</span>
+                    <span class=kbd-span><kbd data-origin="${w.origin}" data-custom="${newKey ?? ""}">${newKey ? htmlEncode(newKey) : "🚫"}</kbd></span>
                 </div>`;
       });
 
@@ -384,7 +405,7 @@ export default function optionsMain(
 
     let _key = "";
     const keyPickerDiv = requireElement("#keyPicker");
-    self.addEventListener("keydown", (event: any) => {
+    self.addEventListener("keydown", (event: KeyboardEvent) => {
       if (event.keyCode === 27) {
         hide(keyPickerDiv);
         self.exit();
@@ -396,8 +417,10 @@ export default function optionsMain(
       } else if (event.keyCode === 13) {
         hide(keyPickerDiv);
         self.exit();
-        setSanitizedContent(_elm, _key !== "" ? htmlEncode(_key) : "🚫");
-        _elm.dataset["custom"] = _key;
+        if (_elm) {
+          setSanitizedContent(_elm, _key !== "" ? htmlEncode(_key) : "🚫");
+          _elm.dataset["custom"] = _key;
+        }
         const realDefMap: Record<string, string> = {};
         Array.from(basicMappingsDiv.querySelectorAll("kbd")).forEach((el) => {
           const n = el.dataset["custom"];
@@ -414,7 +437,8 @@ export default function optionsMain(
           reportError,
         );
       } else {
-        if (event.sk_keyName.length > 1) {
+        const keyName = event.sk_keyName ?? "";
+        if (keyName.length > 1) {
           const keyStr = JSON.stringify(
             {
               metaKey: event.metaKey,
@@ -429,18 +453,18 @@ export default function optionsMain(
             null,
             4,
           );
-          reportIssue(`Unrecognized key event: ${event.sk_keyName}`, keyStr);
+          reportIssue(`Unrecognized key event: ${keyName}`, keyStr);
         } else {
-          _key += KeyboardUtils.decodeKeystroke(event.sk_keyName);
+          _key += KeyboardUtils.decodeKeystroke(keyName);
           showKey();
         }
       }
       event.sk_stopPropagation = true;
     });
 
-    let _elm: any;
+    let _elm: HTMLElement | null = null;
     const _enter = self.enter;
-    self.enter = (elm: any) => {
+    self.enter = (elm: HTMLElement) => {
       _enter.call(self);
 
       _key = elm.innerText;

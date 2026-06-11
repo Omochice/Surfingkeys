@@ -250,43 +250,47 @@ function showPopup(msg: string): void {
 
 function initSKFunctionListener(
   name: string,
+  // Heterogeneous handler registry: each listener has its own concrete parameter list and is invoked
+  // with the event's spread detail, so no single non-any signature accepts and calls them all.
+  // eslint-disable-next-line typescript/no-explicit-any
   interfaces: Record<string, (...args: any[]) => void>,
   capture?: boolean,
+  // eslint-disable-next-line typescript/no-explicit-any
 ): Record<string, (...args: any[]) => void> {
+  // eslint-disable-next-line typescript/no-explicit-any
   const callbacks: Record<string, (...args: any[]) => void> = {};
 
   const opts = capture ? { capture: true } : {};
   document.addEventListener(
     `surfingkeys:${name}`,
     (evt) => {
-      const ce = evt as CustomEvent<any[]>;
+      const ce = evt as CustomEvent<unknown[]>;
       const args = ce.detail;
       const fk = args.shift();
       if (capture) {
         const target = ce.target;
-        if (
-          args.length > 0 &&
-          args[0].constructor.name === "Array" &&
-          args[0][0] === "__EVENT_TARGET__"
-        ) {
+        const first = args[0];
+        if (args.length > 0 && Array.isArray(first) && first[0] === "__EVENT_TARGET__") {
           // restore args from evt.target, see src/content_scripts/common/hints.js:442
-          args[0][0] = target;
+          first[0] = target;
         } else {
           args.push(target);
         }
       }
 
-      if (Object.hasOwn(callbacks, fk)) {
-        const cb = callbacks[fk];
-        if (cb) {
-          cb(...args);
+      if (typeof fk === "string") {
+        if (Object.hasOwn(callbacks, fk)) {
+          const cb = callbacks[fk];
+          if (cb) {
+            cb(...args);
+          }
+          delete callbacks[fk];
         }
-        delete callbacks[fk];
-      }
-      if (Object.hasOwn(interfaces, fk)) {
-        const iface = interfaces[fk];
-        if (iface) {
-          iface(...args);
+        if (Object.hasOwn(interfaces, fk)) {
+          const iface = interfaces[fk];
+          if (iface) {
+            iface(...args);
+          }
         }
       }
     },
@@ -321,41 +325,67 @@ function dispatchMouseEvent(
   });
 }
 
-function getRealEdit(event?: Event): any {
-  let rt: any = event ? event.target : document.activeElement;
+/** True when the element exposes the text-input editing surface (value/selection APIs). */
+function isTextInput(element: Element | null): element is HTMLInputElement | HTMLTextAreaElement {
+  return element instanceof HTMLInputElement || element instanceof HTMLTextAreaElement;
+}
+
+function getRealEdit(event?: Event): HTMLElement | null {
+  const target = event ? event.target : document.activeElement;
+  if (target === window) {
+    return document.body;
+  }
+  let rt: Element | null = target instanceof Element ? target : null;
   // on some pages like chrome://history/, input is in shadowRoot of several other recursive shadowRoots.
-  while (rt && rt.shadowRoot) {
+  while (rt?.shadowRoot) {
     if (rt.shadowRoot.activeElement) {
       rt = rt.shadowRoot.activeElement;
-    } else if (rt.shadowRoot.querySelector("input, textarea, select")) {
-      rt = rt.shadowRoot.querySelector("input, textarea, select");
-      break;
     } else {
+      const nested = rt.shadowRoot.querySelector("input, textarea, select");
+      if (nested) {
+        rt = nested;
+      }
       break;
     }
   }
-  if (rt === window) {
-    rt = document.body;
-  }
-  return rt;
+  return rt instanceof HTMLElement ? rt : null;
 }
 
 function toggleQuote(): void {
-  const elm = getRealEdit(),
-    val = elm.value;
+  const elm = getRealEdit();
+  if (!isTextInput(elm)) {
+    return;
+  }
+  const val = elm.value;
   elm.value = /^"|"$/.test(val) ? val.replace(/^"?(.*?)"?$/, "$1") : '"' + val + '"';
 }
 
-function isEditable(element: any): boolean {
+function isEditable(element: unknown): boolean {
+  if (!(element instanceof Element)) {
+    return false;
+  }
+  const formElement =
+    element instanceof HTMLInputElement ||
+    element instanceof HTMLTextAreaElement ||
+    element instanceof HTMLSelectElement
+      ? element
+      : null;
+  if (formElement?.disabled) {
+    return false;
+  }
+  const { localName } = element;
+  if (localName === "textarea" || localName === "select") {
+    return true;
+  }
+  if (element instanceof HTMLElement && element.isContentEditable) {
+    return true;
+  }
+  if (element.matches(runtime.conf.editableSelector)) {
+    return true;
+  }
   return (
-    element &&
-    !element.disabled &&
-    (element.localName === "textarea" ||
-      element.localName === "select" ||
-      element.isContentEditable ||
-      (element.matches && element.matches(runtime.conf.editableSelector)) ||
-      (element.localName === "input" &&
-        /^(?!button|checkbox|file|hidden|image|radio|reset|submit)/i.test(element.type)))
+    formElement instanceof HTMLInputElement &&
+    /^(?!button|checkbox|file|hidden|image|radio|reset|submit)/i.test(formElement.type)
   );
 }
 
@@ -1078,7 +1108,10 @@ function removeAttributes(el: HTMLElement): void {
   }
 }
 
-function httpRequest(args: Record<string, unknown>, onSuccess: (response: any) => void): void {
+function httpRequest<R = unknown>(
+  args: Record<string, unknown>,
+  onSuccess: (response: R) => void,
+): void {
   args["method"] = "get";
   RUNTIME("request", args, onSuccess);
 }
@@ -1123,6 +1156,10 @@ function getCssSelectorsOfEditable(): string {
 // here by refreshHints. Lets HintElement drop these expandos. `link` is the
 // arbitrary payload (target element or string) the caller stored, hence `any`.
 const hintLabel = new WeakMap<HTMLElement, string>();
+// Hint payload store: values are a heterogeneous mix (HTMLElement for regional hints, a label string,
+// or a { id, windowId } tab descriptor) consumed polymorphically; `unknown` would cascade narrowing
+// across every matched-payload reader.
+// eslint-disable-next-line typescript/no-explicit-any
 const hintLink = new WeakMap<HTMLElement, any>();
 
 type Hint = HTMLElement;
@@ -1235,6 +1272,7 @@ export {
   getRealRect,
   getTextNodePos,
   getTextNodes,
+  isTextInput,
   getTextRect,
   getVisibleElements,
   getWordUnderCursor,

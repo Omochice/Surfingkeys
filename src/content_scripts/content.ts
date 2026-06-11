@@ -7,6 +7,7 @@ import createNormal from "./common/normal";
 import startScrollNodeObserver from "./common/observer";
 import { reportError } from "./common/report";
 import { RUNTIME, dispatchSKEvent, runtime } from "./common/runtime";
+import type { StoredSettings } from "./common/runtime";
 import { generateQuickGuid, getRealEdit, isInUIFrame, showBanner } from "./common/utils";
 import createFront from "./front";
 import { applySettings } from "./settingsApplication";
@@ -22,7 +23,8 @@ let _browser: BrowserAdapter = {};
 
 type Api = ReturnType<typeof createAPI>;
 type Normal = ReturnType<typeof createNormal>;
-type Modes = { normal: Normal; front: any; api: Api };
+type Front = ReturnType<typeof createFront>;
+type Modes = { normal: Normal; front: Front; api: Api };
 
 const userConfPromise = new Promise<typeof runtime.conf>((resolve) => {
   document.addEventListener(
@@ -51,7 +53,7 @@ function _initModules(): Modes {
 
   dispatchSKEvent("defaultSettingsLoaded", { normal, api });
   reportOnFail(
-    RUNTIME("getSettings", null, (response) => {
+    RUNTIME("getSettings", null, (response: { settings: StoredSettings }) => {
       const rs = response.settings;
       applySettings(api, normal, rs);
       const disabledSearchAliases = rs.disabledSearchAliases;
@@ -168,7 +170,7 @@ function start(adapter?: BrowserAdapter): void {
             title: document.title,
             url: window.location.href,
           },
-          (resp) => {
+          (resp: { index: number }) => {
             if (resp.index > 0) {
               const showTabIndexInTitle = () => {
                 skipObserver = true;

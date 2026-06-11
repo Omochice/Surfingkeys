@@ -3,7 +3,12 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { expectDefined } from "../../test/helpers";
 import { createHistoryHandlers } from "./history";
 
-type AnyChrome = { history?: any; topSites?: any; sessions?: any; bookmarks?: any };
+type AnyChrome = {
+  history?: unknown;
+  topSites?: unknown;
+  sessions?: unknown;
+  bookmarks?: unknown;
+};
 const g = globalThis as unknown as { chrome: AnyChrome };
 
 afterEach(() => {
@@ -22,7 +27,7 @@ function browserWith(items: any[]) {
 
 // The injected filter is exercised by start.ts; here it is identity so the
 // handler's own shaping is what gets asserted.
-const identityFilter = (items: readonly any[]) => items;
+const identityFilter = <T>(items: readonly T[]): readonly T[] => items;
 
 describe("createHistoryHandlers", () => {
   it("getRecentlyClosed flattens both window and single-tab sessions", async () => {
@@ -38,9 +43,13 @@ describe("createHistoryHandlers", () => {
       "getRecentlyClosed"
     ];
     expectDefined(getRecentlyClosed);
-    const result = await getRecentlyClosed({ query: "" }, {}, vi.fn());
+    const result: { urls: { url?: string }[] } = await getRecentlyClosed(
+      { query: "" },
+      {},
+      vi.fn(),
+    );
 
-    expect(result.urls.map((t: any) => t.url)).toEqual(["https://a", "https://b", "https://c"]);
+    expect(result.urls.map((t) => t.url)).toEqual(["https://a", "https://b", "https://c"]);
   });
 
   it("getTopSites responds with an empty list when chrome.topSites is unavailable", async () => {
@@ -58,9 +67,13 @@ describe("createHistoryHandlers", () => {
     ]);
     const getHistory = createHistoryHandlers(browser, identityFilter)["getHistory"];
     expectDefined(getHistory);
-    const result = await getHistory({ sortByMostUsed: true }, {}, vi.fn());
+    const result: { history: { url?: string }[] } = await getHistory(
+      { sortByMostUsed: true },
+      {},
+      vi.fn(),
+    );
 
-    expect(result.history.map((h: any) => h.url)).toEqual(["https://high", "https://low"]);
+    expect(result.history.map((h) => h.url)).toEqual(["https://high", "https://low"]);
   });
 
   it("getHistory leaves the array returned by the browser unmodified when sorting", async () => {
@@ -82,9 +95,9 @@ describe("createHistoryHandlers", () => {
     const browser = browserWith([{ url: "https://h1" }, { url: "https://h2" }]);
     const getAllURLs = createHistoryHandlers(browser, identityFilter)["getAllURLs"];
     expectDefined(getAllURLs);
-    const result = await getAllURLs({ maxResults: 3 }, {}, vi.fn());
+    const result: { urls: { url?: string }[] } = await getAllURLs({ maxResults: 3 }, {}, vi.fn());
 
-    expect(result.urls.map((u: any) => u.url)).toEqual(["https://bm", "https://h1", "https://h2"]);
+    expect(result.urls.map((u) => u.url)).toEqual(["https://bm", "https://h1", "https://h2"]);
   });
 
   it("getAllURLs slices bookmarks to the requested count when history is not needed", async () => {

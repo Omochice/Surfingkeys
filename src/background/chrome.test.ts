@@ -31,7 +31,7 @@ describe("chromeSpecifics.loadRawSettings", () => {
 
     const result = await chromeSpecifics.loadRawSettings(["theme"]);
 
-    expect(result.theme).toBe("dark");
-    expect(result.error).toMatch(/Settings sync may not work/);
+    expect(result["theme"]).toBe("dark");
+    expect(result["error"]).toMatch(/Settings sync may not work/);
   });
 });

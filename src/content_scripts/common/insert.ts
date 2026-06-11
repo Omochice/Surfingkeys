@@ -7,7 +7,7 @@ import KeyboardUtils from "./keyboardUtils";
 import Mode from "./mode";
 import { runtime } from "./runtime";
 import Trie from "./trie";
-import { getRealEdit, isEditable } from "./utils";
+import { getRealEdit, isEditable, isTextInput } from "./utils";
 
 /**
  * Find the offset of the next non-word character from `cur` in `str`, scanning in direction `dir`
@@ -68,7 +68,7 @@ function createInsert(): InsertMode {
 
   function moveCursorEOL(): void {
     const element = getRealEdit();
-    if (element.setSelectionRange != null) {
+    if (isTextInput(element)) {
       const r = Result.try({
         try: (): void => {
           element.setSelectionRange(element.value.length, element.value.length);
@@ -82,14 +82,14 @@ function createInsert(): InsertMode {
           throw cause;
         }
       }
-    } else if (isEditable(element) && element.childNodes.length > 0) {
+    } else if (element && isEditable(element) && element.childNodes.length > 0) {
       // for contenteditable div; childNodes is a NodeList, which has no Array#at, so use NodeList#item.
       const node = element.childNodes.item(element.childNodes.length - 1);
-      if (node.nodeType === Node.TEXT_NODE) {
+      if (node instanceof Text) {
         document.getSelection()!.setPosition(node, node.data.length);
-      } else if (node.querySelector(".CodeMirror-line")) {
+      } else if (node instanceof Element && node.querySelector(".CodeMirror-line")) {
         setEndOfContenteditable(element);
-      } else {
+      } else if (node) {
         document.getSelection()!.setPosition(node, node.childNodes.length);
       }
     }
@@ -119,7 +119,7 @@ function createInsert(): InsertMode {
     feature_group: 14,
     code: () => {
       const element = getRealEdit();
-      if (element.setSelectionRange != null) {
+      if (isTextInput(element)) {
         element.setSelectionRange(0, 0);
       } else {
         // for contenteditable div
@@ -133,8 +133,8 @@ function createInsert(): InsertMode {
     feature_group: 14,
     code: () => {
       const element = getRealEdit();
-      if (element.setSelectionRange != null) {
-        element.value = element.value.slice(element.selectionStart);
+      if (isTextInput(element)) {
+        element.value = element.value.slice(element.selectionStart ?? 0);
         element.setSelectionRange(0, 0);
       } else {
         // for contenteditable div
@@ -149,8 +149,8 @@ function createInsert(): InsertMode {
     feature_group: 14,
     code: () => {
       const element = getRealEdit();
-      if (element.setSelectionRange != null) {
-        const pos = nextNonWord(element.value, -1, element.selectionStart);
+      if (isTextInput(element)) {
+        const pos = nextNonWord(element.value, -1, element.selectionStart ?? 0);
         element.setSelectionRange(pos, pos);
       } else {
         // for contenteditable div
@@ -163,8 +163,8 @@ function createInsert(): InsertMode {
     feature_group: 14,
     code: () => {
       const element = getRealEdit();
-      if (element.setSelectionRange != null) {
-        const pos = nextNonWord(element.value, 1, element.selectionStart);
+      if (isTextInput(element)) {
+        const pos = nextNonWord(element.value, 1, element.selectionStart ?? 0);
         element.setSelectionRange(pos, pos);
       } else {
         // for contenteditable div
@@ -177,8 +177,8 @@ function createInsert(): InsertMode {
     feature_group: 14,
     code: () => {
       const element = getRealEdit();
-      if (element.setSelectionRange != null) {
-        const pos = deleteNextWord(element.value, -1, element.selectionStart);
+      if (isTextInput(element)) {
+        const pos = deleteNextWord(element.value, -1, element.selectionStart ?? 0);
         element.value = pos[0];
         element.setSelectionRange(pos[1], pos[1]);
       } else {
@@ -199,8 +199,8 @@ function createInsert(): InsertMode {
     feature_group: 14,
     code: () => {
       const element = getRealEdit();
-      if (element.setSelectionRange != null) {
-        const pos = deleteNextWord(element.value, 1, element.selectionStart);
+      if (isTextInput(element)) {
+        const pos = deleteNextWord(element.value, 1, element.selectionStart ?? 0);
         element.value = pos[0];
         element.setSelectionRange(pos[1], pos[1]);
       } else {
@@ -225,7 +225,7 @@ function createInsert(): InsertMode {
       return key.charCodeAt(0) < 256;
     },
     code: () => {
-      getRealEdit().blur();
+      getRealEdit()?.blur();
       self.exit();
     },
   });
@@ -259,7 +259,10 @@ function createInsert(): InsertMode {
       stopPropagation: () => false,
       code: () => {
         setTimeout(() => {
-          emojiPrompt.activate(getRealEdit(), undefined, runtime.conf.startToShowEmoji, -1);
+          const elm = getRealEdit();
+          if (elm) {
+            emojiPrompt.activate(elm, undefined, runtime.conf.startToShowEmoji, -1);
+          }
         }, 100);
       },
     });
@@ -282,31 +285,34 @@ function createInsert(): InsertMode {
         // such as, to insert `,m` in case of mapkey `,,` defined.
         const pw = last.getPrefixWord();
         if (pw) {
-          let elm = getRealEdit();
-          const str = elm.value;
-          let pos = elm.selectionStart;
-          if (str != null && pos != null) {
-            elm.value = str.slice(0, elm.selectionStart) + pw + str.slice(elm.selectionEnd);
-            pos += pw.length;
-            elm.setSelectionRange(pos, pos);
+          const editEl = getRealEdit();
+          if (isTextInput(editEl) && editEl.selectionStart != null) {
+            const str = editEl.value;
+            const start = editEl.selectionStart;
+            editEl.value = str.slice(0, start) + pw + str.slice(editEl.selectionEnd ?? 0);
+            const pos = start + pw.length;
+            editEl.setSelectionRange(pos, pos);
           } else {
-            elm = document.getSelection();
-            const range = elm.getRangeAt(0);
+            const selection = document.getSelection();
+            if (!selection) {
+              return;
+            }
+            const range = selection.getRangeAt(0);
             const n = document.createTextNode(pw);
-            if (elm.type === "Caret") {
-              const data = elm.focusNode.data;
-              if (data == null) {
-                range.insertNode(n);
-                elm.setPosition(n, n.length);
+            if (selection.type === "Caret") {
+              const focus = selection.focusNode;
+              if (focus instanceof Text) {
+                const pos = selection.focusOffset;
+                focus.data = focus.data.slice(0, pos) + pw + focus.data.slice(pos);
+                selection.setPosition(focus, pos + pw.length);
               } else {
-                pos = elm.focusOffset;
-                elm.focusNode.data = data.slice(0, pos) + pw + data.slice(pos);
-                elm.setPosition(elm.focusNode, pos + pw.length);
+                range.insertNode(n);
+                selection.setPosition(n, n.length);
               }
             } else {
               range.deleteContents();
               range.insertNode(n);
-              elm.setPosition(n, n.length);
+              selection.setPosition(n, n.length);
             }
           }
         }

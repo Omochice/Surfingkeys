@@ -21,10 +21,10 @@ type BrowserLike = {
   getBackFocusFromFrontend?: () => void;
   focusFrontend?: (ifr: HTMLIFrameElement) => void;
 };
-type UiHost = HTMLDivElement & { tryDetach(): void };
+export type UiHost = HTMLDivElement & { tryDetach(): void };
 type ActiveContent = { window: Window; origin: string } | null;
 
-function createUiHost(adapter: BrowserLike, onload: (uiHost: HTMLElement) => void): void {
+function createUiHost(adapter: BrowserLike, onload: (uiHost: UiHost) => void): void {
   const uiHost = document.createElement("div") as UiHost;
   uiHost.style.display = "block";
   uiHost.style.opacity = "1";
@@ -134,6 +134,9 @@ function createUiHost(adapter: BrowserLike, onload: (uiHost: HTMLElement) => voi
 
   let lastStateOfPointerEvents = "none";
   let _origOverflowY: string | undefined;
+  // Dispatch registry: handlers are stored with their own response types then invoked with a parsed
+  // message; an `unknown` parameter would reject those typed handlers (contravariance).
+  // eslint-disable-next-line typescript/no-explicit-any
   const _actions: Record<string, (response: any) => void> = {};
   let activeContent: ActiveContent = null;
   _actions["initFrontendAck"] = () => {

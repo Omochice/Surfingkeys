@@ -8,7 +8,7 @@ type CommandFn = (
   handler: (args: string[]) => void | boolean,
 ) => void;
 type OmnibarLike = {
-  listResults(items: unknown[], renderer: (s: any) => HTMLElement): void;
+  listResults(items: unknown[], renderer: (s: unknown) => HTMLElement): void;
   listWords(words: string[]): void;
 };
 
@@ -33,9 +33,9 @@ const createCommands = (normal: NormalLike, command: CommandFn, omnibar: Omnibar
       {
         key: "sessions",
       },
-      (response) => {
+      (response: { settings: { sessions: Record<string, unknown> } }) => {
         omnibar.listResults(Object.keys(response.settings.sessions), (s) => {
-          return createElementWithContent("li", s);
+          return createElementWithContent("li", String(s));
         });
       },
     );
@@ -57,9 +57,9 @@ const createCommands = (normal: NormalLike, command: CommandFn, omnibar: Omnibar
     });
   });
   command("listQueueURLs", "list URLs in queue waiting for open", () => {
-    RUNTIME("getQueueURLs", null, (response) => {
+    RUNTIME("getQueueURLs", null, (response: { queueURLs: string[] }) => {
       omnibar.listResults(response.queueURLs, (s) => {
-        return createElementWithContent("li", s);
+        return createElementWithContent("li", String(s));
       });
     });
   });

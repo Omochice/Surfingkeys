@@ -1,12 +1,15 @@
 import { extendObject, getSubSettings } from "./settings";
 
-async function loadRawSettings(keys: string[], defaultSet?: any): Promise<any> {
+async function loadRawSettings(
+  keys: string | readonly string[] | null | undefined,
+  defaultSet?: Record<string, unknown>,
+): Promise<Record<string, unknown>> {
   const rawSet = defaultSet || {};
   const localSet = await chrome.storage.local.get(null);
   extendObject(rawSet, localSet);
   const subset = getSubSettings(rawSet, keys);
   if (chrome.runtime.lastError) {
-    subset.error =
+    subset["error"] =
       "Settings sync may not work thoroughly because of: " + chrome.runtime.lastError.message;
   }
   return subset;
@@ -17,9 +20,13 @@ function _setNewTabUrl(): string {
 }
 
 function _getContainerName(_self: unknown) {
-  return async (_message: any, sender: any) => {
+  return async (_message: unknown, sender?: { tab?: { cookieStoreId?: string } }) => {
+    const cookieStoreId = sender?.tab?.cookieStoreId;
+    if (cookieStoreId == null) {
+      return { name: null };
+    }
     try {
-      const container = await browser.contextualIdentities.get(sender.tab.cookieStoreId);
+      const container = await browser.contextualIdentities.get(cookieStoreId);
       return { name: container.name };
     } catch {
       return { name: null };
@@ -27,7 +34,10 @@ function _getContainerName(_self: unknown) {
   };
 }
 
-function getLatestHistoryItem(text: string, maxResults: number): Promise<any[]> {
+function getLatestHistoryItem(
+  text: string,
+  maxResults: number,
+): Promise<chrome.history.HistoryItem[]> {
   return chrome.history.search({
     startTime: 0,
     text,

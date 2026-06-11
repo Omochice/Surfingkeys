@@ -72,6 +72,9 @@ type HintsMode = Mode & {
   setNumeric(): void;
   setCharacters(chars: string): void;
   getCharacters(): string;
+  // Hint target is polymorphic (a DOM element or a text-anchor tuple); callers register callbacks
+  // typed for their own specific target shape, which an `unknown`/union parameter would reject.
+  // eslint-disable-next-line typescript/no-explicit-any
   dispatchMouseClick(element: any): void;
   click(links: string | Element[], force?: boolean): void;
   previousPage(): boolean;
@@ -84,8 +87,11 @@ type HintsMode = Mode & {
   getSelector(): string | Element[] | RegExp;
   create(
     cssSelector: string | Element[] | RegExp,
+    // Callers pass callbacks typed for their specific hint target (HTMLElement, anchor tuple, ...);
+    // a union/unknown parameter would make those per-callsite-typed callbacks unassignable.
+    // eslint-disable-next-line typescript/no-explicit-any
     onHintKey: ((element: any) => void) | null,
-    attrs?: Record<string, any>,
+    attrs?: Record<string, unknown>,
   ): Promise<number>;
   mouseoutLastElement(): void;
   style(css: string, mode?: string): void;
@@ -481,6 +487,8 @@ div.hint-scrollable {
   });
   let shiftKey = false;
   let _lastCreateAttrs: { activeInput?: number; [key: string]: unknown } = {};
+  // Holds a caller-provided onHintKey typed for its own hint target shape (see create()'s parameter).
+  // eslint-disable-next-line typescript/no-explicit-any
   let _onHintKey: ((element: any) => void) | null = self.dispatchMouseClick;
   let _cssSelector: string | Element[] | RegExp = "";
 
@@ -509,6 +517,9 @@ div.hint-scrollable {
   function handleHint(evt?: Event & { keyCode?: number }): void {
     const hints = holder.querySelectorAll<HTMLElement>("div:not(:empty)");
     const hintState = refreshHints(hints, prefix);
+    // The matched hint payload is polymorphic (element, text-anchor array, or label) and branched on
+    // below via constructor checks; it is handed to the caller's onHintKey typed for that shape.
+    // eslint-disable-next-line typescript/no-explicit-any
     const elm: any = hintState.matched;
     if (elm) {
       normal.appendKeysForRepeat("Hints", prefix);
@@ -863,12 +874,13 @@ div.hint-scrollable {
     hintsHost.shadowRoot!.appendChild(holder);
   }
 
-  function createHintsForElements(elements: Element[], attrs?: Record<string, any>): number {
+  function createHintsForElements(elements: Element[], attrs?: Record<string, unknown>): number {
     attrs = attrs || {};
     for (const attr in attrs) {
       behaviours[attr] = attrs[attr];
     }
-    self.statusLine = (attrs && attrs["statusLine"]) || "Hints to click";
+    const statusLine = attrs["statusLine"];
+    self.statusLine = (typeof statusLine === "string" && statusLine) || "Hints to click";
 
     const filtered = filterInvisibleElements(elements as HTMLElement[]);
     if (filtered.length > 0) {
@@ -879,7 +891,7 @@ div.hint-scrollable {
 
   function createHintsForClick(
     cssSelector: string | Element[],
-    attrs?: Record<string, any>,
+    attrs?: Record<string, unknown>,
   ): number {
     self.statusLine = "Hints to click";
 
@@ -915,11 +927,12 @@ div.hint-scrollable {
     return elements.length;
   }
 
-  function createHintsForTextNode(rxp: RegExp, attrs?: Record<string, any>): number {
+  function createHintsForTextNode(rxp: RegExp, attrs?: Record<string, unknown>): number {
     for (const attr in attrs) {
       behaviours[attr] = attrs[attr];
     }
-    self.statusLine = (attrs && attrs["statusLine"]) || "Hints to select text";
+    const statusLine = attrs?.["statusLine"];
+    self.statusLine = (typeof statusLine === "string" && statusLine) || "Hints to select text";
 
     const visible = getVisibleElements((e, v) => {
       const aa = e.childNodes;
@@ -1018,7 +1031,7 @@ div.hint-scrollable {
 
   function createHintsImpl(
     cssSelector: string | Element[] | RegExp,
-    attrs?: Record<string, any>,
+    attrs?: Record<string, unknown>,
   ): number {
     placeHintsHost(hintsHost);
     if (cssSelector instanceof RegExp) {

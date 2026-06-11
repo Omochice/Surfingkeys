@@ -82,6 +82,9 @@ export default defineConfig({
     // built-in favicon endpoint and the user-scripts api bundle (emitted by
     // the build:done hook above).
     const webResources = ["frontend.html", "pages/emoji.tsv", "pages/l10n.json"];
+    // Build-config manifest builder: heterogeneous manifest JSON fields (strings, nested objects,
+    // arrays) assembled and handed back to wxt; constraining the values adds no runtime type safety.
+    // eslint-disable-next-line typescript/no-explicit-any
     const manifest: Record<string, any> = {
       name: "Surfingkeys",
       short_name: "Surfingkeys",

@@ -22,8 +22,10 @@ type ClipboardLike = { write(text: string): void };
 type HintsLike = {
   create(
     cssSelector: string | Element[] | RegExp,
+    // Mirrors hints.create: the hint target is polymorphic and the callback is typed per callsite.
+    // eslint-disable-next-line typescript/no-explicit-any
     onHintKey: ((element: any) => void) | null,
-    attrs?: Record<string, any>,
+    attrs?: Record<string, unknown>,
   ): Promise<number>;
 };
 

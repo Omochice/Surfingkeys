@@ -22,6 +22,9 @@ function isInUIFrame() {
   );
 }
 
+/** Options accepted by the mapkey family: a domain filter plus arbitrary forwarded flags. */
+type MapkeyOptions = { domain?: RegExp; codeHasParameter?: number; [key: string]: unknown };
+
 function _isDomainApplicable(domain?: RegExp) {
   return !domain || domain.test(document.location.href) || domain.test(window.origin);
 }
@@ -37,8 +40,9 @@ function cmap(
   }
 }
 
-const userDefinedFunctions: Record<string, (...args: any[]) => void> = {};
-function mapkey(keys: string, annotation: string | string[], jscode: any, options?: any) {
+const userDefinedFunctions: Record<string, (...args: unknown[]) => void> = {};
+// eslint-disable-next-line typescript/no-explicit-any -- user keypress handler of arbitrary signature
+function mapkey(keys: string, annotation: string | string[], jscode: any, options?: MapkeyOptions) {
   if (!options || _isDomainApplicable(options.domain)) {
     const opt = options || {};
     userDefinedFunctions[`normal:${keys}`] = jscode;
@@ -46,20 +50,33 @@ function mapkey(keys: string, annotation: string | string[], jscode: any, option
     dispatchSKEvent("api", ["mapkey", keys, annotation, opt]);
   }
 }
-function imapkey(keys: string, annotation: string | string[], jscode: any, options?: any) {
+function imapkey(
+  keys: string,
+  annotation: string | string[],
+  // eslint-disable-next-line typescript/no-explicit-any -- user keypress handler of arbitrary signature
+  jscode: any,
+  options?: MapkeyOptions,
+) {
   if (!options || _isDomainApplicable(options.domain)) {
     userDefinedFunctions[`insert:${keys}`] = jscode;
     dispatchSKEvent("api", ["imapkey", keys, annotation, options]);
   }
 }
-function vmapkey(keys: string, annotation: string | string[], jscode: any, options?: any) {
+function vmapkey(
+  keys: string,
+  annotation: string | string[],
+  // eslint-disable-next-line typescript/no-explicit-any -- user keypress handler of arbitrary signature
+  jscode: any,
+  options?: MapkeyOptions,
+) {
   if (!options || _isDomainApplicable(options.domain)) {
     userDefinedFunctions[`visual:${keys}`] = jscode;
     dispatchSKEvent("api", ["vmapkey", keys, annotation, options]);
   }
 }
 
-const userDefinedCommands: Record<string, (...args: any[]) => void> = {};
+const userDefinedCommands: Record<string, (...args: unknown[]) => void> = {};
+// eslint-disable-next-line typescript/no-explicit-any -- user command callback of arbitrary signature
 function addCommand(name: string, description: string, action: (...args: any[]) => void) {
   userDefinedCommands[name] = action;
   dispatchSKEvent("front", ["addCommand", name, description]);
@@ -98,17 +115,25 @@ function vmap(
   dispatchSKEvent("api", ["vmap", new_keystroke, old_keystroke, domain, new_annotation]);
 }
 
-const functionsToListSuggestions: Record<string, (...args: any[]) => any> = {};
+const functionsToListSuggestions: Record<string, (response: unknown, request: unknown) => unknown> =
+  {};
 
-let inlineQuery: any;
-let hintsFunction: any;
-let onClipboardReadFn: (resp: any) => void;
+/** A user-registered inline-query dictionary service. */
+type InlineQuery = {
+  url: string | ((query: string) => string);
+  headers?: Record<string, string>;
+  parseResult: (res: unknown) => unknown;
+};
+
+let inlineQuery: InlineQuery | undefined;
+let hintsFunction: ((element: HTMLElement, shiftKey: boolean) => void) | undefined;
+let onClipboardReadFn: (resp: unknown) => void;
 let userScriptTask: () => void = () => {};
 let hintsCreationResolve: ((found: number) => void) | null;
 initSKFunctionListener(
   "user",
   {
-    callUserFunction: (keys: string, para: any) => {
+    callUserFunction: (keys: string, para: unknown) => {
       if (Object.hasOwn(userDefinedFunctions, keys)) {
         const fn = userDefinedFunctions[keys];
         if (fn) {
@@ -116,7 +141,7 @@ initSKFunctionListener(
         }
       }
     },
-    executeUserCommand: (name: string, args: any[]) => {
+    executeUserCommand: (name: string, args: unknown[]) => {
       if (Object.hasOwn(userDefinedCommands, name)) {
         const cmd = userDefinedCommands[name];
         if (cmd) {
@@ -124,7 +149,12 @@ initSKFunctionListener(
         }
       }
     },
-    getSearchSuggestions: async (url: string, response: any, request: any, callbackId: string) => {
+    getSearchSuggestions: async (
+      url: string,
+      response: unknown,
+      request: unknown,
+      callbackId: string,
+    ) => {
       if (Object.hasOwn(functionsToListSuggestions, url)) {
         const fn = functionsToListSuggestions[url];
         if (!fn) return;
@@ -141,18 +171,21 @@ initSKFunctionListener(
       }
     },
     performInlineQuery: (query: string, callbackId: string) => {
-      const url =
-        typeof inlineQuery.url === "function" ? inlineQuery.url(query) : inlineQuery.url + query;
+      const iq = inlineQuery;
+      if (!iq) {
+        return;
+      }
+      const url = typeof iq.url === "function" ? iq.url(query) : iq.url + query;
       httpRequest(
         {
           url,
-          headers: inlineQuery.headers,
+          headers: iq.headers,
         },
-        (res: any) => {
+        (res: { error?: unknown }) => {
           if (res.error) {
             dispatchSKEvent("front", [callbackId, `${res.error} on ${url}`]);
           } else {
-            dispatchSKEvent("front", [callbackId, inlineQuery.parseResult(res)]);
+            dispatchSKEvent("front", [callbackId, iq.parseResult(res)]);
           }
         },
       );
@@ -160,10 +193,10 @@ initSKFunctionListener(
     runUserScript: () => {
       userScriptTask();
     },
-    onClipboardRead: (resp: any) => {
+    onClipboardRead: (resp: unknown) => {
       onClipboardReadFn(resp);
     },
-    onHintClicked: (shiftKey: boolean, element: any) => {
+    onHintClicked: (shiftKey: boolean, element: HTMLElement) => {
       if (typeof hintsFunction === "function") {
         hintsFunction(element, shiftKey);
       }
@@ -184,14 +217,16 @@ function addSearchAlias(
   search_url: string,
   search_leader_key?: string,
   suggestion_url?: string,
-  callback_to_parse_suggestion?: any,
+  callback_to_parse_suggestion?: (response: unknown, request: unknown) => unknown,
   only_this_site_key?: string,
-  options?: any,
+  options?: Record<string, unknown>,
 ) {
   if (![...alias].every((c) => c.charCodeAt(0) <= 0x7f)) {
     throw `Invalid alias ${alias}, which must be ASCII characters.`;
   }
-  functionsToListSuggestions[suggestion_url!] = callback_to_parse_suggestion;
+  if (suggestion_url != null && callback_to_parse_suggestion != null) {
+    functionsToListSuggestions[suggestion_url] = callback_to_parse_suggestion;
+  }
   dispatchSKEvent("api", [
     "addSearchAlias",
     alias,
@@ -205,18 +240,17 @@ function addSearchAlias(
   ]);
 }
 
-function createCssSelectorForElements(cssSelector: string, elements: any): number {
+function createCssSelectorForElements(cssSelector: string, elements: unknown): number {
+  let list: HTMLElement[] = [];
   if (elements instanceof HTMLElement) {
-    elements = [elements];
+    list = [elements];
   } else if (Array.isArray(elements)) {
-    elements = elements.filter((m) => m instanceof HTMLElement);
-  } else {
-    elements = [];
+    list = elements.filter((m): m is HTMLElement => m instanceof HTMLElement);
   }
-  elements.forEach((m: HTMLElement) => {
+  list.forEach((m) => {
     m.classList.add(cssSelector);
   });
-  return elements.length;
+  return list.length;
 }
 
 const api = {
@@ -262,38 +296,44 @@ const api = {
     write: (text: string) => {
       dispatchSKEvent("api", ["clipboard:write", text]);
     },
-    read: (cb: (resp: any) => void) => {
+    read: (cb: (resp: unknown) => void) => {
       onClipboardReadFn = cb;
       dispatchSKEvent("api", ["clipboard:read"]);
     },
   },
   Hints: {
-    click: (links: any, force?: boolean) => {
+    click: (links: unknown, force?: boolean) => {
+      let selector: unknown = links;
       if (typeof links !== "string") {
         const hintsClicking = "surfingkeys--hints--clicking";
         if (createCssSelectorForElements(hintsClicking, links) === 0) {
           return;
         }
-        links = `.${hintsClicking}`;
+        selector = `.${hintsClicking}`;
       }
-      dispatchSKEvent("api", ["hints:click", links, force]);
+      dispatchSKEvent("api", ["hints:click", selector, force]);
     },
-    create: (cssSelector: any, onHintKey: any, attrs?: any) => {
+    create: (
+      cssSelector: unknown,
+      onHintKey: (element: HTMLElement, shiftKey: boolean) => void,
+      attrs?: Record<string, unknown>,
+    ) => {
+      let selector: unknown = cssSelector;
       if (typeof cssSelector !== "string") {
         const hintsCreating = "surfingkeys--hints--creating";
         if (createCssSelectorForElements(hintsCreating, cssSelector) === 0) {
           return false;
         }
-        cssSelector = `.${hintsCreating}`;
+        selector = `.${hintsCreating}`;
       }
       hintsFunction = onHintKey;
       const promise = new Promise<number>((resolve) => {
         hintsCreationResolve = resolve;
       });
-      dispatchSKEvent("api", ["hints:create", cssSelector, "user", attrs]);
+      dispatchSKEvent("api", ["hints:create", selector, "user", attrs]);
       return promise;
     },
-    dispatchMouseClick: (element: any) => {
+    dispatchMouseClick: (element: HTMLElement) => {
       dispatchSKEvent("hints", ["dispatchMouseClick"], element);
     },
     style: (css: string, mode?: string) => {
@@ -326,11 +366,11 @@ const api = {
     },
   },
   Front: {
-    registerInlineQuery: (args: any) => {
+    registerInlineQuery: (args: InlineQuery) => {
       inlineQuery = args;
       dispatchSKEvent("api", ["front:registerInlineQuery"]);
     },
-    openOmnibar: (args: any) => {
+    openOmnibar: (args: Record<string, unknown>) => {
       dispatchSKEvent("api", ["front:openOmnibar", args]);
     },
     showBanner,
@@ -338,7 +378,13 @@ const api = {
   },
 };
 
-const initUserScripts = (extensionRootUrl: string, uf: (api: any, settings: any) => void) => {
+/** The Surfingkeys API object handed to user snippet functions. */
+type UserScriptApi = typeof api;
+
+const initUserScripts = (
+  extensionRootUrl: string,
+  uf: (api: UserScriptApi, settings: Record<string, unknown>) => void,
+) => {
   EXTENSION_ROOT_URL = extensionRootUrl;
   if (isInUIFrame()) return;
   userScriptTask = () => {

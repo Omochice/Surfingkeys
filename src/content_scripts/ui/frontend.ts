@@ -32,7 +32,7 @@ import { Keystroke as KeystrokeView } from "./components/Keystroke";
 import { Popup as PopupView } from "./components/Popup";
 import { StatusBar as StatusBarView } from "./components/StatusBar";
 import type { StatusCell } from "./components/StatusBar";
-import { Tabs as TabsView } from "./components/Tabs";
+import { Tabs as TabsView, type TabsTab } from "./components/Tabs";
 import { Usage as UsageView } from "./components/Usage";
 import createOmnibar from "./omnibar";
 
@@ -51,6 +51,9 @@ const Front = (() => {
   Mode.init();
   const { clipboard, insert, normal, hints, visual } = createModeGraph();
 
+  // Structural self: a Mode augmented in place with the whole Front API; typing it would need `as`
+  // (forbidden) or a full Object.assign rewrite of the closures that reference it.
+  // eslint-disable-next-line typescript/no-explicit-any
   const self: any = new Mode("Front");
   self._actions = {};
   self.topSize = [0, 0];
@@ -58,10 +61,15 @@ const Front = (() => {
   self.addDestroyListener = (task: () => void) => {
     destroyListeners.push(task);
   };
+  // createOmnibar returns its structural `self` (an augmented Mode), so its type is `any` at source.
+  // eslint-disable-next-line typescript/no-explicit-any
   const omnibar: any = createOmnibar(self, clipboard);
 
   createCommands(normal, omnibar.command, omnibar);
 
+  // Heterogeneous mode registry: the values are distinct mode shapes (Insert/Normal/Visual/Omnibar)
+  // with no common index-compatible interface, and mapInMode reads them with optional mappings.
+  // eslint-disable-next-line typescript/no-explicit-any
   const modes: Record<string, any> = {
     Insert: insert,
     Normal: normal,
@@ -73,30 +81,50 @@ const Front = (() => {
   const api = createAPI(ctx);
   createDefaultMappings(api, ctx);
 
+  // Dispatch registry: handlers are stored with their own concrete message types then invoked with a
+  // parsed message; an `unknown` parameter would reject those typed handlers (contravariance).
+  // eslint-disable-next-line typescript/no-explicit-any
   const _actions: Record<string, (message?: any) => any> = self._actions;
-  const _callbacks: Record<string, (msg: any) => any> = {};
-  self.contentCommand = (args: any, successById?: (msg: any) => any) => {
-    args.toContent = true;
-    args.id = generateQuickGuid();
+  const _callbacks: Record<string, (msg: unknown) => unknown> = {};
+  self.contentCommand = (
+    args: Record<string, unknown>,
+    successById?: (msg: unknown) => unknown,
+  ) => {
+    args["toContent"] = true;
+    const id = generateQuickGuid();
+    args["id"] = id;
     if (successById) {
-      args.ack = true;
-      _callbacks[args.id] = successById;
+      args["ack"] = true;
+      _callbacks[id] = successById;
     }
     top!.postMessage({ surfingkeys_uihost_data: args }, self.topOrigin);
   };
 
-  self.postMessage = (args: any) => {
+  self.postMessage = (args: Record<string, unknown>) => {
     top!.postMessage({ surfingkeys_uihost_data: args }, self.topOrigin);
   };
 
   let pressedHintKeys = "";
-  let _display: any;
-  self.addEventListener("keydown", (event: any) => {
+  // The active overlay element carries onHide/onHit expandos the front sets on it.
+  type DisplayElement = HTMLElement & {
+    onHide?: () => void;
+    onHit?: ((matched: unknown) => void) | undefined;
+  };
+  // The omnibar overlay exposes onShow, set by its Solid component, to (re)render for a given open spec.
+  type OmnibarElement = DisplayElement & {
+    onShow: (message: Record<string, unknown>) => void;
+  };
+  // The bubble overlay carries a noPointerEvents flag the positioning code toggles per message.
+  type BubbleElement = DisplayElement & {
+    noPointerEvents?: boolean | undefined;
+  };
+  let _display: DisplayElement | null = null;
+  self.addEventListener("keydown", (event: KeyboardEvent) => {
     if (Mode.isSpecialKeyOf("<Esc>", event.sk_keyName ?? "")) {
       self.hidePopup();
       event.sk_stopPropagation = true;
     } else if (_display && _display.style.display !== "none") {
-      const tabHints = _display.querySelectorAll("div>div.sk_tab_hint");
+      const tabHints = _display.querySelectorAll<HTMLElement>("div>div.sk_tab_hint");
       if (tabHints.length > 0) {
         const key = event.sk_keyName ?? "";
         const characters = hints.getCharacters().toLowerCase();
@@ -109,7 +137,7 @@ const Front = (() => {
           pressedHintKeys = pressedHintKeys + key.toUpperCase();
           const hintState = refreshHints(tabHints, pressedHintKeys);
           if (hintState.matched) {
-            _display.onHit(hintState.matched);
+            _display.onHit?.(hintState.matched);
             pressedHintKeys = "";
             self.hidePopup();
           } else if (hintState.candidates === 0) {
@@ -152,7 +180,7 @@ const Front = (() => {
         ).filter((n) => {
           return n.style.display !== "none";
         });
-        const pe = visibleDivs.map((d: any) => {
+        const pe = visibleDivs.map((d: HTMLElement & { noPointerEvents?: boolean }) => {
           const id = d.id;
           const divNoPointerEvents = ["sk_keystroke", "sk_banner"];
           if (divNoPointerEvents.includes(id)) {
@@ -192,25 +220,39 @@ const Front = (() => {
   self.flush = () => {
     _state.nextState();
   };
-  self.visualCommand = (args: any) => {
+  self.visualCommand = (args: { action: string; query?: string }) => {
     if (_usage.style.display !== "none") {
-      // visual mode in frontend.html, such as help
-      (visual as any)[args.action](args.query);
+      // visual mode in frontend.html, such as help: only the in-frame find dispatches here, so the
+      // three find actions are exhaustive (other actions are forwarded to content below).
+      switch (args.action) {
+        case "visualClear": {
+          visual.visualClear();
+          break;
+        }
+        case "visualUpdate": {
+          visual.visualUpdate(args.query ?? "");
+          break;
+        }
+        case "visualEnter": {
+          visual.visualEnter(args.query ?? "");
+          break;
+        }
+      }
     } else {
       // visual mode for all content windows
       self.contentCommand(args);
     }
   };
 
-  const _omnibar: any = document.getElementById("sk_omnibar");
+  const _omnibar = requireElement<OmnibarElement>("#sk_omnibar");
   self.statusBar = document.getElementById("sk_status");
   const _usage = requireElement("#sk_usage");
   const _popup = requireElement("#sk_popup");
   const _tabs = requireElement("#sk_tabs");
   const _banner = requireElement("#sk_banner");
-  const _bubble: any = document.getElementById("sk_bubble");
-  const sk_bubble_content: any = _bubble.querySelector("div.sk_bubble_content");
-  const sk_bubble_arrow = _bubble.querySelector("div.sk_arrow") as HTMLElement;
+  const _bubble = requireElement<BubbleElement>("#sk_bubble");
+  const sk_bubble_content = requireElement("#sk_bubble div.sk_bubble_content");
+  const sk_bubble_arrow = requireElement("#sk_bubble div.sk_arrow");
   const sk_bubbleClassList = sk_bubble_content.classList;
   const [bubbleHtml, setBubbleHtml] = createSignal("");
   render(
@@ -240,7 +282,7 @@ const Front = (() => {
       sk_bubbleClassList.add("sk_scroller_indicator_middle");
     }
   };
-  const keystroke: any = document.getElementById("sk_keystroke");
+  const keystroke = requireElement("#sk_keystroke");
   const [keystrokeText, setKeystrokeText] = createSignal("");
   const [keystrokeHtml, setKeystrokeHtml] = createSignal("");
   const [keystrokeRich, setKeystrokeRich] = createSignal(false);
@@ -271,7 +313,7 @@ const Front = (() => {
   };
   self.hidePopup = _actions["hidePopup"];
 
-  function setDisplay(td: any, render?: () => void) {
+  function setDisplay(td: DisplayElement, render?: () => void) {
     if (_display && _display.style.display !== "none") {
       _display.style.display = "none";
       _display.onHide && _display.onHide();
@@ -282,7 +324,11 @@ const Front = (() => {
     self.startInputGuard();
   }
 
-  function showElement(td: any, render?: () => void, onHit?: (matched: any) => void) {
+  function showElement(
+    td: DisplayElement,
+    render?: () => void,
+    onHit?: (matched: unknown) => void,
+  ) {
     self.enter(0, true);
     td.onHit = onHit;
     setDisplay(td, render);
@@ -290,7 +336,7 @@ const Front = (() => {
   }
 
   const [tabsState, setTabsState] = createSignal<{
-    tabs: any[];
+    tabs: TabsTab[];
     hintLabels: string[];
     vertical: boolean;
     unitWidth: number;
@@ -315,7 +361,7 @@ const Front = (() => {
     _tabs,
   );
 
-  function renderTabs(tabs: any[]) {
+  function renderTabs(tabs: TabsTab[]) {
     const verticalTabs = runtime.conf.verticalTabs;
     // The container class drives the layout; the per-tab styling lives in the
     // component. The inline fallback below depends on the rendered height, so
@@ -333,39 +379,63 @@ const Front = (() => {
   }
   _actions["chooseTab"] = () => {
     const tabsThreshold = Math.min(runtime.conf.tabsThreshold, Math.ceil(window.innerWidth / 26));
-    RUNTIME("getTabs", { queryInfo: { currentWindow: true }, tabsThreshold }, (response: any) => {
-      if (response.tabs.length > tabsThreshold) {
-        showElement(_omnibar, () => {
-          _omnibar.onShow({ type: "Tabs" });
-        });
-      } else if (response.tabs.length > 0) {
-        showElement(
-          _tabs,
-          () => {
-            renderTabs(response.tabs);
-          },
-          (matched) => {
-            RUNTIME("focusTab", {
-              windowId: matched.windowId,
-              tabId: matched.id,
-            });
-          },
-        );
-      }
-    });
+    RUNTIME(
+      "getTabs",
+      { queryInfo: { currentWindow: true }, tabsThreshold },
+      (response: { tabs: TabsTab[] }) => {
+        if (response.tabs.length > tabsThreshold) {
+          showElement(_omnibar, () => {
+            _omnibar.onShow({ type: "Tabs" });
+          });
+        } else if (response.tabs.length > 0) {
+          showElement(
+            _tabs,
+            () => {
+              renderTabs(response.tabs);
+            },
+            (matched) => {
+              if (
+                matched &&
+                typeof matched === "object" &&
+                "windowId" in matched &&
+                "id" in matched
+              ) {
+                RUNTIME("focusTab", {
+                  windowId: matched.windowId,
+                  tabId: matched.id,
+                });
+              }
+            },
+          );
+        }
+      },
+    );
   };
   self.chooseTab = _actions["chooseTab"];
 
-  function localizeAnnotation(locale: (s: string) => string, annotation: any) {
-    if (annotation.constructor.name === "Array") {
-      const fmt = annotation[0];
-      return format(locale(fmt), ...annotation.slice(1));
-    } else {
-      return locale(annotation);
+  // A single help entry: the keystroke plus its annotation, which may be a plain string or a
+  // [format, ...args] tuple that localizeAnnotation expands. Matches getAnnotations' return shape.
+  type UsageMeta = {
+    word: string;
+    feature_group?: number | undefined;
+    annotation?: string | string[] | undefined;
+  };
+
+  function localizeAnnotation(
+    locale: (s: string) => string,
+    annotation: string | string[] | undefined,
+  ): string {
+    if (Array.isArray(annotation)) {
+      const [fmt, ...args] = annotation;
+      return format(locale(fmt ?? ""), ...args);
     }
+    return locale(annotation ?? "");
   }
 
-  function buildUsage(metas: any[], cb: (result: { groups: string[]; moreHelp: string }) => void) {
+  function buildUsage(
+    metas: UsageMeta[],
+    cb: (result: { groups: string[]; moreHelp: string }) => void,
+  ) {
     const feature_groups = [
       "Help", // 0
       "Mouse Click", // 1
@@ -441,37 +511,55 @@ const Front = (() => {
       }),
     _usage,
   );
-  _actions["showUsage"] = (message: any) => {
+  const usageMetaSchema = v.object({
+    word: v.string(),
+    feature_group: v.optional(v.number()),
+    annotation: v.optional(v.union([v.string(), v.array(v.string())])),
+  });
+  _actions["showUsage"] = (message: unknown) => {
+    const { metas } = v.parse(v.object({ metas: v.array(usageMetaSchema) }), message);
     showElement(_usage, () => {
-      buildUsage(message.metas, setUsage);
+      buildUsage(metas, setUsage);
     });
   };
-  _actions["applyUserSettings"] = (message: any) => {
-    const conf = runtime.conf as Record<string, any>;
+  _actions["applyUserSettings"] = (message: { userSettings: Record<string, unknown> }) => {
+    const conf: Record<string, unknown> = runtime.conf;
     for (const k in message.userSettings) {
       if (Object.hasOwn(runtime.conf, k)) {
         conf[k] = message.userSettings[k];
       }
     }
-    if ("theme" in message.userSettings) {
-      setSanitizedContent(requireElement("#sk_theme"), message.userSettings.theme);
+    const theme = message.userSettings["theme"];
+    if (typeof theme === "string") {
+      setSanitizedContent(requireElement("#sk_theme"), theme);
     }
   };
-  _actions["setHintsCharacters"] = (message: any) => {
-    hints.setCharacters(message.characters);
+  _actions["setHintsCharacters"] = (message: unknown) => {
+    const { characters } = v.parse(v.object({ characters: v.string() }), message);
+    hints.setCharacters(characters);
   };
-  _actions["addMapkey"] = (message: any) => {
-    const specialKey = Mode.specialKeys[message.old_keystroke];
+  _actions["addMapkey"] = (message: unknown) => {
+    const { old_keystroke, new_keystroke, mode } = v.parse(
+      v.object({
+        old_keystroke: v.string(),
+        new_keystroke: v.string(),
+        mode: v.optional(v.string()),
+      }),
+      message,
+    );
+    const specialKey = Mode.specialKeys[old_keystroke];
     if (specialKey != null) {
-      specialKey.push(message.new_keystroke);
-    } else if (Object.hasOwn(modes, message.mode)) {
-      const mode = modes[message.mode];
-      if (mode != null) {
-        mapInMode(mode, message.new_keystroke, message.old_keystroke);
+      specialKey.push(new_keystroke);
+    } else if (mode != null && Object.hasOwn(modes, mode)) {
+      const targetMode = modes[mode];
+      if (targetMode != null) {
+        mapInMode(targetMode, new_keystroke, old_keystroke);
       }
     }
   };
-  _actions["addCommand"] = (message: any) => {
+  _actions["addCommand"] = (message: { name: string; description: string }) => {
+    // User command callback: forwards whatever arguments the user-defined command was invoked with.
+    // eslint-disable-next-line typescript/no-explicit-any
     const proxyAction = (...args: any[]) => {
       self.contentCommand({
         action: "executeUserCommand",
@@ -481,10 +569,14 @@ const Front = (() => {
     };
     omnibar.command(message.name, message.description, proxyAction);
   };
-  _actions["getUsage"] = (message: any) => {
-    // send response in callback from buildUsage
-    delete message.ack;
-    buildUsage(message.metas, ({ groups, moreHelp }) => {
+  _actions["getUsage"] = (message: unknown) => {
+    // The ack flag the dispatcher may attach is irrelevant here; only metas and the correlation id
+    // are read, so validate just those and let the schema drop the rest.
+    const { metas, id } = v.parse(
+      v.object({ metas: v.array(usageMetaSchema), id: v.unknown() }),
+      message,
+    );
+    buildUsage(metas, ({ groups, moreHelp }) => {
       // Content gets the help as one HTML string; reassemble the per-group
       // <div> wrappers and the footer link (kept in sync with <Usage>).
       const usageHtml =
@@ -495,7 +587,7 @@ const Front = (() => {
           surfingkeys_uihost_data: {
             data: usageHtml,
             toContent: true,
-            id: message.id,
+            id: id,
           },
         },
         self.topOrigin,
@@ -521,11 +613,11 @@ const Front = (() => {
     showElement(_popup);
   }
 
-  _actions["showPopup"] = (message: any) => {
+  _actions["showPopup"] = (message: { content: string }) => {
     showPopup(message.content);
   };
 
-  _actions["showDialog"] = (message: any) => {
+  _actions["showDialog"] = (message: { question: string }) => {
     showElement(
       _popup,
       () => {
@@ -535,12 +627,14 @@ const Front = (() => {
         setPopupHtml(
           `<div>${message.question}</div><div><div class=sk_tab_hint>${hintLabels[0]}</div><span class=sk_tab_group_title>Ok</span><div class=sk_tab_hint>${hintLabels[1]}</div><span class=sk_tab_group_title>Cancel</span></div>`,
         );
-        const tabHints: any = _popup.querySelectorAll("div.sk_tab_hint");
+        const [okHint, cancelHint] = _popup.querySelectorAll<HTMLElement>("div.sk_tab_hint");
         _popup.style.textAlign = "center";
-        hintLink.set(tabHints[0], "Ok");
-        hintLabel.set(tabHints[0], hintLabels[0] ?? "");
-        hintLink.set(tabHints[1], "Cancel");
-        hintLabel.set(tabHints[1], hintLabels[1] ?? "");
+        if (okHint && cancelHint) {
+          hintLink.set(okHint, "Ok");
+          hintLabel.set(okHint, hintLabels[0] ?? "");
+          hintLink.set(cancelHint, "Cancel");
+          hintLabel.set(cancelHint, hintLabels[1] ?? "");
+        }
       },
       (matched) => {
         self.contentCommand({
@@ -551,11 +645,11 @@ const Front = (() => {
     );
   };
 
-  _actions["openOmnibar"] = (message: any) => {
+  _actions["openOmnibar"] = (message: { style?: string }) => {
     showElement(_omnibar, () => {
       _omnibar.onShow(message);
       const style = message.style || "";
-      setSanitizedContent(_omnibar.querySelector("style"), `#sk_omnibar {${style}}`);
+      setSanitizedContent(requireElement("#sk_omnibar style"), `#sk_omnibar {${style}}`);
     });
   };
   self.openOmnibar = _actions["openOmnibar"];
@@ -589,10 +683,27 @@ const Front = (() => {
       self.flush();
     }, timems);
   }
-  _actions["showBanner"] = (message: any) => {
-    showBanner(message.content, message.linger_time);
+  _actions["showBanner"] = (message: unknown) => {
+    const { content, linger_time } = v.parse(
+      v.object({ content: v.string(), linger_time: v.optional(v.number()) }),
+      message,
+    );
+    showBanner(content, linger_time);
   };
-  _actions["showBubble"] = (message: any) => {
+  _actions["showBubble"] = (message: {
+    position: {
+      left: number;
+      top: number;
+      winX: number;
+      winY: number;
+      winWidth: number;
+      winHeight: number;
+      width: number;
+      height: number;
+    };
+    content: string;
+    noPointerEvents?: boolean;
+  }) => {
     const pos = message.position;
     pos.left += pos.winX;
     pos.top += pos.winY;
@@ -651,8 +762,16 @@ const Front = (() => {
     self.statusBar.querySelector("input").focus();
   };
 
-  _actions["showStatus"] = (message: any) => {
-    StatusBar.show(message.contents, message.duration);
+  _actions["showStatus"] = (message: unknown) => {
+    const statusCell = v.union([v.string(), v.object({ html: v.string() })]);
+    const { contents, duration } = v.parse(
+      v.object({
+        contents: v.array(v.nullish(statusCell)),
+        duration: v.optional(v.number()),
+      }),
+      message,
+    );
+    StatusBar.show(contents, duration);
   };
 
   initSKFunctionListener("front", {
@@ -661,7 +780,7 @@ const Front = (() => {
     openFinder: () => {
       Find.open();
     },
-    showStatus: (contents: any, duration?: number) => {
+    showStatus: (contents: (StatusCell | null | undefined)[], duration?: number) => {
       StatusBar.show(contents, duration);
     },
   });
@@ -669,7 +788,7 @@ const Front = (() => {
   self.toggleStatus = (visible: boolean) => {
     self.statusBar.style.display = visible ? "" : "none";
   };
-  _actions["toggleStatus"] = (message: any) => {
+  _actions["toggleStatus"] = (message: { visible: boolean }) => {
     self.toggleStatus(message.visible);
   };
 
@@ -694,13 +813,25 @@ const Front = (() => {
     }
   };
 
-  function showRichHints(keyHints: any) {
+  // The keystroke hint payload: the key just pressed, the keys accumulated so far, and the candidate
+  // continuations keyed by full keystroke, each carrying the annotation localizeAnnotation expands.
+  type KeyHints = {
+    key: string;
+    accumulated: string;
+    candidates: Record<string, { annotation: string | string[] | undefined }>;
+  };
+
+  function showRichHints(keyHints: KeyHints) {
     initL10n((locale) => {
       const cc = keyHints.candidates;
       const words = Object.keys(cc)
         .toSorted()
         .map((w) => {
-          const annotation = localizeAnnotation(locale, cc[w].annotation);
+          const candidate = cc[w];
+          if (candidate == null) {
+            return "";
+          }
+          const annotation = localizeAnnotation(locale, candidate.annotation);
           if (annotation) {
             const nextKey = w.slice(keyHints.accumulated.length);
             return `<div><span class=kbd-span><kbd>${htmlEncode(KeyboardUtils.decodeKeystroke(keyHints.accumulated))}<span class=candidates>${htmlEncode(KeyboardUtils.decodeKeystroke(nextKey))}</span></kbd></span><span class=annotation>${annotation}</span></div>`;
@@ -716,7 +847,7 @@ const Front = (() => {
       }
     });
   }
-  _actions["showKeystroke"] = (message: any) => {
+  _actions["showKeystroke"] = (message: { keyHints: KeyHints }) => {
     if (keystroke.style.display !== "none" && keystrokeRich()) {
       showRichHints(message.keyHints);
     } else {
@@ -734,7 +865,7 @@ const Front = (() => {
     }
   };
 
-  _actions["initFrontend"] = (message: any) => {
+  _actions["initFrontend"] = (message: { origin: string; winSize: unknown }) => {
     self.topOrigin = message.origin;
     self.topSize = message.winSize;
     return Date.now();
@@ -819,7 +950,11 @@ const Front = (() => {
 
   sk_bubble_content.addEventListener(
     "mousewheel",
-    (evt: any) => {
+    (evt: Event) => {
+      // "mousewheel" is not in the typed event map, so the listener is seen as a bare Event.
+      if (!(evt instanceof WheelEvent)) {
+        return;
+      }
       if (
         (evt.deltaY > 0 &&
           sk_bubble_content.scrollTop + sk_bubble_content.offsetHeight >=
@@ -843,7 +978,6 @@ const Front = (() => {
  * @kind function
  */
 const StatusBar = (() => {
-  const self: any = {};
   let timerHide: ReturnType<typeof setTimeout> | null = null;
   const ui = Front.statusBar;
 
@@ -861,7 +995,7 @@ const StatusBar = (() => {
     ui,
   );
 
-  self.show = (contents: any[], duration?: number) => {
+  const show = (contents: (StatusCell | null | undefined)[], duration?: number): void => {
     if (timerHide) {
       clearTimeout(timerHide);
       timerHide = null;
@@ -870,8 +1004,9 @@ const StatusBar = (() => {
     // the trailing cells (e.g. find clears mode+search but keeps results).
     const next = cells().slice();
     for (let i = 0; i < contents.length; i++) {
-      if (contents[i] != null) {
-        next[i] = contents[i];
+      const cell = contents[i];
+      if (cell != null) {
+        next[i] = cell;
       }
     }
     setCells(next);
@@ -879,22 +1014,22 @@ const StatusBar = (() => {
     Front.flush();
     if (duration) {
       timerHide = setTimeout(() => {
-        self.show(["", "", "", ""]);
+        show(["", "", "", ""]);
       }, duration);
     }
   };
-  return self;
+  return { show };
 })();
 
 const Find = (() => {
-  const self: any = new Mode("Find", "/");
+  const self = new Mode("Find", "/");
 
   self
-    .addEventListener("keydown", (event: any) => {
+    .addEventListener("keydown", (event) => {
       // prevent this event to be handled by Surfingkeys' other listeners
       event.sk_suppressed = true;
     })
-    .addEventListener("mousedown", (event: any) => {
+    .addEventListener("mousedown", (event) => {
       if (event.target !== input) {
         // user clicks on somewhere else
         reset();
@@ -902,7 +1037,7 @@ const Find = (() => {
       event.sk_suppressed = true;
     });
 
-  let input: any;
+  let input: HTMLInputElement | null = null;
   let historyInc = 0;
   let userInput = "";
   function reset() {
@@ -918,19 +1053,23 @@ const Find = (() => {
    * @returns {undefined}
    * @instance
    */
-  self.open = () => {
+  const open = () => {
     StatusBar.show(["/", { html: '<input id="sk_find" class="sk_theme"/>' }]);
-    input = Front.statusBar.querySelector("input");
-    input.oninput = () => {
-      if (input.value.length && input.value !== ".") {
+    const inputEl: HTMLInputElement | null = Front.statusBar.querySelector("input");
+    input = inputEl;
+    if (inputEl == null) {
+      return;
+    }
+    inputEl.oninput = () => {
+      if (inputEl.value.length && inputEl.value !== ".") {
         Front.visualCommand({
           action: "visualUpdate",
-          query: input.value,
+          query: inputEl.value,
         });
         // To find in usage popup will set focus and selection elsewhere
         // we need bring it back
-        input.focus();
-        input.setSelectionRange(input.value.length, input.value.length);
+        inputEl.focus();
+        inputEl.setSelectionRange(inputEl.value.length, inputEl.value.length);
       }
     };
     let findHistory: string[] = [];
@@ -939,13 +1078,13 @@ const Find = (() => {
       {
         key: "findHistory",
       },
-      (response: any) => {
+      (response: { settings: { findHistory: string[] } }) => {
         userInput = "";
         findHistory = response.settings.findHistory;
         historyInc = findHistory.length;
       },
     );
-    input.onkeydown = (event: any) => {
+    inputEl.onkeydown = (event) => {
       let query: string | undefined;
       if (Mode.isSpecialKeyOf("<Esc>", event.sk_keyName ?? "")) {
         reset();
@@ -953,8 +1092,8 @@ const Find = (() => {
           action: "visualClear",
         });
       } else if (event.keyCode === KeyboardUtils.keyCodes["enter"]) {
-        query = input.value;
-        if (query!.length && query !== ".") {
+        query = inputEl.value;
+        if (query.length && query !== ".") {
           if (event.ctrlKey) {
             query = String.raw`\b` + query + String.raw`\b`;
           }
@@ -970,12 +1109,16 @@ const Find = (() => {
         event.keyCode === KeyboardUtils.keyCodes["downArrow"]
       ) {
         if (findHistory.length) {
-          [input.value, historyInc] = rotateInput(
+          const [rotated, nextInc] = rotateInput(
             findHistory,
             event.keyCode === KeyboardUtils.keyCodes["downArrow"],
             historyInc,
             userInput,
           );
+          // rotateInput only yields undefined for an out-of-range index, which the length guard
+          // above rules out; keep the current value in that impossible case rather than "undefined".
+          inputEl.value = rotated ?? inputEl.value;
+          historyInc = nextInc;
           Front.visualCommand({
             action: "visualUpdate",
             query: query,
@@ -983,15 +1126,15 @@ const Find = (() => {
           event.preventDefault();
         }
       } else {
-        userInput = input.value;
+        userInput = inputEl.value;
         historyInc = findHistory.length;
       }
     };
-    input.focus();
+    inputEl.focus();
     Front.startInputGuard();
     self.enter();
   };
-  return self;
+  return Object.assign(self, { open });
 })();
 
 export default Front;

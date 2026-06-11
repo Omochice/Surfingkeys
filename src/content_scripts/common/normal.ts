@@ -237,7 +237,7 @@ function createNormal(insert: InsertLike): NormalMode {
     const realTarget = getRealEdit(event);
     const keyName = event.sk_keyName ?? "";
     const eventKey = (event as KeyboardEvent).key;
-    if (isEditable(realTarget) && event.isTrusted) {
+    if (realTarget && isEditable(realTarget) && event.isTrusted) {
       if (Mode.isSpecialKeyOf("<Esc>", keyName)) {
         realTarget.blur();
         insert.exit();
@@ -258,11 +258,11 @@ function createNormal(insert: InsertLike): NormalMode {
 
           let stealFocus = false;
           if (!isElementPartiallyInViewport(realTarget)) {
-            let n = realTarget;
-            while (n !== document.documentElement && !isNewlyCreated(n)) {
+            let n: HTMLElement | null = realTarget;
+            while (n && n !== document.documentElement && !isNewlyCreated(n)) {
               n = n.parentElement;
             }
-            stealFocus = n !== document.documentElement && isNewlyCreated(n);
+            stealFocus = n != null && n !== document.documentElement && isNewlyCreated(n);
           }
           if (stealFocus) {
             // steal focus from dynamically created input widget
@@ -303,7 +303,7 @@ function createNormal(insert: InsertLike): NormalMode {
     Mode.showStatus();
     if (runtime.conf.stealFocusOnLoad && !isInUIFrame()) {
       const elm = getRealEdit(event);
-      if (isEditable(elm)) {
+      if (elm && isEditable(elm)) {
         if (_passFocus || isAutoFocusMarked(elm)) {
           if (!runtime.conf.enableAutoFocus) {
             // prevent focus on input only when enableAutoFocus is turned off.
@@ -334,7 +334,7 @@ function createNormal(insert: InsertLike): NormalMode {
     }
 
     const realTarget = getRealEdit(event);
-    if (isEditable(realTarget)) {
+    if (realTarget && isEditable(realTarget)) {
       // keep cursor where it is
       insert.enter(realTarget, true);
     } else {
@@ -355,7 +355,7 @@ function createNormal(insert: InsertLike): NormalMode {
         {
           blocklistPattern: runtime.conf.blocklistPattern || "",
         },
-        (resp) => {
+        (resp: { state: string; blocklist: Record<string, unknown>; url?: string }) => {
           if (resp.state === "disabled") {
             if (Object.hasOwn(resp.blocklist, ".*")) {
               showBanner(
@@ -857,7 +857,7 @@ function createNormal(insert: InsertLike): NormalMode {
   };
 
   self.captureElement = (elm) => {
-    RUNTIME("getCaptureSize", null, (response) => {
+    RUNTIME("getCaptureSize", null, (response: { width: number }) => {
       const scale = response.width / window.innerWidth;
 
       elm.scrollTop = 0;
@@ -936,7 +936,7 @@ function createNormal(insert: InsertLike): NormalMode {
               dx = elm.scrollLeft * scale;
             }
             setTimeout(() => {
-              RUNTIME("captureVisibleTab", null, (response) => {
+              RUNTIME("captureVisibleTab", null, (response: { dataUrl: string }) => {
                 img.src = response.dataUrl;
               });
             }, 1000);
@@ -951,7 +951,7 @@ function createNormal(insert: InsertLike): NormalMode {
             dy = elm.scrollTop * scale;
           }
           setTimeout(() => {
-            RUNTIME("captureVisibleTab", null, (response) => {
+            RUNTIME("captureVisibleTab", null, (response: { dataUrl: string }) => {
               img.src = response.dataUrl;
             });
           }, 1000);
@@ -960,7 +960,7 @@ function createNormal(insert: InsertLike): NormalMode {
 
       // wait 500 millisecond for keystrokes of Surfingkeys to hide
       setTimeout(() => {
-        RUNTIME("captureVisibleTab", null, (response) => {
+        RUNTIME("captureVisibleTab", null, (response: { dataUrl: string }) => {
           img.src = response.dataUrl;
         });
       }, 500);
