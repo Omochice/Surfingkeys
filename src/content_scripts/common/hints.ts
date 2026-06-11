@@ -195,7 +195,7 @@ kbd {
 
   let overlay: HTMLElement | null = null;
   mode.onExit = () => {
-    overlay!.remove();
+    overlay?.remove();
     regionalHintsHost.remove();
   };
   const attach = (elm: HTMLElement): void => {
