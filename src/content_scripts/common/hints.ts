@@ -66,9 +66,9 @@ type RegionalHintsMode = Mode & {
   onScrollDone(): void;
 };
 
+// Unlike the other modes, Hints does its own prefix matching in its keydown
+// listener and never assigns `mappings`, so the base optional slots stay empty.
 type HintsMode = Mode & {
-  mappings: Trie;
-  map_node: Trie;
   setNumeric(): void;
   setCharacters(chars: string): void;
   getCharacters(): string;
@@ -107,10 +107,8 @@ function placeHintsHost(host: HTMLElement): void {
 }
 
 function createRegionalHints(clipboard: ClipboardLike): RegionalHintsMode {
-  const self = new Mode("RegionalHints") as RegionalHintsMode;
-
-  self.mappings = new Trie();
-  self.map_node = self.mappings;
+  const mode = new Mode("RegionalHints");
+  const mappings = new Trie();
 
   const regionalHintsHost = document.createElement("div");
   regionalHintsHost.className = "surfingkeys_hints_host";
@@ -148,15 +146,15 @@ kbd {
   );
   regionalHintsHost.shadowRoot!.appendChild(hintsStyle);
 
-  self.mappings.add(KeyboardUtils.encodeKeystroke("<Esc>"), {
+  mappings.add(KeyboardUtils.encodeKeystroke("<Esc>"), {
     annotation: "Exit regional hints mode",
     feature_group: 16,
     code: () => {
-      self.exit();
+      mode.exit();
     },
   });
 
-  self.mappings.add("ct", {
+  mappings.add("ct", {
     annotation: "copy text from target element",
     feature_group: 16,
     code: () => {
@@ -164,7 +162,7 @@ kbd {
     },
   });
 
-  self.mappings.add("ch", {
+  mappings.add("ch", {
     annotation: "copy html from target element",
     feature_group: 16,
     code: () => {
@@ -172,17 +170,17 @@ kbd {
     },
   });
 
-  self.mappings.add("d", {
+  mappings.add("d", {
     annotation: "delete target element",
     feature_group: 16,
     code: () => {
       hintLink.get(overlay!).remove();
-      self.exit();
+      mode.exit();
     },
   });
 
   const menu = createElementWithContent("div", "", { class: "menu" });
-  getAnnotations(self.mappings).forEach((b) => {
+  getAnnotations(mappings).forEach((b) => {
     const menuItem = createElementWithContent("div", "", { class: "menu-item" });
     menuItem.appendChild(
       createElementWithContent("kbd", htmlEncode(KeyboardUtils.decodeKeystroke(b.word))),
@@ -191,40 +189,49 @@ kbd {
     menu.appendChild(menuItem);
   });
 
-  self.addEventListener("keydown", (event) => {
-    Mode.handleMapKey.call(self, event);
+  mode.addEventListener("keydown", (event) => {
+    Mode.handleMapKey.call(mode, event);
   });
 
   let overlay: HTMLElement | null = null;
-  self.onExit = () => {
+  mode.onExit = () => {
     overlay!.remove();
     regionalHintsHost.remove();
   };
-  self.attach = (elm) => {
+  const attach = (elm: HTMLElement): void => {
     if (overlay) overlay.remove();
     overlay = elm;
     regionalHintsHost.shadowRoot!.appendChild(overlay);
     placeHintsHost(regionalHintsHost);
     overlay.appendChild(menu);
-    self.enter();
+    mode.enter();
   };
-  self.onScrollStarted = () => {
+  const onScrollStarted = (): void => {
     if (!document.documentElement.contains(regionalHintsHost)) {
       return;
     }
     overlay!.style.display = "none";
   };
-  self.onScrollDone = () => {
+  const onScrollDone = (): void => {
     const be = hintLink.get(overlay!).getBoundingClientRect();
     overlay!.style.top = be.top + "px";
     overlay!.style.left = be.left + "px";
     overlay!.style.display = "";
   };
+
+  const self: RegionalHintsMode = Object.assign(mode, {
+    mappings,
+    map_node: mappings,
+    attach,
+    onScrollStarted,
+    onScrollDone,
+  });
+
   return self;
 }
 
 function createHints(insert: InsertLike, normal: NormalLike, clipboard: ClipboardLike): HintsMode {
-  const self = new Mode("Hints") as HintsMode;
+  const mode = new Mode("Hints");
   const hintsHost = document.createElement("div");
   hintsHost.className = "surfingkeys_hints_host";
   hintsHost.attachShadow({ mode: "open" });
@@ -289,7 +296,7 @@ div.hint-scrollable {
    *
    * @name Hints.setNumeric
    */
-  self.setNumeric = () => {
+  const setNumeric = (): void => {
     numeric = true;
   };
   let characters = "asdfgqwertzxcvb";
@@ -304,7 +311,7 @@ div.hint-scrollable {
    * @name Hints.setCharacters
    */
   const excludedScrollKeys: string[] = [];
-  self.setCharacters = (chars) => {
+  const setCharacters = (chars: string): void => {
     characters = chars;
     for (const c of chars) {
       if (normal.isScrollKeyInHints(c)) {
@@ -312,11 +319,11 @@ div.hint-scrollable {
       }
     }
   };
-  self.getCharacters = () => {
+  const getCharacters = (): string => {
     return characters;
   };
 
-  self.addEventListener("keydown", (event) => {
+  mode.addEventListener("keydown", (event) => {
     event.sk_stopPropagation = true;
     const keyEvent = event as KeyboardEvent;
 
@@ -391,7 +398,7 @@ div.hint-scrollable {
       }
     }
   });
-  self.addEventListener("keyup", (event) => {
+  mode.addEventListener("keyup", (event) => {
     if (event.keyCode === KeyboardUtils.keyCodes["space"]) {
       holder.style.display = "";
     }
@@ -409,15 +416,17 @@ div.hint-scrollable {
    * @name Hints.dispatchMouseClick
    * @see Hints.create
    */
-  self.dispatchMouseClick = (element) => {
+  // The hint target is polymorphic; see the HintsMode type for why this is `any`.
+  // eslint-disable-next-line typescript/no-explicit-any
+  const dispatchMouseClick = (element: any): void => {
     if (isEditable(element)) {
-      self.exit();
+      mode.exit();
       normal.passFocus(true);
       element.focus();
       insert.enter(element);
     } else {
       if (!behaviours.multipleHits) {
-        self.exit();
+        mode.exit();
       }
       let tabbed = behaviours.tabbed,
         active = behaviours.active;
@@ -489,7 +498,7 @@ div.hint-scrollable {
   let _lastCreateAttrs: { activeInput?: number; [key: string]: unknown } = {};
   // Holds a caller-provided onHintKey typed for its own hint target shape (see create()'s parameter).
   // eslint-disable-next-line typescript/no-explicit-any
-  let _onHintKey: ((element: any) => void) | null = self.dispatchMouseClick;
+  let _onHintKey: ((element: any) => void) | null = dispatchMouseClick;
   let _cssSelector: string | Element[] | RegExp = "";
 
   function isCapital(key: string): boolean {
@@ -597,7 +606,7 @@ div.hint-scrollable {
     prefix = "";
     textFilter = "";
     shiftKey = false;
-    self.exit();
+    mode.exit();
   }
 
   function flip(): void {
@@ -616,13 +625,13 @@ div.hint-scrollable {
   }
 
   function resetHints(): void {
-    if (Mode.getCurrent() !== self || !document.documentElement.contains(hintsHost)) {
+    if (Mode.getCurrent() !== mode || !document.documentElement.contains(hintsHost)) {
       return;
     }
     const start = Date.now();
     const found = createHintsImpl(_cssSelector, _lastCreateAttrs);
     if (found > 0) {
-      self.statusLine += " - " + (Date.now() - start) + "ms / " + found;
+      mode.statusLine += " - " + (Date.now() - start) + "ms / " + found;
       Mode.showStatus();
     }
   }
@@ -677,7 +686,7 @@ div.hint-scrollable {
    *   than one elements in `links` or not. Default is `false`
    * @name Hints.click
    */
-  self.click = (links, force) => {
+  const click = (links: string | Element[], force?: boolean): void => {
     const list: Element[] = typeof links === "string" ? getClickableElements(links) : links;
     if (list.length > 1) {
       if (force) {
@@ -692,7 +701,7 @@ div.hint-scrollable {
     }
   };
 
-  self.previousPage = () => {
+  const previousPage = (): boolean => {
     const prevLinks = uniqueLinks(getClickableElements("[rel=prev]", runtime.conf.prevLinkRegex));
     if (prevLinks.length) {
       self.click(prevLinks);
@@ -702,7 +711,7 @@ div.hint-scrollable {
     }
   };
 
-  self.nextPage = () => {
+  const nextPage = (): boolean => {
     const nextLinks = uniqueLinks(getClickableElements("[rel=next]", runtime.conf.nextLinkRegex));
     if (nextLinks.length) {
       self.click(nextLinks);
@@ -712,7 +721,7 @@ div.hint-scrollable {
     }
   };
 
-  self.onScrollStarted = () => {
+  const onScrollStarted = (): void => {
     if (!document.documentElement.contains(hintsHost)) {
       return;
     }
@@ -721,27 +730,27 @@ div.hint-scrollable {
     prefix = "";
   };
 
-  self.onScrollDone = resetHints;
+  const onScrollDone = resetHints;
 
   initSKFunctionListener(
     "hints",
     {
       scrollStarted: () => {
-        const mode = Mode.getCurrent() as ScrollMode | undefined;
-        if (mode?.onScrollStarted) mode.onScrollStarted();
+        const current = Mode.getCurrent() as ScrollMode | undefined;
+        if (current?.onScrollStarted) current.onScrollStarted();
       },
       scrollDone: () => {
-        const mode = Mode.getCurrent() as ScrollMode | undefined;
-        if (mode?.onScrollDone) mode.onScrollDone();
+        const current = Mode.getCurrent() as ScrollMode | undefined;
+        if (current?.onScrollDone) current.onScrollDone();
       },
-      topBoundaryHit: self.previousPage,
-      bottomBoundaryHit: self.nextPage,
-      dispatchMouseClick: self.dispatchMouseClick,
+      topBoundaryHit: previousPage,
+      bottomBoundaryHit: nextPage,
+      dispatchMouseClick,
     },
     true,
   );
 
-  self.genLabels = (total) => {
+  const genLabels = (total: number): string[] => {
     const chars = characters.toUpperCase();
     let hints = [""];
     let offset = 0;
@@ -758,7 +767,7 @@ div.hint-scrollable {
     return hints;
   };
 
-  self.coordinate = () => {
+  const coordinate = (): { top: number; left: number } => {
     // a hack to get co-ordinate
     const link = createElementWithContent("div", "A", { style: "top: 0; left: 0;" });
     holder.prepend(link);
@@ -880,7 +889,7 @@ div.hint-scrollable {
       behaviours[attr] = attrs[attr];
     }
     const statusLine = attrs["statusLine"];
-    self.statusLine = (typeof statusLine === "string" && statusLine) || "Hints to click";
+    mode.statusLine = (typeof statusLine === "string" && statusLine) || "Hints to click";
 
     const filtered = filterInvisibleElements(elements as HTMLElement[]);
     if (filtered.length > 0) {
@@ -893,7 +902,7 @@ div.hint-scrollable {
     cssSelector: string | Element[],
     attrs?: Record<string, unknown>,
   ): number {
-    self.statusLine = "Hints to click";
+    mode.statusLine = "Hints to click";
 
     attrs = attrs || {};
     for (const attr in attrs) {
@@ -932,7 +941,7 @@ div.hint-scrollable {
       behaviours[attr] = attrs[attr];
     }
     const statusLine = attrs?.["statusLine"];
-    self.statusLine = (typeof statusLine === "string" && statusLine) || "Hints to select text";
+    mode.statusLine = (typeof statusLine === "string" && statusLine) || "Hints to select text";
 
     const visible = getVisibleElements((e, v) => {
       const aa = e.childNodes;
@@ -1042,7 +1051,7 @@ div.hint-scrollable {
     return createHintsForClick(cssSelector, attrs);
   }
 
-  self.createInputLayer = () => {
+  const createInputLayer = (): void => {
     placeHintsHost(hintsHost);
     const cssSelector = getCssSelectorsOfEditable();
 
@@ -1072,7 +1081,7 @@ div.hint-scrollable {
     }
 
     if (elements.length > 1) {
-      self.enter();
+      mode.enter();
       _initHolder("input");
       elements.forEach((e) => {
         const be = e.getBoundingClientRect();
@@ -1104,7 +1113,7 @@ div.hint-scrollable {
     }
   };
 
-  self.getSelector = () => {
+  const getSelector = (): string | Element[] | RegExp => {
     return _cssSelector;
   };
 
@@ -1128,7 +1137,13 @@ div.hint-scrollable {
    * @name Hints.create
    * @see Hints.dispatchMouseClick
    */
-  self.create = (cssSelector, onHintKey, attrs) => {
+  const create = (
+    cssSelector: string | Element[] | RegExp,
+    // The hint target is polymorphic; see the HintsMode type for why this is `any`.
+    // eslint-disable-next-line typescript/no-explicit-any
+    onHintKey: ((element: any) => void) | null,
+    attrs?: Record<string, unknown>,
+  ): Promise<number> => {
     if (numeric) {
       characters = "1234567890";
     }
@@ -1141,8 +1156,8 @@ div.hint-scrollable {
     const start = Date.now();
     const found = createHintsImpl(cssSelector, attrs);
     if (found > (runtime.conf.hintExplicit ? 0 : 1)) {
-      self.statusLine += " - " + (Date.now() - start) + "ms / " + found;
-      self.enter();
+      mode.statusLine += " - " + (Date.now() - start) + "ms / " + found;
+      mode.enter();
     } else {
       handleHint();
     }
@@ -1152,7 +1167,7 @@ div.hint-scrollable {
     });
   };
 
-  self.mouseoutLastElement = () => {
+  const mouseoutLastElement = (): void => {
     if (lastMouseTarget) {
       dispatchMouseEvent(lastMouseTarget, ["mouseout"], {});
       lastMouseTarget = null;
@@ -1173,7 +1188,7 @@ div.hint-scrollable {
    *   Default is `null`
    * @name Hints.style
    */
-  self.style = (css, mode) => {
+  const style = (css: string, mode?: string): void => {
     if (!/^div\b/.test(css)) {
       css = `div{${css}}`;
     }
@@ -1185,12 +1200,32 @@ div.hint-scrollable {
     }
   };
 
-  self.feedkeys = (keys) => {
+  const feedkeys = (keys: string): void => {
     setTimeout(() => {
       prefix = keys.toUpperCase();
       handleHint();
     }, 1);
   };
+
+  const self: HintsMode = Object.assign(mode, {
+    setNumeric,
+    setCharacters,
+    getCharacters,
+    dispatchMouseClick,
+    click,
+    previousPage,
+    nextPage,
+    onScrollStarted,
+    onScrollDone,
+    genLabels,
+    coordinate,
+    createInputLayer,
+    getSelector,
+    create,
+    mouseoutLastElement,
+    style,
+    feedkeys,
+  });
 
   return self;
 }
