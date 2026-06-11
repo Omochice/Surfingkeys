@@ -60,7 +60,10 @@ type NormalMode = Mode & {
 };
 
 function createDisabled(normal: NormalMode): DisabledMode {
-  const self = new Mode("Disabled") as DisabledMode;
+  const self: DisabledMode = Object.assign(new Mode("Disabled"), {
+    // exposed as a property because createNormal's disable() sets it from outside
+    activatedOnElement: false,
+  });
 
   // hide status line for Disabled mode
   self.statusLine = "";
@@ -68,7 +71,6 @@ function createDisabled(normal: NormalMode): DisabledMode {
   // Disabled has higher priority than others.
   self.priority = 99;
 
-  self.activatedOnElement = false;
   self.addEventListener("keydown", (event) => {
     // prevent this event to be handled by Surfingkeys' other listeners
     event.sk_suppressed = true;
@@ -90,7 +92,7 @@ function createDisabled(normal: NormalMode): DisabledMode {
 }
 
 function createLurk(normal: NormalMode): LurkMode {
-  const self = new Mode("Lurk") as LurkMode;
+  const self: LurkMode = Object.assign(new Mode("Lurk"), { mappings: new Trie() });
 
   function enterNormal() {
     normal.enter();
@@ -101,7 +103,6 @@ function createLurk(normal: NormalMode): LurkMode {
     }
   }
 
-  self.mappings = new Trie();
   self.map_node = self.mappings;
   self.mappings.add(KeyboardUtils.encodeKeystroke("<Alt-i>"), {
     annotation: "Enter normal mode",
@@ -134,9 +135,13 @@ function createLurk(normal: NormalMode): LurkMode {
 }
 
 function createPassThrough(): PassThroughMode {
-  const self = new Mode("PassThrough") as PassThroughMode;
   let _autoExit: ReturnType<typeof setTimeout> | undefined;
   let _timeout: number | undefined;
+  const self: PassThroughMode = Object.assign(new Mode("PassThrough"), {
+    setTimeout: (timeout?: number): void => {
+      _timeout = timeout;
+    },
+  });
 
   self
     .addEventListener("keydown", (event) => {
@@ -173,18 +178,12 @@ function createPassThrough(): PassThroughMode {
     }
   };
 
-  self.setTimeout = (timeout) => {
-    _timeout = timeout;
-  };
-
   return self;
 }
 
 function createNormal(insert: InsertLike): NormalMode {
-  const self = new Mode("Normal") as NormalMode;
-
-  self.mappings = new Trie();
-  self.map_node = self.mappings;
+  const mode = new Mode("Normal");
+  const mappings = new Trie();
 
   // let next focus event pass
   let _passFocus = false;
@@ -197,14 +196,14 @@ function createNormal(insert: InsertLike): NormalMode {
   let lastKeys: string[] | undefined;
   let scrollHelpers = new WeakMap<Element, ScrollHelpers>();
 
-  self.passFocus = (pf) => {
+  const passFocus = (pf: boolean): void => {
     _passFocus = pf;
   };
 
-  self.startLurk = () => {
+  const startLurk = (): string => {
     let state = "lurking";
     if (!_lurk) {
-      self.exit();
+      mode.exit();
       _lurk = createLurk(self);
       _lurkMaps!.forEach((keymap) => {
         mapInMode(_lurk!, keymap[0], keymap[1]);
@@ -217,23 +216,23 @@ function createNormal(insert: InsertLike): NormalMode {
     }
     return state;
   };
-  self.revertToLurk = () => {
+  const revertToLurk = (): void => {
     // peeking exit to keep modes such hints above normal.
-    self.exit(true);
+    mode.exit(true);
     if (window === top) {
       RUNTIME("setSurfingkeysIcon", {
         status: "lurking",
       });
     }
   };
-  self.getLurkMode = () => {
+  const getLurkMode = (): LurkMode | undefined => {
     return _lurk;
   };
-  self.addLurkMap = (newKeystroke, oldKeystroke) => {
+  const addLurkMap = (newKeystroke: string, oldKeystroke: string): void => {
     _lurkMaps!.push([newKeystroke, oldKeystroke]);
   };
 
-  self.addEventListener("keydown", (event) => {
+  mode.addEventListener("keydown", (event) => {
     const realTarget = getRealEdit(event);
     const keyName = event.sk_keyName ?? "";
     const eventKey = (event as KeyboardEvent).key;
@@ -243,10 +242,10 @@ function createNormal(insert: InsertLike): NormalMode {
         insert.exit();
       } else {
         if (runtime.conf.editableBodyCare && realTarget === document.body && eventKey !== "i") {
-          self.statusLine = "Press i to enter Insert mode";
+          mode.statusLine = "Press i to enter Insert mode";
           runtime.conf.showModeStatus = true;
           if (keyName.length) {
-            Mode.handleMapKey.call(self, event);
+            Mode.handleMapKey.call(mode, event);
           }
         } else {
           event.sk_stopPropagation =
@@ -268,7 +267,7 @@ function createNormal(insert: InsertLike): NormalMode {
             // steal focus from dynamically created input widget
             realTarget.blur();
             unmarkNewlyCreated(realTarget);
-            Mode.handleMapKey.call(self, event);
+            Mode.handleMapKey.call(mode, event);
           } else {
             // keep cursor where it is
             insert.enter(realTarget, true);
@@ -277,10 +276,10 @@ function createNormal(insert: InsertLike): NormalMode {
       }
     } else if (Mode.isSpecialKeyOf("<Alt-s>", keyName)) {
       self.toggleBlocklist();
-      Mode.finish(self);
+      Mode.finish(mode);
       event.sk_stopPropagation = true;
     } else if (keyName.length) {
-      const done = Mode.handleMapKey.call(self, event, () => {
+      const done = Mode.handleMapKey.call(mode, event, () => {
         // revert to lurk only when Esc is not handled and lurk mode available.
         if (Mode.isSpecialKeyOf("<Esc>", keyName) && _lurk) {
           self.revertToLurk();
@@ -288,7 +287,7 @@ function createNormal(insert: InsertLike): NormalMode {
       });
       if (_once && done) {
         _once = false;
-        self.exit();
+        mode.exit();
       }
     }
     if (event.sk_stopPropagation) {
@@ -296,10 +295,10 @@ function createNormal(insert: InsertLike): NormalMode {
       Mode.suppressKeyUp(event.keyCode!);
     }
   });
-  self.addEventListener("blur", () => {
+  mode.addEventListener("blur", () => {
     keyHeld = 0;
   });
-  self.addEventListener("focus", (event) => {
+  mode.addEventListener("focus", (event) => {
     Mode.showStatus();
     if (runtime.conf.stealFocusOnLoad && !isInUIFrame()) {
       const elm = getRealEdit(event);
@@ -316,12 +315,12 @@ function createNormal(insert: InsertLike): NormalMode {
       }
     }
   });
-  self.addEventListener("keyup", () => {
+  mode.addEventListener("keyup", () => {
     setTimeout(() => {
       keyHeld = 0;
     }, 0);
   });
-  self.addEventListener("mousedown", (event) => {
+  mode.addEventListener("mousedown", (event) => {
     // The isTrusted read-only property of the Event interface is a boolean
     // that is true when the event was generated by a user action, and false
     // when the event was created or modified by a script or dispatched via dispatchEvent.
@@ -348,7 +347,7 @@ function createNormal(insert: InsertLike): NormalMode {
     }
   });
 
-  self.toggleBlocklist = () => {
+  const toggleBlocklist = (): void => {
     if (document.location.href.indexOf(browser.runtime.getURL("/")) !== 0) {
       RUNTIME(
         "toggleBlocklist",
@@ -383,23 +382,23 @@ function createNormal(insert: InsertLike): NormalMode {
    *   will stay in PassThrough mode until an Escape key is pressed.
    * @name Normal.passThrough
    */
-  self.passThrough = (timeout) => {
+  const passThrough = (timeout?: number): PassThroughMode => {
     _passThrough.setTimeout(timeout);
     _passThrough.enter();
     return _passThrough;
   };
-  self.once = () => {
+  const once = (): void => {
     _once = true;
-    self.enter();
+    mode.enter();
   };
-  self.mappings.add(KeyboardUtils.encodeKeystroke("<Alt-i>"), {
+  mappings.add(KeyboardUtils.encodeKeystroke("<Alt-i>"), {
     annotation: "Enter PassThrough mode to temporarily suppress SurfingKeys",
     feature_group: 0,
     code: () => {
       self.passThrough();
     },
   });
-  self.mappings.add("p", {
+  mappings.add("p", {
     annotation: "Enter ephemeral PassThrough mode to temporarily suppress SurfingKeys",
     feature_group: 0,
     code: () => {
@@ -407,7 +406,7 @@ function createNormal(insert: InsertLike): NormalMode {
     },
   });
 
-  self.repeats = "";
+  mode.repeats = "";
 
   function initScroll(elm: HTMLElement): void {
     const helpers: ScrollHelpers = {
@@ -541,7 +540,7 @@ function createNormal(insert: InsertLike): NormalMode {
     }
   }
 
-  self.highlightElement = (elm) => {
+  const highlightElement = (elm: Element): void => {
     let rc;
     if (document.scrollingElement === elm) {
       rc = {
@@ -621,7 +620,7 @@ function createNormal(insert: InsertLike): NormalMode {
    *   left | right | leftmost | rightmost | byRatio
    * @name Normal.scroll
    */
-  self.scroll = (type) => {
+  const scroll = (type: string): void => {
     initScrollIndex();
     let scrollNode = document.scrollingElement as HTMLElement | null;
     if (scrollNodes!.length > 0) {
@@ -746,13 +745,13 @@ function createNormal(insert: InsertLike): NormalMode {
     dispatchSKEvent("observer", ["turnOff"]);
   };
 
-  self.refreshScrollableElements = () => {
+  const refreshScrollableElements = (): HTMLElement[] => {
     scrollNodes = null;
     initScrollIndex();
     return scrollNodes!;
   };
 
-  self.addScrollableElement = (elm) => {
+  const addScrollableElement = (elm: HTMLElement): void => {
     const current = scrollNodes?.[scrollIndex];
     if (
       !scrollNodes ||
@@ -764,7 +763,7 @@ function createNormal(insert: InsertLike): NormalMode {
     }
   };
 
-  self.rotateFrame = () => {
+  const rotateFrame = (): void => {
     RUNTIME("nextFrame", {
       frameId: (window as unknown as { frameId: number }).frameId,
     });
@@ -776,17 +775,17 @@ function createNormal(insert: InsertLike): NormalMode {
    * @param {string} keys The keys to be fed into Normal mode.
    * @name Normal.feedkeys
    */
-  self.feedkeys = (keys) => {
+  const feedkeys = (keys: string): void => {
     setTimeout(() => {
       const evt = new Event("keydown");
       for (const ch of keys) {
         evt.sk_keyName = ch;
-        Mode.handleMapKey.call(self, evt);
+        Mode.handleMapKey.call(mode, evt);
       }
     }, 1);
   };
 
-  self.setLastKeys = function (this: Mode, key: string) {
+  mode.setLastKeys = function (this: Mode, key: string) {
     if (!this.map_node!.meta!.repeatIgnore && key.length > 1) {
       lastKeys = [key];
       saveLastKeys();
@@ -801,15 +800,15 @@ function createNormal(insert: InsertLike): NormalMode {
     });
   }
 
-  self.appendKeysForRepeat = (mode, keys) => {
+  const appendKeysForRepeat = (modeName: string, keys: string): void => {
     if (lastKeys && lastKeys.length > 0) {
       // keys for normal mode must be pushed.
-      lastKeys.push(`${mode}\t${keys}`);
+      lastKeys.push(`${modeName}\t${keys}`);
       saveLastKeys();
     }
   };
 
-  self.addVIMark = (mark, url) => {
+  const addVIMark = (mark: string, url?: string): void => {
     url = url || window.location.href;
     const mo: Record<string, { url: string; scrollLeft: number; scrollTop: number }> = {
       [mark]: {
@@ -828,7 +827,7 @@ function createNormal(insert: InsertLike): NormalMode {
    * @param {string} mark A vim-like mark.
    * @name Normal.jumpVIMark
    */
-  self.jumpVIMark = (mark) => {
+  const jumpVIMark = (mark: string): void => {
     if (mark === "'") {
       initScrollIndex();
       if (scrollNodes!.length > 0) {
@@ -850,13 +849,13 @@ function createNormal(insert: InsertLike): NormalMode {
     }
   };
 
-  self.moveTab = (pos) => {
+  const moveTab = (pos: number): void => {
     RUNTIME("moveTab", {
       position: pos,
     });
   };
 
-  self.captureElement = (elm) => {
+  const captureElement = (elm: HTMLElement): void => {
     RUNTIME("getCaptureSize", null, (response: { width: number }) => {
       const scale = response.width / window.innerWidth;
 
@@ -967,14 +966,14 @@ function createNormal(insert: InsertLike): NormalMode {
     });
   };
 
-  self.mappings.add("yG", {
+  mappings.add("yG", {
     annotation: "Capture current full page",
     feature_group: 7,
     code: () => {
       self.captureElement(document.scrollingElement as HTMLElement);
     },
   });
-  self.mappings.add("yS", {
+  mappings.add("yS", {
     annotation: "Capture scrolling element",
     feature_group: 7,
     code: () => {
@@ -987,7 +986,7 @@ function createNormal(insert: InsertLike): NormalMode {
     },
   });
 
-  self.mappings.add("cS", {
+  mappings.add("cS", {
     annotation: "Reset scroll target",
     feature_group: 2,
     code: () => {
@@ -1004,95 +1003,95 @@ function createNormal(insert: InsertLike): NormalMode {
 
   type ScrollCode = (() => void) & { isSKScrollInHints?: boolean };
   const bindScrollForHints = (action: string): ScrollCode => {
-    const f: ScrollCode = self.scroll.bind(self, action);
+    const f: ScrollCode = scroll.bind(undefined, action);
     // indicate that the key bound with this function is a key to scroll page and can be used to scroll in Hints mode.
     f.isSKScrollInHints = true;
     return f;
   };
-  self.isScrollKeyInHints = (key) => {
-    const bound = (self.mappings as unknown as Record<string, { meta?: TrieMetaWithScroll }>)[key];
+  const isScrollKeyInHints = (key: string): boolean => {
+    const bound = (mappings as unknown as Record<string, { meta?: TrieMetaWithScroll }>)[key];
     return !!(bound && bound.meta && bound.meta.code && bound.meta.code.isSKScrollInHints);
   };
 
-  self.mappings.add("e", {
+  mappings.add("e", {
     annotation: "Scroll half page up",
     feature_group: 2,
     repeatIgnore: true,
-    code: self.scroll.bind(self, "pageUp"),
+    code: scroll.bind(undefined, "pageUp"),
   });
-  self.mappings.add("U", {
+  mappings.add("U", {
     annotation: "Scroll full page up",
     feature_group: 2,
     repeatIgnore: true,
-    code: self.scroll.bind(self, "fullPageUp"),
+    code: scroll.bind(undefined, "fullPageUp"),
   });
-  self.mappings.add("d", {
+  mappings.add("d", {
     annotation: "Scroll half page down",
     feature_group: 2,
     repeatIgnore: true,
-    code: self.scroll.bind(self, "pageDown"),
+    code: scroll.bind(undefined, "pageDown"),
   });
-  self.mappings.add("P", {
+  mappings.add("P", {
     annotation: "Scroll full page down",
     feature_group: 2,
     repeatIgnore: true,
-    code: self.scroll.bind(self, "fullPageDown"),
+    code: scroll.bind(undefined, "fullPageDown"),
   });
-  self.mappings.add("gg", {
+  mappings.add("gg", {
     annotation: "Scroll to the top of the page",
     feature_group: 2,
     repeatIgnore: true,
-    code: self.scroll.bind(self, "top"),
+    code: scroll.bind(undefined, "top"),
   });
-  self.mappings.add("G", {
+  mappings.add("G", {
     annotation: "Scroll to the bottom of the page",
     feature_group: 2,
     repeatIgnore: true,
     code: bindScrollForHints("bottom"),
   });
-  self.mappings.add("j", {
+  mappings.add("j", {
     annotation: "Scroll down",
     feature_group: 2,
     repeatIgnore: true,
     code: bindScrollForHints("down"),
   });
-  self.mappings.add("k", {
+  mappings.add("k", {
     annotation: "Scroll up",
     feature_group: 2,
     repeatIgnore: true,
     code: bindScrollForHints("up"),
   });
-  self.mappings.add("h", {
+  mappings.add("h", {
     annotation: "Scroll left",
     feature_group: 2,
     repeatIgnore: true,
     code: bindScrollForHints("left"),
   });
-  self.mappings.add("l", {
+  mappings.add("l", {
     annotation: "Scroll right",
     feature_group: 2,
     repeatIgnore: true,
     code: bindScrollForHints("right"),
   });
-  self.mappings.add("0", {
+  mappings.add("0", {
     annotation: "Scroll all the way to the left",
     feature_group: 2,
     repeatIgnore: true,
     code: bindScrollForHints("leftmost"),
   });
-  self.mappings.add("$", {
+  mappings.add("$", {
     annotation: "Scroll all the way to the right",
     feature_group: 2,
     repeatIgnore: true,
     code: bindScrollForHints("rightmost"),
   });
-  self.mappings.add("%", {
+  mappings.add("%", {
     annotation: "Scroll to percentage of current page",
     feature_group: 2,
     repeatIgnore: true,
-    code: self.scroll.bind(self, "byRatio"),
+    code: scroll.bind(undefined, "byRatio"),
   });
-  self.mappings.add("cs", {
+  mappings.add("cs", {
     annotation: "Change scroll target",
     feature_group: 2,
     repeatIgnore: true,
@@ -1101,7 +1100,7 @@ function createNormal(insert: InsertLike): NormalMode {
     },
   });
 
-  self.mappings.add("/", {
+  mappings.add("/", {
     annotation: "Find in current page",
     feature_group: 9,
     repeatIgnore: true,
@@ -1110,7 +1109,7 @@ function createNormal(insert: InsertLike): NormalMode {
     },
   });
 
-  self.mappings.add("E", {
+  mappings.add("E", {
     annotation: "Go one tab left",
     feature_group: 3,
     repeatIgnore: true,
@@ -1118,7 +1117,7 @@ function createNormal(insert: InsertLike): NormalMode {
       RUNTIME("previousTab");
     },
   });
-  self.mappings.add("R", {
+  mappings.add("R", {
     annotation: "Go one tab right",
     feature_group: 3,
     repeatIgnore: true,
@@ -1143,7 +1142,7 @@ function createNormal(insert: InsertLike): NormalMode {
   }
 
   let _disabled: DisabledMode | null = null;
-  self.disable = (onElement) => {
+  const disable = (onElement?: boolean): void => {
     if (!_disabled) {
       _disabled = createDisabled(self);
       _disabled.enter(0, true);
@@ -1153,20 +1152,47 @@ function createNormal(insert: InsertLike): NormalMode {
     document.removeEventListener("mouseup", _onMouseUp);
   };
 
-  self.enable = () => {
+  const enable = (): void => {
     if (_disabled) {
       _disabled.exit();
       _disabled = null;
     }
     document.addEventListener("mouseup", _onMouseUp);
   };
-  self.enable();
+  enable();
 
-  self.onExit = () => {
+  mode.onExit = () => {
     dispatchSKEvent("observer", ["turnOff"]);
     // Drop all cached scroll helpers so the next activation re-initializes them.
     scrollHelpers = new WeakMap();
   };
+
+  const self: NormalMode = Object.assign(mode, {
+    mappings,
+    map_node: mappings,
+    passFocus,
+    startLurk,
+    revertToLurk,
+    getLurkMode,
+    addLurkMap,
+    toggleBlocklist,
+    passThrough,
+    once,
+    scroll,
+    refreshScrollableElements,
+    addScrollableElement,
+    rotateFrame,
+    feedkeys,
+    appendKeysForRepeat,
+    addVIMark,
+    jumpVIMark,
+    moveTab,
+    captureElement,
+    highlightElement,
+    isScrollKeyInHints,
+    disable,
+    enable,
+  });
 
   return self;
 }
