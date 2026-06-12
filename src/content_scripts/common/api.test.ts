@@ -26,7 +26,7 @@ function makeCtx() {
   const insert: any = {
     name: "Insert",
     mappings: insertMappings,
-    map_node: insertMappings,
+    keymap: { reset: vi.fn() },
     enter: vi.fn(),
     exit: vi.fn(),
   };
@@ -34,7 +34,7 @@ function makeCtx() {
   const normal: any = {
     name: "Normal",
     mappings: normalMappings,
-    map_node: normalMappings,
+    keymap: { reset: vi.fn() },
     feedkeys: vi.fn(),
     jumpVIMark: vi.fn(),
     passThrough: vi.fn(),
@@ -54,7 +54,6 @@ function makeCtx() {
   const visual: any = {
     name: "Visual",
     mappings: visualMappings,
-    map_node: visualMappings,
     style: vi.fn(),
   };
 
@@ -270,6 +269,8 @@ describe("createAPI unmapAllExcept", () => {
     const encB = KeyboardUtils.encodeKeystroke("b");
     expect(ctx.normal.mappings.find(encA)).not.toBeUndefined();
     expect(ctx.normal.mappings.find(encB)).toBeUndefined();
+    // The replaced root must be accompanied by a keymap re-root.
+    expect(ctx.normal.keymap.reset).toHaveBeenCalledOnce();
   });
 
   it("clears insert mappings except the ones listed", () => {
@@ -285,6 +286,8 @@ describe("createAPI unmapAllExcept", () => {
     const encD = KeyboardUtils.encodeKeystroke("d");
     expect(ctx.insert.mappings.find(encC)).not.toBeUndefined();
     expect(ctx.insert.mappings.find(encD)).toBeUndefined();
+    // The replaced root must be accompanied by a keymap re-root.
+    expect(ctx.insert.keymap.reset).toHaveBeenCalledOnce();
   });
 });
 

@@ -43,7 +43,7 @@ type InsertLike = { mappings: Trie; enableEmojiInsertion(): void };
 type NormalLike = {
   mappings: Trie;
   getLurkMode(): { mappings: Trie } | undefined;
-  repeats?: string;
+  keymap: { repeats: string | undefined };
 };
 type VisualLike = {
   mappings: Trie;
@@ -304,7 +304,7 @@ function createFront(
   }
 
   self.chooseTab = () => {
-    if (normal.repeats !== "") {
+    if (normal.keymap.repeats !== "") {
       reportOnFail(RUNTIME("focusTabByIndex"), reportError);
     } else {
       self.command({

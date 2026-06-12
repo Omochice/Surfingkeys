@@ -1,5 +1,6 @@
 import { LOG } from "../../common/utils";
 import KeyboardUtils from "./keyboardUtils";
+import type { Keymap } from "./keymap";
 import type { ModeContext } from "./modeGraph";
 import { RUNTIME, dispatchSKEvent } from "./runtime";
 import { specialKeys } from "./specialKeys";
@@ -281,7 +282,7 @@ function createAPI(ctx: ModeContext) {
    */
   function unmapAllExcept(keystrokes: string[], domain?: RegExp): void {
     if (_isDomainApplicable(domain)) {
-      const modes: (ModeWithMappings & { map_node: Trie })[] = [normal, insert];
+      const modes: (ModeWithMappings & { keymap: Pick<Keymap, "reset"> })[] = [normal, insert];
       modes.forEach((mode) => {
         const _mappings = new Trie();
         keystrokes = keystrokes || [];
@@ -293,7 +294,7 @@ function createAPI(ctx: ModeContext) {
           }
         }
         mode.mappings = _mappings;
-        mode.map_node = _mappings;
+        mode.keymap.reset();
       });
     }
   }

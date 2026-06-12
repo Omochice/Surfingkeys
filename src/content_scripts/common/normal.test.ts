@@ -1800,8 +1800,8 @@ describe(String.raw`createNormal jumpVIMark — no scrollable elements on '\' ma
 
 // ─── keydown handler — non-editable key with no matching mapping ──────────────
 
-describe("createNormal keydown handler — non-editable key dispatches handleMapKey", () => {
-  it("dispatches handleMapKey and leaves the event un-suppressed when key has length", () => {
+describe("createNormal keydown handler — non-editable key dispatches the keymap", () => {
+  it("routes the key through keymap.handleKey and leaves the event un-suppressed", () => {
     const normal = createNormal(insertStub);
     const div = document.createElement("div");
     document.body.appendChild(div);
@@ -1818,20 +1818,19 @@ describe("createNormal keydown handler — non-editable key dispatches handleMap
       },
     });
 
-    // The non-editable, keyName.length branch must route the key through handleMapKey
+    // The non-editable, keyName.length branch must route the key through the keymap
     // (returning false for an unmatched key) rather than entering insert mode.
-    const handleMapKey = vi.spyOn(Mode, "handleMapKey").mockReturnValue(false);
+    const handleKey = vi.spyOn(normal.keymap, "handleKey").mockReturnValue(false);
 
     const handler = normal.eventListeners["keydown"]!;
     handler(event);
 
-    expect(handleMapKey).toHaveBeenCalledTimes(1);
-    expect(handleMapKey.mock.instances[0]).toBe(normal);
-    expect(handleMapKey.mock.calls[0]?.[0]).toBe(event);
+    expect(handleKey).toHaveBeenCalledTimes(1);
+    expect(handleKey.mock.calls[0]?.[0]).toBe(event);
     // Normal mode does not flag the event as suppressed (only Disabled mode does).
     expect(base.sk_suppressed).toBeFalsy();
 
-    handleMapKey.mockRestore();
+    handleKey.mockRestore();
     div.remove();
   });
 });
