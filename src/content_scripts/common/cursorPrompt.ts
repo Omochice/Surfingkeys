@@ -1,4 +1,5 @@
 import KeyboardUtils from "./keyboardUtils";
+import { createKeymap } from "./keymap";
 import Mode from "./mode";
 import Trie from "./trie";
 import {
@@ -45,28 +46,27 @@ class CursorPrompt {
 
   initMode(): void {
     const mode = new Mode("CursorPrompt");
+    const mappings = new Trie();
+    const keymap = createKeymap(() => mappings);
 
     mode.addEventListener("keydown", (event) => {
       if (event.sk_keyName?.length) {
-        Mode.handleMapKey.call(mode, event);
+        keymap.handleKey(event);
       }
       event.sk_suppressed = true;
     });
     mode.addEventListener("keyup", this.onKeyUp.bind(this));
 
-    mode.mappings = new Trie();
-    mode.map_node = mode.mappings;
-
-    mode.mappings.add(KeyboardUtils.encodeKeystroke("<Esc>"), {
+    mappings.add(KeyboardUtils.encodeKeystroke("<Esc>"), {
       code: this.close.bind(this),
     });
-    mode.mappings.add(KeyboardUtils.encodeKeystroke("<Enter>"), {
+    mappings.add(KeyboardUtils.encodeKeystroke("<Enter>"), {
       code: this.onEnter.bind(this),
     });
-    mode.mappings.add(KeyboardUtils.encodeKeystroke("<Tab>"), {
+    mappings.add(KeyboardUtils.encodeKeystroke("<Tab>"), {
       code: this.rotate.bind(this, false),
     });
-    mode.mappings.add(KeyboardUtils.encodeKeystroke("<Shift-Tab>"), {
+    mappings.add(KeyboardUtils.encodeKeystroke("<Shift-Tab>"), {
       code: this.rotate.bind(this, true),
     });
     this.mode = mode;

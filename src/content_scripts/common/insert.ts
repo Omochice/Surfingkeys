@@ -4,6 +4,7 @@ import { domApiError } from "../../common/result";
 import browser from "./browser";
 import CursorPrompt from "./cursorPrompt";
 import KeyboardUtils from "./keyboardUtils";
+import { type Keymap, createKeymap } from "./keymap";
 import Mode from "./mode";
 import { runtime } from "./runtime";
 import Trie from "./trie";
@@ -54,18 +55,20 @@ export function deleteNextWord(str: string, dir: number, cur: number): [string, 
 // `enter` is retyped to the element-entry signature this mode actually exposes
 // to callers (normal/hints focus an editable). The base Mode.enter (the
 // stack-push) is still used internally; it is captured with bind before the
-// public `enter` shadows it. `mappings`/`map_node` are required here because
-// createInsert always assigns them, which lets InsertMode satisfy the
-// structural mode interfaces.
+// public `enter` shadows it. `mappings` is required because createInsert
+// always assigns it, which lets InsertMode satisfy the structural mode
+// interfaces; `keymap` is exposed because api.ts unmapAllExcept replaces
+// `mappings` wholesale and re-roots the keymap.
 type InsertMode = Omit<Mode, "enter"> & {
   enter(elm: HTMLElement, keepCursor?: boolean): void;
   enableEmojiInsertion(): void;
   mappings: Trie;
-  map_node: Trie;
+  keymap: Keymap;
 };
 
 function createInsert(): InsertMode {
   const mode = new Mode("Insert");
+  const keymap = createKeymap(() => self.mappings, { thisArg: mode });
 
   function moveCursorEOL(): void {
     const element = getRealEdit();
@@ -280,7 +283,7 @@ function createInsert(): InsertMode {
     if (!isEditable(realTarget)) {
       mode.exit();
     } else if (event.sk_keyName?.length) {
-      Mode.handleMapKey.call(mode, event, (last) => {
+      keymap.handleKey(event, (last) => {
         // for insert mode to insert unmapped chars with preceding chars same as some mapkeys
         // such as, to insert `,m` in case of mapkey `,,` defined.
         const pw = last.getPrefixWord();
@@ -336,7 +339,7 @@ function createInsert(): InsertMode {
   const _enter = mode.enter.bind(mode);
   const self: InsertMode = Object.assign(mode, {
     mappings,
-    map_node: mappings,
+    keymap,
     enableEmojiInsertion,
     enter(elm: HTMLElement, keepCursor?: boolean): void {
       if (elm === document.body) {

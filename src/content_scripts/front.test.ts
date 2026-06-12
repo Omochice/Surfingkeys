@@ -42,11 +42,11 @@ function makeInsert() {
 
 function makeNormal(withLurk = false) {
   const lurk = withLurk ? { mappings: makeTrie() } : undefined;
-  // Omit `repeats` so the object satisfies NormalLike under exactOptionalPropertyTypes.
-  // Tests that need a non-empty repeats value assign it after construction.
+  // Tests that need a non-empty repeats value reassign keymap.repeats after construction.
   return {
     mappings: makeTrie(),
     getLurkMode: vi.fn(() => lurk),
+    keymap: { repeats: undefined as string | undefined },
   };
 }
 
@@ -454,14 +454,14 @@ describe("createFront chooseTab — RUNTIME delegation", () => {
     (globalThis as any).chrome.runtime.sendMessage = savedSendMessage;
   });
 
-  it("calls RUNTIME focusTabByIndex when normal.repeats is non-empty string", () => {
+  it("calls RUNTIME focusTabByIndex when the keymap's repeats is a non-empty string", () => {
     const sendMessage = vi.fn();
     (globalThis as any).chrome.runtime.sendMessage = sendMessage;
 
     const normal = {
       mappings: makeTrie(),
       getLurkMode: vi.fn(() => undefined),
-      repeats: "3",
+      keymap: { repeats: "3" },
     };
     const front = createFront(makeInsert(), normal, null, makeVisual(), makeBrowser());
 

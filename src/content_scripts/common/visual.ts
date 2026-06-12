@@ -1,5 +1,6 @@
 import { unwrapOr } from "../../common/result";
 import KeyboardUtils from "./keyboardUtils";
+import { createKeymap } from "./keymap";
 import Mode from "./mode";
 import { RUNTIME, dispatchSKEvent, runtime } from "./runtime";
 import { isSpecialKeyOf } from "./specialKeys";
@@ -34,7 +35,6 @@ type Match = [Node, number, HTMLElement[]];
 
 type VisualMode = Mode & {
   mappings: Trie;
-  map_node: Trie;
   hideCursor(): void;
   showCursor(): void;
   getCursorPixelPos(): DOMRect;
@@ -65,6 +65,7 @@ const win = window as unknown as {
 function createVisual(clipboard: ClipboardLike, hints: HintsLike): VisualMode {
   const mode = new Mode("Visual");
   const mappings = new Trie();
+  const keymap = createKeymap(() => mappings, { enableRepeats: true, thisArg: mode });
 
   mode.addEventListener("keydown", (event) => {
     const keyName = event.sk_keyName ?? "";
@@ -87,7 +88,7 @@ function createVisual(clipboard: ClipboardLike, hints: HintsLike): VisualMode {
         visualf = 0;
       }
     } else if (keyName.length) {
-      Mode.handleMapKey.call(mode, event);
+      keymap.handleKey(event);
       if (event.sk_stopPropagation) {
         event.sk_suppressed = true;
       } else if (isSpecialKeyOf("<Esc>", keyName)) {
@@ -175,7 +176,6 @@ function createVisual(clipboard: ClipboardLike, hints: HintsLike): VisualMode {
     );
   });
 
-  mode.repeats = "";
   mappings.add("l", {
     annotation: "forward character",
     feature_group: 9,
@@ -582,7 +582,7 @@ function createVisual(clipboard: ClipboardLike, hints: HintsLike): VisualMode {
   }
 
   function modifySelection(): void {
-    const sel = (self.map_node!.meta!.annotation as string).split(" ");
+    const sel = (keymap.getCurrentNode().meta!.annotation as string).split(" ");
     const alter = state === 2 ? "extend" : "move";
     self.hideCursor();
     const prevPos: [Node | null, number] = [selection.focusNode, selection.focusOffset];
@@ -813,7 +813,7 @@ function createVisual(clipboard: ClipboardLike, hints: HintsLike): VisualMode {
       const evt = new Event("keydown");
       for (const ch of keys) {
         evt.sk_keyName = ch;
-        Mode.handleMapKey.call(mode, evt);
+        keymap.handleKey(evt);
       }
     }, 1);
   };
@@ -946,7 +946,6 @@ function createVisual(clipboard: ClipboardLike, hints: HintsLike): VisualMode {
 
   const self: VisualMode = Object.assign(mode, {
     mappings,
-    map_node: mappings,
     hideCursor,
     showCursor,
     getCursorPixelPos,

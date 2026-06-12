@@ -1,6 +1,7 @@
 import browser from "./browser";
 import { isAutoFocusMarked, isNewlyCreated, unmarkNewlyCreated } from "./domFlags";
 import KeyboardUtils from "./keyboardUtils";
+import { type Keymap, createKeymap } from "./keymap";
 import Mode from "./mode";
 import { RUNTIME, dispatchSKEvent, runtime } from "./runtime";
 import { getScrollableElements, hasScroll } from "./scrollDetection";
@@ -36,7 +37,8 @@ type PassThroughMode = Mode & { setTimeout: (timeout?: number) => void };
 
 type NormalMode = Mode & {
   mappings: Trie;
-  map_node: Trie;
+  // Exposed because api.ts unmapAllExcept replaces `mappings` wholesale and re-roots the keymap.
+  keymap: Keymap;
   passFocus(pf: boolean): void;
   startLurk(): string;
   revertToLurk(): void;
@@ -95,6 +97,7 @@ function createDisabled(normal: NormalMode): DisabledMode {
 
 function createLurk(normal: NormalMode): LurkMode {
   const self: LurkMode = Object.assign(new Mode("Lurk"), { mappings: new Trie() });
+  const keymap = createKeymap(() => self.mappings);
 
   function enterNormal() {
     normal.enter();
@@ -105,7 +108,6 @@ function createLurk(normal: NormalMode): LurkMode {
     }
   }
 
-  self.map_node = self.mappings;
   self.mappings.add(KeyboardUtils.encodeKeystroke("<Alt-i>"), {
     annotation: "Enter normal mode",
     feature_group: 15,
@@ -126,7 +128,7 @@ function createLurk(normal: NormalMode): LurkMode {
   self.addEventListener("keydown", (event) => {
     const realTarget = getRealEdit(event);
     if (!isEditable(realTarget) && event.sk_keyName?.length) {
-      Mode.handleMapKey.call(self, event);
+      keymap.handleKey(event);
       if (event.sk_stopPropagation) {
         // keyup event also needs to be suppressed for the key whose keydown has been suppressed.
         Mode.suppressKeyUp(event.keyCode!);
@@ -198,6 +200,17 @@ function createNormal(insert: InsertLike): NormalMode {
   let lastKeys: string[] | undefined;
   let scrollHelpers = new WeakMap<Element, ScrollHelpers>();
 
+  const keymap = createKeymap(() => self.mappings, {
+    enableRepeats: true,
+    thisArg: mode,
+    onKeysExecuted: (keys, meta) => {
+      if (!meta.repeatIgnore && keys.length > 1) {
+        lastKeys = [keys];
+        saveLastKeys();
+      }
+    },
+  });
+
   const passFocus = (pf: boolean): void => {
     _passFocus = pf;
   };
@@ -207,9 +220,9 @@ function createNormal(insert: InsertLike): NormalMode {
     if (!_lurk) {
       mode.exit();
       _lurk = createLurk(self);
-      _lurkMaps!.forEach((keymap) => {
-        mapInMode(_lurk!, keymap[0], keymap[1]);
-        _lurk!.mappings.remove(KeyboardUtils.encodeKeystroke(keymap[1]));
+      _lurkMaps!.forEach((lurkMap) => {
+        mapInMode(_lurk!, lurkMap[0], lurkMap[1]);
+        _lurk!.mappings.remove(KeyboardUtils.encodeKeystroke(lurkMap[1]));
       });
       _lurkMaps = undefined;
       _lurk.enter(0, true);
@@ -247,7 +260,7 @@ function createNormal(insert: InsertLike): NormalMode {
           mode.statusLine = "Press i to enter Insert mode";
           runtime.conf.showModeStatus = true;
           if (keyName.length) {
-            Mode.handleMapKey.call(mode, event);
+            keymap.handleKey(event);
           }
         } else {
           event.sk_stopPropagation =
@@ -269,7 +282,7 @@ function createNormal(insert: InsertLike): NormalMode {
             // steal focus from dynamically created input widget
             realTarget.blur();
             unmarkNewlyCreated(realTarget);
-            Mode.handleMapKey.call(mode, event);
+            keymap.handleKey(event);
           } else {
             // keep cursor where it is
             insert.enter(realTarget, true);
@@ -278,10 +291,10 @@ function createNormal(insert: InsertLike): NormalMode {
       }
     } else if (isSpecialKeyOf("<Alt-s>", keyName)) {
       self.toggleBlocklist();
-      Mode.finish(mode);
+      keymap.finish();
       event.sk_stopPropagation = true;
     } else if (keyName.length) {
-      const done = Mode.handleMapKey.call(mode, event, () => {
+      const done = keymap.handleKey(event, () => {
         // revert to lurk only when Esc is not handled and lurk mode available.
         if (isSpecialKeyOf("<Esc>", keyName) && _lurk) {
           self.revertToLurk();
@@ -407,8 +420,6 @@ function createNormal(insert: InsertLike): NormalMode {
       self.passThrough(1000);
     },
   });
-
-  mode.repeats = "";
 
   function initScroll(elm: HTMLElement): void {
     const helpers: ScrollHelpers = {
@@ -782,16 +793,9 @@ function createNormal(insert: InsertLike): NormalMode {
       const evt = new Event("keydown");
       for (const ch of keys) {
         evt.sk_keyName = ch;
-        Mode.handleMapKey.call(mode, evt);
+        keymap.handleKey(evt);
       }
     }, 1);
-  };
-
-  mode.setLastKeys = function (this: Mode, key: string) {
-    if (!this.map_node!.meta!.repeatIgnore && key.length > 1) {
-      lastKeys = [key];
-      saveLastKeys();
-    }
   };
 
   function saveLastKeys(): void {
@@ -1172,7 +1176,7 @@ function createNormal(insert: InsertLike): NormalMode {
 
   const self: NormalMode = Object.assign(mode, {
     mappings,
-    map_node: mappings,
+    keymap,
     passFocus,
     startLurk,
     revertToLurk,

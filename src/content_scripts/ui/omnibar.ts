@@ -7,6 +7,7 @@ import { filterByTitleOrUrl, regexFromString } from "../../common/utils";
 import { debounce } from "../common/debounce";
 import type { DebouncedFunction } from "../common/debounce";
 import KeyboardUtils from "../common/keyboardUtils";
+import { createKeymap } from "../common/keymap";
 import Mode from "../common/mode";
 import { reportError } from "../common/report";
 import { RUNTIME, runtime } from "../common/runtime";
@@ -223,7 +224,6 @@ type OmnibarElement = HTMLElement & {
 type OmnibarMode = Mode &
   Omnibar & {
     mappings: Trie;
-    map_node: Trie;
     expandAlias(alias: string, val: string): boolean;
     collapseAlias(): boolean;
     getPageSize(): number;
@@ -238,7 +238,7 @@ function createOmnibar(front: OmnibarFront, clipboard: { write(text: string): vo
   mode
     .addEventListener("keydown", (event) => {
       if (event.sk_keyName?.length) {
-        Mode.handleMapKey.call(mode, event);
+        keymap.handleKey(event);
       }
       event.sk_suppressed = true;
     })
@@ -251,6 +251,7 @@ function createOmnibar(front: OmnibarFront, clipboard: { write(text: string): vo
     });
 
   const mappings = new Trie();
+  const keymap = createKeymap(() => mappings, { thisArg: mode });
 
   // The result list is a reactive store driven by a Solid <ResultList>; the
   // focused row is an index rather than a `.focused` DOM class, and the
@@ -1032,7 +1033,6 @@ function createOmnibar(front: OmnibarFront, clipboard: { write(text: string): vo
 
   const self: OmnibarMode = Object.assign(mode, {
     mappings,
-    map_node: mappings,
     input: inputElement,
     resultsDiv,
     setPrompt,

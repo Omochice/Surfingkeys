@@ -1,4 +1,5 @@
 import KeyboardUtils from "./keyboardUtils";
+import { createKeymap } from "./keymap";
 import Mode from "./mode";
 import { dispatchSKEvent, runtime } from "./runtime";
 import { isSpecialKeyOf } from "./specialKeys";
@@ -61,7 +62,6 @@ type Behaviours = {
 
 type RegionalHintsMode = Mode & {
   mappings: Trie;
-  map_node: Trie;
   attach(elm: HTMLElement): void;
   onScrollStarted(): void;
   onScrollDone(): void;
@@ -110,6 +110,7 @@ function placeHintsHost(host: HTMLElement): void {
 function createRegionalHints(clipboard: ClipboardLike): RegionalHintsMode {
   const mode = new Mode("RegionalHints");
   const mappings = new Trie();
+  const keymap = createKeymap(() => mappings);
 
   const regionalHintsHost = document.createElement("div");
   regionalHintsHost.className = "surfingkeys_hints_host";
@@ -191,7 +192,7 @@ kbd {
   });
 
   mode.addEventListener("keydown", (event) => {
-    Mode.handleMapKey.call(mode, event);
+    keymap.handleKey(event);
   });
 
   let overlay: HTMLElement | null = null;
@@ -222,7 +223,6 @@ kbd {
 
   const self: RegionalHintsMode = Object.assign(mode, {
     mappings,
-    map_node: mappings,
     attach,
     onScrollStarted,
     onScrollDone,
