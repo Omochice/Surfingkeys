@@ -53,9 +53,10 @@ export function deleteNextWord(str: string, dir: number, cur: number): [string, 
 
 // `enter` is retyped to the element-entry signature this mode actually exposes
 // to callers (normal/hints focus an editable). The base Mode.enter (the
-// stack-push) is still used internally; it is reached through a localized cast
-// below. `mappings`/`map_node` are required here because createInsert always
-// assigns them, which lets InsertMode satisfy the structural mode interfaces.
+// stack-push) is still used internally; it is captured with bind before the
+// public `enter` shadows it. `mappings`/`map_node` are required here because
+// createInsert always assigns them, which lets InsertMode satisfy the
+// structural mode interfaces.
 type InsertMode = Omit<Mode, "enter"> & {
   enter(elm: HTMLElement, keepCursor?: boolean): void;
   enableEmojiInsertion(): void;
@@ -64,7 +65,7 @@ type InsertMode = Omit<Mode, "enter"> & {
 };
 
 function createInsert(): InsertMode {
-  const self = new Mode("Insert") as unknown as InsertMode;
+  const mode = new Mode("Insert");
 
   function moveCursorEOL(): void {
     const element = getRealEdit();
@@ -106,15 +107,14 @@ function createInsert(): InsertMode {
     selection.addRange(range);
   }
 
-  self.mappings = new Trie();
-  self.map_node = self.mappings;
-  self.mappings.add(KeyboardUtils.encodeKeystroke("<Ctrl-e>"), {
+  const mappings = new Trie();
+  mappings.add(KeyboardUtils.encodeKeystroke("<Ctrl-e>"), {
     annotation: "Move the cursor to the end of the line",
     feature_group: 14,
     code: moveCursorEOL,
   });
   const keyToBOL = KeyboardUtils.platform === "Windows" ? "<Ctrl-f>" : "<Ctrl-a>";
-  self.mappings.add(KeyboardUtils.encodeKeystroke(keyToBOL), {
+  mappings.add(KeyboardUtils.encodeKeystroke(keyToBOL), {
     annotation: "Move the cursor to the beginning of the line",
     feature_group: 14,
     code: () => {
@@ -128,7 +128,7 @@ function createInsert(): InsertMode {
       }
     },
   });
-  self.mappings.add(KeyboardUtils.encodeKeystroke("<Ctrl-u>"), {
+  mappings.add(KeyboardUtils.encodeKeystroke("<Ctrl-u>"), {
     annotation: "Delete all entered characters before the cursor",
     feature_group: 14,
     code: () => {
@@ -144,7 +144,7 @@ function createInsert(): InsertMode {
       }
     },
   });
-  self.mappings.add(KeyboardUtils.encodeKeystroke("<Alt-b>"), {
+  mappings.add(KeyboardUtils.encodeKeystroke("<Alt-b>"), {
     annotation: "Move the cursor Backward 1 word",
     feature_group: 14,
     code: () => {
@@ -158,7 +158,7 @@ function createInsert(): InsertMode {
       }
     },
   });
-  self.mappings.add(KeyboardUtils.encodeKeystroke("<Alt-f>"), {
+  mappings.add(KeyboardUtils.encodeKeystroke("<Alt-f>"), {
     annotation: "Move the cursor Forward 1 word",
     feature_group: 14,
     code: () => {
@@ -172,7 +172,7 @@ function createInsert(): InsertMode {
       }
     },
   });
-  self.mappings.add(KeyboardUtils.encodeKeystroke("<Alt-w>"), {
+  mappings.add(KeyboardUtils.encodeKeystroke("<Alt-w>"), {
     annotation: "Delete a word backwards",
     feature_group: 14,
     code: () => {
@@ -194,7 +194,7 @@ function createInsert(): InsertMode {
       }
     },
   });
-  self.mappings.add(KeyboardUtils.encodeKeystroke("<Alt-d>"), {
+  mappings.add(KeyboardUtils.encodeKeystroke("<Alt-d>"), {
     annotation: "Delete a word forwards",
     feature_group: 14,
     code: () => {
@@ -216,7 +216,7 @@ function createInsert(): InsertMode {
       }
     },
   });
-  self.mappings.add(KeyboardUtils.encodeKeystroke("<Esc>"), {
+  mappings.add(KeyboardUtils.encodeKeystroke("<Esc>"), {
     annotation: "Exit insert mode",
     feature_group: 14,
     stopPropagation: (key: string) => {
@@ -226,7 +226,7 @@ function createInsert(): InsertMode {
     },
     code: () => {
       getRealEdit()?.blur();
-      self.exit();
+      mode.exit();
     },
   });
 
@@ -252,8 +252,8 @@ function createInsert(): InsertMode {
       }),
   );
 
-  self.enableEmojiInsertion = () => {
-    self.mappings!.add(":", {
+  const enableEmojiInsertion = (): void => {
+    mappings.add(":", {
       annotation: "Input emoji",
       feature_group: 14,
       stopPropagation: () => false,
@@ -268,7 +268,7 @@ function createInsert(): InsertMode {
     });
   };
 
-  self.addEventListener("keydown", (event) => {
+  mode.addEventListener("keydown", (event) => {
     const eventKey = (event as KeyboardEvent).key;
     if (eventKey && eventKey.charCodeAt(0) > 127) {
       // IME is opened.
@@ -278,9 +278,9 @@ function createInsert(): InsertMode {
     // prevent this event to be handled by Surfingkeys' other listeners
     const realTarget = getRealEdit(event);
     if (!isEditable(realTarget)) {
-      self.exit();
+      mode.exit();
     } else if (event.sk_keyName?.length) {
-      Mode.handleMapKey.call(self as unknown as Mode, event, (last) => {
+      Mode.handleMapKey.call(mode, event, (last) => {
         // for insert mode to insert unmapped chars with preceding chars same as some mapkeys
         // such as, to insert `,m` in case of mapkey `,,` defined.
         const pw = last.getPrefixWord();
@@ -320,34 +320,38 @@ function createInsert(): InsertMode {
     }
     event.sk_suppressed = true;
   });
-  self.addEventListener("focus", (event) => {
+  mode.addEventListener("focus", (event) => {
     const realTarget = getRealEdit(event);
     // We get a focus event with target = window when the browser window looses focus.
     // Ignore this event.
     if (event.target !== window && !isEditable(realTarget)) {
-      self.exit();
+      mode.exit();
     } else {
       event.sk_suppressed = true;
     }
   });
 
   let _element: HTMLElement | undefined;
-  // Capture the base stack-push enter before overriding the public name. The
-  // cast reaches Mode.enter through InsertMode's narrowed `enter` slot.
-  const _enter = (self as unknown as Mode).enter;
-  self.enter = function (elm: HTMLElement, keepCursor?: boolean): void {
-    if (elm === document.body) {
-      runtime.conf.showModeStatus = false;
-    }
-    let changed = _enter.call(self as unknown as Mode, 0, true) === -1;
-    if (_element !== elm) {
-      _element = elm;
-      changed = true;
-    }
-    if (changed && !keepCursor && runtime.conf.cursorAtEndOfInput && elm.nodeName !== "SELECT") {
-      moveCursorEOL();
-    }
-  };
+  // Capture the base stack-push enter before the public `enter` shadows it.
+  const _enter = mode.enter.bind(mode);
+  const self: InsertMode = Object.assign(mode, {
+    mappings,
+    map_node: mappings,
+    enableEmojiInsertion,
+    enter(elm: HTMLElement, keepCursor?: boolean): void {
+      if (elm === document.body) {
+        runtime.conf.showModeStatus = false;
+      }
+      let changed = _enter(0, true) === -1;
+      if (_element !== elm) {
+        _element = elm;
+        changed = true;
+      }
+      if (changed && !keepCursor && runtime.conf.cursorAtEndOfInput && elm.nodeName !== "SELECT") {
+        moveCursorEOL();
+      }
+    },
+  });
 
   return self;
 }

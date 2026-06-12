@@ -8,6 +8,7 @@ import KeyboardUtils from "../common/keyboardUtils";
 import Mode from "../common/mode";
 import createModeGraph, { type ModeContext } from "../common/modeGraph";
 import { RUNTIME, runtime } from "../common/runtime";
+import type Trie from "../common/trie";
 import {
   attachFaviconToImgSrc,
   format,
@@ -47,49 +48,100 @@ const frontendMessageEnvelopeSchema = v.looseObject({
   }),
 });
 
+// Dispatch registry entry: handlers are stored with their own concrete message types then invoked
+// with a parsed message; an `unknown` parameter would reject those typed handlers (contravariance).
+// eslint-disable-next-line typescript/no-explicit-any
+type FrontActionFn = (message?: any) => any;
+
+/** The iframe-side front controller: a Mode carrying the messaging and overlay surface. */
+type FrontMode = Mode & {
+  _actions: Record<string, FrontActionFn>;
+  topSize: [number, number];
+  topOrigin: string;
+  statusBar: HTMLElement;
+  addDestroyListener(task: () => void): void;
+  contentCommand<R = unknown>(args: Record<string, unknown>, successById?: (msg: R) => void): void;
+  postMessage(args: Record<string, unknown>): void;
+  flush(): void;
+  visualCommand(args: { action: string; query?: string | undefined }): void;
+  startInputGuard(): void;
+  hidePopup(): void;
+  chooseTab(): void;
+  showUsage(): void;
+  openOmnibar(message: { style?: string } & Record<string, unknown>): void;
+  toggleStatus(visible: boolean): void;
+};
+
 const Front = (() => {
   Mode.init();
   const { clipboard, insert, normal, hints, visual } = createModeGraph();
 
-  // Structural self: a Mode augmented in place with the whole Front API; typing it would need `as`
-  // (forbidden) or a full Object.assign rewrite of the closures that reference it.
+  const _actions: Record<string, FrontActionFn> = {};
+  // Response callbacks are stored with their callers' concrete message types (see FrontActionFn).
   // eslint-disable-next-line typescript/no-explicit-any
-  const self: any = new Mode("Front");
-  self._actions = {};
-  self.topSize = [0, 0];
+  const _callbacks: Record<string, (msg: any) => unknown> = {};
   const destroyListeners: (() => void)[] = [];
-  self.addDestroyListener = (task: () => void) => {
-    destroyListeners.push(task);
-  };
-  // createOmnibar returns its structural `self` (an augmented Mode), so its type is `any` at source.
-  // eslint-disable-next-line typescript/no-explicit-any
-  const omnibar: any = createOmnibar(self, clipboard);
+  const topSize: [number, number] = [0, 0];
 
-  createCommands(normal, omnibar.command, omnibar);
+  // The function members are declarations below, so hoisting lets the controller be assembled
+  // here, before createOmnibar and the API wiring receive it, keeping the original setup order.
+  const self: FrontMode = Object.assign(new Mode("Front"), {
+    _actions,
+    topSize,
+    topOrigin: "",
+    statusBar: requireElement("#sk_status"),
+    addDestroyListener,
+    contentCommand,
+    postMessage,
+    flush,
+    visualCommand,
+    startInputGuard,
+    hidePopup,
+    chooseTab,
+    showUsage: hidePopup,
+    openOmnibar,
+    toggleStatus,
+  });
 
-  // Heterogeneous mode registry: the values are distinct mode shapes (Insert/Normal/Visual/Omnibar)
-  // with no common index-compatible interface, and mapInMode reads them with optional mappings.
-  // eslint-disable-next-line typescript/no-explicit-any
-  const modes: Record<string, any> = {
+  const omnibar = createOmnibar(self, clipboard);
+
+  // The Commands handler registers `command` while createOmnibar runs, so it is always present
+  // here; the guard states that instead of a non-null assertion.
+  const omnibarCommand = omnibar.command;
+  if (omnibarCommand == null) {
+    throw new Error("omnibar did not register its command handler");
+  }
+  createCommands(normal, omnibarCommand, omnibar);
+
+  const modes: Record<string, { name: string; mappings: Trie }> = {
     Insert: insert,
     Normal: normal,
     Visual: visual,
     Omnibar: omnibar,
   };
 
-  const ctx: ModeContext = { clipboard, insert, normal, hints, visual, front: self };
+  // The iframe front has never implemented the content-only FrontLike members (executeCommand,
+  // removeSearchAlias, openOmniquery, registerInlineQuery, performInlineQuery); the previous `any`
+  // typing hid that gap, and the assertion keeps it visible without widening the whole front.
+  const ctx: ModeContext = {
+    clipboard,
+    insert,
+    normal,
+    hints,
+    visual,
+    front: self as unknown as ModeContext["front"],
+  };
   const api = createAPI(ctx);
   createDefaultMappings(api, ctx);
 
-  // Dispatch registry: handlers are stored with their own concrete message types then invoked with a
-  // parsed message; an `unknown` parameter would reject those typed handlers (contravariance).
-  // eslint-disable-next-line typescript/no-explicit-any
-  const _actions: Record<string, (message?: any) => any> = self._actions;
-  const _callbacks: Record<string, (msg: unknown) => unknown> = {};
-  self.contentCommand = (
+  function addDestroyListener(task: () => void): void {
+    destroyListeners.push(task);
+  }
+
+  function contentCommand<R = unknown>(
     args: Record<string, unknown>,
-    successById?: (msg: unknown) => unknown,
-  ) => {
+    successById?: (msg: R) => void,
+  ): void {
     args["toContent"] = true;
     const id = generateQuickGuid();
     args["id"] = id;
@@ -98,11 +150,11 @@ const Front = (() => {
       _callbacks[id] = successById;
     }
     top!.postMessage({ surfingkeys_uihost_data: args }, self.topOrigin);
-  };
+  }
 
-  self.postMessage = (args: Record<string, unknown>) => {
+  function postMessage(args: Record<string, unknown>): void {
     top!.postMessage({ surfingkeys_uihost_data: args }, self.topOrigin);
-  };
+  }
 
   let pressedHintKeys = "";
   // The active overlay element carries onHide/onHit expandos the front sets on it.
@@ -119,7 +171,7 @@ const Front = (() => {
     noPointerEvents?: boolean | undefined;
   };
   let _display: DisplayElement | null = null;
-  self.addEventListener("keydown", (event: KeyboardEvent) => {
+  self.addEventListener("keydown", (event) => {
     if (Mode.isSpecialKeyOf("<Esc>", event.sk_keyName ?? "")) {
       self.hidePopup();
       event.sk_stopPropagation = true;
@@ -217,10 +269,10 @@ const Front = (() => {
   });
   _state = stateInvisible;
 
-  self.flush = () => {
+  function flush(): void {
     _state.nextState();
-  };
-  self.visualCommand = (args: { action: string; query?: string }) => {
+  }
+  function visualCommand(args: { action: string; query?: string | undefined }): void {
     if (_usage.style.display !== "none") {
       // visual mode in frontend.html, such as help: only the in-frame find dispatches here, so the
       // three find actions are exhaustive (other actions are forwarded to content below).
@@ -242,10 +294,9 @@ const Front = (() => {
       // visual mode for all content windows
       self.contentCommand(args);
     }
-  };
+  }
 
   const _omnibar = requireElement<OmnibarElement>("#sk_omnibar");
-  self.statusBar = document.getElementById("sk_status");
   const _usage = requireElement("#sk_usage");
   const _popup = requireElement("#sk_popup");
   const _tabs = requireElement("#sk_tabs");
@@ -302,16 +353,16 @@ const Front = (() => {
     keystroke,
   );
 
-  self.startInputGuard = () => {};
-  _actions["hidePopup"] = () => {
+  function startInputGuard(): void {}
+  function hidePopup(): void {
     if (_display && _display.style.display !== "none") {
       _display.style.display = "none";
       self.flush();
       _display.onHide && _display.onHide();
       self.exit();
     }
-  };
-  self.hidePopup = _actions["hidePopup"];
+  }
+  _actions["hidePopup"] = hidePopup;
 
   function setDisplay(td: DisplayElement, render?: () => void) {
     if (_display && _display.style.display !== "none") {
@@ -377,7 +428,7 @@ const Front = (() => {
       _tabs.className = "inline";
     }
   }
-  _actions["chooseTab"] = () => {
+  function chooseTab(): void {
     const tabsThreshold = Math.min(runtime.conf.tabsThreshold, Math.ceil(window.innerWidth / 26));
     RUNTIME(
       "getTabs",
@@ -410,8 +461,8 @@ const Front = (() => {
         }
       },
     );
-  };
-  self.chooseTab = _actions["chooseTab"];
+  }
+  _actions["chooseTab"] = chooseTab;
 
   // A single help entry: the keystroke plus its annotation, which may be a plain string or a
   // [format, ...args] tuple that localizeAnnotation expands. Matches getAnnotations' return shape.
@@ -567,7 +618,7 @@ const Front = (() => {
         args: args,
       });
     };
-    omnibar.command(message.name, message.description, proxyAction);
+    omnibarCommand(message.name, message.description, proxyAction);
   };
   _actions["getUsage"] = (message: unknown) => {
     // The ack flag the dispatcher may attach is irrelevant here; only metas and the correlation id
@@ -594,8 +645,6 @@ const Front = (() => {
       );
     });
   };
-
-  self.showUsage = self.hidePopup;
 
   const [popupHtml, setPopupHtml] = createSignal("");
   render(
@@ -645,14 +694,14 @@ const Front = (() => {
     );
   };
 
-  _actions["openOmnibar"] = (message: { style?: string }) => {
+  function openOmnibar(message: { style?: string } & Record<string, unknown>): void {
     showElement(_omnibar, () => {
       _omnibar.onShow(message);
       const style = message.style || "";
       setSanitizedContent(requireElement("#sk_omnibar style"), `#sk_omnibar {${style}}`);
     });
-  };
-  self.openOmnibar = _actions["openOmnibar"];
+  }
+  _actions["openOmnibar"] = openOmnibar;
   _actions["openFinder"] = () => {
     Find.open();
   };
@@ -759,7 +808,7 @@ const Front = (() => {
   };
 
   _actions["visualUpdated"] = () => {
-    self.statusBar.querySelector("input").focus();
+    self.statusBar.querySelector("input")?.focus();
   };
 
   _actions["showStatus"] = (message: unknown) => {
@@ -785,9 +834,9 @@ const Front = (() => {
     },
   });
 
-  self.toggleStatus = (visible: boolean) => {
+  function toggleStatus(visible: boolean): void {
     self.statusBar.style.display = visible ? "" : "none";
-  };
+  }
   _actions["toggleStatus"] = (message: { visible: boolean }) => {
     self.toggleStatus(message.visible);
   };
@@ -865,7 +914,7 @@ const Front = (() => {
     }
   };
 
-  _actions["initFrontend"] = (message: { origin: string; winSize: unknown }) => {
+  _actions["initFrontend"] = (message: { origin: string; winSize: [number, number] }) => {
     self.topOrigin = message.origin;
     self.topSize = message.winSize;
     return Date.now();

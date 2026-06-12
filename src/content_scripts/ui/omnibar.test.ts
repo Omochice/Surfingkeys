@@ -56,6 +56,12 @@ function makeClipboard() {
   return { write: vi.fn(), read: vi.fn() };
 }
 
+// Tests drive the controller through a plain value stub instead of the
+// rendered input element, so only `value` is provided.
+function stubInput(value: string): HTMLInputElement {
+  return { value } as unknown as HTMLInputElement;
+}
+
 // ---------------------------------------------------------------------------
 // Full omnibar — each describe block calls createOmnibar once.
 // ---------------------------------------------------------------------------
@@ -267,7 +273,7 @@ describe("createOmnibar — listWords", () => {
     buildOmnibarDOM();
     omnibar = createOmnibar(makeFront(), makeClipboard());
     // Provide a minimal input stub so listResults can call omnibar.input.value
-    omnibar.input = { value: "" };
+    omnibar.input = stubInput("");
   });
 
   beforeEach(() => {
@@ -307,7 +313,7 @@ describe("createOmnibar — listResults focus behaviour", () => {
 
     buildOmnibarDOM();
     omnibar = createOmnibar(makeFront(), makeClipboard());
-    omnibar.input = { value: "" };
+    omnibar.input = stubInput("");
   });
 
   beforeEach(() => {
@@ -365,7 +371,7 @@ describe("createOmnibar — focusItem", () => {
   beforeAll(() => {
     buildOmnibarDOM();
     omnibar = createOmnibar(makeFront(), makeClipboard());
-    omnibar.input = { value: "" };
+    omnibar.input = stubInput("");
     runtime.conf.omnibarMaxResults = 10;
     runtime.conf.focusFirstCandidate = false;
     runtime.conf.omnibarPosition = "middle";
@@ -398,7 +404,7 @@ describe("createOmnibar — focusedResult", () => {
   beforeAll(() => {
     buildOmnibarDOM();
     omnibar = createOmnibar(makeFront(), makeClipboard());
-    omnibar.input = { value: "" };
+    omnibar.input = stubInput("");
     runtime.conf.omnibarMaxResults = 10;
     runtime.conf.focusFirstCandidate = false;
     runtime.conf.omnibarPosition = "middle";
@@ -426,13 +432,13 @@ describe("createOmnibar — addHandler / Commands integration", () => {
     buildOmnibarDOM();
     front = makeFront();
     omnibar = createOmnibar(front, makeClipboard());
-    omnibar.input = { value: "" };
+    omnibar.input = stubInput("");
     runtime.conf.omnibarMaxResults = 10;
     runtime.conf.focusFirstCandidate = false;
     runtime.conf.omnibarPosition = "middle";
 
     // Register a test command that captures its arguments
-    omnibar.command("greet", "Greet somebody", (args: string[]) => {
+    omnibar.command?.("greet", "Greet somebody", (args: string[]) => {
       executedArgs = args;
     });
   });
@@ -449,7 +455,7 @@ describe("createOmnibar — addHandler / Commands integration", () => {
 
   it("a second executeCommand call routes the correct args to the correct command", () => {
     // Confirms the command registry is additive and dispatch still finds the right entry.
-    omnibar.command("tabopen", "Open a tab", () => {});
+    omnibar.command?.("tabopen", "Open a tab", () => {});
     front._actions["executeCommand"]({ cmdline: "greet Alice" });
     expect(executedArgs).toEqual(["Alice"]);
   });
@@ -463,7 +469,7 @@ describe("createOmnibar — SearchEngine alias registration", () => {
     buildOmnibarDOM();
     front = makeFront();
     omnibar = createOmnibar(front, makeClipboard());
-    omnibar.input = { value: "" };
+    omnibar.input = stubInput("");
     runtime.conf.omnibarMaxResults = 10;
   });
 
@@ -516,7 +522,7 @@ describe("createOmnibar — updateOmnibarResult action", () => {
     buildOmnibarDOM();
     const front = makeFront();
     omnibar = createOmnibar(front, makeClipboard());
-    omnibar.input = { value: "" };
+    omnibar.input = stubInput("");
     runtime.conf.omnibarMaxResults = 10;
     runtime.conf.focusFirstCandidate = false;
     runtime.conf.omnibarPosition = "middle";
@@ -528,7 +534,7 @@ describe("createOmnibar — updateOmnibarResult action", () => {
     const front = makeFront();
     buildOmnibarDOM();
     const localOmnibar = createOmnibar(front, makeClipboard());
-    localOmnibar.input = { value: "" };
+    localOmnibar.input = stubInput("");
     runtime.conf.omnibarMaxResults = 10;
     runtime.conf.focusFirstCandidate = false;
     runtime.conf.omnibarPosition = "middle";
@@ -551,7 +557,7 @@ describe("createOmnibar — Ctrl-c clipboard copy paths", () => {
     front = makeFront();
     clipboard = makeClipboard();
     omnibar = createOmnibar(front, clipboard);
-    omnibar.input = { value: "" };
+    omnibar.input = stubInput("");
     runtime.conf.omnibarMaxResults = 10;
     runtime.conf.focusFirstCandidate = false;
     runtime.conf.omnibarPosition = "middle";
@@ -565,7 +571,7 @@ describe("createOmnibar — Ctrl-c clipboard copy paths", () => {
     buildOmnibarDOM();
     const clip2 = makeClipboard();
     const o2 = createOmnibar(makeFront(), clip2);
-    o2.input = { value: "" };
+    o2.input = stubInput("");
     runtime.conf.omnibarMaxResults = 10;
     runtime.conf.focusFirstCandidate = true;
     runtime.conf.omnibarPosition = "middle";
@@ -1137,9 +1143,9 @@ describe("Commands handler — onInput lists matching commands", () => {
     const { omnibar, ui } = makeOmnibar();
 
     // Register commands via omnibar.command (set up by Commands handler)
-    omnibar.command("tabopen", "Open a tab", () => {});
-    omnibar.command("tabnew", "New tab", () => {});
-    omnibar.command("quit", "Quit browser", () => {});
+    omnibar.command?.("tabopen", "Open a tab", () => {});
+    omnibar.command?.("tabnew", "New tab", () => {});
+    omnibar.command?.("quit", "Quit browser", () => {});
 
     mockRUNTIME.mockImplementation((_action: any, _args: any, cb?: any) => {
       if (_action === "getSettings" && cb) {
@@ -1180,7 +1186,7 @@ describe("Commands handler — onInput lists matching commands", () => {
 
   it("Commands.onEnter sends RUNTIME updateInputHistory with the cmdline", () => {
     const { omnibar, ui } = makeOmnibar();
-    omnibar.command("greet2", "Greet", () => {});
+    omnibar.command?.("greet2", "Greet", () => {});
     omnibar.input.value = "";
 
     mockRUNTIME.mockImplementation((_action: any, _args: any, cb?: any) => {
@@ -1615,7 +1621,7 @@ describe("createOmnibar — Ctrl-c copy paths", () => {
     const front = makeFront();
     const clipboard = makeClipboard();
     const omnibar = createOmnibar(front, clipboard);
-    omnibar.input = { value: "" };
+    omnibar.input = stubInput("");
     runtime.conf.omnibarMaxResults = 10;
     runtime.conf.focusFirstCandidate = true;
     runtime.conf.omnibarPosition = "middle";
@@ -1643,7 +1649,7 @@ describe("createOmnibar — Ctrl-c copy paths", () => {
     const front = makeFront();
     const clipboard = makeClipboard();
     const omnibar = createOmnibar(front, clipboard);
-    omnibar.input = { value: "" };
+    omnibar.input = stubInput("");
     runtime.conf.omnibarMaxResults = 10;
     runtime.conf.focusFirstCandidate = false;
     runtime.conf.omnibarPosition = "middle";
@@ -1809,7 +1815,7 @@ describe("createOmnibar — Tab/Shift-Tab cycle through results", () => {
   it("Tab advances focusedIndex forward from -1 to 0 in middle position", () => {
     buildOmnibarDOM();
     const omnibar = createOmnibar(makeFront(), makeClipboard());
-    omnibar.input = { value: "" };
+    omnibar.input = stubInput("");
     runtime.conf.omnibarMaxResults = 10;
     runtime.conf.focusFirstCandidate = false;
     runtime.conf.omnibarPosition = "middle";
@@ -1826,7 +1832,7 @@ describe("createOmnibar — Tab/Shift-Tab cycle through results", () => {
   it("Tab wraps from last item back to -1 (typed input slot)", () => {
     buildOmnibarDOM();
     const omnibar = createOmnibar(makeFront(), makeClipboard());
-    omnibar.input = { value: "" };
+    omnibar.input = stubInput("");
     runtime.conf.omnibarMaxResults = 10;
     runtime.conf.focusFirstCandidate = false;
     runtime.conf.omnibarPosition = "middle";
@@ -1844,7 +1850,7 @@ describe("createOmnibar — Tab/Shift-Tab cycle through results", () => {
   it("Shift-Tab goes backward: from -1 to last item", () => {
     buildOmnibarDOM();
     const omnibar = createOmnibar(makeFront(), makeClipboard());
-    omnibar.input = { value: "" };
+    omnibar.input = stubInput("");
     runtime.conf.omnibarMaxResults = 10;
     runtime.conf.focusFirstCandidate = false;
     runtime.conf.omnibarPosition = "middle";
@@ -2226,7 +2232,7 @@ describe("Commands handler — onInput with no matching candidates", () => {
   it("does not call listResults when no commands match the query", () => {
     const { omnibar, ui } = makeOmnibar();
 
-    omnibar.command("tabopen", "Open a tab", () => {});
+    omnibar.command?.("tabopen", "Open a tab", () => {});
     mockRUNTIME.mockImplementation((_action: any, _args: any, cb?: any) => {
       if (_action === "getSettings" && cb) cb({ settings: { cmdHistory: [] } });
       return Result.succeed(undefined);
@@ -2410,7 +2416,7 @@ describe("createOmnibar — pagination mappings Ctrl-. and Ctrl-,", () => {
   it("Ctrl-. advances to next page when within bounds", () => {
     buildOmnibarDOM();
     const omnibar = createOmnibar(makeFront(), makeClipboard());
-    omnibar.input = { value: "" };
+    omnibar.input = stubInput("");
     runtime.conf.omnibarMaxResults = 2;
     runtime.conf.omnibarHistoryCacheSize = 100;
     runtime.conf.focusFirstCandidate = false;
@@ -2436,7 +2442,7 @@ describe("createOmnibar — pagination mappings Ctrl-. and Ctrl-,", () => {
   it("Ctrl-. wraps back to page 1 when already on the last page", () => {
     buildOmnibarDOM();
     const omnibar = createOmnibar(makeFront(), makeClipboard());
-    omnibar.input = { value: "" };
+    omnibar.input = stubInput("");
     runtime.conf.omnibarMaxResults = 2;
     runtime.conf.omnibarHistoryCacheSize = 100;
     runtime.conf.focusFirstCandidate = false;
@@ -2459,7 +2465,7 @@ describe("createOmnibar — pagination mappings Ctrl-. and Ctrl-,", () => {
   it("Ctrl-, goes back to previous page", () => {
     buildOmnibarDOM();
     const omnibar = createOmnibar(makeFront(), makeClipboard());
-    omnibar.input = { value: "" };
+    omnibar.input = stubInput("");
     runtime.conf.omnibarMaxResults = 2;
     runtime.conf.omnibarHistoryCacheSize = 100;
     runtime.conf.focusFirstCandidate = false;
@@ -2488,7 +2494,7 @@ describe("createOmnibar — pagination mappings Ctrl-. and Ctrl-,", () => {
   it("Ctrl-, wraps to last page when on page 1", () => {
     buildOmnibarDOM();
     const omnibar = createOmnibar(makeFront(), makeClipboard());
-    omnibar.input = { value: "" };
+    omnibar.input = stubInput("");
     runtime.conf.omnibarMaxResults = 2;
     runtime.conf.omnibarHistoryCacheSize = 100;
     runtime.conf.focusFirstCandidate = false;
@@ -2516,7 +2522,7 @@ describe("createOmnibar — _listResultPage total display", () => {
   it("appends a + to the total when item count equals omnibarHistoryCacheSize", () => {
     buildOmnibarDOM();
     const omnibar = createOmnibar(makeFront(), makeClipboard());
-    omnibar.input = { value: "" };
+    omnibar.input = stubInput("");
     runtime.conf.omnibarMaxResults = 2;
     runtime.conf.omnibarHistoryCacheSize = 3;
     runtime.conf.focusFirstCandidate = false;
@@ -2544,7 +2550,7 @@ describe("createOmnibar — _listResultPage showFolder branch", () => {
   it("renders folder items when showFolder is true and item has no url/html", () => {
     buildOmnibarDOM();
     const omnibar = createOmnibar(makeFront(), makeClipboard());
-    omnibar.input = { value: "" };
+    omnibar.input = stubInput("");
     runtime.conf.omnibarMaxResults = 10;
     runtime.conf.omnibarHistoryCacheSize = 100;
     runtime.conf.focusFirstCandidate = false;
@@ -2575,7 +2581,7 @@ describe("createOmnibar — openFocused", () => {
     buildOmnibarDOM();
     const front = makeFront();
     const omnibar = createOmnibar(front, makeClipboard());
-    omnibar.input = { value: "" };
+    omnibar.input = stubInput("");
     runtime.conf.omnibarMaxResults = 10;
     runtime.conf.focusFirstCandidate = true;
     runtime.conf.omnibarPosition = "middle";
@@ -2599,7 +2605,7 @@ describe("createOmnibar — openFocused", () => {
     const front = makeFront();
     // Register a default search engine alias so openFocused can find it
     const omnibar = createOmnibar(front, makeClipboard());
-    omnibar.input = { value: "https://directurl.example.com" };
+    omnibar.input = stubInput("https://directurl.example.com");
     runtime.conf.omnibarMaxResults = 10;
     runtime.conf.focusFirstCandidate = false;
     runtime.conf.omnibarPosition = "middle";

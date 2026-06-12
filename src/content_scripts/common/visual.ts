@@ -62,9 +62,10 @@ const win = window as unknown as {
 };
 
 function createVisual(clipboard: ClipboardLike, hints: HintsLike): VisualMode {
-  const self = new Mode("Visual") as VisualMode;
+  const mode = new Mode("Visual");
+  const mappings = new Trie();
 
-  self.addEventListener("keydown", (event) => {
+  mode.addEventListener("keydown", (event) => {
     const keyName = event.sk_keyName ?? "";
     if (visualf) {
       let exitf = false;
@@ -80,12 +81,12 @@ function createVisual(clipboard: ClipboardLike, hints: HintsLike): VisualMode {
       }
 
       if (exitf) {
-        self.statusLine = self.name + " - " + status[state];
+        mode.statusLine = mode.name + " - " + status[state];
         Mode.showStatus();
         visualf = 0;
       }
     } else if (keyName.length) {
-      Mode.handleMapKey.call(self, event);
+      Mode.handleMapKey.call(mode, event);
       if (event.sk_stopPropagation) {
         event.sk_suppressed = true;
       } else if (Mode.isSpecialKeyOf("<Esc>", keyName)) {
@@ -95,7 +96,7 @@ function createVisual(clipboard: ClipboardLike, hints: HintsLike): VisualMode {
           self.showCursor();
         } else {
           self.visualClear();
-          self.exit();
+          mode.exit();
         }
         state--;
         _onStateChange();
@@ -104,7 +105,7 @@ function createVisual(clipboard: ClipboardLike, hints: HintsLike): VisualMode {
       }
     }
   });
-  self.addEventListener("scroll", () => {
+  mode.addEventListener("scroll", () => {
     matches.forEach((m) => {
       const r = unwrapOr<DOMRectList | DOMRect[]>(getTextRect(m[0], m[1]), [])[0];
       if (r == null) {
@@ -117,7 +118,7 @@ function createVisual(clipboard: ClipboardLike, hints: HintsLike): VisualMode {
     });
   });
 
-  self.addEventListener("click", () => {
+  mode.addEventListener("click", () => {
     switch (selection.type) {
       case "None": {
         self.hideCursor();
@@ -146,7 +147,7 @@ function createVisual(clipboard: ClipboardLike, hints: HintsLike): VisualMode {
     _onStateChange();
   });
 
-  self.addEventListener("resize", () => {
+  mode.addEventListener("resize", () => {
     if (runtime.conf.lastQuery) {
       self.visualUpdate(runtime.conf.lastQuery);
     }
@@ -163,7 +164,7 @@ function createVisual(clipboard: ClipboardLike, hints: HintsLike): VisualMode {
       });
     }
   };
-  self.addEventListener("selectionchange", () => {
+  mode.addEventListener("selectionchange", () => {
     clearSelectionMark();
     selectionMark_ = createSelectionMark(
       selection.anchorNode,
@@ -173,75 +174,73 @@ function createVisual(clipboard: ClipboardLike, hints: HintsLike): VisualMode {
     );
   });
 
-  self.mappings = new Trie();
-  self.map_node = self.mappings;
-  self.repeats = "";
-  self.mappings.add("l", {
+  mode.repeats = "";
+  mappings.add("l", {
     annotation: "forward character",
     feature_group: 9,
     code: modifySelection,
   });
-  self.mappings.add("h", {
+  mappings.add("h", {
     annotation: "backward character",
     feature_group: 9,
     code: modifySelection,
   });
-  self.mappings.add("j", {
+  mappings.add("j", {
     annotation: "forward line",
     feature_group: 9,
     code: modifySelection,
   });
-  self.mappings.add("k", {
+  mappings.add("k", {
     annotation: "backward line",
     feature_group: 9,
     code: modifySelection,
   });
-  self.mappings.add("w", {
+  mappings.add("w", {
     annotation: "forward word",
     feature_group: 9,
     code: modifySelection,
   });
-  self.mappings.add("e", {
+  mappings.add("e", {
     annotation: "forward word",
     feature_group: 9,
     code: modifySelection,
   });
-  self.mappings.add("b", {
+  mappings.add("b", {
     annotation: "backward word",
     feature_group: 9,
     code: modifySelection,
   });
-  self.mappings.add(")", {
+  mappings.add(")", {
     annotation: "forward sentence",
     feature_group: 9,
     code: modifySelection,
   });
-  self.mappings.add("(", {
+  mappings.add("(", {
     annotation: "backward sentence",
     feature_group: 9,
     code: modifySelection,
   });
-  self.mappings.add("}", {
+  mappings.add("}", {
     annotation: "forward paragraphboundary",
     feature_group: 9,
     code: modifySelection,
   });
-  self.mappings.add("{", {
+  mappings.add("{", {
     annotation: "backward paragraphboundary",
     feature_group: 9,
     code: modifySelection,
   });
-  self.mappings.add("0", {
+  mappings.add("0", {
     annotation: "backward lineboundary",
     feature_group: 9,
     code: modifySelection,
   });
-  self.mappings.add("$", {
+  mappings.add("$", {
     annotation: "forward lineboundary",
     feature_group: 9,
     code: modifySelection,
   });
-  self.mappings.add("G", {
+  mappings.add("G", {
     annotation: "forward documentboundary",
     feature_group: 9,
     code: () => {
@@ -262,7 +261,7 @@ function createVisual(clipboard: ClipboardLike, hints: HintsLike): VisualMode {
       }
     },
   });
-  self.mappings.add("gg", {
+  mappings.add("gg", {
     annotation: "backward documentboundary",
     feature_group: 9,
     code: () => {
@@ -288,7 +287,7 @@ function createVisual(clipboard: ClipboardLike, hints: HintsLike): VisualMode {
     },
   });
 
-  self.mappings.add("o", {
+  mappings.add("o", {
     annotation: "Go to Other end of highlighted text",
     feature_group: 9,
     code: () => {
@@ -347,7 +346,7 @@ function createVisual(clipboard: ClipboardLike, hints: HintsLike): VisualMode {
       },
     },
   ];
-  self.mappings.add("*", {
+  mappings.add("*", {
     annotation: "Search word under the cursor",
     feature_group: 9,
     code: () => {
@@ -359,21 +358,21 @@ function createVisual(clipboard: ClipboardLike, hints: HintsLike): VisualMode {
       dispatchMouseEvent(element, ["click"], { shiftKey });
     });
   }
-  self.mappings.add(KeyboardUtils.encodeKeystroke("<Enter>"), {
+  mappings.add(KeyboardUtils.encodeKeystroke("<Enter>"), {
     annotation: "Click on node under cursor.",
     feature_group: 9,
     code: () => {
       clickLink(selection.focusNode!.parentNode as Element, false);
     },
   });
-  self.mappings.add(KeyboardUtils.encodeKeystroke("<Shift-Enter>"), {
+  mappings.add(KeyboardUtils.encodeKeystroke("<Shift-Enter>"), {
     annotation: "Click on node under cursor.",
     feature_group: 9,
     code: () => {
       clickLink(selection.focusNode!.parentNode as Element, true);
     },
   });
-  self.mappings.add("zt", {
+  mappings.add("zt", {
     annotation: "make cursor at top of window.",
     feature_group: 9,
     code: () => {
@@ -383,7 +382,7 @@ function createVisual(clipboard: ClipboardLike, hints: HintsLike): VisualMode {
       self.showCursor();
     },
   });
-  self.mappings.add("zz", {
+  mappings.add("zz", {
     annotation: "make cursor at center of window.",
     feature_group: 9,
     code: () => {
@@ -393,7 +392,7 @@ function createVisual(clipboard: ClipboardLike, hints: HintsLike): VisualMode {
       self.showCursor();
     },
   });
-  self.mappings.add("zb", {
+  mappings.add("zb", {
     annotation: "make cursor at bottom of window.",
     feature_group: 9,
     code: () => {
@@ -403,25 +402,25 @@ function createVisual(clipboard: ClipboardLike, hints: HintsLike): VisualMode {
       self.showCursor();
     },
   });
-  self.mappings.add("f", {
+  mappings.add("f", {
     annotation: "Forward to next char.",
     feature_group: 9,
     code: () => {
-      self.statusLine = self.name + " - " + status[state] + " - forward";
+      mode.statusLine = mode.name + " - " + status[state] + " - forward";
       Mode.showStatus();
       visualf = 1;
     },
   });
-  self.mappings.add("F", {
+  mappings.add("F", {
     annotation: "Backward to next char.",
     feature_group: 9,
     code: () => {
-      self.statusLine = self.name + " - " + status[state] + " - backward";
+      mode.statusLine = mode.name + " - " + status[state] + " - backward";
       Mode.showStatus();
       visualf = -1;
     },
   });
-  self.mappings.add(";", {
+  mappings.add(";", {
     annotation: "Repeat latest f, F",
     feature_group: 9,
     code: () => {
@@ -430,7 +429,7 @@ function createVisual(clipboard: ClipboardLike, hints: HintsLike): VisualMode {
       }
     },
   });
-  self.mappings.add(",", {
+  mappings.add(",", {
     annotation: "Repeat latest f, F in opposite direction",
     feature_group: 9,
     code: () => {
@@ -440,7 +439,7 @@ function createVisual(clipboard: ClipboardLike, hints: HintsLike): VisualMode {
     },
   });
 
-  self.mappings.add("p", {
+  mappings.add("p", {
     annotation: "Expand selection to parent element",
     feature_group: 9,
     code: () => {
@@ -469,7 +468,7 @@ function createVisual(clipboard: ClipboardLike, hints: HintsLike): VisualMode {
     },
   });
 
-  self.mappings.add("V", {
+  mappings.add("V", {
     annotation: "Select a word(w) or line(l) or sentence(s) or paragraph(p)",
     feature_group: 9,
     code: (w: string) => {
@@ -540,14 +539,14 @@ function createVisual(clipboard: ClipboardLike, hints: HintsLike): VisualMode {
     return node;
   }
 
-  self.hideCursor = () => {
+  const hideCursor = (): void => {
     if (document.body.contains(cursor)) {
       cursor.remove();
       dispatchSKEvent("front", ["hideBubble"]);
     }
   };
 
-  self.showCursor = () => {
+  const showCursor = (): void => {
     if (
       selection.focusNode &&
       ((selection.focusNode instanceof HTMLElement && selection.focusNode.offsetHeight > 0) ||
@@ -567,7 +566,7 @@ function createVisual(clipboard: ClipboardLike, hints: HintsLike): VisualMode {
       document.body.appendChild(cursor);
     }
   };
-  self.getCursorPixelPos = () => {
+  const getCursorPixelPos = (): DOMRect => {
     return cursor.getBoundingClientRect();
   };
 
@@ -689,7 +688,7 @@ function createVisual(clipboard: ClipboardLike, hints: HintsLike): VisualMode {
     }
   }
 
-  self.visualClear = () => {
+  const visualClear = (): void => {
     clearSelectionMark();
     self.hideCursor();
     matches = [];
@@ -698,24 +697,24 @@ function createVisual(clipboard: ClipboardLike, hints: HintsLike): VisualMode {
     dispatchSKEvent("front", ["showStatus", [undefined, undefined, ""]]);
   };
 
-  self.emptySelection = () => {
+  const emptySelection = (): void => {
     document.getSelection()!.empty();
   };
 
-  self.onEnter = () => {
+  mode.onEnter = () => {
     _incState();
   };
 
-  self.onExit = () => {
+  mode.onExit = () => {
     self.visualClear();
   };
 
   function _onStateChange(): void {
     const yankFn = _yankFunctions[state];
     if (yankFn != null) {
-      self.mappings.add("y", yankFn);
+      mappings.add("y", yankFn);
     }
-    self.statusLine = self.name + " - " + (status[state] ?? "");
+    mode.statusLine = mode.name + " - " + (status[state] ?? "");
     Mode.showStatus();
   }
   function _incState(): void {
@@ -723,14 +722,14 @@ function createVisual(clipboard: ClipboardLike, hints: HintsLike): VisualMode {
     _onStateChange();
   }
 
-  self.restore = () => {
+  const restore = (): void => {
     if (selection && selection.anchorNode) {
       selection.setPosition(selection.anchorNode, selection.anchorOffset);
       self.showCursor();
-      self.enter();
+      mode.enter();
     }
   };
-  self.toggle = (ex) => {
+  const toggle = (ex?: string): void => {
     switch (state) {
       case 1: {
         selection.extend(selection.anchorNode!, selection.anchorOffset);
@@ -740,7 +739,7 @@ function createVisual(clipboard: ClipboardLike, hints: HintsLike): VisualMode {
       case 2: {
         self.hideCursor();
         selection.collapse(selection.focusNode, selection.focusOffset);
-        self.exit();
+        mode.exit();
         _incState();
         break;
       }
@@ -748,7 +747,7 @@ function createVisual(clipboard: ClipboardLike, hints: HintsLike): VisualMode {
         hints.create(runtime.conf.textAnchorPat, (element) => {
           setTimeout(() => {
             selection.setPosition(element[0], element[1]);
-            self.enter();
+            mode.enter();
             if (ex === "z") {
               if (element[1] === 0) {
                 selection.extend(element[0], element[0].textContent.length);
@@ -765,7 +764,7 @@ function createVisual(clipboard: ClipboardLike, hints: HintsLike): VisualMode {
     }
   };
 
-  self.star = () => {
+  const star = (): void => {
     if (selection.focusNode && selection.focusNode.nodeValue) {
       const query = getWordUnderCursor();
       if (query && query.length && query !== ".") {
@@ -780,11 +779,11 @@ function createVisual(clipboard: ClipboardLike, hints: HintsLike): VisualMode {
     }
   };
 
-  self.next = (backward) => {
+  const next = (backward?: boolean): void => {
     if (matches.length) {
       // need enter visual mode again when modeAfterYank is set to Normal / Caret.
       if (state === 0) {
-        self.enter();
+        mode.enter();
       }
       currentOccurrence =
         (backward ? matches.length + currentOccurrence - 1 : currentOccurrence + 1) %
@@ -808,12 +807,12 @@ function createVisual(clipboard: ClipboardLike, hints: HintsLike): VisualMode {
     }
   };
 
-  self.feedkeys = (keys) => {
+  const feedkeys = (keys: string): void => {
     setTimeout(() => {
       const evt = new Event("keydown");
       for (const ch of keys) {
         evt.sk_keyName = ch;
-        Mode.handleMapKey.call(self, evt);
+        Mode.handleMapKey.call(mode, evt);
       }
     }, 1);
   };
@@ -834,7 +833,7 @@ function createVisual(clipboard: ClipboardLike, hints: HintsLike): VisualMode {
     }
     return found;
   }
-  self.visualUpdate = (query) => {
+  const visualUpdate = (query: string): void => {
     self.visualClear();
 
     // set caret to top in view
@@ -880,14 +879,14 @@ function createVisual(clipboard: ClipboardLike, hints: HintsLike): VisualMode {
     }
   };
 
-  self.visualEnter = (query) => {
+  const visualEnter = (query: string): void => {
     if (query.length === 0 || query === ".") {
       return;
     }
     self.visualClear();
     highlight(new RegExp(query, runtime.getCaseSensitive(query) ? "" : "i"));
     if (matches.length) {
-      self.enter();
+      mode.enter();
       const cur = matches[currentOccurrence];
       if (cur) {
         select(cur);
@@ -901,7 +900,7 @@ function createVisual(clipboard: ClipboardLike, hints: HintsLike): VisualMode {
     }
   };
 
-  self.findSentenceOf = (query) => {
+  const findSentenceOf = (query: string): string => {
     const wr = new RegExp(String.raw`\b` + query + String.raw`\b`);
     let elements = getVisibleElements((e, v) => {
       if (wr.test(e.innerText)) {
@@ -937,12 +936,32 @@ function createVisual(clipboard: ClipboardLike, hints: HintsLike): VisualMode {
    * @param {string} style Css style
    * @name Visual.style
    */
-  self.style = (element, style) => {
+  const style = (element: string, style: string): void => {
     _style[element] = style;
 
     cursor.setAttribute("style", _style["cursor"] || "");
     mark_template.setAttribute("style", _style["marks"] || "");
   };
+
+  const self: VisualMode = Object.assign(mode, {
+    mappings,
+    map_node: mappings,
+    hideCursor,
+    showCursor,
+    getCursorPixelPos,
+    visualClear,
+    emptySelection,
+    restore,
+    toggle,
+    star,
+    next,
+    feedkeys,
+    visualUpdate,
+    visualEnter,
+    findSentenceOf,
+    style,
+  });
+
   return self;
 }
 

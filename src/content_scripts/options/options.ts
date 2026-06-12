@@ -1,6 +1,8 @@
 import { Result } from "@praha/byethrow";
 
 import { type ChromeRuntimeError, reportOnFail } from "../../common/result";
+// Type-only: the Mode constructor itself is injected through optionsMain's parameters.
+import type Mode from "../common/mode";
 import { reportError } from "../common/report";
 import type { StoredSettings } from "../common/runtime";
 import { hide, requireElement, show } from "../common/utils";
@@ -14,10 +16,31 @@ type KeyboardUtilsLike = {
   encodeKeystroke(k: string): string;
   decodeKeystroke(k: string): string;
 };
-// The injected Mode constructor produces a structural self augmented with editor expandos below;
-// its instance type is `any` for the same reason the other mode selfs are.
-// eslint-disable-next-line typescript/no-explicit-any
-type ModeCtor = new (name: string) => any;
+type ModeCtor = new (name: string) => Mode;
+
+/** The mappings editor: a Mode wrapping the snippets textarea with value accessors. */
+type MappingsEditor = Mode & {
+  container: HTMLTextAreaElement;
+  setValue(v: string, cursorPos: number): void;
+  getValue(): string;
+};
+
+/** KeyPicker re-exposes `enter` with the element whose binding is being picked. */
+type KeyPickerMode = Omit<Mode, "enter"> & { enter(elm: HTMLElement): void };
+
+/**
+ * The keydown payload KeyPicker inspects. Extends the stack event with the KeyboardEvent fields it
+ * reads, kept optional so the handler still accepts the bare stack events Mode dispatches.
+ */
+type KeyPickerKeydownEvent = Event & {
+  keyCode?: number;
+  metaKey?: boolean;
+  altKey?: boolean;
+  ctrlKey?: boolean;
+  shiftKey?: boolean;
+  code?: string;
+  key?: string;
+};
 
 /** A search-engine alias as the omnibar reports it: a label or an `{ html }` icon prompt. */
 type AliasInfo = { prompt: string | { html: string } };
@@ -41,12 +64,15 @@ export default function optionsMain(
   setSanitizedContent: (elm: Element, str: string) => void,
   showBanner: (msg: string, timeout?: number) => void,
 ): void {
-  // Structural editor self: createMappingEditor returns a Mode augmented with editor expandos
-  // (container/setValue/getValue/...), so both the holder and its return type are `any`.
-  // eslint-disable-next-line typescript/no-explicit-any
-  let mappingsEditor: any = null;
-  // eslint-disable-next-line typescript/no-explicit-any
-  function createMappingEditor(elmId: string): any {
+  let mappingsEditor: MappingsEditor | null = null;
+  // The editor is created when user settings arrive; reaching it earlier is a programming error.
+  function getMappingsEditor(): MappingsEditor {
+    if (mappingsEditor === null) {
+      throw new Error("mappingsEditor is not initialized until user settings are loaded");
+    }
+    return mappingsEditor;
+  }
+  function createMappingEditor(elmId: string): MappingsEditor {
     const existing = document.getElementById(elmId);
     let textarea: HTMLTextAreaElement;
     if (existing instanceof HTMLTextAreaElement) {
@@ -63,18 +89,18 @@ export default function optionsMain(
       }
     }
 
-    const self = new Mode("mappingsEditor");
-
-    self.container = textarea;
-    self.setValue = (v: string, cursorPos: number) => {
-      textarea.value = v;
-      if (cursorPos === -1) {
-        textarea.setSelectionRange(0, 0);
-      }
-    };
-    self.getValue = () => {
-      return textarea.value;
-    };
+    const self: MappingsEditor = Object.assign(new Mode("mappingsEditor"), {
+      container: textarea,
+      setValue: (v: string, cursorPos: number): void => {
+        textarea.value = v;
+        if (cursorPos === -1) {
+          textarea.setSelectionRange(0, 0);
+        }
+      },
+      getValue: (): string => {
+        return textarea.value;
+      },
+    });
 
     return self;
   }
@@ -116,9 +142,9 @@ export default function optionsMain(
       localPathSaved = rs.localPath;
     }
     if (rs.snippets && rs.snippets.length) {
-      mappingsEditor.setValue(rs.snippets, -1);
+      getMappingsEditor().setValue(rs.snippets, -1);
     } else {
-      mappingsEditor.setValue(sample, -1);
+      getMappingsEditor().setValue(sample, -1);
     }
   }
 
@@ -181,7 +207,7 @@ export default function optionsMain(
     return fn;
   }
   function saveSettings(): void {
-    const settingsCode = mappingsEditor.getValue();
+    const settingsCode = getMappingsEditor().getValue();
     const localPath = getURIPath(localPathInput.value.trim());
     if (localPath.length && localPath !== localPathSaved) {
       reportOnFail(
@@ -195,9 +221,9 @@ export default function optionsMain(
             renderKeyMappings(res);
             if (res.snippets && res.snippets.length) {
               localPathSaved = localPath;
-              mappingsEditor.setValue(res.snippets, -1);
+              getMappingsEditor().setValue(res.snippets, -1);
             } else if (settingsCode === "") {
-              mappingsEditor.setValue(sample, -1);
+              getMappingsEditor().setValue(sample, -1);
             }
           },
         ),
@@ -393,7 +419,7 @@ export default function optionsMain(
   });
 
   const KeyPicker = (() => {
-    const self = new Mode("KeyPicker");
+    const mode = new Mode("KeyPicker");
 
     function showKey() {
       let s = htmlEncode(_key);
@@ -405,10 +431,10 @@ export default function optionsMain(
 
     let _key = "";
     const keyPickerDiv = requireElement("#keyPicker");
-    self.addEventListener("keydown", (event: KeyboardEvent) => {
+    mode.addEventListener("keydown", (event: KeyPickerKeydownEvent) => {
       if (event.keyCode === 27) {
         hide(keyPickerDiv);
-        self.exit();
+        mode.exit();
       } else if (event.keyCode === 8) {
         let ek = KeyboardUtils.encodeKeystroke(_key);
         ek = ek.slice(0, -1);
@@ -416,7 +442,7 @@ export default function optionsMain(
         showKey();
       } else if (event.keyCode === 13) {
         hide(keyPickerDiv);
-        self.exit();
+        mode.exit();
         if (_elm) {
           setSanitizedContent(_elm, _key !== "" ? htmlEncode(_key) : "🚫");
           _elm.dataset["custom"] = _key;
@@ -463,19 +489,22 @@ export default function optionsMain(
     });
 
     let _elm: HTMLElement | null = null;
-    const _enter = self.enter;
-    self.enter = (elm: HTMLElement) => {
-      _enter.call(self);
+    // Capture the base stack-push enter before the public `enter` shadows it.
+    const _enter = mode.enter.bind(mode);
+    const self: KeyPickerMode = Object.assign(mode, {
+      enter(elm: HTMLElement): void {
+        _enter();
 
-      _key = elm.innerText;
-      if (_key === "🚫") {
-        _key = "";
-      }
+        _key = elm.innerText;
+        if (_key === "🚫") {
+          _key = "";
+        }
 
-      showKey();
-      show(keyPickerDiv);
-      _elm = elm;
-    };
+        showKey();
+        show(keyPickerDiv);
+        _elm = elm;
+      },
+    });
 
     return self;
   })();
