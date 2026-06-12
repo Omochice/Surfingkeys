@@ -18,7 +18,7 @@ import {
   tabOpenLink,
 } from "./utils";
 
-type ModeWithMappings = { name: string; mappings: Trie; map_node: Trie };
+type ModeWithMappings = { name: string; mappings: Trie };
 
 type KeyTarget = {
   // User keypress handler of arbitrary signature (see mapkey's jscode).
@@ -281,7 +281,7 @@ function createAPI(ctx: ModeContext) {
    */
   function unmapAllExcept(keystrokes: string[], domain?: RegExp): void {
     if (_isDomainApplicable(domain)) {
-      const modes: ModeWithMappings[] = [normal, insert];
+      const modes: (ModeWithMappings & { map_node: Trie })[] = [normal, insert];
       modes.forEach((mode) => {
         const _mappings = new Trie();
         keystrokes = keystrokes || [];
