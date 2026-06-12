@@ -273,8 +273,6 @@ describe("Keymap.reset", () => {
     keymap.reset();
 
     expect(keymap.repeats).toBe("");
-
-    cleanup();
   });
 });
 
