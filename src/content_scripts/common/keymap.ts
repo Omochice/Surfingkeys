@@ -40,7 +40,7 @@ export type Keymap = {
   /** "" when idle, the accumulated digits mid-count; undefined when repeats are disabled. */
   readonly repeats: string | undefined;
   /** The node the in-flight key sequence is parked on (the root when idle). */
-  getCurrentNode(): Trie | undefined;
+  getCurrentNode(): Trie;
   /** Feed one key event through the mapping state machine; returns whether an action completed. */
   handleKey(event: KeyEventLike, onNoMatched?: (last: Trie) => void): boolean;
   /** Reset the sequence/pending/repeat state, telling the front to hide the keystroke hint. */
@@ -65,16 +65,18 @@ function callStopPropagation(meta: TrieMeta, key: string): boolean {
  * replacing the root (api.ts unmapAllExcept) cannot desynchronize the keymap.
  */
 export function createKeymap(getRoot: () => Trie, opts?: KeymapOptions): Keymap {
-  let currentNode: Trie | undefined = getRoot();
+  // null means "parked on the root". The root is re-read through getRoot on demand (never
+  // captured), so the keymap can be created before the controller that owns the trie is
+  // fully assembled, and a wholesale root replacement is picked up transparently.
+  let currentNode: Trie | null = null;
   let repeats: string | undefined = opts?.enableRepeats ? "" : undefined;
   let pendingMap: ((key: string) => void) | null = null;
   let isTrustedEvent = false;
 
   function finish(): boolean {
     let ret = false;
-    const root = getRoot();
-    if (currentNode !== root || pendingMap != null || repeats) {
-      currentNode = root;
+    if (currentNode != null || pendingMap != null || repeats) {
+      currentNode = null;
       pendingMap = null;
       isTrustedEvent && dispatchSKEvent("front", ["hideKeystroke"]);
       if (repeats) {
@@ -108,19 +110,19 @@ export function createKeymap(getRoot: () => Trie, opts?: KeymapOptions): Keymap 
       actionDone = finish();
     } else if (
       repeats != null &&
-      currentNode === getRoot() &&
+      currentNode == null &&
       runtime.conf.digitForRepeat &&
       (key >= "1" || (repeats !== "" && key >= "0")) &&
       key <= "9" &&
-      currentNode.getWords().length > 0
+      getRoot().getWords().length > 0
     ) {
       // reset only after target action executed or cancelled
       repeats += key;
       isTrustedEvent && dispatchSKEvent("front", ["showKeystroke", key, keymap]);
       event.sk_stopPropagation = true;
     } else {
-      const last = currentNode!;
-      currentNode = currentNode!.find(key);
+      const last = currentNode ?? getRoot();
+      currentNode = last.find(key) ?? null;
       if (!currentNode) {
         onNoMatched?.(last);
         event.sk_suppressed = last !== getRoot();
@@ -172,12 +174,12 @@ export function createKeymap(getRoot: () => Trie, opts?: KeymapOptions): Keymap 
       return repeats;
     },
     getCurrentNode() {
-      return currentNode;
+      return currentNode ?? getRoot();
     },
     handleKey,
     finish,
     reset() {
-      currentNode = getRoot();
+      currentNode = null;
     },
   };
 
