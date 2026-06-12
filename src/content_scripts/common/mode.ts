@@ -6,9 +6,18 @@ import { RUNTIME, dispatchSKEvent, runtime } from "./runtime";
 import { isSpecialKeyOf } from "./specialKeys";
 import type Trie from "./trie";
 import type { TrieMeta } from "./trie";
-import { listElements, isInUIFrame, reportIssue } from "./utils";
+import { isInUIFrame, reportIssue } from "./utils";
 
 type StackEvent = Event & { keyCode?: number };
+
+/**
+ * Tell the event hub to swallow the next scroll event. scrollDetection's probe writes a scroll
+ * offset to test scrollability, which fires a real scroll event; the counter it increments here is
+ * consumed by the global scroll listener below.
+ */
+export function suppressNextScrollEvent(): void {
+  suppressScrollEvent++;
+}
 
 let mode_stack: Mode[] = [];
 
@@ -186,50 +195,6 @@ export default class Mode {
     if (!keysNeedKeyupSuppressed.includes(keyCode)) {
       keysNeedKeyupSuppressed.push(keyCode);
     }
-  }
-
-  static hasScroll(el: HTMLElement, direction: "x" | "y", barSize: number): boolean {
-    const offset =
-      direction === "y" ? (["scrollTop", "height"] as const) : (["scrollLeft", "width"] as const);
-    let result = el[offset[0]];
-
-    if (result < barSize) {
-      // set scroll offset to barSize, and verify if we can get scroll offset as barSize
-      const originOffset = el[offset[0]];
-      el[offset[0]] = el.getBoundingClientRect()[offset[1]];
-      result = el[offset[0]];
-      if (result !== originOffset) {
-        // this is valid for some site such as http://mail.live.com/
-        suppressScrollEvent++;
-      }
-      el[offset[0]] = originOffset;
-    }
-    return result >= barSize;
-  }
-
-  static getScrollableElements(): HTMLElement[] {
-    const nodes = listElements(
-      document.body,
-      NodeFilter.SHOW_ELEMENT,
-      (n: HTMLElement) =>
-        (Mode.hasScroll(n, "y", 16) && n.scrollHeight > 200) ||
-        (Mode.hasScroll(n, "x", 16) && n.scrollWidth > 200),
-    ).toSorted((a: HTMLElement, b: HTMLElement) => {
-      if (b.contains(a)) return 1;
-      else if (a.contains(b)) return -1;
-      return b.scrollHeight * b.scrollWidth - a.scrollHeight * a.scrollWidth;
-    });
-    // document.scrollingElement will be null when document.body.tagName === "FRAMESET".
-    // It belongs to this content script's own document, so instanceof is realm-safe here.
-    const scrollingElement = document.scrollingElement;
-    if (
-      scrollingElement instanceof HTMLElement &&
-      (scrollingElement.scrollHeight > window.innerHeight ||
-        scrollingElement.scrollWidth > window.innerWidth)
-    ) {
-      nodes.unshift(scrollingElement);
-    }
-    return nodes;
   }
 
   static init(cb?: () => void): void {

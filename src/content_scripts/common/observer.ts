@@ -1,5 +1,5 @@
 import { isSurfingKeysElement, markNewlyCreated } from "./domFlags";
-import Mode from "./mode";
+import { hasScroll } from "./scrollDetection";
 import { getVisibleElements, initSKFunctionListener } from "./utils";
 
 function isElementPositionRelative(elm: HTMLElement): boolean {
@@ -47,7 +47,7 @@ function startScrollNodeObserver(normal: {
               br.height <= window.innerHeight &&
               br.top >= 0 &&
               br.left >= 0 &&
-              Mode.hasScroll(e, "y", 16) &&
+              hasScroll(e, "y", 16) &&
               isElementPositionRelative(e)
             ) {
               v.push(e);
