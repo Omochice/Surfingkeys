@@ -1,5 +1,5 @@
 import KeyboardUtils from "../common/keyboardUtils";
-import Mode from "../common/mode";
+import { ModeHandle } from "../common/mode";
 import { RUNTIME } from "../common/runtime";
 import {
   createElementWithContent,
@@ -21,7 +21,7 @@ import optionsMain from "./options";
 optionsMain(
   RUNTIME,
   KeyboardUtils,
-  Mode,
+  ModeHandle,
   createElementWithContent,
   getBrowserName,
   htmlEncode,

@@ -5,7 +5,7 @@ import * as v from "valibot";
 import createAPI from "../common/api";
 import createDefaultMappings from "../common/default";
 import KeyboardUtils from "../common/keyboardUtils";
-import Mode, { initModeHub } from "../common/mode";
+import { ModeHandle, initModeHub } from "../common/mode";
 import createModeGraph, { type ModeContext } from "../common/modeGraph";
 import { RUNTIME, runtime } from "../common/runtime";
 import { isSpecialKeyOf, specialKeys } from "../common/specialKeys";
@@ -54,8 +54,8 @@ const frontendMessageEnvelopeSchema = v.looseObject({
 // eslint-disable-next-line typescript/no-explicit-any
 type FrontActionFn = (message?: any) => any;
 
-/** The iframe-side front controller: a Mode carrying the messaging and overlay surface. */
-type FrontMode = Mode & {
+/** The iframe-side front controller: a ModeHandle carrying the messaging and overlay surface. */
+type FrontMode = ModeHandle & {
   _actions: Record<string, FrontActionFn>;
   topSize: [number, number];
   topOrigin: string;
@@ -86,7 +86,7 @@ const Front = (() => {
 
   // The function members are declarations below, so hoisting lets the controller be assembled
   // here, before createOmnibar and the API wiring receive it, keeping the original setup order.
-  const self: FrontMode = Object.assign(new Mode("Front"), {
+  const self: FrontMode = Object.assign(new ModeHandle("Front"), {
     _actions,
     topSize,
     topOrigin: "",
@@ -498,14 +498,14 @@ const Front = (() => {
       "Search selected with", // 6
       "Clipboard", // 7
       "Omnibar", // 8
-      "Visual Mode", // 9
+      "Visual ModeHandle", // 9
       "vim-like marks", // 10
       "Settings", // 11
       "Chrome URLs", // 12
       "Misc", // 13
-      "Insert Mode", // 14
-      "Lurk Mode", // 15
-      "Regional Hints Mode", // 16
+      "Insert ModeHandle", // 14
+      "Lurk ModeHandle", // 15
+      "Regional Hints ModeHandle", // 16
     ];
 
     initL10n((locale) => {
@@ -1072,7 +1072,7 @@ const StatusBar = (() => {
 })();
 
 const Find = (() => {
-  const self = new Mode("Find", "/");
+  const self = new ModeHandle("Find", "/");
 
   self
     .addEventListener("keydown", (event) => {

@@ -1,6 +1,6 @@
 import KeyboardUtils from "./keyboardUtils";
 import { createKeymap } from "./keymap";
-import Mode from "./mode";
+import { ModeHandle } from "./mode";
 import Trie from "./trie";
 import {
   createElementWithContent,
@@ -23,7 +23,7 @@ class CursorPrompt {
   renderer: Renderer;
   picker: Picker;
   fetcher: Fetcher;
-  mode!: Mode;
+  mode!: ModeHandle;
   insertOffset = 0;
   threshold = 0;
   parentElement!: HTMLElement;
@@ -45,7 +45,7 @@ class CursorPrompt {
   }
 
   initMode(): void {
-    const mode = new Mode("CursorPrompt");
+    const mode = new ModeHandle("CursorPrompt");
     const mappings = new Trie();
     const keymap = createKeymap(() => mappings);
 

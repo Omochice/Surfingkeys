@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-import Mode, { checkEventListener, getCurrentMode, initModeHub, suppressKeyUp } from "./mode";
+import { ModeHandle, checkEventListener, getCurrentMode, initModeHub, suppressKeyUp } from "./mode";
 import * as utils from "./utils";
 
 vi.mock("./utils", async () => {
@@ -8,8 +8,8 @@ vi.mock("./utils", async () => {
   return { ...actual, reportIssue: vi.fn() };
 });
 
-function makeMode(name = "Test"): Mode {
-  return new Mode(name);
+function makeMode(name = "Test"): ModeHandle {
+  return new ModeHandle(name);
 }
 
 describe("suppressKeyUp", () => {
@@ -23,7 +23,7 @@ describe("suppressKeyUp", () => {
   });
 });
 
-describe("Mode enter / exit / getCurrentMode", () => {
+describe("ModeHandle enter / exit / getCurrentMode", () => {
   // Each test must leave the mode_stack clean.  We do this by explicitly
   // exiting every mode entered during the test.
   it("getCurrent returns the mode at the top of the stack after enter", () => {
@@ -129,7 +129,7 @@ describe("Mode enter / exit / getCurrentMode", () => {
   });
 });
 
-describe("Mode.addEventListener", () => {
+describe("ModeHandle.addEventListener", () => {
   it("registers an event listener on the mode and returns this", () => {
     const mode = makeMode("Evt");
     const handler = vi.fn();
@@ -163,12 +163,12 @@ describe("checkEventListener", () => {
   });
 });
 
-describe("Mode.enter — reentrant=false re-entry reports an issue and leaves the stack intact", () => {
+describe("ModeHandle.enter — reentrant=false re-entry reports an issue and leaves the stack intact", () => {
   it("reports an issue and does not pop modes when a non-top mode is re-entered without reentrant", () => {
     const reportIssue = vi.mocked(utils.reportIssue);
     reportIssue.mockClear();
-    const lower = new Mode("Lower");
-    const upper = new Mode("Upper");
+    const lower = new ModeHandle("Lower");
+    const upper = new ModeHandle("Upper");
     // lower enters first (lower priority), upper enters on top (higher priority).
     lower.enter(1);
     upper.enter(2);
@@ -192,7 +192,7 @@ describe("Mode.enter — reentrant=false re-entry reports an issue and leaves th
   });
 });
 
-describe("Mode.addEventListener — registers a new global listened event", () => {
+describe("ModeHandle.addEventListener — registers a new global listened event", () => {
   it("routes a window event of a not-yet-listened type into the mode's handler", () => {
     const mode = makeMode("GlobalEvt");
     const handler = vi.fn();
@@ -218,11 +218,11 @@ describe("handleStack dispatch — suppression, stopPropagation and Disabled bre
   });
 
   it("skips a higher mode's listener and breaks when a Disabled mode is on top", () => {
-    const lower = new Mode("Normal");
+    const lower = new ModeHandle("Normal");
     const lowerHandler = vi.fn();
     lower.addEventListener("keydown", lowerHandler);
 
-    const disabled = new Mode("Disabled");
+    const disabled = new ModeHandle("Disabled");
     const disabledHandler = vi.fn((e: Event & { sk_suppressed?: boolean }) => {
       e.sk_suppressed = true;
     });

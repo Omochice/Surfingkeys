@@ -16,7 +16,7 @@ export function suppressNextScrollEvent(): void {
   suppressScrollEvent++;
 }
 
-let modeStack: Mode[] = [];
+let modeStack: ModeHandle[] = [];
 
 let eventListenerBeats = 0;
 let suppressScrollEvent = 0;
@@ -62,14 +62,14 @@ const _listenedEvents: Record<string, (event: StackEvent) => void> = {
   },
 };
 
-function onAfterHandler(_mode: Mode, event: StackEvent): void {
+function onAfterHandler(_mode: ModeHandle, event: StackEvent): void {
   if (event.sk_stopPropagation) {
     event.stopImmediatePropagation();
     event.preventDefault();
   }
 }
 
-function handleStack(eventName: string, event: StackEvent, cb?: (mode: Mode) => void): void {
+function handleStack(eventName: string, event: StackEvent, cb?: (mode: ModeHandle) => void): void {
   for (const m of modeStack) {
     if (event.sk_stopPropagation) {
       break;
@@ -96,7 +96,7 @@ function init(cb?: () => void): void {
   cb?.();
 }
 
-export default class Mode {
+export class ModeHandle {
   name: string;
   statusLine: string | undefined;
   eventListeners: Record<string, (event: StackEvent) => void> = {};
@@ -177,7 +177,7 @@ export default class Mode {
 }
 
 /** The mode currently on top of the stack, i.e. the one that sees events first. */
-export function getCurrentMode(): Mode | undefined {
+export function getCurrentMode(): ModeHandle | undefined {
   return modeStack[0];
 }
 
