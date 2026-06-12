@@ -1,8 +1,8 @@
 import { LOG } from "../../common/utils";
 import KeyboardUtils from "./keyboardUtils";
-import Mode from "./mode";
 import type { ModeContext } from "./modeGraph";
 import { RUNTIME, dispatchSKEvent } from "./runtime";
+import { specialKeys } from "./specialKeys";
 import Trie from "./trie";
 import {
   constructSearchURL,
@@ -225,7 +225,7 @@ function createAPI(ctx: ModeContext) {
         );
         normal.mappings.add(KeyboardUtils.encodeKeystroke(new_keystroke), keybound);
       } else {
-        const specialKey = Mode.specialKeys[old_keystroke];
+        const specialKey = specialKeys[old_keystroke];
         if (
           !mapInMode(normal, new_keystroke, old_keystroke, new_annotation) &&
           specialKey != null
@@ -255,8 +255,8 @@ function createAPI(ctx: ModeContext) {
       if (old_map) {
         normal.mappings.remove(KeyboardUtils.encodeKeystroke(keystroke));
       } else {
-        for (const k in Mode.specialKeys) {
-          const keys = Mode.specialKeys[k];
+        for (const k in specialKeys) {
+          const keys = specialKeys[k];
           if (keys == null) {
             continue;
           }

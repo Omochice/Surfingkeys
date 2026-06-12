@@ -1,6 +1,7 @@
 import KeyboardUtils from "./keyboardUtils";
 import Mode from "./mode";
 import { dispatchSKEvent, runtime } from "./runtime";
+import { isSpecialKeyOf } from "./specialKeys";
 import Trie from "./trie";
 import {
   createElementWithContent,
@@ -331,7 +332,7 @@ div.hint-scrollable {
     if (ai !== null) {
       const masks = holder.querySelectorAll<HTMLElement>("mask");
       let elm = hintLink.get(ai);
-      if (Mode.isSpecialKeyOf("<Esc>", event.sk_keyName ?? "")) {
+      if (isSpecialKeyOf("<Esc>", event.sk_keyName ?? "")) {
         elm.blur();
         hide();
       } else if (event.keyCode === KeyboardUtils.keyCodes["tab"]) {
@@ -353,7 +354,7 @@ div.hint-scrollable {
     }
 
     const hints = holder.querySelectorAll("div");
-    if (Mode.isSpecialKeyOf("<Esc>", event.sk_keyName ?? "")) {
+    if (isSpecialKeyOf("<Esc>", event.sk_keyName ?? "")) {
       hide();
     } else if (event.keyCode === KeyboardUtils.keyCodes["space"]) {
       holder.style.display = "none";

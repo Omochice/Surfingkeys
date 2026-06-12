@@ -8,6 +8,7 @@ import KeyboardUtils from "../common/keyboardUtils";
 import Mode from "../common/mode";
 import createModeGraph, { type ModeContext } from "../common/modeGraph";
 import { RUNTIME, runtime } from "../common/runtime";
+import { isSpecialKeyOf, specialKeys } from "../common/specialKeys";
 import type Trie from "../common/trie";
 import {
   attachFaviconToImgSrc,
@@ -172,7 +173,7 @@ const Front = (() => {
   };
   let _display: DisplayElement | null = null;
   self.addEventListener("keydown", (event) => {
-    if (Mode.isSpecialKeyOf("<Esc>", event.sk_keyName ?? "")) {
+    if (isSpecialKeyOf("<Esc>", event.sk_keyName ?? "")) {
       self.hidePopup();
       event.sk_stopPropagation = true;
     } else if (_display && _display.style.display !== "none") {
@@ -509,7 +510,7 @@ const Front = (() => {
 
     initL10n((locale) => {
       const help_groups: string[][] = feature_groups.map(() => []);
-      const altSKeys = Mode.specialKeys["<Alt-s>"];
+      const altSKeys = specialKeys["<Alt-s>"];
       const lh = altSKeys?.length ?? 0;
       const firstGroup = help_groups[0];
       if (lh > 0 && altSKeys != null && firstGroup != null) {
@@ -598,7 +599,7 @@ const Front = (() => {
       }),
       message,
     );
-    const specialKey = Mode.specialKeys[old_keystroke];
+    const specialKey = specialKeys[old_keystroke];
     if (specialKey != null) {
       specialKey.push(new_keystroke);
     } else if (mode != null && Object.hasOwn(modes, mode)) {
@@ -1135,7 +1136,7 @@ const Find = (() => {
     );
     inputEl.onkeydown = (event) => {
       let query: string | undefined;
-      if (Mode.isSpecialKeyOf("<Esc>", event.sk_keyName ?? "")) {
+      if (isSpecialKeyOf("<Esc>", event.sk_keyName ?? "")) {
         reset();
         Front.visualCommand({
           action: "visualClear",
