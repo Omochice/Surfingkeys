@@ -3,6 +3,7 @@ import { Result } from "@praha/byethrow";
 import { domApiError } from "../../common/result";
 import KeyboardUtils from "./keyboardUtils";
 import { RUNTIME, dispatchSKEvent, runtime } from "./runtime";
+import { isSpecialKeyOf, specialKeys } from "./specialKeys";
 import type Trie from "./trie";
 import type { TrieMeta } from "./trie";
 import { listElements, isInUIFrame, reportIssue } from "./utils";
@@ -181,15 +182,10 @@ export default class Mode {
     return mode_stack[0];
   }
 
-  static specialKeys: Record<string, string[]> = {
-    "<Alt-s>": ["<Alt-s>"], // hotkey to toggleBlocklist
-    "<Esc>": ["<Esc>"],
-  };
-
-  static isSpecialKeyOf(specialKey: string, keyToCheck: string): boolean {
-    const keys = Mode.specialKeys[specialKey];
-    return keys != null && keys.includes(KeyboardUtils.decodeKeystroke(keyToCheck));
-  }
+  // Transitional delegates while call sites migrate to importing ./specialKeys directly; both
+  // names share the singleton registry so runtime alias registration stays in sync.
+  static specialKeys = specialKeys;
+  static isSpecialKeyOf = isSpecialKeyOf;
 
   static suppressKeyUp(keyCode: number): void {
     if (!keysNeedKeyupSuppressed.includes(keyCode)) {
@@ -299,7 +295,7 @@ export default class Mode {
     let key = event.sk_keyName ?? "";
     this.isTrustedEvent = this.__trust_all_events__ || event.isTrusted;
 
-    const isEscKey = Mode.isSpecialKeyOf("<Esc>", key);
+    const isEscKey = isSpecialKeyOf("<Esc>", key);
     if (isEscKey) {
       key = KeyboardUtils.encodeKeystroke("<Esc>");
     }
