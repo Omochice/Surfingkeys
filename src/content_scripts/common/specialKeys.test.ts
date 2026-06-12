@@ -19,6 +19,7 @@ describe("isSpecialKeyOf", () => {
 
 describe("specialKeys registry", () => {
   afterEach(() => {
+    specialKeys["<Alt-s>"] = ["<Alt-s>"];
     specialKeys["<Esc>"] = ["<Esc>"];
   });
 
