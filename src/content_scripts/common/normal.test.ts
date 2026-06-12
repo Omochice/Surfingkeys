@@ -5,6 +5,17 @@ import KeyboardUtils from "./keyboardUtils";
 import Mode from "./mode";
 import createNormal from "./normal";
 import { RUNTIME, runtime } from "./runtime";
+import { getScrollableElements } from "./scrollDetection";
+
+// Wrapped so individual tests can stub the scroll-list discovery with
+// mockReturnValueOnce; every other test keeps the real implementation.
+vi.mock("./scrollDetection", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("./scrollDetection")>();
+  return {
+    ...actual,
+    getScrollableElements: vi.fn(actual.getScrollableElements),
+  };
+});
 
 const insertStub = { enter() {}, exit() {} };
 
@@ -1720,7 +1731,8 @@ describe("createNormal addScrollableElement — duplicate guard", () => {
     runtime.conf.scrollFallback = false;
     // Suppress auto-detection so addScrollableElement is the only source of scroll nodes;
     // otherwise jsdom reports the freshly-built divs as already-scrollable and skips the push.
-    const getScrollable = vi.spyOn(Mode, "getScrollableElements").mockReturnValue([]);
+    // The discovery runs exactly once (the later calls see a non-empty list), so Once suffices.
+    vi.mocked(getScrollableElements).mockReturnValueOnce([]);
 
     const makeTarget = (): { el: HTMLElement; scrollBy: ReturnType<typeof vi.fn> } => {
       const el = document.createElement("div");
@@ -1753,7 +1765,6 @@ describe("createNormal addScrollableElement — duplicate guard", () => {
     });
     expect(first.scrollBy).not.toHaveBeenCalled();
 
-    getScrollable.mockRestore();
     runtime.conf.scrollFallback = savedScrollFallback;
     first.el.remove();
     second.el.remove();
@@ -1769,7 +1780,7 @@ describe(String.raw`createNormal jumpVIMark — no scrollable elements on '\' ma
       configurable: true,
     });
     // Force an empty scroll list so the `scrollNodes.length > 0` guard is false.
-    const getScrollable = vi.spyOn(Mode, "getScrollableElements").mockReturnValue([]);
+    vi.mocked(getScrollableElements).mockReturnValueOnce([]);
     // Seed a sentinel scroll position; the empty-list branch must not restore/swap it.
     Object.defineProperty(document.documentElement, "scrollTop", {
       value: 123,
@@ -1782,7 +1793,6 @@ describe(String.raw`createNormal jumpVIMark — no scrollable elements on '\' ma
 
     expect(document.documentElement.scrollTop).toBe(123);
 
-    getScrollable.mockRestore();
     Reflect.deleteProperty(document.documentElement, "scrollTop");
     Reflect.deleteProperty(document, "scrollingElement");
   });

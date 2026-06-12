@@ -3,6 +3,7 @@ import { isAutoFocusMarked, isNewlyCreated, unmarkNewlyCreated } from "./domFlag
 import KeyboardUtils from "./keyboardUtils";
 import Mode from "./mode";
 import { RUNTIME, dispatchSKEvent, runtime } from "./runtime";
+import { getScrollableElements, hasScroll } from "./scrollDetection";
 import { isSpecialKeyOf } from "./specialKeys";
 import Trie from "./trie";
 import {
@@ -515,7 +516,7 @@ function createNormal(insert: InsertLike): NormalMode {
   // set scrollIndex to the highest node
   function initScrollIndex(): void {
     if (!scrollNodes || scrollNodes.length === 0) {
-      scrollNodes = Mode.getScrollableElements();
+      scrollNodes = getScrollableElements();
       scrollNodes.forEach((n) => {
         n.removeEventListener("mousedown", scrollableMousedownHandler);
         n.addEventListener("mousedown", scrollableMousedownHandler);
@@ -567,7 +568,7 @@ function createNormal(insert: InsertLike): NormalMode {
     ]);
   };
   function changeScrollTarget(silent?: boolean): void {
-    scrollNodes = Mode.getScrollableElements();
+    scrollNodes = getScrollableElements();
     if (scrollNodes.length > 0) {
       scrollIndex = (scrollIndex + 1) % scrollNodes.length;
       const sn = scrollNodes[scrollIndex];
@@ -632,7 +633,7 @@ function createNormal(insert: InsertLike): NormalMode {
           br.width === 0 ||
           br.height === 0 ||
           !isElementPartiallyInViewport(scrollNode) ||
-          (!Mode.hasScroll(scrollNode, "x", 16) && !Mode.hasScroll(scrollNode, "y", 16))
+          (!hasScroll(scrollNode, "x", 16) && !hasScroll(scrollNode, "y", 16))
         ) {
           // Recompute scrollable elements, the webpage has changed.
           self.refreshScrollableElements();
