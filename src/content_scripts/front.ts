@@ -2,7 +2,7 @@ import * as v from "valibot";
 
 import { reportOnFail } from "../common/result";
 import { markSurfingKeysElement } from "./common/domFlags";
-import Mode from "./common/mode";
+import { showModeStatus } from "./common/mode";
 import { reportError } from "./common/report";
 import { RUNTIME, dispatchSKEvent, runtime } from "./common/runtime";
 import type Trie from "./common/trie";
@@ -788,7 +788,7 @@ function createFront(
     if (!frontendPromise) {
       newFrontEnd();
     }
-    Mode.showStatus();
+    showModeStatus();
   };
 
   self.detach = () => {

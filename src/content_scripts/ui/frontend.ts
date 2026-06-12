@@ -5,7 +5,7 @@ import * as v from "valibot";
 import createAPI from "../common/api";
 import createDefaultMappings from "../common/default";
 import KeyboardUtils from "../common/keyboardUtils";
-import Mode from "../common/mode";
+import Mode, { initModeHub } from "../common/mode";
 import createModeGraph, { type ModeContext } from "../common/modeGraph";
 import { RUNTIME, runtime } from "../common/runtime";
 import { isSpecialKeyOf, specialKeys } from "../common/specialKeys";
@@ -74,7 +74,7 @@ type FrontMode = Mode & {
 };
 
 const Front = (() => {
-  Mode.init();
+  initModeHub();
   const { clipboard, insert, normal, hints, visual } = createModeGraph();
 
   const _actions: Record<string, FrontActionFn> = {};

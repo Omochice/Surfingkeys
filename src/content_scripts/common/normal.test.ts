@@ -2,7 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { markAutoFocus, markNewlyCreated } from "./domFlags";
 import KeyboardUtils from "./keyboardUtils";
-import Mode from "./mode";
+import { getCurrentMode } from "./mode";
 import createNormal from "./normal";
 import { RUNTIME, runtime } from "./runtime";
 import { getScrollableElements } from "./scrollDetection";
@@ -1873,7 +1873,7 @@ describe("createNormal once", () => {
 
     expect(ran).toBe(1);
     // After the action, _once causes normal.exit() — mode is no longer at the top.
-    expect(Mode.getCurrent()).not.toBe(normal);
+    expect(getCurrentMode()).not.toBe(normal);
 
     div.remove();
   });
@@ -1887,7 +1887,7 @@ describe("createNormal disable — disabled mode keydown branches", () => {
     normal.disable();
 
     // Get the disabled mode's keydown handler via the mode stack's first entry.
-    const disabled = Mode.getCurrent();
+    const disabled = getCurrentMode();
     if (disabled == null) throw new Error("no current mode after disable");
 
     const handler = disabled.eventListeners["keydown"];

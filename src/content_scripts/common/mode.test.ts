@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-import Mode from "./mode";
+import Mode, { checkEventListener, getCurrentMode, initModeHub, suppressKeyUp } from "./mode";
 import * as utils from "./utils";
 
 vi.mock("./utils", async () => {
@@ -12,24 +12,24 @@ function makeMode(name = "Test"): Mode {
   return new Mode(name);
 }
 
-describe("Mode.suppressKeyUp", () => {
+describe("suppressKeyUp", () => {
   it("adds a keyCode to the suppressed list", () => {
     // We can indirectly verify: calling it twice with the same keyCode
     // should not add a duplicate (the internal list won't blow up).
     // The behavior we pin: adding the same keyCode twice doesn't cause errors
     // and the keyCode is tracked (evidenced by no throw).
-    Mode.suppressKeyUp(65);
-    Mode.suppressKeyUp(65); // dedup — no assertion error
+    suppressKeyUp(65);
+    suppressKeyUp(65); // dedup — no assertion error
   });
 });
 
-describe("Mode enter / exit / getCurrent", () => {
+describe("Mode enter / exit / getCurrentMode", () => {
   // Each test must leave the mode_stack clean.  We do this by explicitly
   // exiting every mode entered during the test.
   it("getCurrent returns the mode at the top of the stack after enter", () => {
     const mode = makeMode("A");
     mode.enter(10);
-    expect(Mode.getCurrent()).toBe(mode);
+    expect(getCurrentMode()).toBe(mode);
     mode.exit();
   });
 
@@ -39,11 +39,11 @@ describe("Mode enter / exit / getCurrent", () => {
     // every mode above it, so this loop terminates; the final assertion fails
     // loudly if any mode is still present.
     let guard = 0;
-    while (Mode.getCurrent() !== undefined && guard < 100) {
-      Mode.getCurrent()!.exit();
+    while (getCurrentMode() !== undefined && guard < 100) {
+      getCurrentMode()!.exit();
       guard++;
     }
-    expect(Mode.getCurrent()).toBeUndefined();
+    expect(getCurrentMode()).toBeUndefined();
   });
 
   it("exit with peek removes only the targeted mode, leaving modes above it", () => {
@@ -54,11 +54,11 @@ describe("Mode enter / exit / getCurrent", () => {
     modeB.enter(10); // B has higher priority → goes to top
 
     // B is at top, A is below
-    expect(Mode.getCurrent()).toBe(modeB);
+    expect(getCurrentMode()).toBe(modeB);
 
     // peek-exit A: only removes A, B should still be on stack
     modeA.exit(true);
-    expect(Mode.getCurrent()).toBe(modeB);
+    expect(getCurrentMode()).toBe(modeB);
 
     modeB.exit();
   });
@@ -72,8 +72,8 @@ describe("Mode enter / exit / getCurrent", () => {
 
     // non-peek exit of A removes A and everything above (B)
     modeA.exit();
-    expect(Mode.getCurrent()).not.toBe(modeB);
-    expect(Mode.getCurrent()).not.toBe(modeA);
+    expect(getCurrentMode()).not.toBe(modeB);
+    expect(getCurrentMode()).not.toBe(modeA);
   });
 
   it("onEnter callback is called when entering a mode", () => {
@@ -106,7 +106,7 @@ describe("Mode enter / exit / getCurrent", () => {
     lowPri.enter(1);
     highPri.enter(100);
 
-    expect(Mode.getCurrent()).toBe(highPri);
+    expect(getCurrentMode()).toBe(highPri);
 
     highPri.exit(true);
     lowPri.exit(true);
@@ -119,11 +119,11 @@ describe("Mode enter / exit / getCurrent", () => {
     base.enter(1);
     top.enter(10);
 
-    expect(Mode.getCurrent()).toBe(top);
+    expect(getCurrentMode()).toBe(top);
 
     // Re-enter base with reentrant=true: should pop top
     base.enter(undefined, true);
-    expect(Mode.getCurrent()).toBe(base);
+    expect(getCurrentMode()).toBe(base);
 
     base.exit();
   });
@@ -139,15 +139,15 @@ describe("Mode.addEventListener", () => {
   });
 });
 
-describe("Mode.init", () => {
+describe("initModeHub", () => {
   it("runs the callback immediately on a normal (non-blank) page", () => {
     const cb = vi.fn();
-    Mode.init(cb);
+    initModeHub(cb);
     expect(cb).toHaveBeenCalledOnce();
   });
 });
 
-describe("Mode.checkEventListener", () => {
+describe("checkEventListener", () => {
   it("calls onMissing when the sentinel event is not dispatched", () => {
     // The sentinel listener increments eventListenerBeats each time the
     // 'sentinel' custom event fires. By spying on window.dispatchEvent we
@@ -157,7 +157,7 @@ describe("Mode.checkEventListener", () => {
     // In tests the listeners are installed at module load, so the sentinel
     // WILL fire and eventListenerBeats WILL change — onMissing is NOT called.
     const onMissing = vi.fn();
-    Mode.checkEventListener(onMissing);
+    checkEventListener(onMissing);
     // The sentinel listener fires → beats changed → onMissing is NOT called.
     expect(onMissing).not.toHaveBeenCalled();
   });
@@ -173,7 +173,7 @@ describe("Mode.enter — reentrant=false re-entry reports an issue and leaves th
     lower.enter(1);
     upper.enter(2);
     // upper is current because it has the higher priority and sits at stack[0].
-    expect(Mode.getCurrent()).toBe(upper);
+    expect(getCurrentMode()).toBe(upper);
 
     // Re-enter the lower (non-top, pos > 0) mode without reentrant=true: the else
     // branch must call reportIssue and must NOT slice the stack down to `lower`.
@@ -185,7 +185,7 @@ describe("Mode.enter — reentrant=false re-entry reports an issue and leaves th
       expect.stringContaining("Modes in stack:"),
     );
     // Stack top is unchanged: upper still current (the reentrant slice did NOT run).
-    expect(Mode.getCurrent()).toBe(upper);
+    expect(getCurrentMode()).toBe(upper);
 
     upper.exit();
     lower.exit();
@@ -213,7 +213,7 @@ describe("handleStack dispatch — suppression, stopPropagation and Disabled bre
   afterEach(() => {
     // Pop any modes left on the stack between tests.
     for (let i = 0; i < 5; i++) {
-      Mode.getCurrent()?.exit();
+      getCurrentMode()?.exit();
     }
   });
 

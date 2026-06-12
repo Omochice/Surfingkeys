@@ -926,10 +926,10 @@ describe("createFront window message — frontendDestroyed resets frontend", () 
 });
 
 // ---------------------------------------------------------------------------
-// Suite: self.attach — calls Mode.showStatus and creates frontend if needed
+// Suite: self.attach — calls showModeStatus and creates frontend if needed
 // ---------------------------------------------------------------------------
 
-describe("createFront self.attach — calls Mode.showStatus", () => {
+describe("createFront self.attach — calls showModeStatus", () => {
   it("does not throw and creates the frontend iframe", () => {
     const mockCreateUiHost = createUiHost as ReturnType<typeof vi.fn>;
     mockCreateUiHost.mockClear();

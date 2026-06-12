@@ -1,6 +1,6 @@
 import KeyboardUtils from "./keyboardUtils";
 import { createKeymap } from "./keymap";
-import Mode from "./mode";
+import Mode, { getCurrentMode, showModeStatus, suppressKeyUp } from "./mode";
 import { dispatchSKEvent, runtime } from "./runtime";
 import { isSpecialKeyOf } from "./specialKeys";
 import Trie from "./trie";
@@ -564,7 +564,7 @@ div.hint-scrollable {
     }
     // suppress future key handler since the event has been treated as a hint
     if (evt) {
-      Mode.suppressKeyUp(evt.keyCode!);
+      suppressKeyUp(evt.keyCode!);
       evt.stopImmediatePropagation();
       evt.preventDefault();
     }
@@ -626,14 +626,14 @@ div.hint-scrollable {
   }
 
   function resetHints(): void {
-    if (Mode.getCurrent() !== mode || !document.documentElement.contains(hintsHost)) {
+    if (getCurrentMode() !== mode || !document.documentElement.contains(hintsHost)) {
       return;
     }
     const start = Date.now();
     const found = createHintsImpl(_cssSelector, _lastCreateAttrs);
     if (found > 0) {
       mode.statusLine += " - " + (Date.now() - start) + "ms / " + found;
-      Mode.showStatus();
+      showModeStatus();
     }
   }
 
@@ -737,11 +737,11 @@ div.hint-scrollable {
     "hints",
     {
       scrollStarted: () => {
-        const current = Mode.getCurrent() as ScrollMode | undefined;
+        const current = getCurrentMode() as ScrollMode | undefined;
         if (current?.onScrollStarted) current.onScrollStarted();
       },
       scrollDone: () => {
-        const current = Mode.getCurrent() as ScrollMode | undefined;
+        const current = getCurrentMode() as ScrollMode | undefined;
         if (current?.onScrollDone) current.onScrollDone();
       },
       topBoundaryHit: previousPage,

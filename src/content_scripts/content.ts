@@ -1,7 +1,7 @@
 import { reportOnFail } from "../common/result";
 import createAPI from "./common/api";
 import createDefaultMappings from "./common/default";
-import Mode from "./common/mode";
+import { checkEventListener, initModeHub } from "./common/mode";
 import createModeGraph, { type ModeContext } from "./common/modeGraph";
 import createNormal from "./common/normal";
 import startScrollNodeObserver from "./common/observer";
@@ -115,7 +115,7 @@ window.getFrameId = function () {
   }
   return window.frameId;
 };
-Mode.init(
+initModeHub(
   window === top
     ? undefined
     : () => {
@@ -137,7 +137,7 @@ function start(adapter?: BrowserAdapter): void {
     }).then((modes) => {
       _initContent(modes);
       runtime.on("titleChanged", () => {
-        Mode.checkEventListener(() => {
+        checkEventListener(() => {
           modes.front.detach();
           modes = _initModules();
           _initContent(modes);

@@ -2,7 +2,7 @@ import browser from "./browser";
 import { isAutoFocusMarked, isNewlyCreated, unmarkNewlyCreated } from "./domFlags";
 import KeyboardUtils from "./keyboardUtils";
 import { type Keymap, createKeymap } from "./keymap";
-import Mode from "./mode";
+import Mode, { getCurrentMode, showModeStatus, suppressKeyUp } from "./mode";
 import { RUNTIME, dispatchSKEvent, runtime } from "./runtime";
 import { getScrollableElements, hasScroll } from "./scrollDetection";
 import { isSpecialKeyOf } from "./specialKeys";
@@ -131,7 +131,7 @@ function createLurk(normal: NormalMode): LurkMode {
       keymap.handleKey(event);
       if (event.sk_stopPropagation) {
         // keyup event also needs to be suppressed for the key whose keydown has been suppressed.
-        Mode.suppressKeyUp(event.keyCode!);
+        suppressKeyUp(event.keyCode!);
       }
     }
   });
@@ -225,7 +225,7 @@ function createNormal(insert: InsertLike): NormalMode {
       });
       _lurkMaps = undefined;
       _lurk.enter(0, true);
-    } else if (Mode.getCurrent() !== _lurk) {
+    } else if (getCurrentMode() !== _lurk) {
       state = "enabled";
     }
     return state;
@@ -306,14 +306,14 @@ function createNormal(insert: InsertLike): NormalMode {
     }
     if (event.sk_stopPropagation) {
       // keyup event also needs to be suppressed for the key whose keydown has been suppressed.
-      Mode.suppressKeyUp(event.keyCode!);
+      suppressKeyUp(event.keyCode!);
     }
   });
   mode.addEventListener("blur", () => {
     keyHeld = 0;
   });
   mode.addEventListener("focus", (event) => {
-    Mode.showStatus();
+    showModeStatus();
     if (runtime.conf.stealFocusOnLoad && !isInUIFrame()) {
       const elm = getRealEdit(event);
       if (elm && isEditable(elm)) {
