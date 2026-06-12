@@ -2,7 +2,8 @@ import { suppressNextScrollEvent } from "./mode";
 import { listElements } from "./utils";
 
 /**
- * Detect whether `el` can scroll along `direction`. When the current offset is below `barSize` the
+ * Detect whether `el` can scroll by at least `barSize` pixels along `direction` — elements that
+ * scroll only a smaller amount report false. When the current offset is below the threshold the
  * element is probed by writing a scroll offset and reading it back; the probe can fire a real
  * scroll event, which the mode event hub is told to swallow via {@link suppressNextScrollEvent}.
  */
@@ -12,7 +13,8 @@ function hasScroll(el: HTMLElement, direction: "x" | "y", barSize: number): bool
   let result = el[offset[0]];
 
   if (result < barSize) {
-    // set scroll offset to barSize, and verify if we can get scroll offset as barSize
+    // probe: write the element's client-rect size as the scroll offset and read back how far it
+    // actually moved
     const originOffset = el[offset[0]];
     el[offset[0]] = el.getBoundingClientRect()[offset[1]];
     result = el[offset[0]];
@@ -27,7 +29,8 @@ function hasScroll(el: HTMLElement, direction: "x" | "y", barSize: number): bool
 
 /**
  * Collect the page's scrollable elements, innermost-and-largest first, prefixed by the scrolling
- * element.
+ * element. This is heuristic, not exhaustive: only elements scrollable by ≥16px whose scroll size
+ * exceeds 200px qualify, and the result is empty when the document has no `<body>`.
  */
 function getScrollableElements(): HTMLElement[] {
   // The document may have no <body> yet (document_start) or at all (XML/SVG documents).
