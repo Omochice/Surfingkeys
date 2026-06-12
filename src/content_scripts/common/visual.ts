@@ -2,6 +2,7 @@ import { unwrapOr } from "../../common/result";
 import KeyboardUtils from "./keyboardUtils";
 import Mode from "./mode";
 import { RUNTIME, dispatchSKEvent, runtime } from "./runtime";
+import { isSpecialKeyOf } from "./specialKeys";
 import Trie from "./trie";
 import type { TrieMeta } from "./trie";
 import {
@@ -76,7 +77,7 @@ function createVisual(clipboard: ClipboardLike, hints: HintsLike): VisualMode {
         visualSeek(visualf, keyName);
         lastF = [visualf, keyName];
         exitf = true;
-      } else if (Mode.isSpecialKeyOf("<Esc>", keyName)) {
+      } else if (isSpecialKeyOf("<Esc>", keyName)) {
         exitf = true;
       }
 
@@ -89,7 +90,7 @@ function createVisual(clipboard: ClipboardLike, hints: HintsLike): VisualMode {
       Mode.handleMapKey.call(mode, event);
       if (event.sk_stopPropagation) {
         event.sk_suppressed = true;
-      } else if (Mode.isSpecialKeyOf("<Esc>", keyName)) {
+      } else if (isSpecialKeyOf("<Esc>", keyName)) {
         if (state > 1) {
           self.hideCursor();
           selection.collapse(selection.anchorNode, selection.anchorOffset);

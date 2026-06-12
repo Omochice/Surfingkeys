@@ -17,8 +17,8 @@
 
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 
-import Mode from "../common/mode";
 import { runtime } from "../common/runtime";
+import { specialKeys } from "../common/specialKeys";
 
 // ---------------------------------------------------------------------------
 // Module mocks — hoisted before any import executes.
@@ -229,32 +229,32 @@ describe("_actions['applyUserSettings']", () => {
 });
 
 // ---------------------------------------------------------------------------
-// _actions["addMapkey"] — Mode.specialKeys path
+// _actions["addMapkey"] — specialKeys path
 // ---------------------------------------------------------------------------
 describe("_actions['addMapkey'] — specialKeys path", () => {
   beforeEach(() => {
     // Restore the static specialKeys to known defaults before each test.
-    Mode.specialKeys["<Alt-s>"] = ["<Alt-s>"];
-    Mode.specialKeys["<Esc>"] = ["<Esc>"];
+    specialKeys["<Alt-s>"] = ["<Alt-s>"];
+    specialKeys["<Esc>"] = ["<Esc>"];
   });
 
-  it("pushes a new keystroke onto Mode.specialKeys when old_keystroke matches", () => {
+  it("pushes a new keystroke onto specialKeys when old_keystroke matches", () => {
     Front._actions["addMapkey"]({
       old_keystroke: "<Alt-s>",
       new_keystroke: "<Alt-m>",
       mode: "Normal",
     });
-    expect(Mode.specialKeys["<Alt-s>"]).toContain("<Alt-m>");
+    expect(specialKeys["<Alt-s>"]).toContain("<Alt-m>");
   });
 
   it("does not touch specialKeys when the mode name is unknown", () => {
-    const before = Mode.specialKeys["<Esc>"]!.slice();
+    const before = specialKeys["<Esc>"]!.slice();
     Front._actions["addMapkey"]({
       old_keystroke: "NonExistentKey",
       new_keystroke: "x",
       mode: "UnknownMode",
     });
-    expect(Mode.specialKeys["<Esc>"]).toEqual(before);
+    expect(specialKeys["<Esc>"]).toEqual(before);
   });
 });
 

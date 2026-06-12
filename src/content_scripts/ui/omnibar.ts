@@ -10,6 +10,7 @@ import KeyboardUtils from "../common/keyboardUtils";
 import Mode from "../common/mode";
 import { reportError } from "../common/report";
 import { RUNTIME, runtime } from "../common/runtime";
+import { isSpecialKeyOf } from "../common/specialKeys";
 import Trie from "../common/trie";
 import {
   attachFaviconToImgSrc,
@@ -620,7 +621,7 @@ function createOmnibar(front: OmnibarFront, clipboard: { write(text: string): vo
     if (handler && handler.onKeydown && handler.onKeydown.call(evt.target, evt)) {
       return;
     }
-    if (Mode.isSpecialKeyOf("<Esc>", evt.sk_keyName ?? "")) {
+    if (isSpecialKeyOf("<Esc>", evt.sk_keyName ?? "")) {
       front.hidePopup();
       evt.preventDefault();
     } else if (evt.keyCode === KeyboardUtils.keyCodes["enter"]) {

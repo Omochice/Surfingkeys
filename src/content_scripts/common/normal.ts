@@ -3,6 +3,7 @@ import { isAutoFocusMarked, isNewlyCreated, unmarkNewlyCreated } from "./domFlag
 import KeyboardUtils from "./keyboardUtils";
 import Mode from "./mode";
 import { RUNTIME, dispatchSKEvent, runtime } from "./runtime";
+import { isSpecialKeyOf } from "./specialKeys";
 import Trie from "./trie";
 import {
   getRealEdit,
@@ -81,7 +82,7 @@ function createDisabled(normal: NormalMode): DisabledMode {
     ) {
       normal.enable();
       self.activatedOnElement = false;
-    } else if (Mode.isSpecialKeyOf("<Alt-s>", keyName)) {
+    } else if (isSpecialKeyOf("<Alt-s>", keyName)) {
       normal.toggleBlocklist();
       self.exit();
       event.sk_stopPropagation = true;
@@ -147,7 +148,7 @@ function createPassThrough(): PassThroughMode {
     .addEventListener("keydown", (event) => {
       // prevent this event to be handled by Surfingkeys' other listeners
       event.sk_suppressed = true;
-      if (Mode.isSpecialKeyOf("<Esc>", event.sk_keyName ?? "")) {
+      if (isSpecialKeyOf("<Esc>", event.sk_keyName ?? "")) {
         self.exit();
         event.sk_stopPropagation = true;
       } else if (_timeout && _timeout > 0) {
@@ -237,7 +238,7 @@ function createNormal(insert: InsertLike): NormalMode {
     const keyName = event.sk_keyName ?? "";
     const eventKey = (event as KeyboardEvent).key;
     if (realTarget && isEditable(realTarget) && event.isTrusted) {
-      if (Mode.isSpecialKeyOf("<Esc>", keyName)) {
+      if (isSpecialKeyOf("<Esc>", keyName)) {
         realTarget.blur();
         insert.exit();
       } else {
@@ -274,14 +275,14 @@ function createNormal(insert: InsertLike): NormalMode {
           }
         }
       }
-    } else if (Mode.isSpecialKeyOf("<Alt-s>", keyName)) {
+    } else if (isSpecialKeyOf("<Alt-s>", keyName)) {
       self.toggleBlocklist();
       Mode.finish(mode);
       event.sk_stopPropagation = true;
     } else if (keyName.length) {
       const done = Mode.handleMapKey.call(mode, event, () => {
         // revert to lurk only when Esc is not handled and lurk mode available.
-        if (Mode.isSpecialKeyOf("<Esc>", keyName) && _lurk) {
+        if (isSpecialKeyOf("<Esc>", keyName) && _lurk) {
           self.revertToLurk();
         }
       });
