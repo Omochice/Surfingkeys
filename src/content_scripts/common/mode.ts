@@ -2,10 +2,7 @@ import { Result } from "@praha/byethrow";
 
 import { domApiError } from "../../common/result";
 import KeyboardUtils from "./keyboardUtils";
-import { RUNTIME, dispatchSKEvent, runtime } from "./runtime";
-import { isSpecialKeyOf } from "./specialKeys";
-import type Trie from "./trie";
-import type { TrieMeta } from "./trie";
+import { dispatchSKEvent, runtime } from "./runtime";
 import { isInUIFrame, reportIssue } from "./utils";
 
 type StackEvent = Event & { keyCode?: number };
@@ -19,7 +16,7 @@ export function suppressNextScrollEvent(): void {
   suppressScrollEvent++;
 }
 
-let mode_stack: Mode[] = [];
+let modeStack: Mode[] = [];
 
 let eventListenerBeats = 0;
 let suppressScrollEvent = 0;
@@ -31,7 +28,7 @@ const _listenedEvents: Record<string, (event: StackEvent) => void> = {
   },
   keydown: (event) => {
     event.sk_keyName = KeyboardUtils.getKeyChar(event as unknown as { keyCode: number });
-    if (mode_stack.length === 0 && window !== top) {
+    if (modeStack.length === 0 && window !== top) {
       // automatically boots iframe on demand
       dispatchSKEvent("iframeBoot");
       document.addEventListener(
@@ -73,7 +70,7 @@ function onAfterHandler(_mode: Mode, event: StackEvent): void {
 }
 
 function handleStack(eventName: string, event: StackEvent, cb?: (mode: Mode) => void): void {
-  for (const m of mode_stack) {
+  for (const m of modeStack) {
     if (event.sk_stopPropagation) {
       break;
     }
@@ -92,7 +89,7 @@ function handleStack(eventName: string, event: StackEvent, cb?: (mode: Mode) => 
 }
 
 function init(cb?: () => void): void {
-  mode_stack = [];
+  modeStack = [];
   for (const [evtName, listener] of Object.entries(_listenedEvents)) {
     window.addEventListener(evtName, listener, true);
   }
@@ -104,17 +101,8 @@ export default class Mode {
   statusLine: string | undefined;
   eventListeners: Record<string, (event: StackEvent) => void> = {};
   priority: number | undefined;
-
-  // Assigned by concrete modes (Normal/Insert/Visual/Hints) after construction.
-  mappings?: Trie | undefined;
-  map_node?: Trie | undefined;
-  repeats?: string;
-  pendingMap?: ((key: string) => void) | null;
-  isTrustedEvent?: boolean;
-  __trust_all_events__?: boolean;
   onEnter?: () => void;
   onExit?: (pos?: number) => void;
-  setLastKeys?: (keys: string) => void;
 
   constructor(name: string, statusLine?: string) {
     this.name = name;
@@ -136,20 +124,20 @@ export default class Mode {
   }
 
   enter(priority?: number, reentrant?: boolean): number {
-    const pos = mode_stack.indexOf(this);
+    const pos = modeStack.indexOf(this);
     if (!this.priority) {
-      this.priority = priority || mode_stack.length;
+      this.priority = priority || modeStack.length;
     }
 
     if (pos === -1) {
       // push this mode into stack
-      mode_stack.unshift(this);
+      modeStack.unshift(this);
     } else if (pos > 0) {
       if (reentrant) {
         // pop up all the modes over this
-        mode_stack = mode_stack.slice(pos);
+        modeStack = modeStack.slice(pos);
       } else {
-        const modeList = mode_stack.map((u) => u.name).join(",");
+        const modeList = modeStack.map((u) => u.name).join(",");
         reportIssue(
           `Mode ${this.name} pushed into mode stack again.`,
           `Modes in stack: ${modeList}`,
@@ -157,7 +145,7 @@ export default class Mode {
       }
     }
 
-    mode_stack.sort((a, b) => {
+    modeStack.sort((a, b) => {
       const pa = a.priority ?? 0;
       const pb = b.priority ?? 0;
       if (pa < pb) return 1;
@@ -172,15 +160,15 @@ export default class Mode {
   }
 
   exit(peek?: boolean): void {
-    const pos = mode_stack.indexOf(this);
+    const pos = modeStack.indexOf(this);
     if (pos !== -1) {
       this.priority = 0;
       if (peek) {
         // for peek exit, we need push modes above this back to the stack.
-        mode_stack.splice(pos, 1);
+        modeStack.splice(pos, 1);
       } else {
         // otherwise, we just pop all modes above this inclusively.
-        mode_stack = mode_stack.slice(pos + 1);
+        modeStack = modeStack.slice(pos + 1);
       }
     }
     Mode.showStatus();
@@ -188,7 +176,7 @@ export default class Mode {
   }
 
   static getCurrent(): Mode | undefined {
-    return mode_stack[0];
+    return modeStack[0];
   }
 
   static suppressKeyUp(keyCode: number): void {
@@ -220,8 +208,8 @@ export default class Mode {
   }
 
   static showStatus(): void {
-    if (document.hasFocus() && mode_stack.length) {
-      const cm = mode_stack[0];
+    if (document.hasFocus() && modeStack.length) {
+      const cm = modeStack[0];
       if (cm == null) {
         return;
       }
@@ -236,100 +224,6 @@ export default class Mode {
     }
   }
 
-  static finish(mode: Mode): boolean {
-    let ret = false;
-    if (mode.map_node !== mode.mappings || mode.pendingMap != null || mode.repeats) {
-      mode.map_node = mode.mappings;
-      mode.pendingMap = null;
-      mode.isTrustedEvent && dispatchSKEvent("front", ["hideKeystroke"]);
-      if (mode.repeats) {
-        mode.repeats = "";
-      }
-      ret = true;
-    }
-    return ret;
-  }
-
-  static handleMapKey(this: Mode, event: StackEvent, onNoMatched?: (last: Trie) => void): boolean {
-    const thisMode = this;
-    let key = event.sk_keyName ?? "";
-    this.isTrustedEvent = this.__trust_all_events__ || event.isTrusted;
-
-    const isEscKey = isSpecialKeyOf("<Esc>", key);
-    if (isEscKey) {
-      key = KeyboardUtils.encodeKeystroke("<Esc>");
-    }
-
-    let actionDone = false;
-    if (isEscKey && Mode.finish(this)) {
-      event.sk_stopPropagation = true;
-      event.sk_suppressed = true;
-      actionDone = true;
-    } else if (this.pendingMap) {
-      const meta = this.map_node!.meta!;
-      this.setLastKeys?.(meta.word + key);
-      const pf = this.pendingMap.bind(this);
-      event.sk_stopPropagation = !meta.stopPropagation || callStopPropagation(meta, key);
-      pf(key);
-      actionDone = Mode.finish(thisMode);
-    } else if (
-      this.repeats != null &&
-      this.map_node === this.mappings &&
-      runtime.conf.digitForRepeat &&
-      (key >= "1" || (this.repeats !== "" && key >= "0")) &&
-      key <= "9" &&
-      this.map_node!.getWords().length > 0
-    ) {
-      // reset only after target action executed or cancelled
-      this.repeats += key;
-      this.isTrustedEvent && dispatchSKEvent("front", ["showKeystroke", key, this]);
-      event.sk_stopPropagation = true;
-    } else {
-      const last = this.map_node!;
-      this.map_node = this.map_node!.find(key);
-      if (!this.map_node) {
-        onNoMatched?.(last);
-        event.sk_suppressed = last !== this.mappings;
-        actionDone = Mode.finish(this);
-      } else if (this.map_node.meta) {
-        const meta = this.map_node.meta;
-        const code = meta.code;
-        if (code && code.length) {
-          // bound function needs arguments
-          this.pendingMap = code;
-          this.isTrustedEvent && dispatchSKEvent("front", ["showKeystroke", key, this]);
-          event.sk_stopPropagation = true;
-        } else {
-          this.setLastKeys?.(meta.word);
-          RUNTIME.repeats = Number.parseInt(this.repeats ?? "", 10) || 1;
-          event.sk_stopPropagation = !meta.stopPropagation || callStopPropagation(meta, key);
-          if (RUNTIME.repeats > runtime.conf.repeatThreshold) {
-            dispatchSKEvent("front", [
-              "showDialog",
-              `Do you really want to repeat this action (${meta.annotation}) ${RUNTIME.repeats} times?`,
-              () => {
-                while (RUNTIME.repeats > 0) {
-                  code!();
-                  RUNTIME.repeats--;
-                }
-              },
-            ]);
-          } else {
-            while (RUNTIME.repeats > 0) {
-              code!();
-              RUNTIME.repeats--;
-            }
-          }
-          actionDone = Mode.finish(thisMode);
-        }
-      } else {
-        this.isTrustedEvent && dispatchSKEvent("front", ["showKeystroke", key, this]);
-        event.sk_stopPropagation = true;
-      }
-    }
-    return actionDone;
-  }
-
   static checkEventListener(onMissing: () => void): void {
     const previousState = eventListenerBeats;
     window.dispatchEvent(new CustomEvent("sentinel"));
@@ -338,10 +232,4 @@ export default class Mode {
       onMissing();
     }
   }
-}
-
-function callStopPropagation(meta: TrieMeta, key: string): boolean {
-  return typeof meta.stopPropagation === "function"
-    ? meta.stopPropagation(key)
-    : !!meta.stopPropagation;
 }
