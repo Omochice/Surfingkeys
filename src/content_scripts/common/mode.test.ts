@@ -143,22 +143,6 @@ describe("Mode.handleMapKey", () => {
   });
 });
 
-describe("Mode.isSpecialKeyOf", () => {
-  it("matches a registered special key", () => {
-    expect(Mode.isSpecialKeyOf("<Esc>", KeyboardUtils.encodeKeystroke("<Esc>"))).toBe(true);
-  });
-
-  it("returns false for an unregistered special key bucket", () => {
-    expect(Mode.isSpecialKeyOf("<DoesNotExist>", KeyboardUtils.encodeKeystroke("<Esc>"))).toBe(
-      false,
-    );
-  });
-
-  it("returns false when the key does not belong to the special-key set", () => {
-    expect(Mode.isSpecialKeyOf("<Esc>", KeyboardUtils.encodeKeystroke("a"))).toBe(false);
-  });
-});
-
 describe("Mode.finish", () => {
   it("returns false and leaves state unchanged when already at root with no repeats", () => {
     const { mode, mappings } = makeMode();

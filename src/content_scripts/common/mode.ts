@@ -3,7 +3,7 @@ import { Result } from "@praha/byethrow";
 import { domApiError } from "../../common/result";
 import KeyboardUtils from "./keyboardUtils";
 import { RUNTIME, dispatchSKEvent, runtime } from "./runtime";
-import { isSpecialKeyOf, specialKeys } from "./specialKeys";
+import { isSpecialKeyOf } from "./specialKeys";
 import type Trie from "./trie";
 import type { TrieMeta } from "./trie";
 import { listElements, isInUIFrame, reportIssue } from "./utils";
@@ -181,11 +181,6 @@ export default class Mode {
   static getCurrent(): Mode | undefined {
     return mode_stack[0];
   }
-
-  // Transitional delegates while call sites migrate to importing ./specialKeys directly; both
-  // names share the singleton registry so runtime alias registration stays in sync.
-  static specialKeys = specialKeys;
-  static isSpecialKeyOf = isSpecialKeyOf;
 
   static suppressKeyUp(keyCode: number): void {
     if (!keysNeedKeyupSuppressed.includes(keyCode)) {
