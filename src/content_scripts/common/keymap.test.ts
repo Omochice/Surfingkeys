@@ -244,6 +244,38 @@ describe("Keymap.reset", () => {
 
     cleanup();
   });
+
+  it("discards a pending argument mapping belonging to the replaced root", () => {
+    const { keymap, mappings } = makeKeymap();
+    const received: string[] = [];
+    mappings.add(KeyboardUtils.encodeKeystroke("a"), {
+      annotation: "arg",
+      code: (key: string) => {
+        received.push(key);
+      },
+    });
+    press(keymap, "a"); // waits for the argument key
+
+    keymap.reset();
+
+    // The pending code belongs to the (conceptually replaced) old root; the next
+    // key must be an ordinary lookup, not an argument delivery.
+    press(keymap, "x");
+    expect(received).toEqual([]);
+  });
+
+  it("clears accumulated repeat digits", () => {
+    const { keymap, mappings } = makeKeymap();
+    mappings.add(KeyboardUtils.encodeKeystroke("a"), { annotation: "x", code: () => {} });
+    press(keymap, "5");
+    expect(keymap.repeats).toBe("5");
+
+    keymap.reset();
+
+    expect(keymap.repeats).toBe("");
+
+    cleanup();
+  });
 });
 
 describe("Keymap.handleKey — pendingMap branch", () => {
