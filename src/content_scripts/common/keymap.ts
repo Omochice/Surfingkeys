@@ -46,9 +46,9 @@ export type Keymap = {
   /** Reset the sequence/pending/repeat state, telling the front to hide the keystroke hint. */
   finish(): boolean;
   /**
-   * Side-effect-free re-root for when the owning controller replaces its root trie wholesale
-   * (api.ts unmapAllExcept). Unlike {@link finish} it neither clears pending state it should keep
-   * nor dispatches hideKeystroke.
+   * Silently discard the in-flight state (cursor, pending argument mapping, repeat digits) for when
+   * the owning controller replaces its root trie wholesale (api.ts unmapAllExcept). Unlike
+   * {@link finish} it never notifies the front (no hideKeystroke).
    */
   reset(): void;
 };
@@ -180,6 +180,11 @@ export function createKeymap(getRoot: () => Trie, opts?: KeymapOptions): Keymap 
     finish,
     reset() {
       currentNode = null;
+      // The pending code and the counted digits belong to the replaced root.
+      pendingMap = null;
+      if (repeats) {
+        repeats = "";
+      }
     },
   };
 
