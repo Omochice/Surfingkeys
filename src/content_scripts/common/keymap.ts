@@ -26,12 +26,6 @@ export type KeymapOptions = {
    * with the matched node's meta so callers can read flags such as `repeatIgnore`.
    */
   onKeysExecuted?: (keys: string, meta: TrieMeta) => void;
-  /**
-   * `this` for argument-taking mapped code. User snippets registered through `mapkey(..., function
-   * (key) { ... })` could observe it, so controllers pass their mode object to keep the historical
-   * binding.
-   */
-  thisArg?: object;
 };
 
 export type Keymap = {
@@ -104,7 +98,7 @@ export function createKeymap(getRoot: () => Trie, opts?: KeymapOptions): Keymap 
     } else if (pendingMap) {
       const meta = currentNode!.meta!;
       opts?.onKeysExecuted?.(meta.word + key, meta);
-      const pf = pendingMap.bind(opts?.thisArg);
+      const pf = pendingMap;
       event.sk_stopPropagation = !meta.stopPropagation || callStopPropagation(meta, key);
       pf(key);
       actionDone = finish();

@@ -68,7 +68,7 @@ type InsertMode = Omit<Mode, "enter"> & {
 
 function createInsert(): InsertMode {
   const mode = new Mode("Insert");
-  const keymap = createKeymap(() => self.mappings, { thisArg: mode });
+  const keymap = createKeymap(() => self.mappings);
 
   function moveCursorEOL(): void {
     const element = getRealEdit();
