@@ -30,6 +30,10 @@ function hasScroll(el: HTMLElement, direction: "x" | "y", barSize: number): bool
  * element.
  */
 function getScrollableElements(): HTMLElement[] {
+  // The document may have no <body> yet (document_start) or at all (XML/SVG documents).
+  if (!document.body) {
+    return [];
+  }
   const nodes = listElements(
     document.body,
     NodeFilter.SHOW_ELEMENT,

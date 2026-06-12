@@ -45,4 +45,16 @@ describe("getScrollableElements", () => {
     expect(getScrollableElements()).toEqual([]);
     document.body.innerHTML = "";
   });
+
+  it("returns no elements when the document has no body", () => {
+    // Content scripts can run before <body> exists (document_start) and on
+    // body-less documents such as XML/SVG.
+    const body = document.body;
+    body.remove();
+    try {
+      expect(getScrollableElements()).toEqual([]);
+    } finally {
+      document.documentElement.appendChild(body);
+    }
+  });
 });
