@@ -202,7 +202,6 @@ function createNormal(insert: InsertLike): NormalMode {
 
   const keymap = createKeymap(() => self.mappings, {
     enableRepeats: true,
-    thisArg: mode,
     onKeysExecuted: (keys, meta) => {
       if (!meta.repeatIgnore && keys.length > 1) {
         lastKeys = [keys];

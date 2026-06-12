@@ -251,7 +251,7 @@ function createOmnibar(front: OmnibarFront, clipboard: { write(text: string): vo
     });
 
   const mappings = new Trie();
-  const keymap = createKeymap(() => mappings, { thisArg: mode });
+  const keymap = createKeymap(() => mappings);
 
   // The result list is a reactive store driven by a Solid <ResultList>; the
   // focused row is an index rather than a `.focused` DOM class, and the

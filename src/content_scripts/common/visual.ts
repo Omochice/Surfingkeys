@@ -65,7 +65,7 @@ const win = window as unknown as {
 function createVisual(clipboard: ClipboardLike, hints: HintsLike): VisualMode {
   const mode = new Mode("Visual");
   const mappings = new Trie();
-  const keymap = createKeymap(() => mappings, { enableRepeats: true, thisArg: mode });
+  const keymap = createKeymap(() => mappings, { enableRepeats: true });
 
   mode.addEventListener("keydown", (event) => {
     const keyName = event.sk_keyName ?? "";

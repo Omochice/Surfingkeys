@@ -303,11 +303,10 @@ describe("Keymap.handleKey — pendingMap branch", () => {
     expect(received).toEqual(["x"]);
   });
 
-  it("invokes the pending mapping with thisArg as `this`", () => {
+  it("invokes the pending mapping without a `this` binding", () => {
     const mappings = new Trie();
-    const thisArg = { marker: "controller" };
-    const keymap = createKeymap(() => mappings, { thisArg });
-    let captured: unknown;
+    const keymap = createKeymap(() => mappings);
+    let captured: unknown = "sentinel";
     mappings.add(KeyboardUtils.encodeKeystroke("a"), {
       annotation: "arg",
       code: function (this: unknown, _key: string) {
@@ -318,7 +317,7 @@ describe("Keymap.handleKey — pendingMap branch", () => {
     press(keymap, "a");
     press(keymap, "x");
 
-    expect(captured).toBe(thisArg);
+    expect(captured).toBeUndefined();
   });
 });
 
