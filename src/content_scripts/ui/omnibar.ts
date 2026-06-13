@@ -218,19 +218,21 @@ type OmnibarElement = HTMLElement & {
 };
 
 /**
- * The full omnibar controller: a ModeHandle carrying the handler-facing {@link Omnibar} surface plus
- * the members the front and the command registry reach.
+ * The full omnibar controller. It wraps a private {@link ModeHandle} rather than being one, exposing
+ * the handler-facing {@link Omnibar} surface plus the members the front and the command registry
+ * reach. `name` / `mappings` feed the frontend modes registry; the handle's stack-push and event
+ * dispatch stay internal to createOmnibar.
  */
-type OmnibarMode = ModeHandle &
-  Omnibar & {
-    mappings: Trie;
-    expandAlias(alias: string, val: string): boolean;
-    collapseAlias(): boolean;
-    getPageSize(): number;
-    html(content: string): void;
-    isUrl(input: string): boolean | RegExpMatchArray | null;
-    addHandler(name: string, hdl: OmnibarHandler): void;
-  };
+type OmnibarMode = Omnibar & {
+  name: string;
+  mappings: Trie;
+  expandAlias(alias: string, val: string): boolean;
+  collapseAlias(): boolean;
+  getPageSize(): number;
+  html(content: string): void;
+  isUrl(input: string): boolean | RegExpMatchArray | null;
+  addHandler(name: string, hdl: OmnibarHandler): void;
+};
 
 function createOmnibar(front: OmnibarFront, clipboard: { write(text: string): void }): OmnibarMode {
   const mode = new ModeHandle("Omnibar");
@@ -1031,7 +1033,11 @@ function createOmnibar(front: OmnibarFront, clipboard: { write(text: string): vo
     throw new Error("omnibar search input failed to render");
   }
 
-  const self: OmnibarMode = Object.assign(mode, {
+  const self: OmnibarMode = {
+    // `mode` stays private: createOmnibar drives it through ui.onShow / ui.onHide (mode.enter /
+    // mode.exit) and the listeners registered above. `name` is copied so the frontend modes registry
+    // can read it without the controller being a ModeHandle.
+    name: mode.name,
     mappings,
     input: inputElement,
     resultsDiv,
@@ -1060,7 +1066,7 @@ function createOmnibar(front: OmnibarFront, clipboard: { write(text: string): vo
     html,
     addHandler,
     listBookmarkFolders,
-  });
+  };
 
   const searchEngine = SearchEngine(self, front);
 
