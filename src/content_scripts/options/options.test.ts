@@ -103,7 +103,9 @@ function fireUserSettingsLoaded(settings: Record<string, unknown> = {}) {
       detail: {
         settings,
         disabledSearchAliases: {},
-        frontCommand: (_req: unknown, cb: (r: any) => void) => cb({ aliases: {} }),
+        // Leave the callback uninvoked: returning empty aliases would make renderSearchAlias
+        // reschedule its getSearchAliases retry forever, leaking a 300ms timer into the suite.
+        frontCommand: (_req: unknown, _cb: (r: any) => void) => {},
       },
     }),
   );
@@ -496,6 +498,30 @@ describe("advancedToggler checked attribute", () => {
 
     const toggler = document.getElementById("advancedToggler") as HTMLInputElement;
     expect(toggler.getAttribute("checked")).toBeNull();
+  });
+});
+
+describe("renderSearchAlias retry timer", () => {
+  beforeEach(() => {
+    buildDOM();
+    vi.useFakeTimers();
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
+    document.body.innerHTML = "";
+  });
+
+  it("does not schedule a getSearchAliases retry when no search aliases are returned", () => {
+    const setTimeoutSpy = vi.spyOn(globalThis, "setTimeout");
+
+    initOptions();
+    fireUserSettingsLoaded({});
+
+    // An empty aliases response must not leave a recurring retry timer behind; 300ms is unique to
+    // renderSearchAlias's getSearchAliases retry, so its presence flags the leaked timer.
+    const retryScheduled = setTimeoutSpy.mock.calls.some((call) => call[1] === 300);
+    expect(retryScheduled).toBe(false);
   });
 });
 
