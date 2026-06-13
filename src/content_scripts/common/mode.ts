@@ -16,7 +16,7 @@ export function suppressNextScrollEvent(): void {
   suppressScrollEvent++;
 }
 
-let modeStack: Mode[] = [];
+let modeStack: ModeHandle[] = [];
 
 let eventListenerBeats = 0;
 let suppressScrollEvent = 0;
@@ -62,14 +62,14 @@ const _listenedEvents: Record<string, (event: StackEvent) => void> = {
   },
 };
 
-function onAfterHandler(_mode: Mode, event: StackEvent): void {
+function onAfterHandler(_mode: ModeHandle, event: StackEvent): void {
   if (event.sk_stopPropagation) {
     event.stopImmediatePropagation();
     event.preventDefault();
   }
 }
 
-function handleStack(eventName: string, event: StackEvent, cb?: (mode: Mode) => void): void {
+function handleStack(eventName: string, event: StackEvent, cb?: (mode: ModeHandle) => void): void {
   for (const m of modeStack) {
     if (event.sk_stopPropagation) {
       break;
@@ -96,7 +96,7 @@ function init(cb?: () => void): void {
   cb?.();
 }
 
-export default class Mode {
+export class ModeHandle {
   name: string;
   statusLine: string | undefined;
   eventListeners: Record<string, (event: StackEvent) => void> = {};
@@ -155,7 +155,7 @@ export default class Mode {
 
     this.onEnter?.();
 
-    Mode.showStatus();
+    showModeStatus();
     return pos;
   }
 
@@ -171,65 +171,70 @@ export default class Mode {
         modeStack = modeStack.slice(pos + 1);
       }
     }
-    Mode.showStatus();
+    showModeStatus();
     this.onExit?.(pos);
   }
+}
 
-  static getCurrent(): Mode | undefined {
-    return modeStack[0];
+/** The mode currently on top of the stack, i.e. the one that sees events first. */
+export function getCurrentMode(): ModeHandle | undefined {
+  return modeStack[0];
+}
+
+/** Suppress the next keyup for `keyCode`, for keys whose keydown was already swallowed. */
+export function suppressKeyUp(keyCode: number): void {
+  if (!keysNeedKeyupSuppressed.includes(keyCode)) {
+    keysNeedKeyupSuppressed.push(keyCode);
   }
+}
 
-  static suppressKeyUp(keyCode: number): void {
-    if (!keysNeedKeyupSuppressed.includes(keyCode)) {
-      keysNeedKeyupSuppressed.push(keyCode);
-    }
-  }
-
-  static init(cb?: () => void): void {
-    // For blank page in frames, we defer init to page loaded
-    // as document.write will clear added eventListeners.
-    if (
-      window.location.href === "about:blank" &&
-      window.frameElement &&
-      (!document.body || document.body.childElementCount === 0)
-    ) {
-      window.frameElement.addEventListener("load", () => {
-        const r = Result.try({
-          try: (): void => init(cb),
-          catch: (cause) => domApiError("iframe init", cause),
-        });
-        if (Result.isFailure(r)) {
-          console.log("Error on blank iframe loaded: " + String(r.error.cause));
-        }
+/** Reset the stack and install the global window listeners that drive the mode hub. */
+export function initModeHub(cb?: () => void): void {
+  // For blank page in frames, we defer init to page loaded
+  // as document.write will clear added eventListeners.
+  if (
+    window.location.href === "about:blank" &&
+    window.frameElement &&
+    (!document.body || document.body.childElementCount === 0)
+  ) {
+    window.frameElement.addEventListener("load", () => {
+      const r = Result.try({
+        try: (): void => init(cb),
+        catch: (cause) => domApiError("iframe init", cause),
       });
-    } else {
-      init(cb);
-    }
-  }
-
-  static showStatus(): void {
-    if (document.hasFocus() && modeStack.length) {
-      const cm = modeStack[0];
-      if (cm == null) {
-        return;
+      if (Result.isFailure(r)) {
+        console.log("Error on blank iframe loaded: " + String(r.error.cause));
       }
-      let sl = cm.statusLine || (runtime.conf.showModeStatus ? cm.name : "");
-      if (sl !== "" && window !== top && !isInUIFrame()) {
-        const pathname = window.location.pathname.split("/");
-        if (pathname.length) {
-          sl += " - frame: " + pathname.at(-1);
-        }
-      }
-      dispatchSKEvent("front", ["showStatus", [sl]]);
-    }
+    });
+  } else {
+    init(cb);
   }
+}
 
-  static checkEventListener(onMissing: () => void): void {
-    const previousState = eventListenerBeats;
-    window.dispatchEvent(new CustomEvent("sentinel"));
-    if (previousState === eventListenerBeats) {
-      init();
-      onMissing();
+/** Push the current top-of-stack mode's status line to the front. */
+export function showModeStatus(): void {
+  if (document.hasFocus() && modeStack.length) {
+    const cm = modeStack[0];
+    if (cm == null) {
+      return;
     }
+    let sl = cm.statusLine || (runtime.conf.showModeStatus ? cm.name : "");
+    if (sl !== "" && window !== top && !isInUIFrame()) {
+      const pathname = window.location.pathname.split("/");
+      if (pathname.length) {
+        sl += " - frame: " + pathname.at(-1);
+      }
+    }
+    dispatchSKEvent("front", ["showStatus", [sl]]);
+  }
+}
+
+/** Probe the sentinel listener and reinstall the hub (then call `onMissing`) if it is gone. */
+export function checkEventListener(onMissing: () => void): void {
+  const previousState = eventListenerBeats;
+  window.dispatchEvent(new CustomEvent("sentinel"));
+  if (previousState === eventListenerBeats) {
+    init();
+    onMissing();
   }
 }

@@ -1,7 +1,7 @@
 import { unwrapOr } from "../../common/result";
 import KeyboardUtils from "./keyboardUtils";
 import { createKeymap } from "./keymap";
-import Mode from "./mode";
+import { ModeHandle, showModeStatus } from "./mode";
 import { RUNTIME, dispatchSKEvent, runtime } from "./runtime";
 import { isSpecialKeyOf } from "./specialKeys";
 import Trie from "./trie";
@@ -33,7 +33,7 @@ type HintsLike = {
 
 type Match = [Node, number, HTMLElement[]];
 
-type VisualMode = Mode & {
+type VisualMode = ModeHandle & {
   mappings: Trie;
   hideCursor(): void;
   showCursor(): void;
@@ -63,7 +63,7 @@ const win = window as unknown as {
 };
 
 function createVisual(clipboard: ClipboardLike, hints: HintsLike): VisualMode {
-  const mode = new Mode("Visual");
+  const mode = new ModeHandle("Visual");
   const mappings = new Trie();
   const keymap = createKeymap(() => mappings, { enableRepeats: true });
 
@@ -84,7 +84,7 @@ function createVisual(clipboard: ClipboardLike, hints: HintsLike): VisualMode {
 
       if (exitf) {
         mode.statusLine = mode.name + " - " + status[state];
-        Mode.showStatus();
+        showModeStatus();
         visualf = 0;
       }
     } else if (keyName.length) {
@@ -408,7 +408,7 @@ function createVisual(clipboard: ClipboardLike, hints: HintsLike): VisualMode {
     feature_group: 9,
     code: () => {
       mode.statusLine = mode.name + " - " + status[state] + " - forward";
-      Mode.showStatus();
+      showModeStatus();
       visualf = 1;
     },
   });
@@ -417,7 +417,7 @@ function createVisual(clipboard: ClipboardLike, hints: HintsLike): VisualMode {
     feature_group: 9,
     code: () => {
       mode.statusLine = mode.name + " - " + status[state] + " - backward";
-      Mode.showStatus();
+      showModeStatus();
       visualf = -1;
     },
   });
@@ -716,7 +716,7 @@ function createVisual(clipboard: ClipboardLike, hints: HintsLike): VisualMode {
       mappings.add("y", yankFn);
     }
     mode.statusLine = mode.name + " - " + (status[state] ?? "");
-    Mode.showStatus();
+    showModeStatus();
   }
   function _incState(): void {
     state = (state + 1) % 3;

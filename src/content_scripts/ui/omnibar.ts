@@ -8,7 +8,7 @@ import { debounce } from "../common/debounce";
 import type { DebouncedFunction } from "../common/debounce";
 import KeyboardUtils from "../common/keyboardUtils";
 import { createKeymap } from "../common/keymap";
-import Mode from "../common/mode";
+import { ModeHandle } from "../common/mode";
 import { reportError } from "../common/report";
 import { RUNTIME, runtime } from "../common/runtime";
 import { isSpecialKeyOf } from "../common/specialKeys";
@@ -218,10 +218,10 @@ type OmnibarElement = HTMLElement & {
 };
 
 /**
- * The full omnibar controller: a Mode carrying the handler-facing {@link Omnibar} surface plus the
- * members the front and the command registry reach.
+ * The full omnibar controller: a ModeHandle carrying the handler-facing {@link Omnibar} surface plus
+ * the members the front and the command registry reach.
  */
-type OmnibarMode = Mode &
+type OmnibarMode = ModeHandle &
   Omnibar & {
     mappings: Trie;
     expandAlias(alias: string, val: string): boolean;
@@ -233,7 +233,7 @@ type OmnibarMode = Mode &
   };
 
 function createOmnibar(front: OmnibarFront, clipboard: { write(text: string): void }): OmnibarMode {
-  const mode = new Mode("Omnibar");
+  const mode = new ModeHandle("Omnibar");
 
   mode
     .addEventListener("keydown", (event) => {

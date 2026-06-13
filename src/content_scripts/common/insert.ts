@@ -5,7 +5,7 @@ import browser from "./browser";
 import CursorPrompt from "./cursorPrompt";
 import KeyboardUtils from "./keyboardUtils";
 import { type Keymap, createKeymap } from "./keymap";
-import Mode from "./mode";
+import { ModeHandle } from "./mode";
 import { runtime } from "./runtime";
 import Trie from "./trie";
 import { getRealEdit, isEditable, isTextInput } from "./utils";
@@ -53,13 +53,13 @@ export function deleteNextWord(str: string, dir: number, cur: number): [string, 
 }
 
 // `enter` is retyped to the element-entry signature this mode actually exposes
-// to callers (normal/hints focus an editable). The base Mode.enter (the
+// to callers (normal/hints focus an editable). The base ModeHandle.enter (the
 // stack-push) is still used internally; it is captured with bind before the
 // public `enter` shadows it. `mappings` is required because createInsert
 // always assigns it, which lets InsertMode satisfy the structural mode
 // interfaces; `keymap` is exposed because api.ts unmapAllExcept replaces
 // `mappings` wholesale and re-roots the keymap.
-type InsertMode = Omit<Mode, "enter"> & {
+type InsertMode = Omit<ModeHandle, "enter"> & {
   enter(elm: HTMLElement, keepCursor?: boolean): void;
   enableEmojiInsertion(): void;
   mappings: Trie;
@@ -67,7 +67,7 @@ type InsertMode = Omit<Mode, "enter"> & {
 };
 
 function createInsert(): InsertMode {
-  const mode = new Mode("Insert");
+  const mode = new ModeHandle("Insert");
   const keymap = createKeymap(() => self.mappings);
 
   function moveCursorEOL(): void {

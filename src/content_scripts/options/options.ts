@@ -1,8 +1,8 @@
 import { Result } from "@praha/byethrow";
 
 import { type ChromeRuntimeError, reportOnFail } from "../../common/result";
-// Type-only: the Mode constructor itself is injected through optionsMain's parameters.
-import type Mode from "../common/mode";
+// Type-only: the ModeHandle constructor itself is injected through optionsMain's parameters.
+import type { ModeHandle } from "../common/mode";
 import { reportError } from "../common/report";
 import type { StoredSettings } from "../common/runtime";
 import { hide, requireElement, show } from "../common/utils";
@@ -16,21 +16,21 @@ type KeyboardUtilsLike = {
   encodeKeystroke(k: string): string;
   decodeKeystroke(k: string): string;
 };
-type ModeCtor = new (name: string) => Mode;
+type ModeCtor = new (name: string) => ModeHandle;
 
-/** The mappings editor: a Mode wrapping the snippets textarea with value accessors. */
-type MappingsEditor = Mode & {
+/** The mappings editor: a ModeHandle wrapping the snippets textarea with value accessors. */
+type MappingsEditor = ModeHandle & {
   container: HTMLTextAreaElement;
   setValue(v: string, cursorPos: number): void;
   getValue(): string;
 };
 
 /** KeyPicker re-exposes `enter` with the element whose binding is being picked. */
-type KeyPickerMode = Omit<Mode, "enter"> & { enter(elm: HTMLElement): void };
+type KeyPickerMode = Omit<ModeHandle, "enter"> & { enter(elm: HTMLElement): void };
 
 /**
  * The keydown payload KeyPicker inspects. Extends the stack event with the KeyboardEvent fields it
- * reads, kept optional so the handler still accepts the bare stack events Mode dispatches.
+ * reads, kept optional so the handler still accepts the bare stack events ModeHandle dispatches.
  */
 type KeyPickerKeydownEvent = Event & {
   keyCode?: number;
@@ -51,7 +51,7 @@ type BasicMapping = { origin: string; annotation: string | string[] | undefined 
 export default function optionsMain(
   RUNTIME: RuntimeFn,
   KeyboardUtils: KeyboardUtilsLike,
-  Mode: ModeCtor,
+  ModeHandle: ModeCtor,
   createElementWithContent: (
     tag: string,
     content?: string,
@@ -89,7 +89,7 @@ export default function optionsMain(
       }
     }
 
-    const self: MappingsEditor = Object.assign(new Mode("mappingsEditor"), {
+    const self: MappingsEditor = Object.assign(new ModeHandle("mappingsEditor"), {
       container: textarea,
       setValue: (v: string, cursorPos: number): void => {
         textarea.value = v;
@@ -419,7 +419,7 @@ export default function optionsMain(
   });
 
   const KeyPicker = (() => {
-    const mode = new Mode("KeyPicker");
+    const mode = new ModeHandle("KeyPicker");
 
     function showKey() {
       let s = htmlEncode(_key);

@@ -2,7 +2,7 @@ import browser from "./browser";
 import { isAutoFocusMarked, isNewlyCreated, unmarkNewlyCreated } from "./domFlags";
 import KeyboardUtils from "./keyboardUtils";
 import { type Keymap, createKeymap } from "./keymap";
-import Mode from "./mode";
+import { ModeHandle, getCurrentMode, showModeStatus, suppressKeyUp } from "./mode";
 import { RUNTIME, dispatchSKEvent, runtime } from "./runtime";
 import { getScrollableElements, hasScroll } from "./scrollDetection";
 import { isSpecialKeyOf } from "./specialKeys";
@@ -31,11 +31,11 @@ type ScrollHelpers = {
 
 type InsertLike = { enter(elm: HTMLElement, keepCursor?: boolean): void; exit(): void };
 
-type DisabledMode = Mode & { activatedOnElement: boolean };
-type LurkMode = Mode & { mappings: Trie };
-type PassThroughMode = Mode & { setTimeout: (timeout?: number) => void };
+type DisabledMode = ModeHandle & { activatedOnElement: boolean };
+type LurkMode = ModeHandle & { mappings: Trie };
+type PassThroughMode = ModeHandle & { setTimeout: (timeout?: number) => void };
 
-type NormalMode = Mode & {
+type NormalMode = ModeHandle & {
   mappings: Trie;
   // Exposed because api.ts unmapAllExcept replaces `mappings` wholesale and re-roots the keymap.
   keymap: Keymap;
@@ -64,7 +64,7 @@ type NormalMode = Mode & {
 };
 
 function createDisabled(normal: NormalMode): DisabledMode {
-  const self: DisabledMode = Object.assign(new Mode("Disabled"), {
+  const self: DisabledMode = Object.assign(new ModeHandle("Disabled"), {
     // exposed as a property because createNormal's disable() sets it from outside
     activatedOnElement: false,
   });
@@ -96,7 +96,7 @@ function createDisabled(normal: NormalMode): DisabledMode {
 }
 
 function createLurk(normal: NormalMode): LurkMode {
-  const self: LurkMode = Object.assign(new Mode("Lurk"), { mappings: new Trie() });
+  const self: LurkMode = Object.assign(new ModeHandle("Lurk"), { mappings: new Trie() });
   const keymap = createKeymap(() => self.mappings);
 
   function enterNormal() {
@@ -131,7 +131,7 @@ function createLurk(normal: NormalMode): LurkMode {
       keymap.handleKey(event);
       if (event.sk_stopPropagation) {
         // keyup event also needs to be suppressed for the key whose keydown has been suppressed.
-        Mode.suppressKeyUp(event.keyCode!);
+        suppressKeyUp(event.keyCode!);
       }
     }
   });
@@ -141,7 +141,7 @@ function createLurk(normal: NormalMode): LurkMode {
 function createPassThrough(): PassThroughMode {
   let _autoExit: ReturnType<typeof setTimeout> | undefined;
   let _timeout: number | undefined;
-  const self: PassThroughMode = Object.assign(new Mode("PassThrough"), {
+  const self: PassThroughMode = Object.assign(new ModeHandle("PassThrough"), {
     setTimeout: (timeout?: number): void => {
       _timeout = timeout;
     },
@@ -186,7 +186,7 @@ function createPassThrough(): PassThroughMode {
 }
 
 function createNormal(insert: InsertLike): NormalMode {
-  const mode = new Mode("Normal");
+  const mode = new ModeHandle("Normal");
   const mappings = new Trie();
 
   // let next focus event pass
@@ -225,7 +225,7 @@ function createNormal(insert: InsertLike): NormalMode {
       });
       _lurkMaps = undefined;
       _lurk.enter(0, true);
-    } else if (Mode.getCurrent() !== _lurk) {
+    } else if (getCurrentMode() !== _lurk) {
       state = "enabled";
     }
     return state;
@@ -306,14 +306,14 @@ function createNormal(insert: InsertLike): NormalMode {
     }
     if (event.sk_stopPropagation) {
       // keyup event also needs to be suppressed for the key whose keydown has been suppressed.
-      Mode.suppressKeyUp(event.keyCode!);
+      suppressKeyUp(event.keyCode!);
     }
   });
   mode.addEventListener("blur", () => {
     keyHeld = 0;
   });
   mode.addEventListener("focus", (event) => {
-    Mode.showStatus();
+    showModeStatus();
     if (runtime.conf.stealFocusOnLoad && !isInUIFrame()) {
       const elm = getRealEdit(event);
       if (elm && isEditable(elm)) {

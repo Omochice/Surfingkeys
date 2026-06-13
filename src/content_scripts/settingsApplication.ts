@@ -3,7 +3,7 @@ import { Result } from "@praha/byethrow";
 import { reportOnFail, userCodeError } from "../common/result";
 import type createAPI from "./common/api";
 import browser from "./common/browser";
-import Mode from "./common/mode";
+import { showModeStatus } from "./common/mode";
 import type createNormal from "./common/normal";
 import { reportError } from "./common/report";
 import { RUNTIME, dispatchSKEvent, runtime } from "./common/runtime";
@@ -89,7 +89,7 @@ function applyRuntimeConf(normal: Normal): void {
           state = normal.startLurk();
         } else {
           normal.enable();
-          Mode.showStatus();
+          showModeStatus();
         }
 
         if (window === top) {

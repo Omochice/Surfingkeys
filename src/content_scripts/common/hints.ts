@@ -1,6 +1,6 @@
 import KeyboardUtils from "./keyboardUtils";
 import { createKeymap } from "./keymap";
-import Mode from "./mode";
+import { ModeHandle, getCurrentMode, showModeStatus, suppressKeyUp } from "./mode";
 import { dispatchSKEvent, runtime } from "./runtime";
 import { isSpecialKeyOf } from "./specialKeys";
 import Trie from "./trie";
@@ -48,7 +48,7 @@ type NormalLike = {
 };
 type ClipboardLike = { write(text: string): void };
 
-type ScrollMode = Mode & { onScrollStarted?: () => void; onScrollDone?: () => void };
+type ScrollMode = ModeHandle & { onScrollStarted?: () => void; onScrollDone?: () => void };
 
 type Behaviours = {
   mouseEvents: string[];
@@ -60,7 +60,7 @@ type Behaviours = {
   [key: string]: unknown;
 };
 
-type RegionalHintsMode = Mode & {
+type RegionalHintsMode = ModeHandle & {
   mappings: Trie;
   attach(elm: HTMLElement): void;
   onScrollStarted(): void;
@@ -69,7 +69,7 @@ type RegionalHintsMode = Mode & {
 
 // Unlike the other modes, Hints does its own prefix matching in its keydown
 // listener and never assigns `mappings`, so the base optional slots stay empty.
-type HintsMode = Mode & {
+type HintsMode = ModeHandle & {
   setNumeric(): void;
   setCharacters(chars: string): void;
   getCharacters(): string;
@@ -108,7 +108,7 @@ function placeHintsHost(host: HTMLElement): void {
 }
 
 function createRegionalHints(clipboard: ClipboardLike): RegionalHintsMode {
-  const mode = new Mode("RegionalHints");
+  const mode = new ModeHandle("RegionalHints");
   const mappings = new Trie();
   const keymap = createKeymap(() => mappings);
 
@@ -232,7 +232,7 @@ kbd {
 }
 
 function createHints(insert: InsertLike, normal: NormalLike, clipboard: ClipboardLike): HintsMode {
-  const mode = new Mode("Hints");
+  const mode = new ModeHandle("Hints");
   const hintsHost = document.createElement("div");
   hintsHost.className = "surfingkeys_hints_host";
   hintsHost.attachShadow({ mode: "open" });
@@ -564,7 +564,7 @@ div.hint-scrollable {
     }
     // suppress future key handler since the event has been treated as a hint
     if (evt) {
-      Mode.suppressKeyUp(evt.keyCode!);
+      suppressKeyUp(evt.keyCode!);
       evt.stopImmediatePropagation();
       evt.preventDefault();
     }
@@ -626,14 +626,14 @@ div.hint-scrollable {
   }
 
   function resetHints(): void {
-    if (Mode.getCurrent() !== mode || !document.documentElement.contains(hintsHost)) {
+    if (getCurrentMode() !== mode || !document.documentElement.contains(hintsHost)) {
       return;
     }
     const start = Date.now();
     const found = createHintsImpl(_cssSelector, _lastCreateAttrs);
     if (found > 0) {
       mode.statusLine += " - " + (Date.now() - start) + "ms / " + found;
-      Mode.showStatus();
+      showModeStatus();
     }
   }
 
@@ -737,11 +737,11 @@ div.hint-scrollable {
     "hints",
     {
       scrollStarted: () => {
-        const current = Mode.getCurrent() as ScrollMode | undefined;
+        const current = getCurrentMode() as ScrollMode | undefined;
         if (current?.onScrollStarted) current.onScrollStarted();
       },
       scrollDone: () => {
-        const current = Mode.getCurrent() as ScrollMode | undefined;
+        const current = getCurrentMode() as ScrollMode | undefined;
         if (current?.onScrollDone) current.onScrollDone();
       },
       topBoundaryHit: previousPage,

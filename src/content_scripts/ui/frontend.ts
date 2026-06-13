@@ -5,7 +5,7 @@ import * as v from "valibot";
 import createAPI from "../common/api";
 import createDefaultMappings from "../common/default";
 import KeyboardUtils from "../common/keyboardUtils";
-import Mode from "../common/mode";
+import { ModeHandle, initModeHub } from "../common/mode";
 import createModeGraph, { type ModeContext } from "../common/modeGraph";
 import { RUNTIME, runtime } from "../common/runtime";
 import { isSpecialKeyOf, specialKeys } from "../common/specialKeys";
@@ -54,8 +54,8 @@ const frontendMessageEnvelopeSchema = v.looseObject({
 // eslint-disable-next-line typescript/no-explicit-any
 type FrontActionFn = (message?: any) => any;
 
-/** The iframe-side front controller: a Mode carrying the messaging and overlay surface. */
-type FrontMode = Mode & {
+/** The iframe-side front controller: a ModeHandle carrying the messaging and overlay surface. */
+type FrontMode = ModeHandle & {
   _actions: Record<string, FrontActionFn>;
   topSize: [number, number];
   topOrigin: string;
@@ -74,7 +74,7 @@ type FrontMode = Mode & {
 };
 
 const Front = (() => {
-  Mode.init();
+  initModeHub();
   const { clipboard, insert, normal, hints, visual } = createModeGraph();
 
   const _actions: Record<string, FrontActionFn> = {};
@@ -86,7 +86,7 @@ const Front = (() => {
 
   // The function members are declarations below, so hoisting lets the controller be assembled
   // here, before createOmnibar and the API wiring receive it, keeping the original setup order.
-  const self: FrontMode = Object.assign(new Mode("Front"), {
+  const self: FrontMode = Object.assign(new ModeHandle("Front"), {
     _actions,
     topSize,
     topOrigin: "",
@@ -1072,7 +1072,7 @@ const StatusBar = (() => {
 })();
 
 const Find = (() => {
-  const self = new Mode("Find", "/");
+  const self = new ModeHandle("Find", "/");
 
   self
     .addEventListener("keydown", (event) => {
