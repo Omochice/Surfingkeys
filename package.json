@@ -50,7 +50,7 @@
   "devDependencies": {
     "@solidjs/testing-library": "0.8.10",
     "@tsconfig/strictest": "2.0.8",
-    "@types/chrome": "0.1.42",
+    "@types/chrome": "0.1.43",
     "@types/firefox-webext-browser": "143.0.0",
     "@types/webextension-polyfill": "0.12.5",
     "@vitest/coverage-v8": "4.1.8",
