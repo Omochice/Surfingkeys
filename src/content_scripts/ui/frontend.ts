@@ -498,14 +498,14 @@ const Front = (() => {
       "Search selected with", // 6
       "Clipboard", // 7
       "Omnibar", // 8
-      "Visual ModeHandle", // 9
+      "Visual Mode", // 9
       "vim-like marks", // 10
       "Settings", // 11
       "Chrome URLs", // 12
       "Misc", // 13
-      "Insert ModeHandle", // 14
-      "Lurk ModeHandle", // 15
-      "Regional Hints ModeHandle", // 16
+      "Insert Mode", // 14
+      "Lurk Mode", // 15
+      "Regional Hints Mode", // 16
     ];
 
     initL10n((locale) => {
