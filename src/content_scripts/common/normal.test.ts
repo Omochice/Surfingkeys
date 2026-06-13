@@ -1872,8 +1872,9 @@ describe("createNormal once", () => {
     handler(evt);
 
     expect(ran).toBe(1);
-    // After the action, _once causes normal.exit() — mode is no longer at the top.
-    expect(getCurrentMode()).not.toBe(normal);
+    // After the action, _once causes normal.exit() — mode is no longer at the top. The controller is
+    // no longer its own ModeHandle, so identity is checked by the handle's name rather than `toBe`.
+    expect(getCurrentMode()?.name).not.toBe("Normal");
 
     div.remove();
   });

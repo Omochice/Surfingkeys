@@ -31,14 +31,58 @@ type ScrollHelpers = {
 
 type InsertLike = { enter(elm: HTMLElement, keepCursor?: boolean): void; exit(): void };
 
-type DisabledMode = ModeHandle & { activatedOnElement: boolean };
-type LurkMode = ModeHandle & { mappings: Trie };
-type PassThroughMode = ModeHandle & { setTimeout: (timeout?: number) => void };
+/**
+ * The Disabled-mode controller wrapping a private {@link ModeHandle}. createNormal's disable()
+ * drives it: `enter` / `exit` push and pop the mode, and `activatedOnElement` records whether
+ * disabling was scoped to the focused element.
+ */
+type DisabledMode = {
+  activatedOnElement: boolean;
+  enter(priority?: number, reentrant?: boolean): void;
+  exit(): void;
+};
 
-type NormalMode = ModeHandle & {
+/**
+ * The Lurk-mode controller wrapping a private {@link ModeHandle}. `name` / `mappings` feed
+ * mapInMode, `enter` pushes the mode, and `isCurrent` answers whether the handle is the top of the
+ * mode stack (createNormal's startLurk asks this, since the controller is no longer its own
+ * handle).
+ */
+type LurkMode = {
+  name: string;
   mappings: Trie;
-  // Exposed because api.ts unmapAllExcept replaces `mappings` wholesale and re-roots the keymap.
+  enter(priority?: number, reentrant?: boolean): void;
+  isCurrent(): boolean;
+};
+
+/**
+ * The PassThrough-mode controller wrapping a private {@link ModeHandle}. `setTimeout` arms the
+ * auto-exit, `enter` pushes the mode, `statusLine` is a read-only view of the handle's, and
+ * `eventListeners` lets the hub (and tests) dispatch its key / mouse / focus events.
+ */
+type PassThroughMode = {
+  eventListeners: ModeHandle["eventListeners"];
+  name: string;
+  readonly statusLine: string | undefined;
+  setTimeout(timeout?: number): void;
+  enter(): void;
+};
+
+/**
+ * The Normal-mode controller wrapping a private {@link ModeHandle}. `name` / `mappings` feed api.ts
+ * and the frontend registry, `keymap` is exposed because api.ts unmapAllExcept replaces `mappings`
+ * wholesale and re-roots the keymap, `eventListeners` drives the hub's event dispatch, `statusLine`
+ * is a read-only view of the handle's, and `enter` / `onExit` are part of the mode lifecycle. The
+ * rest are the normal-mode operations callers invoke.
+ */
+type NormalMode = {
+  eventListeners: ModeHandle["eventListeners"];
+  name: string;
+  mappings: Trie;
   keymap: Keymap;
+  readonly statusLine: string | undefined;
+  enter(): void;
+  onExit?(): void;
   passFocus(pf: boolean): void;
   startLurk(): string;
   revertToLurk(): void;
@@ -64,18 +108,24 @@ type NormalMode = ModeHandle & {
 };
 
 function createDisabled(normal: NormalMode): DisabledMode {
-  const self: DisabledMode = Object.assign(new ModeHandle("Disabled"), {
+  const mode = new ModeHandle("Disabled");
+  // hide status line for Disabled mode
+  mode.statusLine = "";
+  // Disabled has higher priority than others.
+  mode.priority = 99;
+
+  const self: DisabledMode = {
     // exposed as a property because createNormal's disable() sets it from outside
     activatedOnElement: false,
-  });
+    enter(priority?: number, reentrant?: boolean): void {
+      mode.enter(priority, reentrant);
+    },
+    exit(): void {
+      mode.exit();
+    },
+  };
 
-  // hide status line for Disabled mode
-  self.statusLine = "";
-
-  // Disabled has higher priority than others.
-  self.priority = 99;
-
-  self.addEventListener("keydown", (event) => {
+  mode.addEventListener("keydown", (event) => {
     // prevent this event to be handled by Surfingkeys' other listeners
     event.sk_suppressed = true;
     const keyName = event.sk_keyName ?? "";
@@ -96,8 +146,9 @@ function createDisabled(normal: NormalMode): DisabledMode {
 }
 
 function createLurk(normal: NormalMode): LurkMode {
-  const self: LurkMode = Object.assign(new ModeHandle("Lurk"), { mappings: new Trie() });
-  const keymap = createKeymap(() => self.mappings);
+  const mode = new ModeHandle("Lurk");
+  const mappings = new Trie();
+  const keymap = createKeymap(() => mappings);
 
   function enterNormal() {
     normal.enter();
@@ -108,12 +159,12 @@ function createLurk(normal: NormalMode): LurkMode {
     }
   }
 
-  self.mappings.add(KeyboardUtils.encodeKeystroke("<Alt-i>"), {
+  mappings.add(KeyboardUtils.encodeKeystroke("<Alt-i>"), {
     annotation: "Enter normal mode",
     feature_group: 15,
     code: enterNormal,
   });
-  self.mappings.add("p", {
+  mappings.add("p", {
     annotation: "Enter ephemeral normal mode to temporarily enable SurfingKeys",
     feature_group: 15,
     code: () => {
@@ -125,7 +176,7 @@ function createLurk(normal: NormalMode): LurkMode {
   });
 
   // Lurk and Disabled should be mutually exclusive.
-  self.addEventListener("keydown", (event) => {
+  mode.addEventListener("keydown", (event) => {
     const realTarget = getRealEdit(event);
     if (!isEditable(realTarget) && event.sk_keyName?.length) {
       keymap.handleKey(event);
@@ -135,24 +186,30 @@ function createLurk(normal: NormalMode): LurkMode {
       }
     }
   });
-  return self;
+
+  return {
+    name: mode.name,
+    mappings,
+    enter(priority?: number, reentrant?: boolean): void {
+      mode.enter(priority, reentrant);
+    },
+    isCurrent(): boolean {
+      return getCurrentMode() === mode;
+    },
+  };
 }
 
 function createPassThrough(): PassThroughMode {
   let _autoExit: ReturnType<typeof setTimeout> | undefined;
   let _timeout: number | undefined;
-  const self: PassThroughMode = Object.assign(new ModeHandle("PassThrough"), {
-    setTimeout: (timeout?: number): void => {
-      _timeout = timeout;
-    },
-  });
+  const mode = new ModeHandle("PassThrough");
 
-  self
+  mode
     .addEventListener("keydown", (event) => {
       // prevent this event to be handled by Surfingkeys' other listeners
       event.sk_suppressed = true;
       if (isSpecialKeyOf("<Esc>", event.sk_keyName ?? "")) {
-        self.exit();
+        mode.exit();
         event.sk_stopPropagation = true;
       } else if (_timeout && _timeout > 0) {
         if (_autoExit) {
@@ -160,29 +217,41 @@ function createPassThrough(): PassThroughMode {
           _autoExit = undefined;
         }
         _autoExit = setTimeout(() => {
-          self.exit();
+          mode.exit();
         }, _timeout);
       }
     })
     .addEventListener("mousedown", (event) => {
       event.sk_suppressed = true;
     });
-  self.addEventListener("focus", (event) => {
+  mode.addEventListener("focus", (event) => {
     event.sk_suppressed = true;
   });
 
-  self.onEnter = () => {
+  mode.onEnter = () => {
     if (_timeout && _timeout > 0) {
       _autoExit = setTimeout(() => {
-        self.exit();
+        mode.exit();
       }, _timeout);
-      self.statusLine = `ephemeral(${_timeout}ms) pass through`;
+      mode.statusLine = `ephemeral(${_timeout}ms) pass through`;
     } else {
-      self.statusLine = "pass through";
+      mode.statusLine = "pass through";
     }
   };
 
-  return self;
+  return {
+    eventListeners: mode.eventListeners,
+    name: mode.name,
+    get statusLine() {
+      return mode.statusLine;
+    },
+    setTimeout(timeout?: number): void {
+      _timeout = timeout;
+    },
+    enter(): void {
+      mode.enter();
+    },
+  };
 }
 
 function createNormal(insert: InsertLike): NormalMode {
@@ -225,7 +294,7 @@ function createNormal(insert: InsertLike): NormalMode {
       });
       _lurkMaps = undefined;
       _lurk.enter(0, true);
-    } else if (getCurrentMode() !== _lurk) {
+    } else if (!_lurk.isCurrent()) {
       state = "enabled";
     }
     return state;
@@ -1173,7 +1242,20 @@ function createNormal(insert: InsertLike): NormalMode {
     scrollHelpers = new WeakMap();
   };
 
-  const self: NormalMode = Object.assign(mode, {
+  const self: NormalMode = {
+    // The hub dispatches events through the private handle's listener map; sharing the reference
+    // keeps the focus/keydown/mousedown listeners registered above observable through the
+    // controller. `statusLine` is read-only because the handle owns it and the hub reads it off the
+    // stacked handle; `onExit` mirrors the handle's lifecycle hook.
+    eventListeners: mode.eventListeners,
+    name: mode.name,
+    get statusLine() {
+      return mode.statusLine;
+    },
+    onExit: mode.onExit,
+    enter(): void {
+      mode.enter();
+    },
     mappings,
     keymap,
     passFocus,
@@ -1198,7 +1280,7 @@ function createNormal(insert: InsertLike): NormalMode {
     isScrollKeyInHints,
     disable,
     enable,
-  });
+  };
 
   return self;
 }
