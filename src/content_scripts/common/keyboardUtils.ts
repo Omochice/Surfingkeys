@@ -74,7 +74,7 @@ const keyCodesMac: Record<string, [string, string]> = {
   Slash: ["/", "?"],
 };
 
-const keyCodes: Record<string, number> = {
+const keyCodes = {
   ESC: 27,
   backspace: 8,
   deleteKey: 46,
@@ -89,7 +89,7 @@ const keyCodes: Record<string, number> = {
   tab: 9,
   downArrow: 40,
   upArrow: 38,
-};
+} as const;
 
 const modifierKeys: Record<number, string> = {
   16: "Shift",
