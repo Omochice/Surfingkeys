@@ -18,15 +18,15 @@ type KeyboardUtilsLike = {
 };
 type ModeCtor = new (name: string) => ModeHandle;
 
-/** The mappings editor: a ModeHandle wrapping the snippets textarea with value accessors. */
-type MappingsEditor = ModeHandle & {
+/** The mappings editor: the snippets textarea wrapped with value accessors. */
+type MappingsEditor = {
   container: HTMLTextAreaElement;
   setValue(v: string, cursorPos: number): void;
   getValue(): string;
 };
 
-/** KeyPicker re-exposes `enter` with the element whose binding is being picked. */
-type KeyPickerMode = Omit<ModeHandle, "enter"> & { enter(elm: HTMLElement): void };
+/** KeyPicker exposes a single `enter`, taking the element whose binding is being picked. */
+type KeyPickerMode = { enter(elm: HTMLElement): void };
 
 /**
  * The keydown payload KeyPicker inspects. Extends the stack event with the KeyboardEvent fields it
@@ -89,7 +89,7 @@ export default function optionsMain(
       }
     }
 
-    const self: MappingsEditor = Object.assign(new ModeHandle("mappingsEditor"), {
+    const self: MappingsEditor = {
       container: textarea,
       setValue: (v: string, cursorPos: number): void => {
         textarea.value = v;
@@ -100,7 +100,7 @@ export default function optionsMain(
       getValue: (): string => {
         return textarea.value;
       },
-    });
+    };
 
     return self;
   }
@@ -489,11 +489,9 @@ export default function optionsMain(
     });
 
     let _elm: HTMLElement | null = null;
-    // Capture the base stack-push enter before the public `enter` shadows it.
-    const _enter = mode.enter.bind(mode);
-    const self: KeyPickerMode = Object.assign(mode, {
+    const self: KeyPickerMode = {
       enter(elm: HTMLElement): void {
-        _enter();
+        mode.enter();
 
         _key = elm.innerText;
         if (_key === "🚫") {
@@ -504,7 +502,7 @@ export default function optionsMain(
         show(keyPickerDiv);
         _elm = elm;
       },
-    });
+    };
 
     return self;
   })();

@@ -50,7 +50,6 @@ function makeMode() {
     name: string;
     container?: unknown;
     eventListeners: Record<string, (...args: any[]) => void> = {};
-    #keydownHandler?: (...args: any[]) => void;
 
     constructor(name: string) {
       this.name = name;
@@ -58,17 +57,11 @@ function makeMode() {
 
     addEventListener(evt: string, fn: (...args: any[]) => void) {
       this.eventListeners[evt] = fn;
-      if (evt === "keydown") this.#keydownHandler = fn;
       return this;
     }
 
     enter(..._args: unknown[]) {}
     exit(..._args: unknown[]) {}
-
-    // Allow tests to simulate a keydown on this mode instance.
-    fireKeydown(event: Record<string, unknown>) {
-      this.#keydownHandler?.(event);
-    }
   };
 }
 
@@ -110,7 +103,9 @@ function fireUserSettingsLoaded(settings: Record<string, unknown> = {}) {
       detail: {
         settings,
         disabledSearchAliases: {},
-        frontCommand: (_req: unknown, cb: (r: any) => void) => cb({ aliases: {} }),
+        // Leave the callback uninvoked: returning empty aliases would make renderSearchAlias
+        // reschedule its getSearchAliases retry forever, leaking a 300ms timer into the suite.
+        frontCommand: (_req: unknown, _cb: (r: any) => void) => {},
       },
     }),
   );
@@ -506,6 +501,30 @@ describe("advancedToggler checked attribute", () => {
   });
 });
 
+describe("renderSearchAlias retry timer", () => {
+  beforeEach(() => {
+    buildDOM();
+    vi.useFakeTimers();
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
+    document.body.innerHTML = "";
+  });
+
+  it("does not schedule a getSearchAliases retry when no search aliases are returned", () => {
+    const setTimeoutSpy = vi.spyOn(globalThis, "setTimeout");
+
+    initOptions();
+    fireUserSettingsLoaded({});
+
+    // An empty aliases response must not leave a recurring retry timer behind; 300ms is unique to
+    // renderSearchAlias's getSearchAliases retry, so its presence flags the leaked timer.
+    const retryScheduled = setTimeoutSpy.mock.calls.some((call) => call[1] === 300);
+    expect(retryScheduled).toBe(false);
+  });
+});
+
 describe("surfingkeys:defaultSettingsLoaded event", () => {
   beforeEach(() => {
     buildDOM();
@@ -552,8 +571,6 @@ function makeTrackingMode() {
     name: string;
     container?: unknown;
     eventListeners: Record<string, (...args: any[]) => void> = {};
-    #keydownHandler?: (...args: any[]) => void;
-    #enterOverride?: (...args: any[]) => void;
 
     constructor(name: string) {
       this.name = name;
@@ -562,18 +579,13 @@ function makeTrackingMode() {
 
     addEventListener(evt: string, fn: (...args: any[]) => void) {
       this.eventListeners[evt] = fn;
-      if (evt === "keydown") this.#keydownHandler = fn;
       return this;
     }
 
-    // The base enter that KeyPicker captures as _enter.
+    // The base stack-push enter the KeyPicker controller delegates to.
     enter(..._args: unknown[]) {}
 
     exit(..._args: unknown[]) {}
-
-    fireKeydown(event: Record<string, unknown>) {
-      (this.#enterOverride ? this.eventListeners["keydown"] : this.#keydownHandler)?.(event);
-    }
   };
 
   return { ModeClass, instances };
@@ -676,6 +688,44 @@ describe("KeyPicker keydown: regular character appends to key", () => {
   });
 });
 
+// Render the basic-mapping kbd for `origin` through the real options flow, so its onclick is wired
+// to KeyPicker.enter exactly as production does. Driving enter by clicking the returned element
+// exercises the controller's public surface without reaching into module internals.
+function renderBasicMappingKbd(origin: string, userSettings: Record<string, unknown> = {}) {
+  const RUNTIME = makeRUNTIME();
+  const { ModeClass, instances } = makeTrackingMode();
+
+  optionsMain(
+    RUNTIME as any,
+    makeKeyboardUtils(),
+    ModeClass as any,
+    makeCreateElementWithContent(),
+    () => "Chrome",
+    (s: string) => s,
+    (cb: (locale: (s: string) => string) => void) => cb((s) => s),
+    (_title: string, _desc: string) => {},
+    (elm: Element, str: string) => {
+      elm.innerHTML = str;
+    },
+    (_msg: string, _timeout?: number) => {},
+  );
+
+  document.dispatchEvent(
+    new CustomEvent("surfingkeys:defaultSettingsLoaded", {
+      detail: {
+        normal: {
+          mappings: { find: (k: string) => (k === origin ? { meta: { annotation: "" } } : null) },
+        },
+      },
+    }),
+  );
+  fireUserSettingsLoaded(userSettings);
+
+  const basicMappingsDiv = document.getElementById("basicMappings") as HTMLElement;
+  const kbd = basicMappingsDiv.querySelector(`kbd[data-origin="${origin}"]`) as HTMLElement;
+  return { RUNTIME, instances, kbd };
+}
+
 describe("KeyPicker enter: show keyPicker and populate from kbd element", () => {
   beforeEach(() => {
     buildDOM();
@@ -686,68 +736,25 @@ describe("KeyPicker enter: show keyPicker and populate from kbd element", () => 
   });
 
   it("shows the keyPicker div and sets the displayed key from the clicked kbd", () => {
-    const { ModeClass, instances } = makeTrackingMode();
-
-    optionsMain(
-      makeRUNTIME() as any,
-      makeKeyboardUtils(),
-      ModeClass as any,
-      makeCreateElementWithContent(),
-      () => "Chrome",
-      (s: string) => s,
-      (cb: (locale: (s: string) => string) => void) => cb((s) => s),
-      (_title: string, _desc: string) => {},
-      (elm: Element, str: string) => {
-        elm.innerHTML = str;
-      },
-      (_msg: string, _timeout?: number) => {},
-    );
-
-    const kp = instances.get("KeyPicker");
+    const { kbd } = renderBasicMappingKbd("j");
     const keyPickerDiv = document.getElementById("keyPicker") as HTMLElement;
     keyPickerDiv.style.display = "none";
-
-    // Build a fake kbd element as enter() expects.
-    const kbd = document.createElement("kbd");
+    // The rendered kbd shows its key; jsdom needs innerText set for enter()'s getter to read it.
     kbd.innerText = "j";
-    kbd.dataset["origin"] = "j";
-    kbd.dataset["custom"] = "j";
 
-    // Enter is replaced inside options.ts; call it directly.
-    kp.enter(kbd);
+    kbd.click();
 
     expect(keyPickerDiv.style.display).toBe("");
     const inputKey = document.getElementById("inputKey") as HTMLElement;
-    // "j" is the key text from kbd.innerText.
+    // "j" is the key text taken from the clicked kbd.
     expect(inputKey.innerHTML).toBe("j");
   });
 
   it("clears the key when the kbd innerText is the disabled-placeholder '🚫'", () => {
-    const { ModeClass, instances } = makeTrackingMode();
-
-    optionsMain(
-      makeRUNTIME() as any,
-      makeKeyboardUtils(),
-      ModeClass as any,
-      makeCreateElementWithContent(),
-      () => "Chrome",
-      (s: string) => s,
-      (cb: (locale: (s: string) => string) => void) => cb((s) => s),
-      (_title: string, _desc: string) => {},
-      (elm: Element, str: string) => {
-        elm.innerHTML = str;
-      },
-      (_msg: string, _timeout?: number) => {},
-    );
-
-    const kp = instances.get("KeyPicker");
-
-    const kbd = document.createElement("kbd");
+    const { kbd } = renderBasicMappingKbd("j", { basicMappings: { j: "" } });
     kbd.innerText = "🚫";
-    kbd.dataset["origin"] = "j";
-    kbd.dataset["custom"] = "";
 
-    kp.enter(kbd);
+    kbd.click();
 
     // After clearing, showKey() with empty _key sets innerHTML to "&nbsp;"
     const inputKey = document.getElementById("inputKey") as HTMLElement;
@@ -765,39 +772,14 @@ describe("KeyPicker keydown: Enter saves the mapping", () => {
   });
 
   it("calls RUNTIME updateSettings with basicMappings when Enter is pressed after picking a key", () => {
-    const RUNTIME = makeRUNTIME();
-    const { ModeClass, instances } = makeTrackingMode();
+    const { RUNTIME, instances, kbd } = renderBasicMappingKbd("j");
+    kbd.innerText = "j";
 
-    optionsMain(
-      RUNTIME as any,
-      makeKeyboardUtils(),
-      ModeClass as any,
-      makeCreateElementWithContent(),
-      () => "Chrome",
-      (s: string) => s,
-      (cb: (locale: (s: string) => string) => void) => cb((s) => s),
-      (_title: string, _desc: string) => {},
-      (elm: Element, str: string) => {
-        elm.innerHTML = str;
-      },
-      (_msg: string, _timeout?: number) => {},
-    );
+    kbd.click();
 
     const kp = instances.get("KeyPicker");
-
-    // Build a kbd with a different custom key from origin so a mapping is recorded.
-    const basicMappingsDiv = document.getElementById("basicMappings") as HTMLElement;
-    const kbd = document.createElement("kbd");
-    kbd.innerText = "k";
-    kbd.dataset["origin"] = "j";
-    kbd.dataset["custom"] = "j";
-    basicMappingsDiv.appendChild(kbd);
-
-    kp.enter(kbd);
-
-    // Simulate pressing 'k'.
+    // Press 'k' to change the binding away from its origin, then Enter to persist it.
     kp.eventListeners["keydown"]?.({ keyCode: 65, sk_keyName: "k" });
-    // kbd.dataset.custom is "j" but we pressed "k" — now enter Enter.
     kp.eventListeners["keydown"]?.({ keyCode: 13, sk_keyName: "<Enter>" });
 
     // RUNTIME should have been called with updateSettings containing basicMappings.

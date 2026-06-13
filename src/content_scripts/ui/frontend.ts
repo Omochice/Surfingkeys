@@ -54,8 +54,8 @@ const frontendMessageEnvelopeSchema = v.looseObject({
 // eslint-disable-next-line typescript/no-explicit-any
 type FrontActionFn = (message?: any) => any;
 
-/** The iframe-side front controller: a ModeHandle carrying the messaging and overlay surface. */
-type FrontMode = ModeHandle & {
+/** The iframe-side front controller carrying the messaging and overlay surface. */
+type FrontMode = {
   _actions: Record<string, FrontActionFn>;
   topSize: [number, number];
   topOrigin: string;
@@ -84,9 +84,13 @@ const Front = (() => {
   const destroyListeners: (() => void)[] = [];
   const topSize: [number, number] = [0, 0];
 
+  // The stack handle stays private: the front pushes and pops it for popups, but no caller reads
+  // ModeHandle members off the controller, so they are kept out of the public surface.
+  const mode = new ModeHandle("Front");
+
   // The function members are declarations below, so hoisting lets the controller be assembled
   // here, before createOmnibar and the API wiring receive it, keeping the original setup order.
-  const self: FrontMode = Object.assign(new ModeHandle("Front"), {
+  const self: FrontMode = {
     _actions,
     topSize,
     topOrigin: "",
@@ -102,7 +106,7 @@ const Front = (() => {
     showUsage: hidePopup,
     openOmnibar,
     toggleStatus,
-  });
+  };
 
   const omnibar = createOmnibar(self, clipboard);
 
@@ -172,7 +176,7 @@ const Front = (() => {
     noPointerEvents?: boolean | undefined;
   };
   let _display: DisplayElement | null = null;
-  self.addEventListener("keydown", (event) => {
+  mode.addEventListener("keydown", (event) => {
     if (isSpecialKeyOf("<Esc>", event.sk_keyName ?? "")) {
       self.hidePopup();
       event.sk_stopPropagation = true;
@@ -360,7 +364,7 @@ const Front = (() => {
       _display.style.display = "none";
       self.flush();
       _display.onHide && _display.onHide();
-      self.exit();
+      mode.exit();
     }
   }
   _actions["hidePopup"] = hidePopup;
@@ -381,7 +385,7 @@ const Front = (() => {
     render?: () => void,
     onHit?: (matched: unknown) => void,
   ) {
-    self.enter(0, true);
+    mode.enter(0, true);
     td.onHit = onHit;
     setDisplay(td, render);
     self.flush();
@@ -799,7 +803,7 @@ const Front = (() => {
     self.flush();
     if (!_bubble.noPointerEvents) {
       setDisplay(_bubble);
-      self.enter(0, true);
+      mode.enter(0, true);
     }
   };
 
@@ -1072,9 +1076,9 @@ const StatusBar = (() => {
 })();
 
 const Find = (() => {
-  const self = new ModeHandle("Find", "/");
+  const mode = new ModeHandle("Find", "/");
 
-  self
+  mode
     .addEventListener("keydown", (event) => {
       // prevent this event to be handled by Surfingkeys' other listeners
       event.sk_suppressed = true;
@@ -1093,7 +1097,7 @@ const Find = (() => {
   function reset() {
     input = null;
     StatusBar.show(["", ""]);
-    self.exit();
+    mode.exit();
   }
 
   /**
@@ -1182,9 +1186,9 @@ const Find = (() => {
     };
     inputEl.focus();
     Front.startInputGuard();
-    self.enter();
+    mode.enter();
   };
-  return Object.assign(self, { open });
+  return { open };
 })();
 
 export default Front;
