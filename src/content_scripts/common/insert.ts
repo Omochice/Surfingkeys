@@ -52,18 +52,23 @@ export function deleteNextWord(str: string, dir: number, cur: number): [string, 
   return [s, dir > 0 ? cur : pos];
 }
 
-// `enter` is retyped to the element-entry signature this mode actually exposes
-// to callers (normal/hints focus an editable). The base ModeHandle.enter (the
-// stack-push) is still used internally; it is captured with bind before the
-// public `enter` shadows it. `mappings` is required because createInsert
-// always assigns it, which lets InsertMode satisfy the structural mode
-// interfaces; `keymap` is exposed because api.ts unmapAllExcept replaces
-// `mappings` wholesale and re-roots the keymap.
-type InsertMode = Omit<ModeHandle, "enter"> & {
-  enter(elm: HTMLElement, keepCursor?: boolean): void;
-  enableEmojiInsertion(): void;
+/**
+ * The Insert-mode controller. It wraps a private {@link ModeHandle} rather than being one, so
+ * `enter` is just the element-entry method callers (normal/hints) need, with no base stack-push
+ * `enter` to shadow. `eventListeners` mirrors the private handle's listener map (same reference) so
+ * the keydown/focus listeners registered below stay observable; the hub dispatches through the
+ * handle pushed onto the mode stack, not through this property. `mappings` and `keymap` are exposed
+ * because api.ts unmapAllExcept replaces `mappings` wholesale and re-roots the keymap; `name` feeds
+ * the frontend modes registry.
+ */
+type InsertMode = {
+  eventListeners: ModeHandle["eventListeners"];
+  name: string;
   mappings: Trie;
   keymap: Keymap;
+  enter(elm: HTMLElement, keepCursor?: boolean): void;
+  exit(): void;
+  enableEmojiInsertion(): void;
 };
 
 function createInsert(): InsertMode {
@@ -229,7 +234,7 @@ function createInsert(): InsertMode {
     },
     code: () => {
       getRealEdit()?.blur();
-      mode.exit();
+      self.exit();
     },
   });
 
@@ -281,7 +286,7 @@ function createInsert(): InsertMode {
     // prevent this event to be handled by Surfingkeys' other listeners
     const realTarget = getRealEdit(event);
     if (!isEditable(realTarget)) {
-      mode.exit();
+      self.exit();
     } else if (event.sk_keyName?.length) {
       keymap.handleKey(event, (last) => {
         // for insert mode to insert unmapped chars with preceding chars same as some mapkeys
@@ -328,16 +333,18 @@ function createInsert(): InsertMode {
     // We get a focus event with target = window when the browser window looses focus.
     // Ignore this event.
     if (event.target !== window && !isEditable(realTarget)) {
-      mode.exit();
+      self.exit();
     } else {
       event.sk_suppressed = true;
     }
   });
 
   let _element: HTMLElement | undefined;
-  // Capture the base stack-push enter before the public `enter` shadows it.
-  const _enter = mode.enter.bind(mode);
-  const self: InsertMode = Object.assign(mode, {
+  const self: InsertMode = {
+    // The hub dispatches events by reading the private handle's listener map; sharing the reference
+    // keeps the keydown/focus listeners registered above observable through the controller.
+    eventListeners: mode.eventListeners,
+    name: mode.name,
     mappings,
     keymap,
     enableEmojiInsertion,
@@ -345,7 +352,7 @@ function createInsert(): InsertMode {
       if (elm === document.body) {
         runtime.conf.showModeStatus = false;
       }
-      let changed = _enter(0, true) === -1;
+      let changed = mode.enter(0, true) === -1;
       if (_element !== elm) {
         _element = elm;
         changed = true;
@@ -354,7 +361,10 @@ function createInsert(): InsertMode {
         moveCursorEOL();
       }
     },
-  });
+    exit(): void {
+      mode.exit();
+    },
+  };
 
   return self;
 }
