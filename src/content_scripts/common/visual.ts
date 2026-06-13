@@ -37,8 +37,9 @@ type Match = [Node, number, HTMLElement[]];
  * The visual-mode controller. It wraps a private {@link ModeHandle} rather than being one, so the
  * base mode members it relies on are surfaced explicitly: `name` / `mappings` feed api.ts and the
  * frontend registry, `eventListeners` lets the hub (and tests) dispatch key / scroll / click
- * events, `statusLine` is a read-only view of the handle's, and `enter` / `exit` / `onEnter` /
- * `onExit` drive the mode's own state machine. The rest are the visual operations callers invoke.
+ * events, `statusLine` is a read-only view of the handle's status line, and `enter` / `exit` /
+ * `onEnter` / `onExit` drive the mode's own state machine. The rest are the visual operations
+ * callers invoke.
  */
 type VisualMode = {
   eventListeners: ModeHandle["eventListeners"];
