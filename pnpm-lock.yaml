@@ -208,8 +208,8 @@ importers:
   .:
     dependencies:
       '@praha/byethrow':
-        specifier: 0.11.2
-        version: 0.11.2(typescript@6.0.3)
+        specifier: 0.12.0
+        version: 0.12.0(typescript@6.0.3)
       dompurify:
         specifier: ^3.2.4
         version: 3.4.9
@@ -1139,8 +1139,8 @@ packages:
     resolution: {integrity: sha512-h104Kh26rR8tm+a3Qkc5S4VLYint3FE48as7+/5oCEcKR2idC/pF1G6AhIXKI+eHPJa/3J9i5z0Al47IeGHPkA==}
     engines: {node: '>=12'}
 
-  '@praha/byethrow@0.11.2':
-    resolution: {integrity: sha512-DtX4J1BhuojwA88vhymyGR+AsEeJjxXP4RmR7R9gqk299fAMtqH6dI82jq+0emWmk9+HSLZ54y3VIB14WuqfwQ==}
+  '@praha/byethrow@0.12.0':
+    resolution: {integrity: sha512-Q3dRHW8aGqYbEe/W5YKrik6GbtfLGdCrCVcDcP/YJe4uhhbbrkEw9XoRuPZhfMb4uLrUXk27h4phK3I8+cAdRw==}
     peerDependencies:
       typescript: '>=5.0.0'
 
@@ -3761,7 +3761,7 @@ snapshots:
       '@pnpm/network.ca-file': 1.0.2
       config-chain: 1.1.13
 
-  '@praha/byethrow@0.11.2(typescript@6.0.3)':
+  '@praha/byethrow@0.12.0(typescript@6.0.3)':
     dependencies:
       '@standard-schema/spec': 1.1.0
       typescript: 6.0.3
