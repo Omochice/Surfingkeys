@@ -48,7 +48,12 @@ type NormalLike = {
 };
 type ClipboardLike = { write(text: string): void };
 
-type ScrollMode = ModeHandle & { onScrollStarted?: () => void; onScrollDone?: () => void };
+type ScrollHooks = { onScrollStarted(): void; onScrollDone(): void };
+
+// Scroll notifications go only to the top-of-stack mode. Keying the hooks by the private ModeHandle
+// (the object actually pushed onto the mode stack) lets the probe resolve them through
+// getCurrentMode() without the hints / regional-hints controllers exposing the hooks publicly.
+const scrollHooks = new WeakMap<ModeHandle, ScrollHooks>();
 
 type Behaviours = {
   mouseEvents: string[];
@@ -60,16 +65,20 @@ type Behaviours = {
   [key: string]: unknown;
 };
 
-type RegionalHintsMode = ModeHandle & {
-  mappings: Trie;
-  attach(elm: HTMLElement): void;
-  onScrollStarted(): void;
-  onScrollDone(): void;
-};
+/**
+ * The regional-hints controller. It wraps a private {@link ModeHandle}; callers only ever invoke
+ * `attach`, so that is the whole public surface. The scroll hooks live in the module-level
+ * {@link scrollHooks} table, keyed by the private handle, rather than on the controller.
+ */
+type RegionalHintsMode = { attach(elm: HTMLElement): void };
 
-// Unlike the other modes, Hints does its own prefix matching in its keydown
-// listener and never assigns `mappings`, so the base optional slots stay empty.
-type HintsMode = ModeHandle & {
+/**
+ * The hints controller. It wraps a private {@link ModeHandle} rather than being one: Hints does its
+ * own prefix matching in its keydown listener and never assigns `mappings`, and no caller touches
+ * the base mode members, so the public surface is just the hint operations below. Scroll hooks live
+ * in the module-level {@link scrollHooks} table, keyed by the private handle.
+ */
+type HintsMode = {
   setNumeric(): void;
   setCharacters(chars: string): void;
   getCharacters(): string;
@@ -80,8 +89,6 @@ type HintsMode = ModeHandle & {
   click(links: string | Element[], force?: boolean): void;
   previousPage(): boolean;
   nextPage(): boolean;
-  onScrollStarted(): void;
-  onScrollDone(): void;
   genLabels(total: number): string[];
   coordinate(): { top: number; left: number };
   createInputLayer(): void;
@@ -221,12 +228,9 @@ kbd {
     overlay!.style.display = "";
   };
 
-  const self: RegionalHintsMode = Object.assign(mode, {
-    mappings,
-    attach,
-    onScrollStarted,
-    onScrollDone,
-  });
+  scrollHooks.set(mode, { onScrollStarted, onScrollDone });
+
+  const self: RegionalHintsMode = { attach };
 
   return self;
 }
@@ -737,12 +741,12 @@ div.hint-scrollable {
     "hints",
     {
       scrollStarted: () => {
-        const current = getCurrentMode() as ScrollMode | undefined;
-        if (current?.onScrollStarted) current.onScrollStarted();
+        const current = getCurrentMode();
+        if (current) scrollHooks.get(current)?.onScrollStarted();
       },
       scrollDone: () => {
-        const current = getCurrentMode() as ScrollMode | undefined;
-        if (current?.onScrollDone) current.onScrollDone();
+        const current = getCurrentMode();
+        if (current) scrollHooks.get(current)?.onScrollDone();
       },
       topBoundaryHit: previousPage,
       bottomBoundaryHit: nextPage,
@@ -1208,7 +1212,9 @@ div.hint-scrollable {
     }, 1);
   };
 
-  const self: HintsMode = Object.assign(mode, {
+  scrollHooks.set(mode, { onScrollStarted, onScrollDone });
+
+  const self: HintsMode = {
     setNumeric,
     setCharacters,
     getCharacters,
@@ -1216,8 +1222,6 @@ div.hint-scrollable {
     click,
     previousPage,
     nextPage,
-    onScrollStarted,
-    onScrollDone,
     genLabels,
     coordinate,
     createInputLayer,
@@ -1226,7 +1230,7 @@ div.hint-scrollable {
     mouseoutLastElement,
     style,
     feedkeys,
-  });
+  };
 
   return self;
 }
