@@ -150,16 +150,16 @@ function encodeOne(s: string, k: string): string {
 
 function encodeKeystroke(s: string): string {
   const ekp = /<(?:Ctrl-)?(?:Alt-)?(?:Meta-)?(?:Shift-)?([^>]+|.)>/g;
-  let mtches: RegExpExecArray | null;
+  let matches: RegExpExecArray | null;
   let ret = "";
   let lastIndex = 0;
-  while ((mtches = ekp.exec(s)) !== null) {
-    const captured = mtches[1];
+  while ((matches = ekp.exec(s)) !== null) {
+    const captured = matches[1];
     if (captured == null) {
       continue;
     }
-    ret += s.slice(lastIndex, mtches.index);
-    ret += encodeOne(mtches[0], captured);
+    ret += s.slice(lastIndex, matches.index);
+    ret += encodeOne(matches[0], captured);
     lastIndex = ekp.lastIndex;
   }
   ret += s.slice(lastIndex);
