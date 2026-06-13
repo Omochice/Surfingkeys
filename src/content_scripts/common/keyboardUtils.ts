@@ -61,18 +61,18 @@ function detectPlatform(): string {
 
 const platform = detectPlatform();
 
-const keyCodesMac: Record<string, [string, string]> = {
-  Minus: ["-", "_"],
-  Equal: ["=", "+"],
-  BracketLeft: ["[", "{"],
-  BracketRight: ["]", "}"],
-  Backslash: ["\\", "|"],
-  Semicolon: [";", ":"],
-  Quote: ["'", '"'],
-  Comma: [",", "<"],
-  Period: [".", ">"],
-  Slash: ["/", "?"],
-};
+const keyCodesMac = new Map<string, [string, string]>([
+  ["Minus", ["-", "_"]],
+  ["Equal", ["=", "+"]],
+  ["BracketLeft", ["[", "{"]],
+  ["BracketRight", ["]", "}"]],
+  ["Backslash", ["\\", "|"]],
+  ["Semicolon", [";", ":"]],
+  ["Quote", ["'", '"']],
+  ["Comma", [",", "<"]],
+  ["Period", [".", ">"]],
+  ["Slash", ["/", "?"]],
+]);
 
 const keyCodes = {
   ESC: 27,
@@ -91,48 +91,48 @@ const keyCodes = {
   upArrow: 38,
 } as const;
 
-const modifierKeys: Record<number, string> = {
-  16: "Shift",
-  17: "Ctrl",
-  18: "Alt",
-  91: "Meta",
-  92: "Meta",
-  93: "ContextMenu",
-  229: "Process",
-};
+const modifierKeys = new Map<number, string>([
+  [16, "Shift"],
+  [17, "Ctrl"],
+  [18, "Alt"],
+  [91, "Meta"],
+  [92, "Meta"],
+  [93, "ContextMenu"],
+  [229, "Process"],
+]);
 
-const keyNames: Record<number, string> = {
-  8: "Backspace",
-  9: "Tab",
-  12: "NumLock",
-  27: "Esc",
-  32: "Space",
-  46: "Delete",
-};
+const keyNames = new Map<number, string>([
+  [8, "Backspace"],
+  [9, "Tab"],
+  [12, "NumLock"],
+  [27, "Esc"],
+  [32, "Space"],
+  [46, "Delete"],
+]);
 
-const keyIdentifierCorrectionMap: Record<string, [string, string]> = {
-  "U+00C0": ["U+0060", "U+007E"],
-  "U+0030": ["U+0030", "U+0029"],
-  "U+0031": ["U+0031", "U+0021"],
-  "U+0032": ["U+0032", "U+0040"],
-  "U+0033": ["U+0033", "U+0023"],
-  "U+0034": ["U+0034", "U+0024"],
-  "U+0035": ["U+0035", "U+0025"],
-  "U+0036": ["U+0036", "U+005E"],
-  "U+0037": ["U+0037", "U+0026"],
-  "U+0038": ["U+0038", "U+002A"],
-  "U+0039": ["U+0039", "U+0028"],
-  "U+00BD": ["U+002D", "U+005F"],
-  "U+00BB": ["U+003D", "U+002B"],
-  "U+00DB": ["U+005B", "U+007B"],
-  "U+00DD": ["U+005D", "U+007D"],
-  "U+00DC": ["U+005C", "U+007C"],
-  "U+00BA": ["U+003B", "U+003A"],
-  "U+00DE": ["U+0027", "U+0022"],
-  "U+00BC": ["U+002C", "U+003C"],
-  "U+00BE": ["U+002E", "U+003E"],
-  "U+00BF": ["U+002F", "U+003F"],
-};
+const keyIdentifierCorrectionMap = new Map<string, [string, string]>([
+  ["U+00C0", ["U+0060", "U+007E"]],
+  ["U+0030", ["U+0030", "U+0029"]],
+  ["U+0031", ["U+0031", "U+0021"]],
+  ["U+0032", ["U+0032", "U+0040"]],
+  ["U+0033", ["U+0033", "U+0023"]],
+  ["U+0034", ["U+0034", "U+0024"]],
+  ["U+0035", ["U+0035", "U+0025"]],
+  ["U+0036", ["U+0036", "U+005E"]],
+  ["U+0037", ["U+0037", "U+0026"]],
+  ["U+0038", ["U+0038", "U+002A"]],
+  ["U+0039", ["U+0039", "U+0028"]],
+  ["U+00BD", ["U+002D", "U+005F"]],
+  ["U+00BB", ["U+003D", "U+002B"]],
+  ["U+00DB", ["U+005B", "U+007B"]],
+  ["U+00DD", ["U+005D", "U+007D"]],
+  ["U+00DC", ["U+005C", "U+007C"]],
+  ["U+00BA", ["U+003B", "U+003A"]],
+  ["U+00DE", ["U+0027", "U+0022"]],
+  ["U+00BC", ["U+002C", "U+003C"]],
+  ["U+00BE", ["U+002E", "U+003E"]],
+  ["U+00BF", ["U+002F", "U+003F"]],
+]);
 
 // <flag: always 1><flag: 1 bit, 0 for visible keys, 1 for invisible keys><key: 8 bits><mod: 4 bits>
 function encodeOne(s: string, k: string): string {
@@ -190,10 +190,10 @@ function decodeKeystroke(s: string): string {
 
 function getKeyChar(event: KeyEventLike): string {
   let character: string;
-  if (event.keyCode in modifierKeys) {
+  if (modifierKeys.has(event.keyCode)) {
     return "";
   }
-  const namedKey = keyNames[event.keyCode];
+  const namedKey = keyNames.get(event.keyCode);
   if (namedKey != null) {
     character = namedKey;
   } else {
@@ -208,7 +208,7 @@ function getKeyChar(event: KeyEventLike): string {
           character = event.keyIdentifier;
         } else {
           let keyIdentifier = event.keyIdentifier;
-          const corrected = keyIdentifierCorrectionMap[keyIdentifier];
+          const corrected = keyIdentifierCorrectionMap.get(keyIdentifier);
           if ((platform === "Windows" || platform === "Linux") && corrected) {
             keyIdentifier = event.shiftKey ? corrected[1] : corrected[0];
           }
@@ -225,7 +225,7 @@ function getKeyChar(event: KeyEventLike): string {
         character = String.fromCharCode(event.keyCode);
         character = event.shiftKey ? character : character.toLowerCase();
       } else if (event.code != null) {
-        const macCodes = keyCodesMac[event.code];
+        const macCodes = keyCodesMac.get(event.code);
         if (macCodes) {
           // Alt-/ or Alt-?
           character = macCodes[event.shiftKey ? 1 : 0];
