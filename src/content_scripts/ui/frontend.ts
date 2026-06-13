@@ -1072,9 +1072,9 @@ const StatusBar = (() => {
 })();
 
 const Find = (() => {
-  const self = new ModeHandle("Find", "/");
+  const mode = new ModeHandle("Find", "/");
 
-  self
+  mode
     .addEventListener("keydown", (event) => {
       // prevent this event to be handled by Surfingkeys' other listeners
       event.sk_suppressed = true;
@@ -1093,7 +1093,7 @@ const Find = (() => {
   function reset() {
     input = null;
     StatusBar.show(["", ""]);
-    self.exit();
+    mode.exit();
   }
 
   /**
@@ -1182,9 +1182,9 @@ const Find = (() => {
     };
     inputEl.focus();
     Front.startInputGuard();
-    self.enter();
+    mode.enter();
   };
-  return Object.assign(self, { open });
+  return { open };
 })();
 
 export default Front;
