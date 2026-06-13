@@ -33,8 +33,22 @@ type HintsLike = {
 
 type Match = [Node, number, HTMLElement[]];
 
-type VisualMode = ModeHandle & {
+/**
+ * The visual-mode controller. It wraps a private {@link ModeHandle} rather than being one, so the
+ * base mode members it relies on are surfaced explicitly: `name` / `mappings` feed api.ts and the
+ * frontend registry, `eventListeners` lets the hub (and tests) dispatch key / scroll / click
+ * events, `statusLine` is a read-only view of the handle's, and `enter` / `exit` / `onEnter` /
+ * `onExit` drive the mode's own state machine. The rest are the visual operations callers invoke.
+ */
+type VisualMode = {
+  eventListeners: ModeHandle["eventListeners"];
+  name: string;
   mappings: Trie;
+  readonly statusLine: string | undefined;
+  enter(): void;
+  exit(): void;
+  onEnter?(): void;
+  onExit?(): void;
   hideCursor(): void;
   showCursor(): void;
   getCursorPixelPos(): DOMRect;
@@ -98,7 +112,7 @@ function createVisual(clipboard: ClipboardLike, hints: HintsLike): VisualMode {
           self.showCursor();
         } else {
           self.visualClear();
-          mode.exit();
+          self.exit();
         }
         state--;
         _onStateChange();
@@ -727,7 +741,7 @@ function createVisual(clipboard: ClipboardLike, hints: HintsLike): VisualMode {
     if (selection && selection.anchorNode) {
       selection.setPosition(selection.anchorNode, selection.anchorOffset);
       self.showCursor();
-      mode.enter();
+      self.enter();
     }
   };
   const toggle = (ex?: string): void => {
@@ -740,7 +754,7 @@ function createVisual(clipboard: ClipboardLike, hints: HintsLike): VisualMode {
       case 2: {
         self.hideCursor();
         selection.collapse(selection.focusNode, selection.focusOffset);
-        mode.exit();
+        self.exit();
         _incState();
         break;
       }
@@ -748,7 +762,7 @@ function createVisual(clipboard: ClipboardLike, hints: HintsLike): VisualMode {
         hints.create(runtime.conf.textAnchorPat, (element) => {
           setTimeout(() => {
             selection.setPosition(element[0], element[1]);
-            mode.enter();
+            self.enter();
             if (ex === "z") {
               if (element[1] === 0) {
                 selection.extend(element[0], element[0].textContent.length);
@@ -784,7 +798,7 @@ function createVisual(clipboard: ClipboardLike, hints: HintsLike): VisualMode {
     if (matches.length) {
       // need enter visual mode again when modeAfterYank is set to Normal / Caret.
       if (state === 0) {
-        mode.enter();
+        self.enter();
       }
       currentOccurrence =
         (backward ? matches.length + currentOccurrence - 1 : currentOccurrence + 1) %
@@ -887,7 +901,7 @@ function createVisual(clipboard: ClipboardLike, hints: HintsLike): VisualMode {
     self.visualClear();
     highlight(new RegExp(query, runtime.getCaseSensitive(query) ? "" : "i"));
     if (matches.length) {
-      mode.enter();
+      self.enter();
       const cur = matches[currentOccurrence];
       if (cur) {
         select(cur);
@@ -944,8 +958,25 @@ function createVisual(clipboard: ClipboardLike, hints: HintsLike): VisualMode {
     mark_template.setAttribute("style", _style["marks"] || "");
   };
 
-  const self: VisualMode = Object.assign(mode, {
+  const self: VisualMode = {
+    // The hub dispatches events through the private handle's listener map; sharing the reference
+    // keeps the keydown/scroll/click/resize/selectionchange listeners registered above observable
+    // through the controller. `statusLine` is read-only because the handle owns it and the hub reads
+    // it off the stacked handle; `onEnter` / `onExit` mirror the handle's lifecycle hooks.
+    eventListeners: mode.eventListeners,
+    name: mode.name,
+    get statusLine() {
+      return mode.statusLine;
+    },
     mappings,
+    enter() {
+      mode.enter();
+    },
+    exit() {
+      mode.exit();
+    },
+    onEnter: mode.onEnter,
+    onExit: mode.onExit,
     hideCursor,
     showCursor,
     getCursorPixelPos,
@@ -960,7 +991,7 @@ function createVisual(clipboard: ClipboardLike, hints: HintsLike): VisualMode {
     visualEnter,
     findSentenceOf,
     style,
-  });
+  };
 
   return self;
 }
