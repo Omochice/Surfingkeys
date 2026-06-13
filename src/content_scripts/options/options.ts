@@ -25,8 +25,8 @@ type MappingsEditor = {
   getValue(): string;
 };
 
-/** KeyPicker re-exposes `enter` with the element whose binding is being picked. */
-type KeyPickerMode = Omit<ModeHandle, "enter"> & { enter(elm: HTMLElement): void };
+/** KeyPicker exposes a single `enter`, taking the element whose binding is being picked. */
+type KeyPickerMode = { enter(elm: HTMLElement): void };
 
 /**
  * The keydown payload KeyPicker inspects. Extends the stack event with the KeyboardEvent fields it
@@ -489,11 +489,9 @@ export default function optionsMain(
     });
 
     let _elm: HTMLElement | null = null;
-    // Capture the base stack-push enter before the public `enter` shadows it.
-    const _enter = mode.enter.bind(mode);
-    const self: KeyPickerMode = Object.assign(mode, {
+    const self: KeyPickerMode = {
       enter(elm: HTMLElement): void {
-        _enter();
+        mode.enter();
 
         _key = elm.innerText;
         if (_key === "🚫") {
@@ -504,7 +502,7 @@ export default function optionsMain(
         show(keyPickerDiv);
         _elm = elm;
       },
-    });
+    };
 
     return self;
   })();
