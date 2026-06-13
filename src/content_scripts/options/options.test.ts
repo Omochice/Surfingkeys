@@ -50,7 +50,6 @@ function makeMode() {
     name: string;
     container?: unknown;
     eventListeners: Record<string, (...args: any[]) => void> = {};
-    #keydownHandler?: (...args: any[]) => void;
 
     constructor(name: string) {
       this.name = name;
@@ -58,17 +57,11 @@ function makeMode() {
 
     addEventListener(evt: string, fn: (...args: any[]) => void) {
       this.eventListeners[evt] = fn;
-      if (evt === "keydown") this.#keydownHandler = fn;
       return this;
     }
 
     enter(..._args: unknown[]) {}
     exit(..._args: unknown[]) {}
-
-    // Allow tests to simulate a keydown on this mode instance.
-    fireKeydown(event: Record<string, unknown>) {
-      this.#keydownHandler?.(event);
-    }
   };
 }
 
@@ -552,8 +545,6 @@ function makeTrackingMode() {
     name: string;
     container?: unknown;
     eventListeners: Record<string, (...args: any[]) => void> = {};
-    #keydownHandler?: (...args: any[]) => void;
-    #enterOverride?: (...args: any[]) => void;
 
     constructor(name: string) {
       this.name = name;
@@ -562,18 +553,13 @@ function makeTrackingMode() {
 
     addEventListener(evt: string, fn: (...args: any[]) => void) {
       this.eventListeners[evt] = fn;
-      if (evt === "keydown") this.#keydownHandler = fn;
       return this;
     }
 
-    // The base enter that KeyPicker captures as _enter.
+    // The base stack-push enter the KeyPicker controller delegates to.
     enter(..._args: unknown[]) {}
 
     exit(..._args: unknown[]) {}
-
-    fireKeydown(event: Record<string, unknown>) {
-      (this.#enterOverride ? this.eventListeners["keydown"] : this.#keydownHandler)?.(event);
-    }
   };
 
   return { ModeClass, instances };
