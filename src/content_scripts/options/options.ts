@@ -18,8 +18,8 @@ type KeyboardUtilsLike = {
 };
 type ModeCtor = new (name: string) => ModeHandle;
 
-/** The mappings editor: a ModeHandle wrapping the snippets textarea with value accessors. */
-type MappingsEditor = ModeHandle & {
+/** The mappings editor: the snippets textarea wrapped with value accessors. */
+type MappingsEditor = {
   container: HTMLTextAreaElement;
   setValue(v: string, cursorPos: number): void;
   getValue(): string;
@@ -89,7 +89,7 @@ export default function optionsMain(
       }
     }
 
-    const self: MappingsEditor = Object.assign(new ModeHandle("mappingsEditor"), {
+    const self: MappingsEditor = {
       container: textarea,
       setValue: (v: string, cursorPos: number): void => {
         textarea.value = v;
@@ -100,7 +100,7 @@ export default function optionsMain(
       getValue: (): string => {
         return textarea.value;
       },
-    });
+    };
 
     return self;
   }
