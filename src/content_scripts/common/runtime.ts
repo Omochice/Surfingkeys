@@ -123,13 +123,12 @@ function sendRuntimeMessage(
  * @param {object} args The parameters to be passed to the background action.
  * @param {function} callback A function to be executed with the result from the background action.
  */
-const RUNTIME = function (
+const RUNTIME = ((
   action: string,
   args?: Record<string, unknown> | null,
   callback?: (response: unknown) => void,
-): Result.Result<void, ChromeRuntimeError> {
-  return sendRuntimeMessage(action, args, callback);
-} as RuntimeFn;
+): Result.Result<void, ChromeRuntimeError> =>
+  sendRuntimeMessage(action, args, callback)) as RuntimeFn;
 
 /**
  * Promise-returning counterpart of {@link RUNTIME} for the response-consuming call sites.
