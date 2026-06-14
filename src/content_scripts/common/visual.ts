@@ -671,9 +671,9 @@ function createVisual(clipboard: ClipboardLike, hints: HintsLike): VisualMode {
         return;
       }
       const data = node.data;
-      let mtches;
-      while ((mtches = gpattern.exec(data)) !== null) {
-        const match = mtches[0];
+      let matches;
+      while ((matches = gpattern.exec(data)) !== null) {
+        const match = matches[0];
         if (match.length) {
           const pos = gpattern.lastIndex - match.length;
           createMatchMark(node, pos, node, pos + match.length);
