@@ -1086,14 +1086,6 @@ function htmlEncode(str: string): string {
   return _divForHtmlEncoder.innerHTML;
 }
 
-function once(el: HTMLElement, evt: string, handler: (this: HTMLElement) => void): void {
-  function _onceHandler(this: HTMLElement) {
-    handler.call(this);
-    el.removeEventListener(evt, _onceHandler);
-  }
-  el.addEventListener(evt, _onceHandler);
-}
-
 function show(el: HTMLElement): void {
   el.style.display = "";
 }
@@ -1291,7 +1283,6 @@ export {
   listElements,
   locateFocusNode,
   mapInMode,
-  once,
   parseAnnotation,
   refreshHints,
   regExpReplacer,

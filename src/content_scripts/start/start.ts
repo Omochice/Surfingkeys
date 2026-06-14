@@ -2,7 +2,7 @@ import { reportOnFail } from "../../common/result";
 import browser from "../common/browser";
 import { reportError } from "../common/report";
 import { RUNTIME } from "../common/runtime";
-import { hide, once, setSanitizedContent, show } from "../common/utils";
+import { hide, setSanitizedContent, show } from "../common/utils";
 
 reportOnFail(
   RUNTIME("getTopSites", null, (response: { urls: { url: string; title: string }[] }) => {
@@ -23,11 +23,15 @@ reportOnFail(
       cl.remove("fadeOut");
       cl.remove("fadeIn");
       cl.add("fadeOut");
-      once(screen2, "animationend", () => {
-        hide(screen2);
-        show(screen1);
-        screen1.classList.add("fadeIn");
-      });
+      screen2.addEventListener(
+        "animationend",
+        () => {
+          hide(screen2);
+          show(screen1);
+          screen1.classList.add("fadeIn");
+        },
+        { once: true },
+      );
     };
 
     document.querySelector<HTMLElement>("#show-full-list-of-surfingkeys>a")!.onclick = () => {
@@ -35,11 +39,15 @@ reportOnFail(
       cl.remove("fadeOut");
       cl.remove("fadeIn");
       cl.add("fadeOut");
-      once(screen1, "animationend", () => {
-        hide(screen1);
-        show(screen2);
-        screen2.classList.add("fadeIn");
-      });
+      screen1.addEventListener(
+        "animationend",
+        () => {
+          hide(screen1);
+          show(screen2);
+          screen2.classList.add("fadeIn");
+        },
+        { once: true },
+      );
     };
   }),
   reportError,
@@ -64,10 +72,14 @@ document.addEventListener("surfingkeys:userSettingsLoaded", (evt) => {
       if (tip == null) {
         return;
       }
-      once(randomTip, "animationend", function (this: HTMLElement) {
-        setSanitizedContent(this, tip.innerHTML);
-        this.classList.add("fadeIn");
-      });
+      randomTip.addEventListener(
+        "animationend",
+        () => {
+          setSanitizedContent(randomTip, tip.innerHTML);
+          randomTip.classList.add("fadeIn");
+        },
+        { once: true },
+      );
     }, 5000);
   });
 });
