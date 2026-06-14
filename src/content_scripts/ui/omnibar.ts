@@ -452,7 +452,7 @@ function createOmnibar(front: OmnibarFront, clipboard: { write(text: string): vo
   const ui = requireElement<OmnibarElement>("#sk_omnibar");
 
   const triggerInput = (): void => {
-    _onIput.call(self.input);
+    _onInput.call(self.input);
   };
 
   let _collapsingPoint: string | undefined;
@@ -559,7 +559,7 @@ function createOmnibar(front: OmnibarFront, clipboard: { write(text: string): vo
       },
       onInput: (val: string) => {
         setQuery(val);
-        _onIput.call(self.input);
+        _onInput.call(self.input);
       },
       onKeyDown: (evt: KeyboardEvent) => {
         _onKeyDown(evt);
@@ -614,7 +614,7 @@ function createOmnibar(front: OmnibarFront, clipboard: { write(text: string): vo
     }
   });
 
-  function _onIput(this: HTMLInputElement) {
+  function _onInput(this: HTMLInputElement) {
     if (lastInput !== self.input.value) {
       lastInput = self.input.value;
     }

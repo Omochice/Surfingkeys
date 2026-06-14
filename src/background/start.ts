@@ -121,7 +121,7 @@ type GistCommentResult = { status: number; content?: string; error?: string };
 const Gist = (() => {
   // A 200 response with an empty or malformed body still throws in JSON.parse,
   // which would skip the settle that each helper relies on and re-hang the
-  // runtime sender. Treat an unparseable body the same as a request failure.
+  // runtime sender. Treat an unparsable body the same as a request failure.
   const parseGist = (text: string): unknown => {
     try {
       return JSON.parse(text);
@@ -157,7 +157,7 @@ const Gist = (() => {
       `{ "description": "${magic_word}", "public": false, "files": { "${magic_word}": { "content": "${magic_word}" } } }`,
     );
     // Same hang trap as above: resolve with an empty gist id on failure
-    // (request error or unparseable body) so the sender never waits.
+    // (request error or unparsable body) so the sender never waits.
     const created = Result.isSuccess(r2)
       ? v.safeParse(createdGistSchema, parseGist(r2.value))
       : undefined;
