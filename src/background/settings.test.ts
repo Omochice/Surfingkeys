@@ -4,7 +4,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { expectDefined } from "../../test/helpers";
 import { httpError } from "../common/result";
 import type { SettingsDeps } from "./settings";
-import { _save, createSettings, extendObject, getSubSettings } from "./settings";
+import { save, createSettings, extendObject, getSubSettings } from "./settings";
 
 // `_save` reaches the network through the request module on its local-storage
 // path; mock the module so that path is observable without a real fetch.
@@ -78,7 +78,7 @@ describe("_save", () => {
     const sync = { set };
     g.chrome.storage = { local: {}, sync };
 
-    await _save(sync, { localPath: "/x", snippets: "s", foo: 1, bar: 2 });
+    await save(sync, { localPath: "/x", snippets: "s", foo: 1, bar: 2 });
 
     expect(set).toHaveBeenCalledWith({ foo: 1, bar: 2 });
   });
@@ -88,7 +88,7 @@ describe("_save", () => {
     const sync = { set };
     g.chrome.storage = { local: {}, sync };
 
-    await _save(sync, { localPath: "/x", snippets: "s" });
+    await save(sync, { localPath: "/x", snippets: "s" });
 
     expect(set).not.toHaveBeenCalled();
   });
@@ -99,7 +99,7 @@ describe("_save", () => {
     const local = { set };
     g.chrome.storage = { local, sync: {} };
 
-    await _save(local, { localPath: "/snips.js", snippets: "stale" });
+    await save(local, { localPath: "/snips.js", snippets: "stale" });
 
     expect(mockRequest).toHaveBeenCalledWith("/snips.js");
     expect(set).toHaveBeenCalledWith({ localPath: "/snips.js", snippets: "FETCHED" });
@@ -112,7 +112,7 @@ describe("_save", () => {
     g.chrome.storage = { local, sync: {} };
     const data = { localPath: "/snips.js", snippets: "stale" };
 
-    await _save(local, data);
+    await save(local, data);
 
     expect(data).toEqual({ localPath: "/snips.js", snippets: "stale" });
     expect(set).toHaveBeenCalledWith({ localPath: "/snips.js", snippets: "FETCHED" });
@@ -124,7 +124,7 @@ describe("_save", () => {
     g.chrome.storage = { local: {}, sync };
     const data = { localPath: "/x", snippets: "s", foo: 1, bar: 2 };
 
-    await _save(sync, data);
+    await save(sync, data);
 
     expect(data).toEqual({ localPath: "/x", snippets: "s", foo: 1, bar: 2 });
     expect(set).toHaveBeenCalledWith({ foo: 1, bar: 2 });
@@ -141,7 +141,7 @@ describe("_save", () => {
     g.chrome.storage = { local, sync: {} };
     const data = { localPath: "/snips.js", snippets: "stale" };
 
-    await _save(local, data);
+    await save(local, data);
 
     expect(set).toHaveBeenCalledWith({ localPath: "/snips.js" });
     // The caller's object is left intact; only the persisted copy drops snippets.
@@ -157,7 +157,7 @@ describe("_save", () => {
     g.chrome.storage = { local, sync: {} };
 
     await expect(
-      _save(local, { localPath: "/snips.js", snippets: "stale" }),
+      save(local, { localPath: "/snips.js", snippets: "stale" }),
     ).resolves.toBeUndefined();
   });
 });

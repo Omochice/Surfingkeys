@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { expectDefined } from "../../test/helpers";
-import { _fixTo, _roundBase, createTabs } from "./tabs";
+import { createTabs, fixTo, roundBase } from "./tabs";
 
 type AnyChrome = {
   tabs?: any;
@@ -24,27 +24,27 @@ afterEach(() => {
 
 describe("_fixTo", () => {
   it("clamps a negative target up to 0", () => {
-    expect(_fixTo(-3, 10)).toBe(0);
+    expect(fixTo(-3, 10)).toBe(0);
   });
 
   it("leaves an in-range target untouched", () => {
-    expect(_fixTo(4, 10)).toBe(4);
+    expect(fixTo(4, 10)).toBe(4);
   });
 
   it("clamps an over-range target down to length", () => {
-    expect(_fixTo(10, 10)).toBe(10);
-    expect(_fixTo(15, 10)).toBe(10);
+    expect(fixTo(10, 10)).toBe(10);
+    expect(fixTo(15, 10)).toBe(10);
   });
 });
 
 describe("_roundBase", () => {
   it("leaves the base when the repeat count fits ahead", () => {
-    expect(_roundBase(2, 3, 10)).toBe(2);
+    expect(roundBase(2, 3, 10)).toBe(2);
   });
 
   it("rounds the base back when the repeat count would overrun the length", () => {
-    expect(_roundBase(8, 5, 10)).toBe(5);
-    expect(_roundBase(9, 3, 10)).toBe(7);
+    expect(roundBase(8, 5, 10)).toBe(5);
+    expect(roundBase(9, 3, 10)).toBe(7);
   });
 });
 
@@ -110,7 +110,7 @@ function tabUnitOver(tabs: any[], conf: Record<string, any> = {}, extra: Partial
   const handlers: Record<string, any> = {};
   const unit = createTabs({
     conf,
-    browser: { _setNewTabUrl: () => "about:newtab" },
+    browser: { setNewTabUrl: () => "about:newtab" },
     handlers,
   });
   // back-fill handlers so cross-calls work
@@ -560,7 +560,7 @@ describe("getWindows", () => {
 
     const unit = createTabs({
       conf: {},
-      browser: { _setNewTabUrl: () => "about:newtab" },
+      browser: { setNewTabUrl: () => "about:newtab" },
       handlers: {},
     });
 
@@ -673,7 +673,7 @@ describe("getTabs", () => {
     g.chrome.commands = { onCommand: noopListener };
     const unit = createTabs({
       conf: {},
-      browser: { _setNewTabUrl: () => "about:newtab" },
+      browser: { setNewTabUrl: () => "about:newtab" },
       handlers: {},
     });
 
@@ -711,7 +711,7 @@ describe("getTabs", () => {
     g.chrome.commands = { onCommand: noopListener };
     const unit = createTabs({
       conf: { tabsMRUOrder: true },
-      browser: { _setNewTabUrl: () => "about:newtab" },
+      browser: { setNewTabUrl: () => "about:newtab" },
       handlers: {},
     });
 
@@ -761,7 +761,7 @@ describe("goToLastTab", () => {
 
     const unit = createTabs({
       conf: {},
-      browser: { _setNewTabUrl: () => "about:newtab" },
+      browser: { setNewTabUrl: () => "about:newtab" },
       handlers: {},
     });
 
@@ -1105,7 +1105,7 @@ describe("_tabActivated — branch arms", () => {
     g.chrome.commands = { onCommand: noopListener };
     const unit = createTabs({
       conf: {},
-      browser: { _setNewTabUrl: () => "about:newtab", detectTabTitleChange: false },
+      browser: { setNewTabUrl: () => "about:newtab", detectTabTitleChange: false },
       handlers: {},
     });
     Object.assign({}, unit.handlers);
@@ -1173,7 +1173,7 @@ describe("onUpdated listener — branch arms", () => {
     g.chrome.commands = { onCommand: noopListener };
     createTabs({
       conf,
-      browser: { _setNewTabUrl: () => "about:newtab", detectTabTitleChange },
+      browser: { setNewTabUrl: () => "about:newtab", detectTabTitleChange },
       handlers: {},
     });
     return { sendMessage, onUpdatedCb: () => onUpdatedCb! };
@@ -1268,7 +1268,7 @@ describe("onCommand listener", () => {
     g.chrome.runtime = { reload: runtimeReload };
     createTabs({
       conf: {},
-      browser: { _setNewTabUrl: () => "about:newtab" },
+      browser: { setNewTabUrl: () => "about:newtab" },
       handlers: {},
     });
     return { onCommandCb: () => onCommandCb!, reload, runtimeReload, remove, update };
@@ -1328,7 +1328,7 @@ describe("removeTab — URL queue drain", () => {
     g.chrome.commands = { onCommand: noopListener };
     const unit = createTabs({
       conf: {},
-      browser: { _setNewTabUrl: () => "about:newtab" },
+      browser: { setNewTabUrl: () => "about:newtab" },
       handlers: {},
     });
     // Queue a URL first
@@ -1451,7 +1451,7 @@ describe("getTabs — MRU sort tabActivated fallback", () => {
     g.chrome.commands = { onCommand: noopListener };
     const unit = createTabs({
       conf: { tabsMRUOrder: true },
-      browser: { _setNewTabUrl: () => "about:newtab" },
+      browser: { setNewTabUrl: () => "about:newtab" },
       handlers: {},
     });
 
@@ -1499,7 +1499,7 @@ describe("getTabs — MRU sort tabActivated fallback", () => {
     g.chrome.commands = { onCommand: noopListener };
     const unit = createTabs({
       conf: { tabsMRUOrder: true },
-      browser: { _setNewTabUrl: () => "about:newtab" },
+      browser: { setNewTabUrl: () => "about:newtab" },
       handlers: {},
     });
     // Record activation of tab 1 to populate tabActivated map
@@ -1612,7 +1612,7 @@ describe("openLink — tabbed from omnibar sender", () => {
     g.chrome.runtime = { getURL: (path: string) => "chrome-extension://abcdef" + path };
     const unit = createTabs({
       conf: {},
-      browser: { _setNewTabUrl: () => "about:newtab" },
+      browser: { setNewTabUrl: () => "about:newtab" },
       handlers: {},
     });
     const handler = unit.handlers["openLink"];
@@ -1741,7 +1741,7 @@ describe("nextFrame", () => {
     g.chrome.scripting = { executeScript };
     const unit = createTabs({
       conf: {},
-      browser: { _setNewTabUrl: () => "about:newtab" },
+      browser: { setNewTabUrl: () => "about:newtab" },
       handlers: {},
     });
     return { unit, sendMessage };

@@ -405,8 +405,8 @@ function bootWith(namespaces: Record<string, any>): MessageHandler {
     },
   });
   const browser = {
-    _getContainerName: () => () => {},
-    _setNewTabUrl: () => "about:newtab",
+    getContainerName: () => () => {},
+    setNewTabUrl: () => "about:newtab",
     loadRawSettings: (_keys: any, cb: any) => cb({}),
     detectTabTitleChange: false,
     getLatestHistoryItem: () => Promise.resolve([]),
