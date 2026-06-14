@@ -28,6 +28,7 @@
     "check:oxlint": "oxlint",
     "check:package": "sort-package-json --check",
     "check:type": "tsc --noEmit",
+    "check:typos": "typos",
     "clean": "rimraf dist",
     "dev": "wxt",
     "dev:firefox": "wxt -b firefox",

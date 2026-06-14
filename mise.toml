@@ -1,0 +1,11 @@
+[tools]
+# Static spell-checker for source, comments and identifiers. Not published to
+# npm (so it cannot live in package.json); pinned here via the aqua backend
+# (prebuilt binaries) and kept current by Renovate's mise manager. node/pnpm are
+# intentionally NOT managed here — pnpm owns those via devEngines and
+# pnpm-workspace.yaml's executionEnv.nodeVersion.
+#
+# The aqua backend is named explicitly so mise fetches a prebuilt binary from
+# GitHub releases; the bare `typos` short name falls back to the cargo backend,
+# which would pull a Rust toolchain and build from source.
+"aqua:crate-ci/typos" = "1.47.2"
