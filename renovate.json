@@ -1,5 +1,18 @@
 {
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
   "extends": ["github>Omochice/personal-renovate-config#v1.15.0"],
-  "forkProcessing": "enabled"
+  "forkProcessing": "enabled",
+  "customManagers": [
+    {
+      "customType": "jsonata",
+      "fileFormat": "yaml",
+      "managerFilePatterns": [".github/workflows/check.yaml"],
+      "matchStrings": [
+        "{ 'currentValue': jobs.*.steps[$contains(uses, 'jdx/mise-action')].with.version }"
+      ],
+      "datasourceTemplate": "github-releases",
+      "depNameTemplate": "jdx/mise",
+      "versioningTemplate": "semver-coerced"
+    }
+  ]
 }
