@@ -2,6 +2,10 @@
 # Vendored emoji data (short codes look like typos) and the AI scratch dir.
 extend-exclude = ["public/pages/emoji.tsv", ".momomo"]
 
+[default.extend-identifiers]
+# Not in the typos dictionary; flag this past misspelling so it cannot recur.
+mtches = "matches"
+
 [default.extend-words]
 # Deliberately malformed-URL fixtures in *.test.ts (a leading "H" is added on
 # purpose to exercise prefix handling).
