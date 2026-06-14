@@ -19,7 +19,7 @@ type BrowserAdapter = {
   focusFrontend?: (ifr: HTMLIFrameElement) => void;
 };
 
-let browser: BrowserAdapter = {};
+let adapter: BrowserAdapter = {};
 
 type Api = ReturnType<typeof createAPI>;
 type Normal = ReturnType<typeof createNormal>;
@@ -42,13 +42,13 @@ function initModules(): Modes {
   // "observer" event turns it on, so its setup order relative to hints/visual
   // does not matter.
   startScrollNodeObserver(normal);
-  const front = createFront(insert, normal, hints, visual, browser);
+  const front = createFront(insert, normal, hints, visual, adapter);
 
   const ctx: ModeContext = { clipboard, insert, normal, hints, visual, front };
   const api = createAPI(ctx);
   createDefaultMappings(api, ctx);
-  if (typeof browser.plugin === "function") {
-    browser.plugin({ front });
+  if (typeof adapter.plugin === "function") {
+    adapter.plugin({ front });
   }
 
   dispatchSKEvent("defaultSettingsLoaded", { normal, api });
@@ -129,8 +129,8 @@ initModeHub(
       },
 );
 
-function start(adapter?: BrowserAdapter): void {
-  browser = adapter || {};
+function start(injectedAdapter?: BrowserAdapter): void {
+  adapter = injectedAdapter || {};
   if (window === top) {
     new Promise<Modes>((r) => {
       r(initModules());
