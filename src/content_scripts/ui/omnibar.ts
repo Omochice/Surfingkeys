@@ -1529,16 +1529,10 @@ function OpenURLs(
   self.onReset = () => {
     runtime.conf.historyMUOrder = !runtime.conf.historyMUOrder;
     queryFn().then((historyItems) => {
-      if (runtime.conf.historyMUOrder) {
-        historyItems = historyItems.toSorted((a: HistoryItem, b: HistoryItem) => {
-          return (b.visitCount ?? 0) - (a.visitCount ?? 0);
-        });
-      } else {
-        historyItems = historyItems.toSorted((a: HistoryItem, b: HistoryItem) => {
-          return (b.lastVisitTime ?? 0) - (a.lastVisitTime ?? 0);
-        });
-      }
-      omnibar.listURLs(historyItems, false);
+      const compare = runtime.conf.historyMUOrder
+        ? (a: HistoryItem, b: HistoryItem) => (b.visitCount ?? 0) - (a.visitCount ?? 0)
+        : (a: HistoryItem, b: HistoryItem) => (b.lastVisitTime ?? 0) - (a.lastVisitTime ?? 0);
+      omnibar.listURLs(historyItems.toSorted(compare), false);
     });
   };
   return self;
