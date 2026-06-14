@@ -23,7 +23,6 @@ import {
   isElementClickable,
   listElements,
   mapInMode,
-  once,
   parseAnnotation,
   refreshHints,
   regExpReplacer,
@@ -521,19 +520,6 @@ describe("listElements", () => {
     );
 
     expect(found).toContain(inner);
-  });
-});
-
-describe("once", () => {
-  it("invokes the handler only for the first occurrence of the event", () => {
-    const el = document.createElement("button");
-    const handler = vi.fn();
-    once(el, "click", handler);
-
-    el.dispatchEvent(new Event("click"));
-    el.dispatchEvent(new Event("click"));
-
-    expect(handler).toHaveBeenCalledTimes(1);
   });
 });
 
