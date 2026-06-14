@@ -22,7 +22,7 @@ afterEach(() => {
   delete g.chrome.runtime;
 });
 
-describe("_fixTo", () => {
+describe("fixTo", () => {
   it("clamps a negative target up to 0", () => {
     expect(fixTo(-3, 10)).toBe(0);
   });
@@ -37,7 +37,7 @@ describe("_fixTo", () => {
   });
 });
 
-describe("_roundBase", () => {
+describe("roundBase", () => {
   it("leaves the base when the repeat count fits ahead", () => {
     expect(roundBase(2, 3, 10)).toBe(2);
   });
@@ -736,7 +736,7 @@ describe("goToLastTab", () => {
   it("activates the previously visited tab from tabHistory", () => {
     const noopListener = makeNoopListener();
     const update = vi.fn();
-    // sendMessage must be present so _tabActivated does not throw when onActivated fires
+    // sendMessage must be present so tabActivated does not throw when onActivated fires
     const sendMessage = vi.fn().mockReturnValue(undefined);
     let onActivatedCb: ((info: any) => void) | null = null;
 
@@ -1035,7 +1035,7 @@ describe("closeTab — focusAfterClosed", () => {
 // ---------------------------------------------------------------------------
 
 describe("newTabUrl", () => {
-  it("is set to the value returned by browser._setNewTabUrl()", () => {
+  it("is set to the value returned by browser.setNewTabUrl()", () => {
     const { unit } = tabUnitOver([]);
     expect(unit.newTabUrl).toBe("about:newtab");
   });
@@ -1073,13 +1073,13 @@ describe("sendTabMessage — opts argument", () => {
 });
 
 // ---------------------------------------------------------------------------
-// _tabActivated — same-tab no-op and null lastActiveTabId arms
+// tabActivated — same-tab no-op and null lastActiveTabId arms
 // ---------------------------------------------------------------------------
 
-describe("_tabActivated — branch arms", () => {
+describe("tabActivated — branch arms", () => {
   /**
    * Builds a unit where onActivated captures the listener so we can fire it directly to exercise
-   * _tabActivated's internal branches.
+   * tabActivated's internal branches.
    */
   function buildWithOnActivated() {
     let onActivatedCb: ((info: any) => void) | null = null;

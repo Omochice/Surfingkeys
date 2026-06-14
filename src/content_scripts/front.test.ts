@@ -366,7 +366,7 @@ describe("createFront getSearchSuggestions — non-function listSuggestion dispa
 // Suite: dialogResponse action
 // ---------------------------------------------------------------------------
 
-describe("createFront _actions[dialogResponse] — triggers onDialogResponseOk callback", () => {
+describe("createFront actions[dialogResponse] — triggers onDialogResponseOk callback", () => {
   it("calls onDialogResponseOk when result is Ok", () => {
     // Capture both the window message handler and the surfingkeys:front SK handler
     // so that dispatching to them is direct and isolated from prior instances.
@@ -793,10 +793,10 @@ describe("createFront getUsage — builds annotations and delivers via newFrontE
 });
 
 // ---------------------------------------------------------------------------
-// Suite: _actions["getPageText"] — ack path posts body innerText via postTopMessage
+// Suite: actions["getPageText"] — ack path posts body innerText via postTopMessage
 // ---------------------------------------------------------------------------
 
-describe("createFront _actions[getPageText] — ack path posts body text", () => {
+describe("createFront actions[getPageText] — ack path posts body text", () => {
   it("posts body.innerText back via runtime.postTopMessage after Promise resolves", async () => {
     const { handler, restore } = captureMessageHandler();
     createFront(makeInsert(), makeNormal(), null, makeVisual(), makeBrowser());
@@ -828,10 +828,10 @@ describe("createFront _actions[getPageText] — ack path posts body text", () =>
 });
 
 // ---------------------------------------------------------------------------
-// Suite: _actions["getBackFocus"] — calls window.focus
+// Suite: actions["getBackFocus"] — calls window.focus
 // ---------------------------------------------------------------------------
 
-describe("createFront _actions[getBackFocus] — calls window.focus", () => {
+describe("createFront actions[getBackFocus] — calls window.focus", () => {
   it("calls window.focus when the action is dispatched", () => {
     const { handler, restore } = captureMessageHandler();
     createFront(makeInsert(), makeNormal(), null, makeVisual(), makeBrowser());
@@ -1027,13 +1027,13 @@ describe("createFront self.attach — cancels pending detach timer", () => {
 });
 
 // ---------------------------------------------------------------------------
-// Suite: _actions["getSearchSuggestions"] — non-function dispatches skCallback id
+// Suite: actions["getSearchSuggestions"] — non-function dispatches skCallback id
 // The message handler returns void; the observable contract is that a
 // surfingkeys:user "getSearchSuggestions" event is dispatched carrying a
 // callbackId string, which is what the non-function path does.
 // ---------------------------------------------------------------------------
 
-describe("createFront _actions[getSearchSuggestions] — non-function dispatches user event with callbackId", () => {
+describe("createFront actions[getSearchSuggestions] — non-function dispatches user event with callbackId", () => {
   it("dispatches surfingkeys:user with a string callbackId as the last argument", () => {
     const { handler: msgHandler, restore: restoreMsg } = captureMessageHandler();
     const front = createFront(makeInsert(), makeNormal(), null, makeVisual(), makeBrowser());

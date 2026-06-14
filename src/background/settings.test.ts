@@ -6,7 +6,7 @@ import { httpError } from "../common/result";
 import type { SettingsDeps } from "./settings";
 import { save, createSettings, extendObject, getSubSettings } from "./settings";
 
-// `_save` reaches the network through the request module on its local-storage
+// `save` reaches the network through the request module on its local-storage
 // path; mock the module so that path is observable without a real fetch.
 const { mockRequest } = vi.hoisted(() => ({ mockRequest: vi.fn() }));
 vi.mock("./request.js", () => ({ request: mockRequest }));
@@ -72,7 +72,7 @@ describe("getSubSettings", () => {
   });
 });
 
-describe("_save", () => {
+describe("save", () => {
   it("strips snippets/localPath before writing to sync storage", async () => {
     const set = vi.fn();
     const sync = { set };
@@ -132,7 +132,7 @@ describe("_save", () => {
 
   it("still writes to local storage when the snippet fetch fails", async () => {
     // A failed fetch must not strand callers: the resolved promise is what
-    // `_updateSettings` chains `afterSet` onto, and the `updateSettings` handler
+    // `updateSettings` chains `afterSet` onto, and the `updateSettings` handler
     // ultimately settles `_response` from there, so leaving it pending hangs the
     // response forever.
     mockRequest.mockResolvedValue(Result.fail(httpError("/snips.js", new Error("404"), 404)));
@@ -246,7 +246,7 @@ describe("createSettings — updateSettings", () => {
   });
 
   it("registers the user script with the snippets when saving advanced settings with a localPath", async () => {
-    // The bug: _save synchronously deletes snippets from the shared settings
+    // The bug: save synchronously deletes snippets from the shared settings
     // object before registerUserScript reads message.settings.snippets, so the
     // snippet code was lost and the script unregistered.
     mockRequest.mockResolvedValue(Result.succeed("FETCHED"));
