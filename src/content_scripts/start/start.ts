@@ -1,11 +1,12 @@
-import { reportOnFail } from "../../common/result";
 import browser from "../common/browser";
 import { reportError } from "../common/report";
-import { RUNTIME } from "../common/runtime";
+import { RUNTIMEAsync } from "../common/runtime";
 import { hide, once, setSanitizedContent, show } from "../common/utils";
 
-reportOnFail(
-  RUNTIME("getTopSites", null, (response: { urls: { url: string; title: string }[] }) => {
+// RUNTIMEAsync rejects with the ChromeRuntimeError (after it has already been reported); catching
+// here keeps the previous reportOnFail presentation while preventing an unhandled rejection.
+RUNTIMEAsync<{ urls: { url: string; title: string }[] }>("getTopSites")
+  .then((response) => {
     const urls = response.urls.map((u: { url: string; title: string }) => {
       const favUrl = browser.runtime.getURL(`/_favicon/?pageUrl=${encodeURIComponent(u.url)}`);
       return `<li><a href="${u.url}"><i style="background:url(${favUrl}) no-repeat"></i>${u.title}</a></li>`;
@@ -41,9 +42,8 @@ reportOnFail(
         screen2.classList.add("fadeIn");
       });
     };
-  }),
-  reportError,
-);
+  })
+  .catch(reportError);
 
 document.addEventListener("surfingkeys:userSettingsLoaded", (evt) => {
   const { getUsage } = (evt as CustomEvent).detail;
