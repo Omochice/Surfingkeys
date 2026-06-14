@@ -140,7 +140,7 @@ describe("start — initGist", () => {
 });
 
 /**
- * Drives a successful `initGist` so the shared Gist closure holds a non-empty `gist`, a
+ * Drives a successful `initGist` so the shared Gist closure holds a non-empty `cachedGist`, a
  * precondition for the comment handlers to proceed past their "call initGist first" guard. Returns
  * once the gist id is set.
  */
@@ -647,30 +647,30 @@ describe("start — localData", () => {
 // readComment — no gist set (returns early with error message)
 // Note: the Gist singleton is shared across all dispatchers within the same
 // module import. These tests therefore run before any primeGist call so that
-// gist is still "".  They are placed immediately after the initGist describe
-// blocks (which prime gist) and before any further primeGist calls.
+// cachedGist is still "".  They are placed immediately after the initGist describe
+// blocks (which prime cachedGist) and before any further primeGist calls.
 // Instead we verify the behaviour via the initGist failure path: after a
-// failed initGist the gist stays "". We also re-check the first bootDispatch
+// failed initGist the cachedGist stays "". We also re-check the first bootDispatch
 // call (before any primeGist) via the very first test run in this file.
 // The safest observable is: when gist listing fails, readComment/editComment
 // still settle. Those are already covered by the "still settles" tests above.
-// We cover the gist=="" guard arm separately in the next describe block.
+// We cover the cachedGist=="" guard arm separately in the next describe block.
 // ---------------------------------------------------------------------------
 
 // Covered by the initGist failure tests above (they boot fresh dispatchers and
 // readComment/editComment are not called until after primeGist in those suites).
-// The gist=="" guard is an alternative entry; the test below fires it after
-// explicitly forcing a failed initGist so the singleton gist remains empty.
+// The cachedGist=="" guard is an alternative entry; the test below fires it after
+// explicitly forcing a failed initGist so the singleton cachedGist remains empty.
 
 describe("start — readComment / editComment when gist initialisation failed", () => {
   it("readComment settles with status 1 when the gist init failed (gist stays empty)", async () => {
-    // Force gist to stay "" by having initGist fail
+    // Force cachedGist to stay "" by having initGist fail
     mockRequest.mockResolvedValue(gistsFail());
     const dispatch = bootDispatch();
     const initDone = vi.fn();
     dispatch({ action: "initGist", token: "tok-fail-read", needResponse: true }, {}, initDone);
     await vi.waitFor(() => expect(initDone).toHaveBeenCalled());
-    // gist is still "" → readComment should bail immediately
+    // cachedGist is still "" → readComment should bail immediately
     mockRequest.mockReset();
 
     const sendResponse = vi.fn();
@@ -766,7 +766,7 @@ describe("start — editComment creates placeholder comments when index exceeds 
 });
 
 // ---------------------------------------------------------------------------
-// readComment — comment already in cached list (nr < comments.length)
+// readComment — comment already in cached list (nr < cachedComments.length)
 // ---------------------------------------------------------------------------
 
 describe("start — readComment reads from cached comment list", () => {
@@ -774,7 +774,7 @@ describe("start — readComment reads from cached comment list", () => {
     const dispatch = bootDispatch();
     await primeGist(dispatch, "tok-read-cached");
 
-    // Populate comments cache by listing first
+    // Populate cachedComments cache by listing first
     mockRequest.mockResolvedValueOnce(Result.succeed(JSON.stringify([{ id: "c1" }, { id: "c2" }])));
     const listResponse = vi.fn();
     dispatch(
@@ -863,7 +863,7 @@ describe("start — readComment malformed per-comment JSON", () => {
     const dispatch = bootDispatch();
     await primeGist(dispatch, "tok-read-comment-bad-json");
 
-    // The Gist closure is a module singleton, so its comments cache leaks across
+    // The Gist closure is a module singleton, so its cachedComments cache leaks across
     // bootDispatch() calls. Overwrite it with a known single-entry list first so
     // the malformed-body branch is exercised in isolation regardless of prior
     // tests; the per-comment read fails here (no more mock) which only re-primes
@@ -894,7 +894,7 @@ describe("start — readComment malformed per-comment JSON", () => {
     const dispatch = bootDispatch();
     await primeGist(dispatch, "tok-read-comment-bad-shape");
 
-    // Prime the singleton's comments cache with a single known entry (see the
+    // Prime the singleton's cachedComments cache with a single known entry (see the
     // malformed-JSON sibling test for why the per-comment read here is ignored).
     mockRequest
       .mockResolvedValueOnce(Result.succeed(JSON.stringify([{ id: "c1" }]))) // listComment
@@ -922,7 +922,7 @@ describe("start — readComment malformed per-comment JSON", () => {
     const dispatch = bootDispatch();
     await primeGist(dispatch, "tok-read-comment-bad-uri");
 
-    // Prime the singleton's comments cache with a single known entry (see the
+    // Prime the singleton's cachedComments cache with a single known entry (see the
     // malformed-JSON sibling test for why the per-comment read here is ignored).
     mockRequest
       .mockResolvedValueOnce(Result.succeed(JSON.stringify([{ id: "c1" }]))) // listComment
