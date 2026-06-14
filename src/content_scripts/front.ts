@@ -730,7 +730,7 @@ function createFront(
           },
         );
       } else if (message.action === "performInlineQueryResult") {
-        inlineQueryResult!(message.pos, message.result);
+        inlineQueryResult?.(message.pos, message.result);
       } else if (message.action === "frontendDestroyed") {
         frontendPromise = undefined;
       } else if (frontActive) {
