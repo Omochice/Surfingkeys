@@ -1,0 +1,16 @@
+[files]
+extend-exclude = ["public/pages/emoji.tsv"]
+
+[default.extend-identifiers]
+# Not left to the built-in dictionary, which misses `mtches`: pin it so a
+# recurrence is caught.
+mtches = "matches"
+
+[default.extend-words]
+# Allowlisted rather than fixed: intentional test fixtures and the U+00BA hex
+# unit, not misspellings.
+Hhttp = "Hhttp"
+Hhttps = "Hhttps"
+abd = "abd"
+fo = "fo"
+BA = "BA"

@@ -8,5 +8,5 @@
     "src/user_scripts/index.ts"
   ],
   "project": ["src/**/*.{ts,tsx,js}", "entrypoints/**/*.{ts,tsx}", "test/**/*.{ts,tsx,js}"],
-  "ignoreBinaries": ["nixfmt"]
+  "ignoreBinaries": ["nixfmt", "typos"]
 }
