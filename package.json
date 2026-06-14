@@ -34,6 +34,7 @@
     "dev": "wxt",
     "dev:firefox": "wxt -b firefox",
     "fmt": "npm-run-all2 fmt:*",
+    "fmt:nixfmt": "nixfmt flake.nix",
     "fmt:oxfmt": "oxfmt",
     "fmt:package": "sort-package-json",
     "postinstall": "wxt prepare",
