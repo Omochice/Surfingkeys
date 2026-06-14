@@ -113,10 +113,18 @@ export default defineConfig({
 
     if (browser === "firefox") {
       permissions.push("cookies", "contextualIdentities");
+      // ES2023 array methods (e.g. Array.prototype.toSorted) are used directly
+      // and esbuild neither polyfills nor down-levels built-in methods, so
+      // declare the first Firefox release that ships them. defu deep-merges
+      // this into WXT's base manifest, preserving any gecko fields WXT adds.
+      manifest.browser_specific_settings = { gecko: { strict_min_version: "115.0" } };
     } else {
       permissions.push("downloads.shelf", "favicon", "userScripts");
       webResources.push("_favicon/*", "api.js");
       manifest.incognito = "split";
+      // The Chrome counterpart of the Firefox ES2023 floor above: Chrome 110 is
+      // the first release shipping the non-mutating array methods in use.
+      manifest.minimum_chrome_version = "110";
       if (mode === "development") {
         manifest.key = devKey;
       }
