@@ -56,9 +56,9 @@ reportOnFail(
 document.addEventListener("surfingkeys:userSettingsLoaded", (evt) => {
   const { getUsage } = (evt as CustomEvent).detail;
   getUsage((usage: string) => {
-    const _usage = document.getElementById("sk_usage")!;
-    setSanitizedContent(_usage, usage);
-    const keys = Array.from(_usage.querySelectorAll("div")).filter((d) => {
+    const usageElement = document.getElementById("sk_usage")!;
+    setSanitizedContent(usageElement, usage);
+    const keys = Array.from(usageElement.querySelectorAll("div")).filter((d) => {
       return d.firstElementChild!.matches(".kbd-span");
     });
     const randomTip = document.getElementById("randomTip")!;

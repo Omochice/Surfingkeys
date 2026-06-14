@@ -58,7 +58,7 @@ function createAPI(ctx: ModeContext) {
     return keybound;
   }
 
-  function _isDomainApplicable(domain?: RegExp | number): boolean {
+  function isDomainApplicable(domain?: RegExp | number): boolean {
     // A falsy domain (undefined or the legacy 0 sentinel) means "applies everywhere".
     if (!domain || typeof domain === "number") {
       return true;
@@ -66,7 +66,7 @@ function createAPI(ctx: ModeContext) {
     return domain.test(document.location.href) || domain.test(window.origin);
   }
 
-  function _mapkey(
+  function mapkeyInMode(
     mode: ModeWithMappings,
     keys: string,
     annotation: string | string[],
@@ -77,7 +77,7 @@ function createAPI(ctx: ModeContext) {
     options?: MapOptions,
   ): void {
     options = options || {};
-    if (_isDomainApplicable(options.domain)) {
+    if (isDomainApplicable(options.domain)) {
       keys = KeyboardUtils.encodeKeystroke(keys);
       const old = mode.mappings.remove(keys);
       if (old) {
@@ -140,7 +140,7 @@ function createAPI(ctx: ModeContext) {
     jscode: (...args: any[]) => void,
     options?: MapOptions,
   ): void {
-    _mapkey(normal, keys, annotation, jscode, options);
+    mapkeyInMode(normal, keys, annotation, jscode, options);
   }
 
   /**
@@ -166,7 +166,7 @@ function createAPI(ctx: ModeContext) {
     jscode: (...args: any[]) => void,
     options?: MapOptions,
   ): void {
-    _mapkey(visual, keys, annotation, jscode, options);
+    mapkeyInMode(visual, keys, annotation, jscode, options);
   }
 
   /**
@@ -192,7 +192,7 @@ function createAPI(ctx: ModeContext) {
     jscode: (...args: any[]) => void,
     options?: MapOptions,
   ): void {
-    _mapkey(insert, keys, annotation, jscode, options);
+    mapkeyInMode(insert, keys, annotation, jscode, options);
   }
 
   /**
@@ -214,7 +214,7 @@ function createAPI(ctx: ModeContext) {
     domain?: RegExp | number,
     new_annotation?: string,
   ): void {
-    if (_isDomainApplicable(domain)) {
+    if (isDomainApplicable(domain)) {
       if (old_keystroke[0] === ":" && old_keystroke.length > 1) {
         const cmdline = old_keystroke.slice(1);
         const keybound = createKeyTarget(
@@ -251,7 +251,7 @@ function createAPI(ctx: ModeContext) {
    *   mapping will be removed. Default is `null`
    */
   function unmap(keystroke: string, domain?: RegExp): void {
-    if (_isDomainApplicable(domain)) {
+    if (isDomainApplicable(domain)) {
       const old_map = normal.mappings.find(KeyboardUtils.encodeKeystroke(keystroke));
       if (old_map) {
         normal.mappings.remove(KeyboardUtils.encodeKeystroke(keystroke));
@@ -281,19 +281,19 @@ function createAPI(ctx: ModeContext) {
    *   mapping will be removed. Default is `null`
    */
   function unmapAllExcept(keystrokes: string[], domain?: RegExp): void {
-    if (_isDomainApplicable(domain)) {
+    if (isDomainApplicable(domain)) {
       const modes: (ModeWithMappings & { keymap: Pick<Keymap, "reset"> })[] = [normal, insert];
       modes.forEach((mode) => {
-        const _mappings = new Trie();
+        const mappings = new Trie();
         keystrokes = keystrokes || [];
         for (const keystroke of keystrokes) {
           const ks = KeyboardUtils.encodeKeystroke(keystroke);
           const node = mode.mappings.find(ks);
           if (node) {
-            _mappings.add(ks, node.meta!);
+            mappings.add(ks, node.meta!);
           }
         }
-        mode.mappings = _mappings;
+        mode.mappings = mappings;
         mode.keymap.reset();
       });
     }
@@ -316,7 +316,7 @@ function createAPI(ctx: ModeContext) {
     domain?: RegExp,
     new_annotation?: string,
   ): void {
-    if (_isDomainApplicable(domain)) {
+    if (isDomainApplicable(domain)) {
       mapInMode(insert, new_keystroke, old_keystroke, new_annotation);
     }
   }
@@ -330,7 +330,7 @@ function createAPI(ctx: ModeContext) {
    * @see unmap
    */
   function iunmap(keystroke: string, domain?: RegExp): void {
-    if (_isDomainApplicable(domain)) {
+    if (isDomainApplicable(domain)) {
       insert.mappings.remove(KeyboardUtils.encodeKeystroke(keystroke));
     }
   }
@@ -352,7 +352,7 @@ function createAPI(ctx: ModeContext) {
     domain?: RegExp,
     _new_annotation?: string,
   ): void {
-    if (_isDomainApplicable(domain)) {
+    if (isDomainApplicable(domain)) {
       dispatchSKEvent("front", ["addMapkey", "Omnibar", new_keystroke, old_keystroke]);
     }
   }
@@ -374,7 +374,7 @@ function createAPI(ctx: ModeContext) {
     domain?: RegExp,
     new_annotation?: string,
   ): void {
-    if (_isDomainApplicable(domain)) {
+    if (isDomainApplicable(domain)) {
       mapInMode(visual, new_keystroke, old_keystroke, new_annotation);
     }
   }
@@ -388,7 +388,7 @@ function createAPI(ctx: ModeContext) {
    * @see unmap
    */
   function vunmap(keystroke: string, domain?: RegExp): void {
-    if (_isDomainApplicable(domain)) {
+    if (isDomainApplicable(domain)) {
       visual.mappings.remove(KeyboardUtils.encodeKeystroke(keystroke));
     }
   }
@@ -410,7 +410,7 @@ function createAPI(ctx: ModeContext) {
     domain?: RegExp,
     _new_annotation?: string,
   ): void {
-    if (_isDomainApplicable(domain)) {
+    if (isDomainApplicable(domain)) {
       normal.addLurkMap(new_keystroke, old_keystroke);
     }
   }

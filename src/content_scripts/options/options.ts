@@ -422,30 +422,30 @@ export default function optionsMain(
     const mode = new ModeHandle("KeyPicker");
 
     function showKey() {
-      let s = htmlEncode(_key);
+      let s = htmlEncode(key);
       if (!s) {
         s = "&nbsp;";
       }
       setSanitizedContent(document.getElementById("inputKey")!, s);
     }
 
-    let _key = "";
+    let key = "";
     const keyPickerDiv = requireElement("#keyPicker");
     mode.addEventListener("keydown", (event: KeyPickerKeydownEvent) => {
       if (event.keyCode === 27) {
         hide(keyPickerDiv);
         mode.exit();
       } else if (event.keyCode === 8) {
-        let ek = KeyboardUtils.encodeKeystroke(_key);
+        let ek = KeyboardUtils.encodeKeystroke(key);
         ek = ek.slice(0, -1);
-        _key = KeyboardUtils.decodeKeystroke(ek);
+        key = KeyboardUtils.decodeKeystroke(ek);
         showKey();
       } else if (event.keyCode === 13) {
         hide(keyPickerDiv);
         mode.exit();
-        if (_elm) {
-          setSanitizedContent(_elm, _key !== "" ? htmlEncode(_key) : "🚫");
-          _elm.dataset["custom"] = _key;
+        if (targetElm) {
+          setSanitizedContent(targetElm, key !== "" ? htmlEncode(key) : "🚫");
+          targetElm.dataset["custom"] = key;
         }
         const realDefMap: Record<string, string> = {};
         Array.from(basicMappingsDiv.querySelectorAll("kbd")).forEach((el) => {
@@ -481,26 +481,26 @@ export default function optionsMain(
           );
           reportIssue(`Unrecognized key event: ${keyName}`, keyStr);
         } else {
-          _key += KeyboardUtils.decodeKeystroke(keyName);
+          key += KeyboardUtils.decodeKeystroke(keyName);
           showKey();
         }
       }
       event.sk_stopPropagation = true;
     });
 
-    let _elm: HTMLElement | null = null;
+    let targetElm: HTMLElement | null = null;
     const self: KeyPickerMode = {
       enter(elm: HTMLElement): void {
         mode.enter();
 
-        _key = elm.innerText;
-        if (_key === "🚫") {
-          _key = "";
+        key = elm.innerText;
+        if (key === "🚫") {
+          key = "";
         }
 
         showKey();
         show(keyPickerDiv);
-        _elm = elm;
+        targetElm = elm;
       },
     };
 

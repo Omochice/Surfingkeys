@@ -162,7 +162,7 @@ describe("createAPI vmapkey", () => {
 
     const encoded = KeyboardUtils.encodeKeystroke("q");
     const node = ctx.visual.mappings.find(encoded);
-    // visual mode gets feature_group 9 per _mapkey implementation
+    // visual mode gets feature_group 9 per mapkeyInMode implementation
     expect(node?.meta?.feature_group).toBe(9);
   });
 });

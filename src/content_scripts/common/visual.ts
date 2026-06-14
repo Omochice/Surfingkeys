@@ -116,7 +116,7 @@ function createVisual(clipboard: ClipboardLike, hints: HintsLike): VisualMode {
           self.exit();
         }
         state--;
-        _onStateChange();
+        onStateChange();
         event.sk_stopPropagation = true;
         event.sk_suppressed = true;
       }
@@ -161,7 +161,7 @@ function createVisual(clipboard: ClipboardLike, hints: HintsLike): VisualMode {
         break;
       }
     }
-    _onStateChange();
+    onStateChange();
   });
 
   mode.addEventListener("resize", () => {
@@ -173,17 +173,17 @@ function createVisual(clipboard: ClipboardLike, hints: HintsLike): VisualMode {
       select(cur);
     }
   });
-  let selectionMark_: HTMLElement[] | null = null;
+  let selectionMark: HTMLElement[] | null = null;
   const clearSelectionMark = () => {
-    if (selectionMark_) {
-      selectionMark_.forEach((m) => {
+    if (selectionMark) {
+      selectionMark.forEach((m) => {
         m.remove();
       });
     }
   };
   mode.addEventListener("selectionchange", () => {
     clearSelectionMark();
-    selectionMark_ = createSelectionMark(
+    selectionMark = createSelectionMark(
       selection.anchorNode,
       selection.anchorOffset,
       selection.focusNode,
@@ -314,22 +314,22 @@ function createVisual(clipboard: ClipboardLike, hints: HintsLike): VisualMode {
       self.showCursor();
     },
   });
-  const _units: Record<string, string> = {
+  const units: Record<string, string> = {
     w: "word",
     l: "lineboundary",
     s: "sentence",
     p: "paragraphboundary",
   };
-  function _selectUnit(w: string): void {
+  function selectUnit(w: string): void {
     if (getBrowserName() !== "Firefox" || (w !== "p" && w !== "s")) {
-      const unit = _units[w];
+      const unit = units[w];
       // sentence and paragraphboundary not support in firefox
       // document.getSelection().modify("move", "backward", "paragraphboundary")
       // gets 0x80004001 (NS_ERROR_NOT_IMPLEMENTED)
       selection.modify("extend", "forward", unit);
     }
   }
-  const _yankFunctions: Array<Omit<TrieMeta, "word">> = [
+  const yankFunctions: Array<Omit<TrieMeta, "word">> = [
     {},
     {
       annotation: "Yank a word(w) or line(l) or sentence(s) or paragraph(p)",
@@ -337,7 +337,7 @@ function createVisual(clipboard: ClipboardLike, hints: HintsLike): VisualMode {
       code: (w: string) => {
         const pos: [Node | null, number] = [selection.focusNode, selection.focusOffset];
         self.hideCursor();
-        _selectUnit(w);
+        selectUnit(w);
         clipboard.write(selection.toString());
         selection.collapseToStart();
         selection.setPosition(pos[0], pos[1]);
@@ -354,7 +354,7 @@ function createVisual(clipboard: ClipboardLike, hints: HintsLike): VisualMode {
           selection.setPosition(pos[0], pos[1]);
           self.showCursor();
           state = 1;
-          _onStateChange();
+          onStateChange();
         } else if (runtime.conf.modeAfterYank === "Normal") {
           state = 2;
           self.toggle();
@@ -475,7 +475,7 @@ function createVisual(clipboard: ClipboardLike, hints: HintsLike): VisualMode {
         ) {
           self.hideCursor();
           state = 2;
-          _onStateChange();
+          onStateChange();
           selection.setBaseAndExtent(firstNode, 0, lastNode, lastNode.length);
           self.showCursor();
           break;
@@ -490,8 +490,8 @@ function createVisual(clipboard: ClipboardLike, hints: HintsLike): VisualMode {
     code: (w: string) => {
       self.hideCursor();
       state = 2;
-      _onStateChange();
-      _selectUnit(w);
+      onStateChange();
+      selectUnit(w);
       self.showCursor();
     },
   });
@@ -609,7 +609,7 @@ function createVisual(clipboard: ClipboardLike, hints: HintsLike): VisualMode {
     self.showCursor();
   }
 
-  const markHolder_ = document.createElement("div");
+  const markHolder = document.createElement("div");
   function createMark(
     className: string,
     node1: Node,
@@ -636,14 +636,14 @@ function createVisual(clipboard: ClipboardLike, hints: HintsLike): VisualMode {
           mark.style.top = document.scrollingElement!.scrollTop + r.top + "px";
           mark.style.width = r.width + "px";
           mark.style.height = r.height + "px";
-          markHolder_.appendChild(mark);
+          markHolder.appendChild(mark);
           return mark;
         }
         return null;
       })
       .filter((m): m is HTMLElement => m !== null);
-    if (marks.length && !document.documentElement.contains(markHolder_)) {
-      document.documentElement.prepend(markHolder_);
+    if (marks.length && !document.documentElement.contains(markHolder)) {
+      document.documentElement.prepend(markHolder);
     }
     return marks;
   }
@@ -708,8 +708,8 @@ function createVisual(clipboard: ClipboardLike, hints: HintsLike): VisualMode {
     clearSelectionMark();
     self.hideCursor();
     matches = [];
-    setSanitizedContent(markHolder_, "");
-    markHolder_.remove();
+    setSanitizedContent(markHolder, "");
+    markHolder.remove();
     dispatchSKEvent("front", ["showStatus", [undefined, undefined, ""]]);
   };
 
@@ -718,24 +718,24 @@ function createVisual(clipboard: ClipboardLike, hints: HintsLike): VisualMode {
   };
 
   mode.onEnter = () => {
-    _incState();
+    incState();
   };
 
   mode.onExit = () => {
     self.visualClear();
   };
 
-  function _onStateChange(): void {
-    const yankFn = _yankFunctions[state];
+  function onStateChange(): void {
+    const yankFn = yankFunctions[state];
     if (yankFn != null) {
       mappings.add("y", yankFn);
     }
     mode.statusLine = mode.name + " - " + (status[state] ?? "");
     showModeStatus();
   }
-  function _incState(): void {
+  function incState(): void {
     state = (state + 1) % 3;
-    _onStateChange();
+    onStateChange();
   }
 
   const restore = (): void => {
@@ -749,14 +749,14 @@ function createVisual(clipboard: ClipboardLike, hints: HintsLike): VisualMode {
     switch (state) {
       case 1: {
         selection.extend(selection.anchorNode!, selection.anchorOffset);
-        _incState();
+        incState();
         break;
       }
       case 2: {
         self.hideCursor();
         selection.collapse(selection.focusNode, selection.focusOffset);
         self.exit();
-        _incState();
+        incState();
         break;
       }
       default: {
@@ -770,7 +770,7 @@ function createVisual(clipboard: ClipboardLike, hints: HintsLike): VisualMode {
               } else {
                 selection.extend(element[0], element[1] + element[2].length);
               }
-              _incState();
+              incState();
             }
             self.showCursor();
           }, 0);
@@ -933,14 +933,14 @@ function createVisual(clipboard: ClipboardLike, hints: HintsLike): VisualMode {
     actionWithSelectionPreserved((sel) => {
       sel!.setPosition(firstElement, 0);
       if (win.find(query, false, false, true, true)) {
-        _selectUnit("s");
+        selectUnit("s");
         sentence = selection.toString();
       }
     });
     return sentence;
   };
 
-  const _style: Record<string, string> = {};
+  const styleMap: Record<string, string> = {};
   /**
    * Set styles for visual mode.
    *
@@ -953,10 +953,10 @@ function createVisual(clipboard: ClipboardLike, hints: HintsLike): VisualMode {
    * @name Visual.style
    */
   const style = (element: string, style: string): void => {
-    _style[element] = style;
+    styleMap[element] = style;
 
-    cursor.setAttribute("style", _style["cursor"] || "");
-    mark_template.setAttribute("style", _style["marks"] || "");
+    cursor.setAttribute("style", styleMap["cursor"] || "");
+    mark_template.setAttribute("style", styleMap["marks"] || "");
   };
 
   const self: VisualMode = {

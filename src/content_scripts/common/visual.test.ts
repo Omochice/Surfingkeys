@@ -148,7 +148,7 @@ describe("createVisual — emptySelection()", () => {
   });
 });
 
-// ─── state line via onEnter / _incState / _onStateChange ─────────────────────
+// ─── state line via onEnter / incState / onStateChange ─────────────────────
 
 describe("createVisual — statusLine reflects state transitions", () => {
   afterEach(() => {
@@ -158,7 +158,7 @@ describe("createVisual — statusLine reflects state transitions", () => {
   it("starts with an empty statusLine (state=0)", () => {
     const visual = createVisual(makeClipboard(), makeHints());
     // Before enter(), the statusLine is whatever Mode constructed it as.
-    // We exercise _onStateChange by triggering onEnter (which calls _incState).
+    // We exercise onStateChange by triggering onEnter (which calls incState).
     // state=0 -> after enter -> state=1, statusLine == "Visual - Caret"
     visual.onEnter!();
     expect(visual.statusLine).toBe("Visual - Caret");
@@ -359,7 +359,7 @@ describe("createVisual — toggle() state transitions", () => {
 
     visual.toggle();
 
-    // After toggle() from state=1, _incState() is called: state becomes 2.
+    // After toggle() from state=1, incState() is called: state becomes 2.
     expect(visual.statusLine).toBe("Visual - Range");
   });
 
@@ -496,9 +496,9 @@ describe("createVisual — restore()", () => {
 // ─── 'y' mapping registered per-state ────────────────────────────────────────
 
 describe("createVisual — 'y' mapping is registered after state change", () => {
-  it("'y' has no code in the initial state=0 (_yankFunctions[0] is empty)", () => {
+  it("'y' has no code in the initial state=0 (yankFunctions[0] is empty)", () => {
     const visual = createVisual(makeClipboard(), makeHints());
-    // In state=0, _yankFunctions[0] = {} which has no code. The mapping may
+    // In state=0, yankFunctions[0] = {} which has no code. The mapping may
     // exist but code should be undefined.
     const yNode = visual.mappings.find("y");
     // The mapping is added with an empty object, so meta.code is undefined.
@@ -507,7 +507,7 @@ describe("createVisual — 'y' mapping is registered after state change", () => 
 
   it("'y' has a code function after entering state=1 (Caret)", () => {
     const visual = createVisual(makeClipboard(), makeHints());
-    visual.onEnter!(); // advances to state=1, _onStateChange adds yankFunctions[1]
+    visual.onEnter!(); // advances to state=1, onStateChange adds yankFunctions[1]
     const yNode = visual.mappings.find("y");
     expect(yNode?.meta?.code).toBeTypeOf("function");
   });
@@ -609,7 +609,7 @@ describe("createVisual — 'y' yank honours modeAfterYank", () => {
     visual.mappings.find("y")?.meta?.code?.();
 
     expect(clipboard.write).toHaveBeenCalledWith("yank me");
-    // modeAfterYank "Caret" → state=1, _onStateChange refreshes the status line.
+    // modeAfterYank "Caret" → state=1, onStateChange refreshes the status line.
     expect(visual.statusLine).toBe("Visual - Caret");
   });
 
