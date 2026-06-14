@@ -188,7 +188,7 @@ type Omnibar = {
 };
 
 /**
- * The slice of the front the omnibar talks to. `_actions` is assignment-only here (the front
+ * The slice of the front the omnibar talks to. `actions` is assignment-only here (the front
  * dispatches them), so a `never` parameter accepts handlers of any message shape without `any`;
  * contentCommand is generic over its response so each caller types its own callback. It is declared
  * as a method so its callback parameter is checked bivariantly, which lets the front's
@@ -199,7 +199,7 @@ type OmnibarFront = {
   openOmnibar: (args: OmnibarShowArgs) => void;
   postMessage: (msg: Record<string, unknown>) => void;
   topOrigin: string;
-  _actions: Record<string, (message: never) => void>;
+  actions: Record<string, (message: never) => void>;
   contentCommand<R = unknown>(args: Record<string, unknown>, successById?: (msg: R) => void): void;
 };
 
@@ -324,8 +324,8 @@ function createOmnibar(front: OmnibarFront, clipboard: { write(text: string): vo
       runtime.conf.omnibarPosition =
         runtime.conf.omnibarPosition === "bottom" ? "middle" : "bottom";
       reopen(() => {
-        _savedAargs.pref = savedInput;
-        front.openOmnibar(_savedAargs);
+        savedAargs.pref = savedInput;
+        front.openOmnibar(savedAargs);
       });
     },
   });
@@ -334,13 +334,13 @@ function createOmnibar(front: OmnibarFront, clipboard: { write(text: string): vo
     annotation: "Show results of next page",
     feature_group: 8,
     code: function () {
-      if (_items) {
-        if (_start * runtime.conf.omnibarMaxResults < _items.length) {
-          _start++;
+      if (urlItems) {
+        if (start * runtime.conf.omnibarMaxResults < urlItems.length) {
+          start++;
         } else {
-          _start = 1;
+          start = 1;
         }
-        _listResultPage();
+        listResultPage();
       }
     },
   });
@@ -349,13 +349,13 @@ function createOmnibar(front: OmnibarFront, clipboard: { write(text: string): vo
     annotation: "Show results of previous page",
     feature_group: 8,
     code: function () {
-      if (_items) {
-        if (_start > 1) {
-          _start--;
+      if (urlItems) {
+        if (start > 1) {
+          start--;
         } else {
-          _start = Math.ceil(_items.length / runtime.conf.omnibarMaxResults);
+          start = Math.ceil(urlItems.length / runtime.conf.omnibarMaxResults);
         }
-        _listResultPage();
+        listResultPage();
       }
     },
   });
@@ -373,8 +373,8 @@ function createOmnibar(front: OmnibarFront, clipboard: { write(text: string): vo
         text = fi.data.copy;
       } else if (fi && fi.data.url) {
         text = fi.data.url;
-      } else if (_page) {
-        text = _page
+      } else if (pageItems) {
+        text = pageItems
           .map((p: { url?: string }) => {
             return p.url;
           })
@@ -448,14 +448,14 @@ function createOmnibar(front: OmnibarFront, clipboard: { write(text: string): vo
   let handler: OmnibarHandler = {};
   let lastHandler: OmnibarHandler | null = null;
   // Whether Enter should open in a new tab, taken from the open spec on each show.
-  let _tabbed: boolean = true;
+  let tabbed: boolean = true;
   const ui = requireElement<OmnibarElement>("#sk_omnibar");
 
   const triggerInput = (): void => {
-    _onInput();
+    onInput();
   };
 
-  let _collapsingPoint: string | undefined;
+  let collapsingPoint: string | undefined;
   const expandAlias = (alias: string, val: string): boolean => {
     let eaten = false;
     if (handler !== searchEngine && alias.length && Object.hasOwn(searchEngine.aliases, alias)) {
@@ -466,8 +466,8 @@ function createOmnibar(front: OmnibarFront, clipboard: { write(text: string): vo
       setFocusedIndex(-1);
       setPrompt(handler.prompt ?? "");
       setResultPage("");
-      _items = null;
-      _collapsingPoint = val;
+      urlItems = null;
+      collapsingPoint = val;
       setQuery(val);
       if (val.length) {
         self.triggerInput();
@@ -480,7 +480,7 @@ function createOmnibar(front: OmnibarFront, clipboard: { write(text: string): vo
   const collapseAlias = (): boolean => {
     let eaten = false;
     const val = self.input.value;
-    if (lastHandler && handler !== lastHandler && (val === _collapsingPoint || val === "")) {
+    if (lastHandler && handler !== lastHandler && (val === collapsingPoint || val === "")) {
       handler = lastHandler;
       lastHandler = null;
       setPrompt(handler.prompt ?? "");
@@ -559,10 +559,10 @@ function createOmnibar(front: OmnibarFront, clipboard: { write(text: string): vo
       },
       onInput: (val: string) => {
         setQuery(val);
-        _onInput();
+        onInput();
       },
       onKeyDown: (evt: KeyboardEvent) => {
-        _onKeyDown(evt);
+        onKeyDown(evt);
       },
       ref: (el: HTMLInputElement) => {
         inputElement = el;
@@ -614,13 +614,13 @@ function createOmnibar(front: OmnibarFront, clipboard: { write(text: string): vo
     }
   });
 
-  function _onInput() {
+  function onInput() {
     if (lastInput !== self.input.value) {
       lastInput = self.input.value;
     }
     handler.onInput?.();
   }
-  function _onKeyDown(evt: KeyboardEvent) {
+  function onKeyDown(evt: KeyboardEvent) {
     if (handler.onKeydown?.(evt)) {
       return;
     }
@@ -629,7 +629,7 @@ function createOmnibar(front: OmnibarFront, clipboard: { write(text: string): vo
       evt.preventDefault();
     } else if (evt.keyCode === KeyboardUtils.keyCodes["enter"]) {
       handler.activeTab = !evt.ctrlKey;
-      handler.tabbed = Number(_tabbed) ^ Number(evt.shiftKey);
+      handler.tabbed = Number(tabbed) ^ Number(evt.shiftKey);
       handler.onEnter?.() && front.hidePopup();
     } else if (evt.keyCode === KeyboardUtils.keyCodes["space"]) {
       const cursor = self.input.selectionStart;
@@ -773,10 +773,10 @@ function createOmnibar(front: OmnibarFront, clipboard: { write(text: string): vo
     }
   };
 
-  let _start: number;
-  let _items: readonly URLItem[] | null;
-  let _showFolder: boolean;
-  let _page: URLItem[];
+  let start: number;
+  let urlItems: readonly URLItem[] | null;
+  let showFolderFlag: boolean;
+  let pageItems: URLItem[];
 
   const getPageSize = (): number => {
     return runtime.conf.omnibarMaxResults;
@@ -787,38 +787,38 @@ function createOmnibar(front: OmnibarFront, clipboard: { write(text: string): vo
   };
 
   const listURLs = (items: readonly URLItem[], showFolder: boolean): void => {
-    _start = 1;
-    _items = items;
-    _showFolder = showFolder;
-    _listResultPage();
+    start = 1;
+    urlItems = items;
+    showFolderFlag = showFolder;
+    listResultPage();
     if (savedFocused !== -1) {
       self.focusItem(savedFocused);
       savedFocused = -1;
     }
   };
   const getItems = (): readonly URLItem[] | null => {
-    return _items;
+    return urlItems;
   };
 
-  function _listResultPage() {
-    if (_items == null) {
+  function listResultPage() {
+    if (urlItems == null) {
       return;
     }
-    const si = (_start - 1) * runtime.conf.omnibarMaxResults;
+    const si = (start - 1) * runtime.conf.omnibarMaxResults;
     let ei = si + runtime.conf.omnibarMaxResults;
-    ei = ei > _items.length ? _items.length : ei;
-    let total: number | string = _items.length;
+    ei = ei > urlItems.length ? urlItems.length : ei;
+    let total: number | string = urlItems.length;
     if (total === runtime.conf.omnibarHistoryCacheSize) {
       total = total + "+";
     }
     setResultPage(`${si + 1} - ${ei} / ${total}`);
-    _page = _items.slice(si, ei);
+    pageItems = urlItems.slice(si, ei);
     const query = self.input.value.trim();
     let rxp: RegExp | null = null;
     if (query.length) {
       rxp = regexFromString(query, runtime.getCaseSensitive(query), true);
     }
-    self.listResults(_page, (b: URLItem) => {
+    self.listResults(pageItems, (b: URLItem) => {
       if (Object.hasOwn(b, "html")) {
         return self.createItemFromRawHtml({ html: b.html ?? "" });
       } else if (Object.hasOwn(b, "url") && b.url != null) {
@@ -826,7 +826,7 @@ function createOmnibar(front: OmnibarFront, clipboard: { write(text: string): vo
           return null;
         }
         return self.createURLItem(b, rxp);
-      } else if (_showFolder) {
+      } else if (showFolderFlag) {
         const li = createElementWithContent(
           "li",
           `<div class="title">▷ ${self.highlight(rxp, b.title ?? "")}</div>`,
@@ -840,10 +840,10 @@ function createOmnibar(front: OmnibarFront, clipboard: { write(text: string): vo
     });
   }
 
-  let _savedAargs: OmnibarShowArgs;
+  let savedAargs: OmnibarShowArgs;
   ui.onShow = (args: OmnibarShowArgs) => {
     handler = handlers[args.type] ?? {};
-    _savedAargs = args;
+    savedAargs = args;
     ui.classList.remove("sk_omnibar_middle");
     ui.classList.remove("sk_omnibar_bottom");
     ui.classList.add("sk_omnibar_" + getPosition());
@@ -855,7 +855,7 @@ function createOmnibar(front: OmnibarFront, clipboard: { write(text: string): vo
       ui.append(resultsDiv);
     }
 
-    _tabbed = args.tabbed != null ? args.tabbed : true;
+    tabbed = args.tabbed != null ? args.tabbed : true;
     self.input.focus();
     mode.enter();
     if (args.pref) {
@@ -874,7 +874,7 @@ function createOmnibar(front: OmnibarFront, clipboard: { write(text: string): vo
     delete self.cachedPromise;
     // delete only deletes properties of an object and
     // cannot normally delete a variable declared using var, whatever the scope.
-    _items = null;
+    urlItems = null;
     bookmarkFolders = null;
 
     lastInput = "";
@@ -1192,7 +1192,7 @@ function createOmnibar(front: OmnibarFront, clipboard: { write(text: string): vo
   self.addHandler("OmniQuery", OmniQuery(self, front));
   self.addHandler("UserURLs", OpenUserURLs(self));
 
-  front._actions["updateOmnibarResult"] = (message: { words: string[] }) => {
+  front.actions["updateOmnibarResult"] = (message: { words: string[] }) => {
     self.listWords(message.words);
   };
   return self;
@@ -1798,11 +1798,11 @@ function OpenVIMarks(omnibar: Omnibar): OmnibarHandler {
 function SearchEngine(omnibar: Omnibar, front: OmnibarFront): SearchEngineHandler {
   const self: SearchEngineHandler = { aliases: {} };
 
-  let _pendingRequest: ReturnType<typeof setTimeout> | undefined = undefined; // timeout ID
+  let pendingRequest: ReturnType<typeof setTimeout> | undefined = undefined; // timeout ID
   function clearPendingRequest() {
-    if (_pendingRequest) {
-      clearTimeout(_pendingRequest);
-      _pendingRequest = undefined;
+    if (pendingRequest) {
+      clearTimeout(pendingRequest);
+      pendingRequest = undefined;
     }
   }
   self.onOpen = (arg: string) => {
@@ -1885,7 +1885,7 @@ function SearchEngine(omnibar: Omnibar, front: OmnibarFront): SearchEngineHandle
     // Set a timeout before the request is dispatched so that it can be canceled if necessary.
     // This helps prevent rate-limits when typing a long query.
     // E.g. github.com's API rate-limits after only 10 unauthenticated requests.
-    _pendingRequest = setTimeout(() => {
+    pendingRequest = setTimeout(() => {
       const requestUrl = constructSearchURL(
         self.suggestionURL ?? "",
         encodeURIComponent(omnibar.input.value),
@@ -1911,7 +1911,7 @@ function SearchEngine(omnibar: Omnibar, front: OmnibarFront): SearchEngineHandle
     }, runtime.conf.omnibarSuggestionTimeout);
   };
 
-  front._actions["addSearchAlias"] = (message: {
+  front.actions["addSearchAlias"] = (message: {
     alias: string;
     prompt: string;
     url: string;
@@ -1953,10 +1953,10 @@ function SearchEngine(omnibar: Omnibar, front: OmnibarFront): SearchEngineHandle
       );
     }
   };
-  front._actions["removeSearchAlias"] = (message: { alias: string }) => {
+  front.actions["removeSearchAlias"] = (message: { alias: string }) => {
     delete self.aliases[message.alias];
   };
-  front._actions["getSearchAliases"] = (message: { id: unknown }) => {
+  front.actions["getSearchAliases"] = (message: { id: unknown }) => {
     front.postMessage({
       aliases: self.aliases,
       toContent: true,
@@ -2047,7 +2047,7 @@ function Commands(omnibar: Omnibar, front: OmnibarFront): OmnibarHandler {
     }
   }
 
-  front._actions["executeCommand"] = (message: { cmdline: string }) => {
+  front.actions["executeCommand"] = (message: { cmdline: string }) => {
     execute(message.cmdline);
   };
 
@@ -2071,7 +2071,7 @@ function OmniQuery(omnibar: Omnibar, front: OmnibarFront): OmnibarHandler {
   function onlyUnique(value: string, index: number, arr: string[]) {
     return arr.indexOf(value) === index;
   }
-  let _words: string[];
+  let words: string[];
   self.onOpen = (arg?: string) => {
     if (arg && document.dictEnabled == null) {
       omnibar.setQuery(arg);
@@ -2086,14 +2086,14 @@ function OmniQuery(omnibar: Omnibar, front: OmnibarFront): OmnibarHandler {
       },
       (message: { data: string }) => {
         const splitRegex = /[^a-zA-Z]+/;
-        _words = message.data.toLowerCase().split(splitRegex).filter(onlyUnique);
+        words = message.data.toLowerCase().split(splitRegex).filter(onlyUnique);
       },
     );
   };
 
   self.onInput = () => {
     const iw = omnibar.input.value;
-    const candidates = _words.filter((w) => {
+    const candidates = words.filter((w) => {
       return w.includes(iw);
     });
     if (candidates.length) {
@@ -2126,15 +2126,15 @@ function OpenUserURLs(omnibar: Omnibar): OmnibarHandler {
     prompt: "UserURLs",
   };
 
-  let _items: { title?: string; url?: string }[];
+  let items: { title?: string; url?: string }[];
   self.onOpen = (args: { title?: string; url?: string }[]) => {
-    _items = args;
+    items = args;
     self.onInput?.();
   };
 
   self.onInput = () => {
     const query = omnibar.input.value;
-    const urls = filterByTitleOrUrl(_items, query, runtime.getCaseSensitive(query));
+    const urls = filterByTitleOrUrl(items, query, runtime.getCaseSensitive(query));
     omnibar.listURLs(urls, false);
   };
   return self;

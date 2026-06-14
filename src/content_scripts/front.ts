@@ -76,9 +76,9 @@ function createFront(
   // eslint-disable-next-line typescript/no-explicit-any
   const self: any = {};
 
-  const _uiUserSettings: Record<string, unknown>[] = [];
+  const uiUserSettings: Record<string, unknown>[] = [];
   function applyUserSettings() {
-    for (const cmd of _uiUserSettings) {
+    for (const cmd of uiUserSettings) {
       self.command(cmd);
     }
   }
@@ -94,7 +94,7 @@ function createFront(
     });
   }
 
-  const _callbacks: Record<string, (msg: unknown) => unknown> = {};
+  const callbacks: Record<string, (msg: unknown) => unknown> = {};
   self.command = (args: Record<string, unknown>, successById?: (msg: unknown) => unknown) => {
     args["toFrontend"] = true;
     args["origin"] = getDocumentOrigin();
@@ -102,7 +102,7 @@ function createFront(
     args["id"] = id;
     if (successById) {
       args["ack"] = true;
-      _callbacks[id] = successById;
+      callbacks[id] = successById;
     }
     if (window !== top) {
       runtime.postTopMessage({ surfingkeys_uihost_data: args });
@@ -122,7 +122,7 @@ function createFront(
   };
 
   function applyUICommand(cmd: Record<string, unknown>) {
-    _uiUserSettings.push(cmd);
+    uiUserSettings.push(cmd);
     if (frontendPromise) {
       frontendPromise.then(() => {
         self.command(cmd);
@@ -130,7 +130,7 @@ function createFront(
     }
   }
 
-  const _listSuggestions: Record<string, ListSuggestionFn> = {};
+  const listSuggestions: Record<string, ListSuggestionFn> = {};
   self.addSearchAlias = (
     alias: string,
     prompt: string,
@@ -140,7 +140,7 @@ function createFront(
     options?: Record<string, unknown>,
   ) => {
     if (suggestionURL && listSuggestion) {
-      _listSuggestions[suggestionURL] = listSuggestion;
+      listSuggestions[suggestionURL] = listSuggestion;
     }
     applyUICommand({
       action: "addSearchAlias",
@@ -167,7 +167,7 @@ function createFront(
   // Dispatch registry: handlers are stored with their own concrete message types then invoked with a
   // parsed message; an `unknown` parameter would reject those typed handlers (contravariance).
   // eslint-disable-next-line typescript/no-explicit-any
-  const _actions: Record<string, (message: any) => any> = {};
+  const actions: Record<string, (message: any) => any> = {};
   let skCallbacks: Record<string, (res: unknown) => void> = {};
 
   self.performInlineQueryOnSelection = (word: string) => {
@@ -196,7 +196,7 @@ function createFront(
     }
   }
 
-  _actions["updateInlineQuery"] = (message: unknown) => {
+  actions["updateInlineQuery"] = (message: unknown) => {
     const { word } = v.parse(v.object({ word: v.optional(v.string()) }), message);
     if (word) {
       self.performInlineQueryOnSelection(word);
@@ -205,15 +205,15 @@ function createFront(
     }
   };
 
-  _actions["getSearchSuggestions"] = (message: {
+  actions["getSearchSuggestions"] = (message: {
     url: string;
     response: unknown;
     requestUrl: string;
     query: string;
   }) => {
     let ret = null;
-    if (Object.hasOwn(_listSuggestions, message.url)) {
-      const listSuggestion = _listSuggestions[message.url];
+    if (Object.hasOwn(listSuggestions, message.url)) {
+      const listSuggestion = listSuggestions[message.url];
       if (typeof listSuggestion === "function") {
         ret = listSuggestion(message.response, {
           url: message.requestUrl,
@@ -326,9 +326,9 @@ function createFront(
     self.command(args);
   };
 
-  let _inlineQuery = false;
+  let inlineQuery = false;
   // Called as both (result) and (pos, result) across the messaging paths.
-  let _showQueryResult: ((...args: unknown[]) => void) | undefined;
+  let inlineQueryResult: ((...args: unknown[]) => void) | undefined;
   self.performInlineQuery = (
     query: string,
     pos: QueryPos,
@@ -361,7 +361,7 @@ function createFront(
         );
       }
       hidePopup();
-    } else if (_inlineQuery) {
+    } else if (inlineQuery) {
       query = query.toLocaleLowerCase();
       reportOnFail(RUNTIME("updateInputHistory", { OmniQuery: query }), reportError);
 
@@ -371,7 +371,7 @@ function createFront(
       };
       dispatchSKEvent("user", ["performInlineQuery", query, callbackId]);
     } else if (isInUIFrame()) {
-      _showQueryResult = (result) => {
+      inlineQueryResult = (result) => {
         showQueryResult(pos, result);
       };
       requireElement<HTMLIFrameElement>("#proxyFrame").contentWindow!.postMessage(
@@ -400,13 +400,13 @@ function createFront(
    * @name Front.registerInlineQuery
    */
   self.registerInlineQuery = () => {
-    _inlineQuery = true;
+    inlineQuery = true;
   };
   self.openOmniquery = (args: { query?: string; style?: string }) => {
     self.openOmnibar({ type: "OmniQuery", extra: args.query, style: args.style });
   };
 
-  const _keyHints: {
+  const keyHints: {
     accumulated: string;
     candidates: Record<string, { annotation?: string | string[] | undefined }>;
     key: string;
@@ -436,7 +436,7 @@ function createFront(
   };
 
   let onDialogResponseOk: (() => void) | null = null;
-  _actions["dialogResponse"] = (message: unknown) => {
+  actions["dialogResponse"] = (message: unknown) => {
     const { result } = v.parse(v.object({ result: v.optional(v.string()) }), message);
     if (result === "Ok" && onDialogResponseOk) {
       onDialogResponseOk();
@@ -560,23 +560,23 @@ function createFront(
       });
     },
     hideKeystroke: () => {
-      _keyHints.accumulated = "";
-      _keyHints.candidates = {};
+      keyHints.accumulated = "";
+      keyHints.candidates = {};
       self.command({
         action: "hideKeystroke",
       });
     },
     showKeystroke: (key: string, mode: { mappings: Trie }) => {
-      _keyHints.accumulated += key;
-      _keyHints.key = key;
-      _keyHints.candidates = {};
+      keyHints.accumulated += key;
+      keyHints.key = key;
+      keyHints.candidates = {};
 
-      const root = mode.mappings.find(_keyHints.accumulated);
+      const root = mode.mappings.find(keyHints.accumulated);
       if (root) {
         root
           .getMetas(() => true)
           .forEach((m) => {
-            _keyHints.candidates[m.word] = {
+            keyHints.candidates[m.word] = {
               annotation: m.annotation,
             };
           });
@@ -584,7 +584,7 @@ function createFront(
 
       self.command({
         action: "showKeystroke",
-        keyHints: _keyHints,
+        keyHints: keyHints,
       });
     },
     openOmnibar: self.openOmnibar,
@@ -592,7 +592,7 @@ function createFront(
     toggleStatus: self.toggleStatus,
   });
 
-  _actions["omnibar_query_entered"] = (response: { query: string }) => {
+  actions["omnibar_query_entered"] = (response: { query: string }) => {
     reportOnFail(RUNTIME("updateInputHistory", { OmniQuery: response.query }), reportError);
     self.performInlineQuery(
       response.query,
@@ -619,7 +619,7 @@ function createFront(
     );
   };
 
-  _actions["getBackFocus"] = () => {
+  actions["getBackFocus"] = () => {
     window.focus();
     if (window === top && frontendPromise) {
       frontendPromise.then((uiHost) => {
@@ -632,21 +632,21 @@ function createFront(
     }
   };
 
-  _actions["getPageText"] = () => {
+  actions["getPageText"] = () => {
     return document.body.innerText;
   };
 
-  let _pendingQuery: ReturnType<typeof setTimeout> | undefined;
+  let pendingQuery: ReturnType<typeof setTimeout> | undefined;
   function clearPendingQuery() {
-    if (_pendingQuery) {
-      clearTimeout(_pendingQuery);
-      _pendingQuery = undefined;
+    if (pendingQuery) {
+      clearTimeout(pendingQuery);
+      pendingQuery = undefined;
     }
   }
 
-  _actions["visualUpdate"] = (message: { query: string }) => {
+  actions["visualUpdate"] = (message: { query: string }) => {
     clearPendingQuery();
-    _pendingQuery = setTimeout(() => {
+    pendingQuery = setTimeout(() => {
       visual.visualUpdate(message.query);
       self.command({
         action: "visualUpdated",
@@ -654,31 +654,31 @@ function createFront(
     }, 500);
   };
 
-  _actions["visualClear"] = () => {
+  actions["visualClear"] = () => {
     clearPendingQuery();
     visual.visualClear();
   };
 
-  _actions["visualEnter"] = (message: { query: string }) => {
+  actions["visualEnter"] = (message: { query: string }) => {
     clearPendingQuery();
     visual.visualEnter(message.query);
   };
 
-  _actions["emptySelection"] = () => {
+  actions["emptySelection"] = () => {
     visual.emptySelection();
   };
 
-  _actions["executeUserCommand"] = (message: { name: string; args: unknown }) => {
+  actions["executeUserCommand"] = (message: { name: string; args: unknown }) => {
     dispatchSKEvent("user", ["executeUserCommand", message.name, message.args]);
   };
 
-  let _active = window === top;
-  _actions["deactivated"] = () => {
-    _active = false;
+  let frontActive = window === top;
+  actions["deactivated"] = () => {
+    frontActive = false;
   };
 
-  _actions["activated"] = () => {
-    _active = true;
+  actions["activated"] = () => {
+    frontActive = true;
   };
 
   runtime.on("focusFrame", (msg) => {
@@ -708,14 +708,14 @@ function createFront(
       if (!parsed.success) {
         return;
       }
-      const _message = parsed.output.surfingkeys_content_data ?? parsed.output.dictorium_data;
-      if (_message == null) {
+      const message = parsed.output.surfingkeys_content_data ?? parsed.output.dictorium_data;
+      if (message == null) {
         return;
       }
-      if (_message.action === "performInlineQuery") {
+      if (message.action === "performInlineQuery") {
         self.performInlineQuery(
-          _message.query ?? "",
-          _message.pos,
+          message.query ?? "",
+          message.pos,
           (pos: QueryPos, queryResult: unknown) => {
             (event.source as Window).postMessage(
               {
@@ -729,22 +729,22 @@ function createFront(
             );
           },
         );
-      } else if (_message.action === "performInlineQueryResult") {
-        _showQueryResult!(_message.pos, _message.result);
-      } else if (_message.action === "frontendDestroyed") {
+      } else if (message.action === "performInlineQueryResult") {
+        inlineQueryResult!(message.pos, message.result);
+      } else if (message.action === "frontendDestroyed") {
         frontendPromise = undefined;
-      } else if (_active) {
-        const id = _message.id;
-        const f = id == null ? undefined : _callbacks[id];
+      } else if (frontActive) {
+        const id = message.id;
+        const f = id == null ? undefined : callbacks[id];
         if (f) {
           // returns true to make callback stay for coming response.
-          if (!f(_message) && id != null) {
-            delete _callbacks[id];
+          if (!f(message) && id != null) {
+            delete callbacks[id];
           }
-        } else if (_message.action && Object.hasOwn(_actions, _message.action)) {
-          const action = _actions[_message.action];
-          let ret = action ? action(_message) : undefined;
-          if (_message.ack && ret) {
+        } else if (message.action && Object.hasOwn(actions, message.action)) {
+          const action = actions[message.action];
+          let ret = action ? action(message) : undefined;
+          if (message.ack && ret) {
             if (!ret.then) {
               ret = Promise.resolve(ret);
             }
@@ -753,23 +753,23 @@ function createFront(
                 surfingkeys_uihost_data: {
                   data,
                   toFrontend: true,
-                  origin: _message.origin,
-                  id: _message.id,
+                  origin: message.origin,
+                  id: message.id,
                 },
               }),
             );
           }
         }
-      } else if (_message.action === "activated") {
-        const activated = _actions["activated"];
+      } else if (message.action === "activated") {
+        const activated = actions["activated"];
         if (activated) {
-          activated(_message);
+          activated(message);
         }
-      } else if (_message.type === "DictoriumViewReady") {
+      } else if (message.type === "DictoriumViewReady") {
         // make inline query also work on dictorium frame continuously
-        const activated = _actions["activated"];
+        const activated = actions["activated"];
         if (activated) {
-          activated(_message);
+          activated(message);
         }
       }
       if (!parsed.output.dictorium_data) {

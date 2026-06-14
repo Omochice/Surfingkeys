@@ -9,9 +9,9 @@
  * Paths that rely on layout geometry (offsetWidth/Height, getBoundingClientRect returning real
  * sizes) are not testable under jsdom and are skipped. Specifically skipped:
  *
- * - _actions["showBubble"]: position math (offsetWidth/offsetHeight return 0 in jsdom)
+ * - Actions["showBubble"]: position math (offsetWidth/offsetHeight return 0 in jsdom)
  * - RenderTabs: relies on getBoundingClientRect().height
- * - ShowRichHints: relies on _pendingHint timer being set (only set when richHintsForKeystroke is in
+ * - ShowRichHints: relies on pendingHint timer being set (only set when richHintsForKeystroke is in
  *   range and can be tricky to control timing alongside clearPendingHint)
  */
 
@@ -129,22 +129,22 @@ function dispatchFrontendMessage(data: Record<string, unknown>): void {
 }
 
 // ---------------------------------------------------------------------------
-// _actions["initFrontend"]
+// actions["initFrontend"]
 // ---------------------------------------------------------------------------
-describe("_actions['initFrontend']", () => {
+describe("actions['initFrontend']", () => {
   it("stores topOrigin from the message", () => {
-    Front._actions["initFrontend"]({ origin: "https://test.example.com", winSize: [1280, 800] });
+    Front.actions["initFrontend"]({ origin: "https://test.example.com", winSize: [1280, 800] });
     expect(Front.topOrigin).toBe("https://test.example.com");
   });
 
   it("stores topSize from the message", () => {
-    Front._actions["initFrontend"]({ origin: "https://a.example.com", winSize: [1024, 768] });
+    Front.actions["initFrontend"]({ origin: "https://a.example.com", winSize: [1024, 768] });
     expect(Front.topSize).toEqual([1024, 768]);
   });
 
   it("returns a numeric timestamp", () => {
     const before = Date.now();
-    const result = Front._actions["initFrontend"]({
+    const result = Front.actions["initFrontend"]({
       origin: "https://b.example.com",
       winSize: [0, 0],
     });
@@ -156,12 +156,12 @@ describe("_actions['initFrontend']", () => {
 });
 
 // ---------------------------------------------------------------------------
-// _actions["destroyFrontend"]
+// actions["destroyFrontend"]
 // ---------------------------------------------------------------------------
-describe("_actions['destroyFrontend']", () => {
+describe("actions['destroyFrontend']", () => {
   it("returns true when no popup display is visible", () => {
-    // No _display is open, so destroyFrontend should return true.
-    const result = Front._actions["destroyFrontend"]();
+    // No display is open, so destroyFrontend should return true.
+    const result = Front.actions["destroyFrontend"]();
     expect(result).toBe(true);
   });
 
@@ -174,36 +174,36 @@ describe("_actions['destroyFrontend']", () => {
       calls.push(2);
     });
 
-    const result = Front._actions["destroyFrontend"]();
+    const result = Front.actions["destroyFrontend"]();
     expect(result).toBe(true);
     expect(calls).toEqual([1, 2]);
   });
 });
 
 // ---------------------------------------------------------------------------
-// _actions["toggleStatus"]
+// actions["toggleStatus"]
 // ---------------------------------------------------------------------------
-describe("_actions['toggleStatus']", () => {
+describe("actions['toggleStatus']", () => {
   it("hides the status bar when visible is false", () => {
     Front.statusBar.style.display = "";
-    Front._actions["toggleStatus"]({ visible: false });
+    Front.actions["toggleStatus"]({ visible: false });
     expect(Front.statusBar.style.display).toBe("none");
   });
 
   it("shows the status bar when visible is true", () => {
     Front.statusBar.style.display = "none";
-    Front._actions["toggleStatus"]({ visible: true });
+    Front.actions["toggleStatus"]({ visible: true });
     expect(Front.statusBar.style.display).toBe("");
   });
 });
 
 // ---------------------------------------------------------------------------
-// _actions["applyUserSettings"]
+// actions["applyUserSettings"]
 // ---------------------------------------------------------------------------
-describe("_actions['applyUserSettings']", () => {
+describe("actions['applyUserSettings']", () => {
   it("merges a known runtime.conf key from userSettings", () => {
     const original = runtime.conf.tabsThreshold;
-    Front._actions["applyUserSettings"]({ userSettings: { tabsThreshold: 42 } });
+    Front.actions["applyUserSettings"]({ userSettings: { tabsThreshold: 42 } });
     expect(runtime.conf.tabsThreshold).toBe(42);
     // restore
     runtime.conf.tabsThreshold = original;
@@ -213,7 +213,7 @@ describe("_actions['applyUserSettings']", () => {
     // 'unknownKey9999' is not a key in runtime.conf; the action should not
     // add it or throw.
     expect(() => {
-      Front._actions["applyUserSettings"]({ userSettings: { unknownKey9999: "value" } });
+      Front.actions["applyUserSettings"]({ userSettings: { unknownKey9999: "value" } });
     }).not.toThrow();
     const conf: Record<string, unknown> = runtime.conf;
     expect(conf["unknownKey9999"]).toBeUndefined();
@@ -221,7 +221,7 @@ describe("_actions['applyUserSettings']", () => {
 
   it("applies a theme string to the #sk_theme style element", () => {
     const themeEl = document.getElementById("sk_theme")!;
-    Front._actions["applyUserSettings"]({ userSettings: { theme: "body { color: red; }" } });
+    Front.actions["applyUserSettings"]({ userSettings: { theme: "body { color: red; }" } });
     // setSanitizedContent uses DOMPurify; in jsdom the sanitized output is
     // assigned to innerHTML, so we can observe the element's text content.
     expect(themeEl.textContent).toContain("color");
@@ -229,9 +229,9 @@ describe("_actions['applyUserSettings']", () => {
 });
 
 // ---------------------------------------------------------------------------
-// _actions["addMapkey"] — specialKeys path
+// actions["addMapkey"] — specialKeys path
 // ---------------------------------------------------------------------------
-describe("_actions['addMapkey'] — specialKeys path", () => {
+describe("actions['addMapkey'] — specialKeys path", () => {
   beforeEach(() => {
     // Restore the static specialKeys to known defaults before each test.
     specialKeys["<Alt-s>"] = ["<Alt-s>"];
@@ -239,7 +239,7 @@ describe("_actions['addMapkey'] — specialKeys path", () => {
   });
 
   it("pushes a new keystroke onto specialKeys when old_keystroke matches", () => {
-    Front._actions["addMapkey"]({
+    Front.actions["addMapkey"]({
       old_keystroke: "<Alt-s>",
       new_keystroke: "<Alt-m>",
       mode: "Normal",
@@ -249,7 +249,7 @@ describe("_actions['addMapkey'] — specialKeys path", () => {
 
   it("does not touch specialKeys when the mode name is unknown", () => {
     const before = specialKeys["<Esc>"]!.slice();
-    Front._actions["addMapkey"]({
+    Front.actions["addMapkey"]({
       old_keystroke: "NonExistentKey",
       new_keystroke: "x",
       mode: "UnknownMode",
@@ -334,46 +334,46 @@ describe("window message handler", () => {
 });
 
 // ---------------------------------------------------------------------------
-// StatusBar (via _actions["showStatus"])
+// StatusBar (via actions["showStatus"])
 // ---------------------------------------------------------------------------
-describe("_actions['showStatus'] — StatusBar.show", () => {
+describe("actions['showStatus'] — StatusBar.show", () => {
   beforeEach(() => {
     // Reset statusBar display before each test.
     Front.statusBar.style.display = "none";
   });
 
   it("makes the status bar visible when at least one content cell is non-empty", () => {
-    Front._actions["showStatus"]({ contents: ["Normal", "", ""] });
+    Front.actions["showStatus"]({ contents: ["Normal", "", ""] });
     expect(Front.statusBar.style.display).not.toBe("none");
   });
 
   it("hides the status bar when all content cells are empty strings", () => {
     // First show something so display is visible.
-    Front._actions["showStatus"]({ contents: ["x"] });
+    Front.actions["showStatus"]({ contents: ["x"] });
     // Now clear all cells.
-    Front._actions["showStatus"]({ contents: ["", "", ""] });
+    Front.actions["showStatus"]({ contents: ["", "", ""] });
     expect(Front.statusBar.style.display).toBe("none");
   });
 
   it("leaves trailing cells untouched when a shorter array is passed", () => {
     // Set cell 0 to "Normal" first.
-    Front._actions["showStatus"]({ contents: ["Normal"] });
+    Front.actions["showStatus"]({ contents: ["Normal"] });
     // Show with contents = ["/"] — only updates cell 0 (find-mode status bar
     // passes ["/", {html:...}] to leave the result cell intact).
-    Front._actions["showStatus"]({ contents: ["/"] });
+    Front.actions["showStatus"]({ contents: ["/"] });
     // Status bar must still be visible (cell 0 = "/").
     expect(Front.statusBar.style.display).not.toBe("none");
   });
 });
 
 // ---------------------------------------------------------------------------
-// _actions["hideKeystroke"]
+// actions["hideKeystroke"]
 // ---------------------------------------------------------------------------
-describe("_actions['hideKeystroke']", () => {
+describe("actions['hideKeystroke']", () => {
   it("hides the keystroke element when it is currently visible", () => {
     const keystroke = document.getElementById("sk_keystroke")!;
     keystroke.style.display = "";
-    Front._actions["hideKeystroke"]();
+    Front.actions["hideKeystroke"]();
     expect(keystroke.style.display).toBe("none");
   });
 });
@@ -415,9 +415,9 @@ describe("Front.contentCommand", () => {
 });
 
 // ---------------------------------------------------------------------------
-// _actions["addCommand"]
+// actions["addCommand"]
 // ---------------------------------------------------------------------------
-describe("_actions['addCommand']", () => {
+describe("actions['addCommand']", () => {
   it("registers the command name and description with the omnibar mock", async () => {
     // The omnibar mock's `command` method is a vi.fn(). After addCommand the
     // mock must have been called with the supplied name and description.
@@ -430,7 +430,7 @@ describe("_actions['addCommand']", () => {
 
     commandSpy.mockClear();
 
-    Front._actions["addCommand"]({ name: "myCmd", description: "Does my thing" });
+    Front.actions["addCommand"]({ name: "myCmd", description: "Does my thing" });
 
     expect(commandSpy).toHaveBeenCalledOnce();
     const [name, description] = commandSpy.mock.calls[0] as [string, string, unknown];
@@ -451,7 +451,7 @@ describe("_actions['addCommand']", () => {
       posted.push(data?.surfingkeys_uihost_data);
     });
 
-    Front._actions["addCommand"]({ name: "proxied", description: "" });
+    Front.actions["addCommand"]({ name: "proxied", description: "" });
 
     // The third argument to omnibar.command is the proxy function.
     const proxyFn = commandSpy.mock.calls.at(-1)?.[2] as (...args: any[]) => void;
@@ -466,21 +466,21 @@ describe("_actions['addCommand']", () => {
 });
 
 // ---------------------------------------------------------------------------
-// _actions["showPopup"]
+// actions["showPopup"]
 // ---------------------------------------------------------------------------
-describe("_actions['showPopup']", () => {
+describe("actions['showPopup']", () => {
   it("makes the popup element visible", () => {
     const popup = document.getElementById("sk_popup")!;
     popup.style.display = "none";
-    Front._actions["showPopup"]({ content: "<p>Hello popup</p>" });
+    Front.actions["showPopup"]({ content: "<p>Hello popup</p>" });
     expect(popup.style.display).not.toBe("none");
   });
 });
 
 // ---------------------------------------------------------------------------
-// _actions["showBanner"] and auto-hide
+// actions["showBanner"] and auto-hide
 // ---------------------------------------------------------------------------
-describe("_actions['showBanner']", () => {
+describe("actions['showBanner']", () => {
   afterEach(() => {
     vi.useRealTimers();
   });
@@ -489,7 +489,7 @@ describe("_actions['showBanner']", () => {
     vi.useFakeTimers();
     const banner = document.getElementById("sk_banner")!;
     banner.style.display = "none";
-    Front._actions["showBanner"]({ content: "Test banner", linger_time: 2000 });
+    Front.actions["showBanner"]({ content: "Test banner", linger_time: 2000 });
     expect(banner.style.display).not.toBe("none");
   });
 
@@ -497,7 +497,7 @@ describe("_actions['showBanner']", () => {
     vi.useFakeTimers();
     const banner = document.getElementById("sk_banner")!;
     banner.style.display = "none";
-    Front._actions["showBanner"]({ content: "Linger test", linger_time: 500 });
+    Front.actions["showBanner"]({ content: "Linger test", linger_time: 500 });
     expect(banner.style.display).not.toBe("none");
     vi.advanceTimersByTime(600);
     expect(banner.style.display).toBe("none");
@@ -507,7 +507,7 @@ describe("_actions['showBanner']", () => {
     vi.useFakeTimers();
     const banner = document.getElementById("sk_banner")!;
     banner.style.display = "none";
-    Front._actions["showBanner"]({ content: "Default linger" });
+    Front.actions["showBanner"]({ content: "Default linger" });
     vi.advanceTimersByTime(1500);
     expect(banner.style.display).not.toBe("none");
     vi.advanceTimersByTime(200);
@@ -516,21 +516,21 @@ describe("_actions['showBanner']", () => {
 });
 
 // ---------------------------------------------------------------------------
-// _actions["hideBubble"]
+// actions["hideBubble"]
 // ---------------------------------------------------------------------------
-describe("_actions['hideBubble']", () => {
+describe("actions['hideBubble']", () => {
   it("sets bubble display to none", () => {
     const bubble = document.getElementById("sk_bubble")!;
     bubble.style.display = "";
-    Front._actions["hideBubble"]();
+    Front.actions["hideBubble"]();
     expect(bubble.style.display).toBe("none");
   });
 });
 
 // ---------------------------------------------------------------------------
-// _actions["showKeystroke"] — first keystroke makes element visible
+// actions["showKeystroke"] — first keystroke makes element visible
 // ---------------------------------------------------------------------------
-describe("_actions['showKeystroke']", () => {
+describe("actions['showKeystroke']", () => {
   beforeEach(() => {
     // Start with keystroke hidden to test the show path.
     document.getElementById("sk_keystroke")!.style.display = "none";
@@ -543,7 +543,7 @@ describe("_actions['showKeystroke']", () => {
   it("makes the keystroke element visible on first call", () => {
     vi.useFakeTimers();
     const keystroke = document.getElementById("sk_keystroke")!;
-    Front._actions["showKeystroke"]({
+    Front.actions["showKeystroke"]({
       keyHints: { key: "g", accumulated: "g", candidates: {} },
     });
     expect(keystroke.style.display).not.toBe("none");
@@ -553,12 +553,12 @@ describe("_actions['showKeystroke']", () => {
     vi.useFakeTimers();
     // Hide first to enter the accumulate path.
     document.getElementById("sk_keystroke")!.style.display = "none";
-    Front._actions["hideKeystroke"]();
-    Front._actions["showKeystroke"]({
+    Front.actions["hideKeystroke"]();
+    Front.actions["showKeystroke"]({
       keyHints: { key: "g", accumulated: "g", candidates: {} },
     });
     // A second call while visible and NOT rich should accumulate.
-    Front._actions["showKeystroke"]({
+    Front.actions["showKeystroke"]({
       keyHints: { key: "g", accumulated: "gg", candidates: {} },
     });
     // The element is still visible.
@@ -567,40 +567,40 @@ describe("_actions['showKeystroke']", () => {
 });
 
 // ---------------------------------------------------------------------------
-// _actions["hideKeystroke"] — richHintsForKeystroke path (clearPendingHint)
+// actions["hideKeystroke"] — richHintsForKeystroke path (clearPendingHint)
 // ---------------------------------------------------------------------------
-describe("_actions['hideKeystroke'] — richHintsForKeystroke branch", () => {
+describe("actions['hideKeystroke'] — richHintsForKeystroke branch", () => {
   afterEach(() => {
     vi.useRealTimers();
   });
 
   it("clears the pending hint timer when richHintsForKeystroke is in range", () => {
     vi.useFakeTimers();
-    // Show a keystroke first so _pendingHint might get scheduled.
+    // Show a keystroke first so pendingHint might get scheduled.
     document.getElementById("sk_keystroke")!.style.display = "none";
-    Front._actions["showKeystroke"]({
+    Front.actions["showKeystroke"]({
       keyHints: { key: "g", accumulated: "g", candidates: {} },
     });
     // Now hide: clearPendingHint is called when richHintsForKeystroke is in (0, 10000).
     // richHintsForKeystroke defaults to 1000, so this branch executes.
     expect(() => {
-      Front._actions["hideKeystroke"]();
+      Front.actions["hideKeystroke"]();
     }).not.toThrow();
     expect(document.getElementById("sk_keystroke")!.style.display).toBe("none");
   });
 });
 
 // ---------------------------------------------------------------------------
-// _actions["destroyFrontend"] returns false when a display is visible
+// actions["destroyFrontend"] returns false when a display is visible
 // ---------------------------------------------------------------------------
-describe("_actions['destroyFrontend'] — returns false when display visible", () => {
+describe("actions['destroyFrontend'] — returns false when display visible", () => {
   it("returns false when the popup is currently shown", () => {
-    // Open the popup to set _display.
-    Front._actions["showPopup"]({ content: "blocking popup" });
+    // Open the popup to set display.
+    Front.actions["showPopup"]({ content: "blocking popup" });
     const popup = document.getElementById("sk_popup")!;
     // The popup must be visible for destroyFrontend to return false.
     popup.style.display = "";
-    const result = Front._actions["destroyFrontend"]();
+    const result = Front.actions["destroyFrontend"]();
     expect(result).toBe(false);
     // Clean up: hide the popup so subsequent tests are unaffected.
     popup.style.display = "none";
@@ -610,14 +610,14 @@ describe("_actions['destroyFrontend'] — returns false when display visible", (
 // ---------------------------------------------------------------------------
 // StatusBar.show — duration path (auto-clear timer)
 // ---------------------------------------------------------------------------
-describe("_actions['showStatus'] — StatusBar duration auto-clear", () => {
+describe("actions['showStatus'] — StatusBar duration auto-clear", () => {
   afterEach(() => {
     vi.useRealTimers();
   });
 
   it("clears the status bar after the given duration", () => {
     vi.useFakeTimers();
-    Front._actions["showStatus"]({ contents: ["Normal"], duration: 300 });
+    Front.actions["showStatus"]({ contents: ["Normal"], duration: 300 });
     expect(Front.statusBar.style.display).not.toBe("none");
     vi.advanceTimersByTime(400);
     // After the timer fires, StatusBar.show(["","","",""]) is called, which
@@ -628,11 +628,11 @@ describe("_actions['showStatus'] — StatusBar duration auto-clear", () => {
   it("cancels a previous duration timer when show is called again before it fires", () => {
     vi.useFakeTimers();
     // Start a 1000 ms timer.
-    Front._actions["showStatus"]({ contents: ["Mode1"], duration: 1000 });
+    Front.actions["showStatus"]({ contents: ["Mode1"], duration: 1000 });
     // Advance part-way.
     vi.advanceTimersByTime(500);
     // Show again — must cancel the previous timer.
-    Front._actions["showStatus"]({ contents: ["Mode2"], duration: 1000 });
+    Front.actions["showStatus"]({ contents: ["Mode2"], duration: 1000 });
     // Advance past the original deadline.
     vi.advanceTimersByTime(600);
     // Status bar must still be visible (only the new 1000 ms timer is running).

@@ -46,24 +46,24 @@ function createUiHost(adapter: BrowserLike, onload: (uiHost: UiHost) => void): v
   uiHost.attachShadow({ mode: "open" });
   uiHost.shadowRoot!.appendChild(ifr);
 
-  function _onWindowMessage(event: MessageEvent): void {
+  function onWindowMessage(event: MessageEvent): void {
     const parsed = v.safeParse(uihostMessageEnvelopeSchema, event.data);
     if (!parsed.success) {
       return;
     }
-    const _message = parsed.output.surfingkeys_uihost_data;
-    if (_message.toFrontend) {
+    const message = parsed.output.surfingkeys_uihost_data;
+    if (message.toFrontend) {
       // forward message to frontend
-      ifr.contentWindow!.postMessage({ surfingkeys_frontend_data: _message }, frontEndURL);
+      ifr.contentWindow!.postMessage({ surfingkeys_frontend_data: message }, frontEndURL);
       if (
-        _message.toFrontend &&
+        message.toFrontend &&
         event.source &&
-        _message.action != null &&
+        message.action != null &&
         // origin becomes activeContent.origin, used as a postMessage targetOrigin;
         // an absent origin (e.g. an untrusted page's message) would make a later
         // postMessage throw a DOMException, so require it before activating.
-        _message.origin != null &&
-        ["showStatus", "openOmnibar", "openFinder", "chooseTab"].includes(_message.action) &&
+        message.origin != null &&
+        ["showStatus", "openOmnibar", "openFinder", "chooseTab"].includes(message.action) &&
         (!activeContent || activeContent.window !== event.source)
       ) {
         // reset active Content
@@ -72,7 +72,7 @@ function createUiHost(adapter: BrowserLike, onload: (uiHost: UiHost) => void): v
             {
               surfingkeys_content_data: {
                 action: "deactivated",
-                reason: `${_message.action}@${event.timeStamp}`,
+                reason: `${message.action}@${event.timeStamp}`,
               },
             },
             activeContent.origin,
@@ -81,30 +81,27 @@ function createUiHost(adapter: BrowserLike, onload: (uiHost: UiHost) => void): v
 
         activeContent = {
           window: event.source as Window,
-          origin: _message.origin,
+          origin: message.origin,
         };
 
         activeContent.window.postMessage(
           {
             surfingkeys_content_data: {
               action: "activated",
-              reason: `${_message.action}@${event.timeStamp}`,
+              reason: `${message.action}@${event.timeStamp}`,
             },
           },
           activeContent.origin,
         );
       }
-    } else if (_message.action && Object.hasOwn(_actions, _message.action)) {
-      const action = _actions[_message.action];
+    } else if (message.action && Object.hasOwn(actions, message.action)) {
+      const action = actions[message.action];
       if (action) {
-        action(_message);
+        action(message);
       }
-    } else if (_message.toContent && activeContent) {
+    } else if (message.toContent && activeContent) {
       // forward message to content
-      activeContent.window.postMessage(
-        { surfingkeys_content_data: _message },
-        activeContent.origin,
-      );
+      activeContent.window.postMessage({ surfingkeys_content_data: message }, activeContent.origin);
     }
     event.stopImmediatePropagation();
   }
@@ -127,22 +124,22 @@ function createUiHost(adapter: BrowserLike, onload: (uiHost: UiHost) => void): v
         frontEndURL,
       );
 
-      window.addEventListener("message", _onWindowMessage, true);
+      window.addEventListener("message", onWindowMessage, true);
     },
     { once: true },
   );
 
   let lastStateOfPointerEvents = "none";
-  let _origOverflowY: string | undefined;
+  let origOverflowY: string | undefined;
   // Dispatch registry: handlers are stored with their own response types then invoked with a parsed
   // message; an `unknown` parameter would reject those typed handlers (contravariance).
   // eslint-disable-next-line typescript/no-explicit-any
-  const _actions: Record<string, (response: any) => void> = {};
+  const actions: Record<string, (response: any) => void> = {};
   let activeContent: ActiveContent = null;
-  _actions["initFrontendAck"] = () => {
+  actions["initFrontendAck"] = () => {
     onload(uiHost);
   };
-  _actions["setFrontFrame"] = (response) => {
+  actions["setFrontFrame"] = (response) => {
     ifr.style.height = response.frameHeight;
     if (response.pointerEvents) {
       ifr.style.pointerEvents = response.pointerEvents;
@@ -167,7 +164,7 @@ function createUiHost(adapter: BrowserLike, onload: (uiHost: UiHost) => void): v
       }
       if (document.body) {
         document.body.style.animationFillMode = "";
-        document.body.style.overflowY = _origOverflowY ?? "";
+        document.body.style.overflowY = origOverflowY ?? "";
       }
     } else {
       if (adapter.focusFrontend) {
@@ -175,8 +172,8 @@ function createUiHost(adapter: BrowserLike, onload: (uiHost: UiHost) => void): v
       }
       if (document.body) {
         document.body.style.animationFillMode = "none";
-        if (_origOverflowY == null) {
-          _origOverflowY = document.body.style.overflowY;
+        if (origOverflowY == null) {
+          origOverflowY = document.body.style.overflowY;
         }
         document.body.style.overflowY = "visible";
       }
@@ -196,14 +193,14 @@ function createUiHost(adapter: BrowserLike, onload: (uiHost: UiHost) => void): v
       frontEndURL,
     );
   };
-  _actions["destroyFrontendAck"] = (response) => {
+  actions["destroyFrontendAck"] = (response) => {
     if (response.data === true) {
       runtime.postTopMessage({
         surfingkeys_content_data: {
           action: "frontendDestroyed",
         },
       });
-      window.removeEventListener("message", _onWindowMessage, true);
+      window.removeEventListener("message", onWindowMessage, true);
       uiHost.remove();
     } else {
       LOG("warn", "frontend in use");

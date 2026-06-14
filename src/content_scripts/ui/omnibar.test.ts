@@ -39,7 +39,7 @@ function buildOmnibarDOM() {
 // ---------------------------------------------------------------------------
 function makeFront() {
   return {
-    _actions: {} as Record<string, any>,
+    actions: {} as Record<string, any>,
     hidePopup: vi.fn(),
     // The Ctrl-j "toggle position" path calls reopen(), which schedules a real
     // setTimeout that fires front.openOmnibar after the test has ended; stub it so
@@ -448,15 +448,15 @@ describe("createOmnibar — addHandler / Commands integration", () => {
     mockRUNTIME.mockImplementation(() => Result.succeed(undefined));
   });
 
-  it("executeCommand dispatched via front._actions runs the registered command", () => {
-    front._actions["executeCommand"]({ cmdline: 'greet "world tour"' });
+  it("executeCommand dispatched via front.actions runs the registered command", () => {
+    front.actions["executeCommand"]({ cmdline: 'greet "world tour"' });
     expect(executedArgs).toEqual(["world tour"]);
   });
 
   it("a second executeCommand call routes the correct args to the correct command", () => {
     // Confirms the command registry is additive and dispatch still finds the right entry.
     omnibar.command?.("tabopen", "Open a tab", () => {});
-    front._actions["executeCommand"]({ cmdline: "greet Alice" });
+    front.actions["executeCommand"]({ cmdline: "greet Alice" });
     expect(executedArgs).toEqual(["Alice"]);
   });
 });
@@ -474,7 +474,7 @@ describe("createOmnibar — SearchEngine alias registration", () => {
   });
 
   it("addSearchAlias registers an alias reachable by expandAlias", () => {
-    front._actions["addSearchAlias"]({
+    front.actions["addSearchAlias"]({
       alias: "g",
       prompt: "Google",
       url: "https://www.google.com/search?q={0}",
@@ -489,7 +489,7 @@ describe("createOmnibar — SearchEngine alias registration", () => {
     front.postMessage.mockImplementationOnce((msg: any) => {
       aliases.push(msg.aliases);
     });
-    front._actions["getSearchAliases"]({ id: "req1" });
+    front.actions["getSearchAliases"]({ id: "req1" });
     expect(front.postMessage).toHaveBeenCalled();
     const aliasMap = aliases[0];
     expect(aliasMap).toHaveProperty("g");
@@ -497,20 +497,20 @@ describe("createOmnibar — SearchEngine alias registration", () => {
   });
 
   it("removeSearchAlias removes a previously registered alias", () => {
-    front._actions["addSearchAlias"]({
+    front.actions["addSearchAlias"]({
       alias: "b",
       prompt: "Bing",
       url: "https://www.bing.com/search?q={0}",
       suggestionURL: undefined,
     });
 
-    front._actions["removeSearchAlias"]({ alias: "b" });
+    front.actions["removeSearchAlias"]({ alias: "b" });
 
     const aliases: any[] = [];
     front.postMessage.mockImplementationOnce((msg: any) => {
       aliases.push(msg.aliases);
     });
-    front._actions["getSearchAliases"]({ id: "req2" });
+    front.actions["getSearchAliases"]({ id: "req2" });
     expect(aliases[0]).not.toHaveProperty("b");
   });
 });
@@ -529,7 +529,7 @@ describe("createOmnibar — updateOmnibarResult action", () => {
   });
 
   it("populates results from the words array sent by updateOmnibarResult", () => {
-    // front._actions["updateOmnibarResult"] is wired inside createOmnibar
+    // front.actions["updateOmnibarResult"] is wired inside createOmnibar
     // We can reach it via the front object reference captured at creation time.
     const front = makeFront();
     buildOmnibarDOM();
@@ -539,7 +539,7 @@ describe("createOmnibar — updateOmnibarResult action", () => {
     runtime.conf.focusFirstCandidate = false;
     runtime.conf.omnibarPosition = "middle";
 
-    front._actions["updateOmnibarResult"]({ words: ["cat", "dog", "fish"] });
+    front.actions["updateOmnibarResult"]({ words: ["cat", "dog", "fish"] });
 
     const items = localOmnibar.results();
     expect(items).toHaveLength(3);
@@ -1210,7 +1210,7 @@ describe("Commands handler — onInput lists matching commands", () => {
 });
 
 // ---------------------------------------------------------------------------
-// OmniQuery handler — onOpen populates _words via contentCommand callback;
+// OmniQuery handler — onOpen populates words via contentCommand callback;
 // onInput filters those words; onEnter dispatches contentCommand
 // ---------------------------------------------------------------------------
 describe("OmniQuery handler — onOpen/onInput/onEnter", () => {
@@ -1364,7 +1364,7 @@ describe("SearchEngine handler — onInput without suggestionURL clears results"
   it("without suggestionURL, onInput produces empty results immediately", () => {
     const { omnibar, front, ui } = makeOmnibar();
 
-    front._actions["addSearchAlias"]({
+    front.actions["addSearchAlias"]({
       alias: "g",
       prompt: "Google",
       url: "https://www.google.com/search?q={0}",
@@ -1386,7 +1386,7 @@ describe("SearchEngine handler — onInput without suggestionURL clears results"
     runtime.conf.omnibarSuggestion = true;
     runtime.conf.omnibarSuggestionTimeout = 300;
 
-    front._actions["addSearchAlias"]({
+    front.actions["addSearchAlias"]({
       alias: "s",
       prompt: "Suggest",
       url: "https://search.com/q={0}",
@@ -1607,7 +1607,7 @@ describe("createOmnibar — detectAndInsertURLItem urlPat1 fallback", () => {
 });
 
 // ---------------------------------------------------------------------------
-// Ctrl-c mapping — data.copy field and _page fallback
+// Ctrl-c mapping — data.copy field and pageItems fallback
 // ---------------------------------------------------------------------------
 describe("createOmnibar — Ctrl-c copy paths", () => {
   beforeEach(() => {
@@ -1644,7 +1644,7 @@ describe("createOmnibar — Ctrl-c copy paths", () => {
     expect(clipboard.write).toHaveBeenLastCalledWith("custom-copy-text");
   });
 
-  it("copies _page URLs joined by newline when no result is focused", () => {
+  it("copies pageItems URLs joined by newline when no result is focused", () => {
     buildOmnibarDOM();
     const front = makeFront();
     const clipboard = makeClipboard();
@@ -1659,7 +1659,7 @@ describe("createOmnibar — Ctrl-c copy paths", () => {
       { url: "https://p1.example.com", title: "P1", lastVisitTime: 100, visitCount: 1 },
       { url: "https://p2.example.com", title: "P2", lastVisitTime: 200, visitCount: 2 },
     ];
-    // listURLs stores items in _page; focusFirstCandidate=false means focusedIndex=-1
+    // listURLs stores items in pageItems; focusFirstCandidate=false means focusedIndex=-1
     omnibar.listURLs(items, false);
     expect(omnibar.focusedIndex()).toBe(-1);
 
@@ -1669,7 +1669,7 @@ describe("createOmnibar — Ctrl-c copy paths", () => {
     );
     expect(ctrlCCode).toBeDefined();
     ctrlCCode!();
-    // _page contains both items; both URLs should be joined with \n
+    // pageItems contains both items; both URLs should be joined with \n
     const written = clipboard.write.mock.calls.at(-1)![0] as string;
     expect(written).toContain("https://p1.example.com");
     expect(written).toContain("https://p2.example.com");
@@ -2024,7 +2024,7 @@ describe("SearchEngine handler — onOpen with site: prefix sets selection range
   it("calls setSelectionRange on input when query starts with site:", () => {
     const { omnibar, front, ui } = makeOmnibar();
 
-    front._actions["addSearchAlias"]({
+    front.actions["addSearchAlias"]({
       alias: "g",
       prompt: "Google",
       url: "https://www.google.com/search?q={0}",
@@ -2063,7 +2063,7 @@ describe("SearchEngine handler — listSuggestions with html/url-keyed items", (
     runtime.conf.omnibarSuggestion = true;
     runtime.conf.omnibarSuggestionTimeout = 300;
 
-    front._actions["addSearchAlias"]({
+    front.actions["addSearchAlias"]({
       alias: "u",
       prompt: "URLEngine",
       url: "https://search.com/q={0}",
@@ -2107,7 +2107,7 @@ describe("SearchEngine handler — listSuggestions with html/url-keyed items", (
     runtime.conf.omnibarSuggestion = true;
     runtime.conf.omnibarSuggestionTimeout = 100;
 
-    front._actions["addSearchAlias"]({
+    front.actions["addSearchAlias"]({
       alias: "x",
       prompt: "XEngine",
       url: "https://x.com/q={0}",
@@ -2153,7 +2153,7 @@ describe("SearchEngine — addSearchAlias icon loading paths", () => {
     const iconKey = "surfingkeys.searchEngineIcon.Google";
     localStorage.setItem(iconKey, "data:image/png;base64,ICON");
 
-    front._actions["addSearchAlias"]({
+    front.actions["addSearchAlias"]({
       alias: "g",
       prompt: "Google",
       url: "https://www.google.com/search?q={0}",
@@ -2165,7 +2165,7 @@ describe("SearchEngine — addSearchAlias icon loading paths", () => {
     front.postMessage.mockImplementationOnce((msg: any) => {
       aliases.push(msg.aliases);
     });
-    front._actions["getSearchAliases"]({ id: "icon-test" });
+    front.actions["getSearchAliases"]({ id: "icon-test" });
     const aliasMap = aliases[0];
     // Prompt should be an object with html containing the icon
     expect(typeof aliasMap["g"].prompt).toBe("object");
@@ -2180,7 +2180,7 @@ describe("SearchEngine — addSearchAlias icon loading paths", () => {
     createOmnibar(front, makeClipboard());
 
     mockRUNTIME.mockClear();
-    front._actions["addSearchAlias"]({
+    front.actions["addSearchAlias"]({
       alias: "h",
       prompt: "GitHub",
       url: "https://github.com/search?q={0}",
@@ -2207,7 +2207,7 @@ describe("SearchEngine — addSearchAlias icon loading paths", () => {
       return Result.succeed(undefined);
     });
 
-    front._actions["addSearchAlias"]({
+    front.actions["addSearchAlias"]({
       alias: "f",
       prompt: "Favicon",
       url: "https://search.example.com/q={0}",
@@ -2516,9 +2516,9 @@ describe("createOmnibar — pagination mappings Ctrl-. and Ctrl-,", () => {
 });
 
 // ---------------------------------------------------------------------------
-// _listResultPage — omnibarHistoryCacheSize boundary (+) and showFolder path
+// listResultPage — omnibarHistoryCacheSize boundary (+) and showFolder path
 // ---------------------------------------------------------------------------
-describe("createOmnibar — _listResultPage total display", () => {
+describe("createOmnibar — listResultPage total display", () => {
   it("appends a + to the total when item count equals omnibarHistoryCacheSize", () => {
     buildOmnibarDOM();
     const omnibar = createOmnibar(makeFront(), makeClipboard());
@@ -2544,9 +2544,9 @@ describe("createOmnibar — _listResultPage total display", () => {
 });
 
 // ---------------------------------------------------------------------------
-// _listResultPage — showFolder branch (item without url or html, showFolder=true)
+// listResultPage — showFolder branch (item without url or html, showFolder=true)
 // ---------------------------------------------------------------------------
-describe("createOmnibar — _listResultPage showFolder branch", () => {
+describe("createOmnibar — listResultPage showFolder branch", () => {
   it("renders folder items when showFolder is true and item has no url/html", () => {
     buildOmnibarDOM();
     const omnibar = createOmnibar(makeFront(), makeClipboard());
@@ -2611,7 +2611,7 @@ describe("createOmnibar — openFocused", () => {
     runtime.conf.omnibarPosition = "middle";
 
     // Register an alias for the default search engine
-    front._actions["addSearchAlias"]({
+    front.actions["addSearchAlias"]({
       alias: "g",
       prompt: "Google",
       url: "https://www.google.com/search?q={0}",

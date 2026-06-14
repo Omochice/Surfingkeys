@@ -56,7 +56,7 @@ type FrontActionFn = (message?: any) => any;
 
 /** The iframe-side front controller carrying the messaging and overlay surface. */
 type FrontMode = {
-  _actions: Record<string, FrontActionFn>;
+  actions: Record<string, FrontActionFn>;
   topSize: [number, number];
   topOrigin: string;
   statusBar: HTMLElement;
@@ -77,10 +77,10 @@ const Front = (() => {
   initModeHub();
   const { clipboard, insert, normal, hints, visual } = createModeGraph();
 
-  const _actions: Record<string, FrontActionFn> = {};
+  const actions: Record<string, FrontActionFn> = {};
   // Response callbacks are stored with their callers' concrete message types (see FrontActionFn).
   // eslint-disable-next-line typescript/no-explicit-any
-  const _callbacks: Record<string, (msg: any) => unknown> = {};
+  const callbacks: Record<string, (msg: any) => unknown> = {};
   const destroyListeners: (() => void)[] = [];
   const topSize: [number, number] = [0, 0];
 
@@ -91,7 +91,7 @@ const Front = (() => {
   // The function members are declarations below, so hoisting lets the controller be assembled
   // here, before createOmnibar and the API wiring receive it, keeping the original setup order.
   const self: FrontMode = {
-    _actions,
+    actions,
     topSize,
     topOrigin: "",
     statusBar: requireElement("#sk_status"),
@@ -152,7 +152,7 @@ const Front = (() => {
     args["id"] = id;
     if (successById) {
       args["ack"] = true;
-      _callbacks[id] = successById;
+      callbacks[id] = successById;
     }
     top!.postMessage({ surfingkeys_uihost_data: args }, self.topOrigin);
   }
@@ -175,13 +175,13 @@ const Front = (() => {
   type BubbleElement = DisplayElement & {
     noPointerEvents?: boolean | undefined;
   };
-  let _display: DisplayElement | null = null;
+  let display: DisplayElement | null = null;
   mode.addEventListener("keydown", (event) => {
     if (isSpecialKeyOf("<Esc>", event.sk_keyName ?? "")) {
       self.hidePopup();
       event.sk_stopPropagation = true;
-    } else if (_display && _display.style.display !== "none") {
-      const tabHints = _display.querySelectorAll<HTMLElement>("div>div.sk_tab_hint");
+    } else if (display && display.style.display !== "none") {
+      const tabHints = display.querySelectorAll<HTMLElement>("div>div.sk_tab_hint");
       if (tabHints.length > 0) {
         const key = event.sk_keyName ?? "";
         const characters = hints.getCharacters().toLowerCase();
@@ -194,7 +194,7 @@ const Front = (() => {
           pressedHintKeys = pressedHintKeys + key.toUpperCase();
           const hintState = refreshHints(tabHints, pressedHintKeys);
           if (hintState.matched) {
-            _display.onHit?.(hintState.matched);
+            display.onHit?.(hintState.matched);
             pressedHintKeys = "";
             self.hidePopup();
           } else if (hintState.candidates === 0) {
@@ -202,8 +202,8 @@ const Front = (() => {
             self.hidePopup();
           }
         } else {
-          showElement(_omnibar, () => {
-            _omnibar.onShow({ type: "Tabs" });
+          showElement(omnibarElement, () => {
+            omnibarElement.onShow({ type: "Tabs" });
           });
         }
 
@@ -212,14 +212,14 @@ const Front = (() => {
     }
   });
 
-  let _state: State;
+  let state: State;
   class State {
     enter: () => void;
     nextState: () => void;
     constructor(pointerEvents: string, frameHeight: string, onEnter?: () => void) {
       this.enter = () => {
         onEnter && onEnter();
-        _state = this;
+        state = this;
         top!.postMessage(
           {
             surfingkeys_uihost_data: {
@@ -272,13 +272,13 @@ const Front = (() => {
   const stateInteractive = new State("all", "100%", () => {
     window.focus();
   });
-  _state = stateInvisible;
+  state = stateInvisible;
 
   function flush(): void {
-    _state.nextState();
+    state.nextState();
   }
   function visualCommand(args: { action: string; query?: string | undefined }): void {
-    if (_usage.style.display !== "none") {
+    if (usageElement.style.display !== "none") {
       // visual mode in frontend.html, such as help: only the in-frame find dispatches here, so the
       // three find actions are exhaustive (other actions are forwarded to content below).
       switch (args.action) {
@@ -301,12 +301,12 @@ const Front = (() => {
     }
   }
 
-  const _omnibar = requireElement<OmnibarElement>("#sk_omnibar");
-  const _usage = requireElement("#sk_usage");
-  const _popup = requireElement("#sk_popup");
-  const _tabs = requireElement("#sk_tabs");
-  const _banner = requireElement("#sk_banner");
-  const _bubble = requireElement<BubbleElement>("#sk_bubble");
+  const omnibarElement = requireElement<OmnibarElement>("#sk_omnibar");
+  const usageElement = requireElement("#sk_usage");
+  const popup = requireElement("#sk_popup");
+  const tabsElement = requireElement("#sk_tabs");
+  const banner = requireElement("#sk_banner");
+  const bubble = requireElement<BubbleElement>("#sk_bubble");
   const sk_bubble_content = requireElement("#sk_bubble div.sk_bubble_content");
   const sk_bubble_arrow = requireElement("#sk_bubble div.sk_arrow");
   const sk_bubbleClassList = sk_bubble_content.classList;
@@ -360,22 +360,22 @@ const Front = (() => {
 
   function startInputGuard(): void {}
   function hidePopup(): void {
-    if (_display && _display.style.display !== "none") {
-      _display.style.display = "none";
+    if (display && display.style.display !== "none") {
+      display.style.display = "none";
       self.flush();
-      _display.onHide && _display.onHide();
+      display.onHide && display.onHide();
       mode.exit();
     }
   }
-  _actions["hidePopup"] = hidePopup;
+  actions["hidePopup"] = hidePopup;
 
   function setDisplay(td: DisplayElement, render?: () => void) {
-    if (_display && _display.style.display !== "none") {
-      _display.style.display = "none";
-      _display.onHide && _display.onHide();
+    if (display && display.style.display !== "none") {
+      display.style.display = "none";
+      display.onHide && display.onHide();
     }
-    _display = td;
-    _display.style.display = "";
+    display = td;
+    display.style.display = "";
     render && render();
     self.startInputGuard();
   }
@@ -414,7 +414,7 @@ const Front = (() => {
         },
         attachFavicon: attachFaviconToImgSrc,
       }),
-    _tabs,
+    tabsElement,
   );
 
   function renderTabs(tabs: TabsTab[]) {
@@ -422,15 +422,15 @@ const Front = (() => {
     // The container class drives the layout; the per-tab styling lives in the
     // component. The inline fallback below depends on the rendered height, so
     // it relies on Solid rendering synchronously when the signal is set.
-    _tabs.className = verticalTabs ? "vertical" : "horizontal";
+    tabsElement.className = verticalTabs ? "vertical" : "horizontal";
     setTabsState({
       tabs,
       hintLabels: hints.genLabels(tabs.length - 1),
       vertical: verticalTabs,
       unitWidth: window.innerWidth / tabs.length - 2,
     });
-    if (_tabs.getBoundingClientRect().height > self.topSize[1]) {
-      _tabs.className = "inline";
+    if (tabsElement.getBoundingClientRect().height > self.topSize[1]) {
+      tabsElement.className = "inline";
     }
   }
   function chooseTab(): void {
@@ -440,12 +440,12 @@ const Front = (() => {
       { queryInfo: { currentWindow: true }, tabsThreshold },
       (response: { tabs: TabsTab[] }) => {
         if (response.tabs.length > tabsThreshold) {
-          showElement(_omnibar, () => {
-            _omnibar.onShow({ type: "Tabs" });
+          showElement(omnibarElement, () => {
+            omnibarElement.onShow({ type: "Tabs" });
           });
         } else if (response.tabs.length > 0) {
           showElement(
-            _tabs,
+            tabsElement,
             () => {
               renderTabs(response.tabs);
             },
@@ -467,7 +467,7 @@ const Front = (() => {
       },
     );
   }
-  _actions["chooseTab"] = chooseTab;
+  actions["chooseTab"] = chooseTab;
 
   // A single help entry: the keystroke plus its annotation, which may be a plain string or a
   // [format, ...args] tuple that localizeAnnotation expands. Matches getAnnotations' return shape.
@@ -565,20 +565,20 @@ const Front = (() => {
           return usage().moreHelp;
         },
       }),
-    _usage,
+    usageElement,
   );
   const usageMetaSchema = v.object({
     word: v.string(),
     feature_group: v.optional(v.number()),
     annotation: v.optional(v.union([v.string(), v.array(v.string())])),
   });
-  _actions["showUsage"] = (message: unknown) => {
+  actions["showUsage"] = (message: unknown) => {
     const { metas } = v.parse(v.object({ metas: v.array(usageMetaSchema) }), message);
-    showElement(_usage, () => {
+    showElement(usageElement, () => {
       buildUsage(metas, setUsage);
     });
   };
-  _actions["applyUserSettings"] = (message: { userSettings: Record<string, unknown> }) => {
+  actions["applyUserSettings"] = (message: { userSettings: Record<string, unknown> }) => {
     const conf: Record<string, unknown> = runtime.conf;
     for (const k in message.userSettings) {
       if (Object.hasOwn(runtime.conf, k)) {
@@ -590,11 +590,11 @@ const Front = (() => {
       setSanitizedContent(requireElement("#sk_theme"), theme);
     }
   };
-  _actions["setHintsCharacters"] = (message: unknown) => {
+  actions["setHintsCharacters"] = (message: unknown) => {
     const { characters } = v.parse(v.object({ characters: v.string() }), message);
     hints.setCharacters(characters);
   };
-  _actions["addMapkey"] = (message: unknown) => {
+  actions["addMapkey"] = (message: unknown) => {
     const { old_keystroke, new_keystroke, mode } = v.parse(
       v.object({
         old_keystroke: v.string(),
@@ -613,7 +613,7 @@ const Front = (() => {
       }
     }
   };
-  _actions["addCommand"] = (message: { name: string; description: string }) => {
+  actions["addCommand"] = (message: { name: string; description: string }) => {
     // User command callback: forwards whatever arguments the user-defined command was invoked with.
     // eslint-disable-next-line typescript/no-explicit-any
     const proxyAction = (...args: any[]) => {
@@ -625,7 +625,7 @@ const Front = (() => {
     };
     omnibarCommand(message.name, message.description, proxyAction);
   };
-  _actions["getUsage"] = (message: unknown) => {
+  actions["getUsage"] = (message: unknown) => {
     // The ack flag the dispatcher may attach is irrelevant here; only metas and the correlation id
     // are read, so validate just those and let the schema drop the rest.
     const { metas, id } = v.parse(
@@ -659,21 +659,21 @@ const Front = (() => {
           return popupHtml();
         },
       }),
-    _popup,
+    popup,
   );
 
   function showPopup(content: string) {
     setPopupHtml(content);
-    showElement(_popup);
+    showElement(popup);
   }
 
-  _actions["showPopup"] = (message: { content: string }) => {
+  actions["showPopup"] = (message: { content: string }) => {
     showPopup(message.content);
   };
 
-  _actions["showDialog"] = (message: { question: string }) => {
+  actions["showDialog"] = (message: { question: string }) => {
     showElement(
-      _popup,
+      popup,
       () => {
         const hintLabels = hints.genLabels(2);
         // setPopupHtml renders synchronously, so the tab-hint nodes exist
@@ -681,8 +681,8 @@ const Front = (() => {
         setPopupHtml(
           `<div>${message.question}</div><div><div class=sk_tab_hint>${hintLabels[0]}</div><span class=sk_tab_group_title>Ok</span><div class=sk_tab_hint>${hintLabels[1]}</div><span class=sk_tab_group_title>Cancel</span></div>`,
         );
-        const [okHint, cancelHint] = _popup.querySelectorAll<HTMLElement>("div.sk_tab_hint");
-        _popup.style.textAlign = "center";
+        const [okHint, cancelHint] = popup.querySelectorAll<HTMLElement>("div.sk_tab_hint");
+        popup.style.textAlign = "center";
         if (okHint && cancelHint) {
           hintLink.set(okHint, "Ok");
           hintLabel.set(okHint, hintLabels[0] ?? "");
@@ -700,14 +700,14 @@ const Front = (() => {
   };
 
   function openOmnibar(message: { style?: string } & Record<string, unknown>): void {
-    showElement(_omnibar, () => {
-      _omnibar.onShow(message);
+    showElement(omnibarElement, () => {
+      omnibarElement.onShow(message);
       const style = message.style || "";
       setSanitizedContent(requireElement("#sk_omnibar style"), `#sk_omnibar {${style}}`);
     });
   }
-  _actions["openOmnibar"] = openOmnibar;
-  _actions["openFinder"] = () => {
+  actions["openOmnibar"] = openOmnibar;
+  actions["openFinder"] = () => {
     Find.open();
   };
 
@@ -719,32 +719,32 @@ const Front = (() => {
           return bannerText();
         },
       }),
-    _banner,
+    banner,
   );
 
   function showBanner(content: string, linger_time?: number) {
     setBannerText(content);
-    _banner.style.cssText = "";
-    _banner.style.display = "";
-    _banner.style.top = "0px";
+    banner.style.cssText = "";
+    banner.style.display = "";
+    banner.style.top = "0px";
     self.flush();
 
     const timems = linger_time || 1600;
     setTimeout(() => {
       setBannerText("");
-      _banner.style.cssText = "";
-      _banner.style.display = "none";
+      banner.style.cssText = "";
+      banner.style.display = "none";
       self.flush();
     }, timems);
   }
-  _actions["showBanner"] = (message: unknown) => {
+  actions["showBanner"] = (message: unknown) => {
     const { content, linger_time } = v.parse(
       v.object({ content: v.string(), linger_time: v.optional(v.number()) }),
       message,
     );
     showBanner(content, linger_time);
   };
-  _actions["showBubble"] = (message: {
+  actions["showBubble"] = (message: {
     position: {
       left: number;
       top: number;
@@ -762,15 +762,15 @@ const Front = (() => {
     pos.left += pos.winX;
     pos.top += pos.winY;
     // set position to (0, 0) to leave enough space for content.
-    _bubble.style.top = "0px";
-    _bubble.style.left = "0px";
+    bubble.style.top = "0px";
+    bubble.style.left = "0px";
     setBubbleHtml(message.content);
     sk_bubble_content.style.maxWidth = pos.winWidth - 32 + "px";
     sk_bubble_content.scrollTop = 0;
     clearScrollerIndicator();
-    _bubble.style.display = "";
-    const w = _bubble.offsetWidth;
-    let h = _bubble.offsetHeight;
+    bubble.style.display = "";
+    const w = bubble.offsetWidth;
+    let h = bubble.offsetHeight;
     const left: [number, number] = [pos.left - 11 - w / 2, w / 2];
     if (left[0] < pos.winX) {
       left[1] += left[0] - pos.winX;
@@ -780,43 +780,43 @@ const Front = (() => {
       left[0] = pos.winX + pos.winWidth - w;
     }
     sk_bubble_arrow.style.left = left[1] + pos.width / 2 - 2 + "px";
-    _bubble.style.left = left[0] + "px";
-    _bubble.noPointerEvents = message.noPointerEvents;
+    bubble.style.left = left[0] + "px";
+    bubble.noPointerEvents = message.noPointerEvents;
 
     if (pos.top + pos.height / 2 > pos.winHeight / 2) {
       sk_bubble_arrow.setAttribute("dir", "down");
       sk_bubble_arrow.style.top = "100%";
       sk_bubble_content.style.maxHeight = pos.top - 12 - 32 + "px";
-      h = _bubble.offsetHeight;
-      _bubble.style.top = pos.top - h - 12 + "px";
+      h = bubble.offsetHeight;
+      bubble.style.top = pos.top - h - 12 + "px";
     } else {
       sk_bubble_arrow.setAttribute("dir", "up");
       sk_bubble_arrow.style.top = "-12px";
       sk_bubble_content.style.maxHeight = pos.winHeight - (pos.top + pos.height + 12) - 32 + "px";
-      h = _bubble.offsetHeight;
-      _bubble.style.top = pos.top + pos.height + 12 + "px";
+      h = bubble.offsetHeight;
+      bubble.style.top = pos.top + pos.height + 12 + "px";
     }
     if (sk_bubble_content.scrollHeight > sk_bubble_content.offsetHeight) {
-      _bubble.noPointerEvents = false;
+      bubble.noPointerEvents = false;
       sk_bubbleClassList.add("sk_scroller_indicator_top");
     }
     self.flush();
-    if (!_bubble.noPointerEvents) {
-      setDisplay(_bubble);
+    if (!bubble.noPointerEvents) {
+      setDisplay(bubble);
       mode.enter(0, true);
     }
   };
 
-  _actions["hideBubble"] = () => {
-    _bubble.style.display = "none";
+  actions["hideBubble"] = () => {
+    bubble.style.display = "none";
     self.flush();
   };
 
-  _actions["visualUpdated"] = () => {
+  actions["visualUpdated"] = () => {
     self.statusBar.querySelector("input")?.focus();
   };
 
-  _actions["showStatus"] = (message: unknown) => {
+  actions["showStatus"] = (message: unknown) => {
     const statusCell = v.union([v.string(), v.object({ html: v.string() })]);
     const { contents, duration } = v.parse(
       v.object({
@@ -842,19 +842,19 @@ const Front = (() => {
   function toggleStatus(visible: boolean): void {
     self.statusBar.style.display = visible ? "" : "none";
   }
-  _actions["toggleStatus"] = (message: { visible: boolean }) => {
+  actions["toggleStatus"] = (message: { visible: boolean }) => {
     self.toggleStatus(message.visible);
   };
 
-  let _pendingHint: ReturnType<typeof setTimeout> | undefined;
+  let pendingHint: ReturnType<typeof setTimeout> | undefined;
   function clearPendingHint() {
-    if (_pendingHint) {
-      clearTimeout(_pendingHint);
-      _pendingHint = undefined;
+    if (pendingHint) {
+      clearTimeout(pendingHint);
+      pendingHint = undefined;
     }
   }
 
-  _actions["hideKeystroke"] = () => {
+  actions["hideKeystroke"] = () => {
     if (keystroke.style.display !== "none") {
       setKeystrokeRich(false);
       setKeystrokeText("");
@@ -894,14 +894,14 @@ const Front = (() => {
           }
         })
         .join("");
-      if (words.length > 0 && _pendingHint) {
+      if (words.length > 0 && pendingHint) {
         setKeystrokeHtml(words);
         setKeystrokeRich(true);
         self.flush();
       }
     });
   }
-  _actions["showKeystroke"] = (message: { keyHints: KeyHints }) => {
+  actions["showKeystroke"] = (message: { keyHints: KeyHints }) => {
     if (keystroke.style.display !== "none" && keystrokeRich()) {
       showRichHints(message.keyHints);
     } else {
@@ -912,20 +912,20 @@ const Front = (() => {
       setKeystrokeText(keys);
 
       if (runtime.conf.richHintsForKeystroke > 0 && runtime.conf.richHintsForKeystroke < 10_000) {
-        _pendingHint = setTimeout(() => {
+        pendingHint = setTimeout(() => {
           showRichHints(message.keyHints);
         }, runtime.conf.richHintsForKeystroke);
       }
     }
   };
 
-  _actions["initFrontend"] = (message: { origin: string; winSize: [number, number] }) => {
+  actions["initFrontend"] = (message: { origin: string; winSize: [number, number] }) => {
     self.topOrigin = message.origin;
     self.topSize = message.winSize;
     return Date.now();
   };
-  _actions["destroyFrontend"] = () => {
-    if (_display && _display.style.display !== "none") {
+  actions["destroyFrontend"] = () => {
+    if (display && display.style.display !== "none") {
       return false;
     }
     for (const task of destroyListeners) {
@@ -941,23 +941,23 @@ const Front = (() => {
       if (!parsed.success) {
         return;
       }
-      const _message = parsed.output.surfingkeys_frontend_data;
-      const id = _message.id;
-      const f = id == null ? undefined : _callbacks[id];
+      const message = parsed.output.surfingkeys_frontend_data;
+      const id = message.id;
+      const f = id == null ? undefined : callbacks[id];
       if (f) {
         // returns true to make callback stay for coming response.
-        if (!f(_message) && id != null) {
-          delete _callbacks[id];
+        if (!f(message) && id != null) {
+          delete callbacks[id];
         }
-      } else if (_message.action && Object.hasOwn(_actions, _message.action)) {
-        const action = _actions[_message.action];
-        const ret = action ? action(_message) : undefined;
-        if (_message.ack) {
+      } else if (message.action && Object.hasOwn(actions, message.action)) {
+        const action = actions[message.action];
+        const ret = action ? action(message) : undefined;
+        if (message.ack) {
           top!.postMessage(
             {
               surfingkeys_uihost_data: {
                 data: ret,
-                action: _message.action + "Ack",
+                action: message.action + "Ack",
                 toContent: true,
               },
             },
@@ -970,7 +970,7 @@ const Front = (() => {
   );
 
   function onResize() {
-    if (_bubble.style.display !== "none") {
+    if (bubble.style.display !== "none") {
       self.contentCommand({
         action: "updateInlineQuery",
       });
@@ -979,8 +979,8 @@ const Front = (() => {
 
   // for mouseSelectToQuery
   document.onmouseup = (e) => {
-    if (!_bubble.contains(e.target as Node)) {
-      _bubble.style.display = "none";
+    if (!bubble.contains(e.target as Node)) {
+      bubble.style.display = "none";
       self.flush();
       self.contentCommand({
         action: "emptySelection",
