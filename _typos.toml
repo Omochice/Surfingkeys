@@ -1,19 +1,16 @@
 [files]
-# Vendored emoji data (short codes look like typos) and the AI scratch dir.
-extend-exclude = ["public/pages/emoji.tsv", ".momomo"]
+extend-exclude = ["public/pages/emoji.tsv"]
 
 [default.extend-identifiers]
-# Not in the typos dictionary; flag this past misspelling so it cannot recur.
+# Not left to the built-in dictionary, which misses `mtches`: pin it so a
+# recurrence is caught.
 mtches = "matches"
 
 [default.extend-words]
-# Deliberately malformed-URL fixtures in *.test.ts (a leading "H" is added on
-# purpose to exercise prefix handling).
+# Allowlisted rather than fixed: intentional test fixtures and the U+00BA hex
+# unit, not misspellings.
 Hhttp = "Hhttp"
 Hhttps = "Hhttps"
-# trie.test.ts builds keys from the literal token "abd".
 abd = "abd"
-# cursorPrompt.test.ts uses the partial input "say @fo".
 fo = "fo"
-# feedkeys test expectation "BA", and the hex unit "U+00BA" in keyboardUtils.
 BA = "BA"
