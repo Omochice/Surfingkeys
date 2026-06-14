@@ -184,7 +184,7 @@ type Omnibar = {
       folders: Record<string, { id: string; title?: string }>,
     ) => void,
   ) => void;
-  openFocused: (this: OmnibarHandler) => boolean | undefined;
+  openFocused: (handler: OmnibarHandler) => boolean | undefined;
 };
 
 /**
@@ -906,7 +906,7 @@ function createOmnibar(front: OmnibarFront, clipboard: { write(text: string): vo
     return input.match(regex);
   };
 
-  const openFocused = function (this: OmnibarHandler): boolean | undefined {
+  const openFocused = (handler: OmnibarHandler): boolean | undefined => {
     const fi = focusedResult();
     let url;
     if (fi) {
@@ -937,15 +937,15 @@ function createOmnibar(front: OmnibarFront, clipboard: { write(text: string): vo
       reportOnFail(
         RUNTIME("openLink", {
           tab: {
-            tabbed: this.tabbed,
-            active: this.activeTab,
+            tabbed: handler.tabbed,
+            active: handler.activeTab,
           },
           url: url,
         }),
         reportError,
       );
     }
-    return this.activeTab;
+    return handler.activeTab;
   };
 
   const listResults = <T>(
@@ -999,7 +999,7 @@ function createOmnibar(front: OmnibarFront, clipboard: { write(text: string): vo
 
   const addHandler = (name: string, hdl: OmnibarHandler): void => {
     if (!hdl.onEnter) {
-      hdl.onEnter = self.openFocused.bind(hdl);
+      hdl.onEnter = () => self.openFocused(hdl);
     }
     handlers[name] = hdl;
   };
@@ -1279,7 +1279,7 @@ function OpenBookmarks(omnibar: Omnibar): OpenBookmarksHandler {
         reportError,
       );
     } else {
-      ret = omnibar.openFocused.call(self);
+      ret = omnibar.openFocused(self);
       if (ret) {
         self.inFolder.push({
           prompt: self.prompt,
@@ -1584,7 +1584,7 @@ function OpenTabs(omnibar: Omnibar): OmnibarHandler {
       getTabsArgs = { queryInfo: { currentWindow: false } };
     } else {
       self.prompt = "tabs";
-      self.onEnter = omnibar.openFocused.bind(self);
+      self.onEnter = () => omnibar.openFocused(self);
       getTabsArgs = {};
       if (args && typeof args.filter === "string") {
         getTabsArgs.filter = args.filter;

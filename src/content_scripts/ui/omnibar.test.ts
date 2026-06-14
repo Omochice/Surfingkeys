@@ -2595,7 +2595,7 @@ describe("createOmnibar — openFocused", () => {
     expect(omnibar.focusedResult()?.data.uid).toBe("T3:77");
 
     // Call openFocused
-    omnibar.openFocused.call({ tabbed: true, activeTab: true });
+    omnibar.openFocused({ tabbed: true, activeTab: true });
 
     expect(mockRUNTIME).toHaveBeenLastCalledWith("focusTab", { windowId: 3, tabId: 77 });
   });
@@ -2620,7 +2620,7 @@ describe("createOmnibar — openFocused", () => {
     runtime.conf.defaultSearchEngine = "g";
 
     // No focused result — openFocused uses input.value
-    omnibar.openFocused.call({ tabbed: true, activeTab: true });
+    omnibar.openFocused({ tabbed: true, activeTab: true });
 
     expect(mockRUNTIME).toHaveBeenLastCalledWith("openLink", {
       tab: { tabbed: true, active: true },
