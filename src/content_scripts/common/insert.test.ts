@@ -637,7 +637,7 @@ describe("createInsert enter override", () => {
     insert.enter(input); // first call: changed=true, moves cursor to 11
     // Move the cursor manually back to position 3 to detect if it moves again.
     input.setSelectionRange(3, 3);
-    insert.enter(input); // second call: _element === elm → changed=false → cursor stays
+    insert.enter(input); // second call: element === elm → changed=false → cursor stays
     expect(input.selectionStart).toBe(3);
   });
 });

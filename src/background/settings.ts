@@ -67,7 +67,7 @@ export function getSubSettings(
  * a `localPath` are never written there; local storage instead re-fetches and caches the snippets
  * from that path before saving.
  */
-export async function _save(
+export async function save(
   storage: { set: (items: Record<string, unknown>) => Promise<void> },
   data: Record<string, unknown>,
 ): Promise<void> {
@@ -98,7 +98,7 @@ export async function _save(
       // bad/unreachable snippet URL.
       console.error("Failed to fetch snippets from", localPath, r.error);
     }
-    // storage.set may throw (e.g. quota); swallow so a caller awaiting _save
+    // storage.set may throw (e.g. quota); swallow so a caller awaiting save
     // (and the response it settles) never hangs on a bad snippet path.
     try {
       await storage.set(toSave);
@@ -151,8 +151,8 @@ export type SettingsUnit = {
  */
 export function createSettings(deps: SettingsDeps): SettingsUnit {
   const { conf, browser, sendTabMessage, tabMessages, handlers, newTabUrl } = deps;
-  const _setScrollPos_bg = deps.setScrollPos;
-  const _quit = deps.quit;
+  const setScrollPos_bg = deps.setScrollPos;
+  const quit = deps.quit;
 
   const isMV3 = chrome.runtime.getManifest().manifest_version === 3;
 
@@ -180,18 +180,18 @@ export function createSettings(deps: SettingsDeps): SettingsUnit {
     return set;
   }
 
-  async function _updateSettings(diffSettings: Record<string, unknown>): Promise<void> {
+  async function updateSettings(diffSettings: Record<string, unknown>): Promise<void> {
     diffSettings["savedAt"] = Date.now();
-    await _save(chrome.storage.local, diffSettings);
+    await save(chrome.storage.local, diffSettings);
     // The sync write is fire-and-forget (local is the source of truth), but a
     // rejection here (e.g. sync quota) must be caught: an unhandled rejection can
     // terminate the MV3 service worker.
-    _save(chrome.storage.sync, diffSettings).catch((error) => {
+    save(chrome.storage.sync, diffSettings).catch((error) => {
       console.error("Failed to sync settings:", error);
     });
   }
 
-  async function _broadcastSettings(data: Record<string, unknown>): Promise<void> {
+  async function broadcastSettings(data: Record<string, unknown>): Promise<void> {
     const tabs = await chrome.tabs.query({});
     tabs.forEach((tab) => {
       if (tab.id != null) {
@@ -203,16 +203,16 @@ export function createSettings(deps: SettingsDeps): SettingsUnit {
     });
   }
 
-  async function _updateAndPostSettings(diffSettings: Record<string, unknown>): Promise<void> {
-    await _broadcastSettings(diffSettings);
-    await _updateSettings(diffSettings);
+  async function updateAndPostSettings(diffSettings: Record<string, unknown>): Promise<void> {
+    await broadcastSettings(diffSettings);
+    await updateSettings(diffSettings);
   }
 
   function getSenderUrl(sender: chrome.runtime.MessageSender): string | undefined {
     // use the tab's url if sender is a frame with blank url.
     return sender.frameId !== 0 && sender.url === "about:blank" ? sender.tab?.url : sender.url;
   }
-  function _getState(
+  function getState(
     blocklist: Record<string, unknown>,
     url: URL | null,
     blocklistPattern: { source: string; flags: string } | undefined,
@@ -251,11 +251,11 @@ export function createSettings(deps: SettingsDeps): SettingsUnit {
     return url;
   }
 
-  async function _loadSettingsFromUrl(url: string): Promise<{ status: string; snippets?: string }> {
+  async function loadSettingsFromUrl(url: string): Promise<{ status: string; snippets?: string }> {
     const r = await request(appendNonce(url));
     if (Result.isSuccess(r)) {
       const resp = r.value;
-      await _updateAndPostSettings({ localPath: url, snippets: resp });
+      await updateAndPostSettings({ localPath: url, snippets: resp });
       await registerUserScript(resp);
       return { status: "Succeeded", snippets: resp };
     }
@@ -336,9 +336,9 @@ export function createSettings(deps: SettingsDeps): SettingsUnit {
       } else {
         blocklist[origin] = 1;
       }
-      await _updateAndPostSettings({ blocklist });
+      await updateAndPostSettings({ blocklist });
       return {
-        state: _getState(
+        state: getState(
           blocklist,
           sender.tab && senderUrl != null ? new URL(senderUrl) : null,
           blocklistPattern,
@@ -361,7 +361,7 @@ export function createSettings(deps: SettingsDeps): SettingsUnit {
         } else {
           mouseSelectToQuery.splice(idx, 1);
         }
-        await _updateAndPostSettings({ mouseSelectToQuery });
+        await updateAndPostSettings({ mouseSelectToQuery });
       }
     },
     getState: async (message: unknown, sender?: chrome.runtime.MessageSender) => {
@@ -370,7 +370,7 @@ export function createSettings(deps: SettingsDeps): SettingsUnit {
       if (sender?.tab) {
         const senderUrl = getSenderUrl(sender);
         return {
-          state: _getState(
+          state: getState(
             v.parse(blocklistSchema, data["blocklist"]),
             senderUrl != null ? new URL(senderUrl) : null,
             blocklistPattern,
@@ -385,7 +385,7 @@ export function createSettings(deps: SettingsDeps): SettingsUnit {
       const data = await loadSettings("marks");
       const marks = v.parse(marksSchema, data["marks"]);
       extendObject(marks, mark);
-      await _updateAndPostSettings({ marks });
+      await updateAndPostSettings({ marks });
     },
     jumpVIMark: async (message: unknown, sender?: chrome.runtime.MessageSender, sendResponse?) => {
       const { mark } = v.parse(jumpVIMarkMessageSchema, message);
@@ -422,7 +422,7 @@ export function createSettings(deps: SettingsDeps): SettingsUnit {
         };
       }
       if (firstTabId === sender?.tab?.id) {
-        _setScrollPos_bg(firstTabId);
+        setScrollPos_bg(firstTabId);
       } else {
         chrome.tabs.update(firstTabId, {
           active: true,
@@ -436,11 +436,11 @@ export function createSettings(deps: SettingsDeps): SettingsUnit {
       // racing it and broadcasting stale settings.
       await Promise.all([chrome.storage.local.clear(), chrome.storage.sync.clear()]);
       const data = await loadSettings(null);
-      await _broadcastSettings(data);
+      await broadcastSettings(data);
       return { settings: data };
     },
     loadSettingsFromUrl: (message: unknown) =>
-      _loadSettingsFromUrl(v.parse(urlMessageSchema, message).url),
+      loadSettingsFromUrl(v.parse(urlMessageSchema, message).url),
     getSettings: async (message: unknown) => {
       const parsed = v.parse(getSettingsMessageSchema, message);
       let key = parsed.key;
@@ -487,11 +487,11 @@ export function createSettings(deps: SettingsDeps): SettingsUnit {
           csp: "script-src 'self' 'unsafe-eval'",
           messaging: true,
         });
-        await _updateAndPostSettings(settings);
+        await updateAndPostSettings(settings);
         await registerUserScript(settings["snippets"]);
         return { error };
       }
-      await _updateAndPostSettings(settings);
+      await updateAndPostSettings(settings);
       return { error };
     },
     updateInputHistory: async (message: unknown) => {
@@ -511,7 +511,7 @@ export function createSettings(deps: SettingsDeps): SettingsUnit {
       const toUpdate: Record<string, unknown> = {};
       if (Array.isArray(value)) {
         toUpdate[key] = value;
-        await _updateAndPostSettings(toUpdate);
+        await updateAndPostSettings(toUpdate);
       } else if (typeof value === "string" && value.trim().length && value !== ".") {
         curr = curr.filter((c) => {
           return c.trim().length && c !== value && c !== ".";
@@ -521,7 +521,7 @@ export function createSettings(deps: SettingsDeps): SettingsUnit {
           curr.pop();
         }
         toUpdate[key] = curr;
-        await _updateAndPostSettings(toUpdate);
+        await updateAndPostSettings(toUpdate);
       }
       return { history: curr };
     },
@@ -548,11 +548,11 @@ export function createSettings(deps: SettingsDeps): SettingsUnit {
         }
       }
       sessions[name] = { tabs: tabg };
-      await _updateAndPostSettings({
+      await updateAndPostSettings({
         sessions,
       });
       if (quitAfterSaved) {
-        _quit();
+        quit();
       }
     },
     openSession: async (message: unknown) => {
@@ -594,7 +594,7 @@ export function createSettings(deps: SettingsDeps): SettingsUnit {
       const data = await loadSettings("sessions");
       const sessions = v.parse(sessionsSchema, data["sessions"]);
       delete sessions[name];
-      await _updateAndPostSettings({
+      await updateAndPostSettings({
         sessions,
       });
     },
@@ -603,7 +603,7 @@ export function createSettings(deps: SettingsDeps): SettingsUnit {
   return {
     handlers: handlersMap,
     loadSettings,
-    updateAndPostSettings: _updateAndPostSettings,
-    broadcastSettings: _broadcastSettings,
+    updateAndPostSettings: updateAndPostSettings,
+    broadcastSettings: broadcastSettings,
   };
 }

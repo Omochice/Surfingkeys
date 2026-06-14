@@ -11,6 +11,7 @@
     "typescript/no-explicit-any": "error",
     "typescript/consistent-type-definitions": ["error", "type"],
     "no-unused-expressions": ["error", { "allowShortCircuit": true, "allowTernary": true }],
+    "no-underscore-dangle": "error",
     "no-restricted-properties": [
       "error",
       {

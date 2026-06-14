@@ -19,7 +19,7 @@ type BrowserAdapter = {
   focusFrontend?: (ifr: HTMLIFrameElement) => void;
 };
 
-let _browser: BrowserAdapter = {};
+let adapter: BrowserAdapter = {};
 
 type Api = ReturnType<typeof createAPI>;
 type Normal = ReturnType<typeof createNormal>;
@@ -36,19 +36,19 @@ const userConfPromise = new Promise<typeof runtime.conf>((resolve) => {
   );
 });
 
-function _initModules(): Modes {
+function initModules(): Modes {
   const { clipboard, insert, normal, hints, visual } = createModeGraph();
   // Content owns scroll-node observation; the observer is dormant until an
   // "observer" event turns it on, so its setup order relative to hints/visual
   // does not matter.
   startScrollNodeObserver(normal);
-  const front = createFront(insert, normal, hints, visual, _browser);
+  const front = createFront(insert, normal, hints, visual, adapter);
 
   const ctx: ModeContext = { clipboard, insert, normal, hints, visual, front };
   const api = createAPI(ctx);
   createDefaultMappings(api, ctx);
-  if (typeof _browser.plugin === "function") {
-    _browser.plugin({ front });
+  if (typeof adapter.plugin === "function") {
+    adapter.plugin({ front });
   }
 
   dispatchSKEvent("defaultSettingsLoaded", { normal, api });
@@ -75,7 +75,7 @@ function _initModules(): Modes {
   };
 }
 
-function _initContent(modes: Modes): void {
+function initContent(modes: Modes): void {
   window.frameId = generateQuickGuid();
   runtime.on("settingsUpdated", (response) => {
     const rs = response.settings;
@@ -106,7 +106,7 @@ window.getFrameId = function () {
         (window.frameElement as HTMLElement).offsetWidth > 16 &&
         (window.frameElement as HTMLElement).offsetWidth > 16))
   ) {
-    _initContent(_initModules());
+    initContent(initModules());
 
     // Only used to load user script for iframes in MV3
     setTimeout(() => {
@@ -129,18 +129,18 @@ initModeHub(
       },
 );
 
-function start(adapter?: BrowserAdapter): void {
-  _browser = adapter || {};
+function start(injectedAdapter?: BrowserAdapter): void {
+  adapter = injectedAdapter || {};
   if (window === top) {
     new Promise<Modes>((r) => {
-      r(_initModules());
+      r(initModules());
     }).then((modes) => {
-      _initContent(modes);
+      initContent(modes);
       runtime.on("titleChanged", () => {
         checkEventListener(() => {
           modes.front.detach();
-          modes = _initModules();
-          _initContent(modes);
+          modes = initModules();
+          initContent(modes);
           modes.front.attach();
         });
       });
@@ -210,7 +210,7 @@ function start(adapter?: BrowserAdapter): void {
     document.addEventListener(
       "surfingkeys:iframeBoot",
       () => {
-        _initContent(_initModules());
+        initContent(initModules());
       },
       { once: true },
     );

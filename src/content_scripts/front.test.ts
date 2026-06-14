@@ -163,7 +163,7 @@ function listenForSKEvent(type: string): {
 }
 
 // ---------------------------------------------------------------------------
-// Suite: window message handler — action dispatch when _active is true
+// Suite: window message handler — action dispatch when frontActive is true
 // ---------------------------------------------------------------------------
 
 describe("createFront window message handler — action dispatch", () => {
@@ -264,7 +264,7 @@ describe("createFront window message handler — action dispatch", () => {
     }
   });
 
-  it("deactivated/activated actions toggle the _active flag", () => {
+  it("deactivated/activated actions toggle the frontActive flag", () => {
     const visual = makeVisual();
     const { handler, restore } = captureMessageHandler();
     createFront(makeInsert(), makeNormal(), null, visual, makeBrowser());
@@ -366,7 +366,7 @@ describe("createFront getSearchSuggestions — non-function listSuggestion dispa
 // Suite: dialogResponse action
 // ---------------------------------------------------------------------------
 
-describe("createFront _actions[dialogResponse] — triggers onDialogResponseOk callback", () => {
+describe("createFront actions[dialogResponse] — triggers onDialogResponseOk callback", () => {
   it("calls onDialogResponseOk when result is Ok", () => {
     // Capture both the window message handler and the surfingkeys:front SK handler
     // so that dispatching to them is direct and isolated from prior instances.
@@ -620,7 +620,7 @@ describe("createFront runtime.on focusFrame — highlights when frameId matches"
 // ---------------------------------------------------------------------------
 
 describe("createFront window message handler — DictoriumViewReady activates when inactive", () => {
-  it("sets _active=true on DictoriumViewReady, enabling subsequent actions", () => {
+  it("sets frontActive=true on DictoriumViewReady, enabling subsequent actions", () => {
     const visual = makeVisual();
     const { handler, restore } = captureMessageHandler();
     createFront(makeInsert(), makeNormal(), null, visual, makeBrowser());
@@ -639,7 +639,7 @@ describe("createFront window message handler — DictoriumViewReady activates wh
       }),
     );
 
-    // After DictoriumViewReady, _active should be true again.
+    // After DictoriumViewReady, frontActive should be true again.
     messageHandler(makeContentEvent({ action: "visualClear" }));
     expect(visual.visualClear).toHaveBeenCalledOnce();
   });
@@ -716,20 +716,20 @@ describe("createFront window message handler — stopImmediatePropagation behavi
 // ---------------------------------------------------------------------------
 
 describe("createFront removeSearchAlias — queues applyUICommand for removeSearchAlias", () => {
-  it("queues a removeSearchAlias command in _uiUserSettings", () => {
+  it("queues a removeSearchAlias command in uiUserSettings", () => {
     const mockCreateUiHost = createUiHost as ReturnType<typeof vi.fn>;
     mockCreateUiHost.mockClear();
 
     const front = createFront(makeInsert(), makeNormal(), null, makeVisual(), makeBrowser());
 
     // Before frontend is loaded no createUiHost call has happened yet; the
-    // command is buffered in _uiUserSettings. Calling removeSearchAlias must
+    // command is buffered in uiUserSettings. Calling removeSearchAlias must
     // not throw and must NOT trigger newFrontEnd (no createUiHost call).
     expect(() => {
       front.removeSearchAlias("g");
     }).not.toThrow();
 
-    // _uiUserSettings is a private closure; its effect is observable only
+    // uiUserSettings is a private closure; its effect is observable only
     // after the frontend resolves. We verify that the alias is queued by
     // triggering newFrontEnd and confirming createUiHost was invoked — that
     // path confirms applyUICommand ran without error.
@@ -793,10 +793,10 @@ describe("createFront getUsage — builds annotations and delivers via newFrontE
 });
 
 // ---------------------------------------------------------------------------
-// Suite: _actions["getPageText"] — ack path posts body innerText via postTopMessage
+// Suite: actions["getPageText"] — ack path posts body innerText via postTopMessage
 // ---------------------------------------------------------------------------
 
-describe("createFront _actions[getPageText] — ack path posts body text", () => {
+describe("createFront actions[getPageText] — ack path posts body text", () => {
   it("posts body.innerText back via runtime.postTopMessage after Promise resolves", async () => {
     const { handler, restore } = captureMessageHandler();
     createFront(makeInsert(), makeNormal(), null, makeVisual(), makeBrowser());
@@ -828,10 +828,10 @@ describe("createFront _actions[getPageText] — ack path posts body text", () =>
 });
 
 // ---------------------------------------------------------------------------
-// Suite: _actions["getBackFocus"] — calls window.focus
+// Suite: actions["getBackFocus"] — calls window.focus
 // ---------------------------------------------------------------------------
 
-describe("createFront _actions[getBackFocus] — calls window.focus", () => {
+describe("createFront actions[getBackFocus] — calls window.focus", () => {
   it("calls window.focus when the action is dispatched", () => {
     const { handler, restore } = captureMessageHandler();
     createFront(makeInsert(), makeNormal(), null, makeVisual(), makeBrowser());
@@ -849,17 +849,17 @@ describe("createFront _actions[getBackFocus] — calls window.focus", () => {
 });
 
 // ---------------------------------------------------------------------------
-// Suite: addSearchAlias without suggestionURL — skips _listSuggestions
+// Suite: addSearchAlias without suggestionURL — skips listSuggestions
 // ---------------------------------------------------------------------------
 
-describe("createFront addSearchAlias — without suggestionURL skips _listSuggestions", () => {
+describe("createFront addSearchAlias — without suggestionURL skips listSuggestions", () => {
   it("queues addSearchAlias command but does not register a suggestion handler", () => {
     const { handler, restore } = captureMessageHandler();
     const front = createFront(makeInsert(), makeNormal(), null, makeVisual(), makeBrowser());
     restore();
     const messageHandler = handler()!;
 
-    // Register alias without suggestionURL: no entry added to _listSuggestions.
+    // Register alias without suggestionURL: no entry added to listSuggestions.
     front.addSearchAlias("d", "DuckDuckGo", "https://duckduckgo.com/?q=");
 
     // A getSearchSuggestions message for any url must return null (no handler).
@@ -1027,13 +1027,13 @@ describe("createFront self.attach — cancels pending detach timer", () => {
 });
 
 // ---------------------------------------------------------------------------
-// Suite: _actions["getSearchSuggestions"] — non-function dispatches skCallback id
+// Suite: actions["getSearchSuggestions"] — non-function dispatches skCallback id
 // The message handler returns void; the observable contract is that a
 // surfingkeys:user "getSearchSuggestions" event is dispatched carrying a
 // callbackId string, which is what the non-function path does.
 // ---------------------------------------------------------------------------
 
-describe("createFront _actions[getSearchSuggestions] — non-function dispatches user event with callbackId", () => {
+describe("createFront actions[getSearchSuggestions] — non-function dispatches user event with callbackId", () => {
   it("dispatches surfingkeys:user with a string callbackId as the last argument", () => {
     const { handler: msgHandler, restore: restoreMsg } = captureMessageHandler();
     const front = createFront(makeInsert(), makeNormal(), null, makeVisual(), makeBrowser());

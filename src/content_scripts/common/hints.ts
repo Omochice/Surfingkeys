@@ -341,10 +341,10 @@ div.hint-scrollable {
         hide();
       } else if (event.keyCode === KeyboardUtils.keyCodes["tab"]) {
         ai.classList.remove("activeInput");
-        _lastCreateAttrs.activeInput =
-          (_lastCreateAttrs.activeInput! + (keyEvent["shiftKey"] ? -1 : 1) + masks.length) %
+        lastCreateAttrs.activeInput =
+          (lastCreateAttrs.activeInput! + (keyEvent["shiftKey"] ? -1 : 1) + masks.length) %
           masks.length;
-        ai = masks[_lastCreateAttrs.activeInput]!;
+        ai = masks[lastCreateAttrs.activeInput]!;
         ai.classList.add("activeInput");
 
         elm = hintLink.get(ai);
@@ -500,11 +500,11 @@ div.hint-scrollable {
     style: "display: block; opacity: 1;",
   });
   let shiftKey = false;
-  let _lastCreateAttrs: { activeInput?: number; [key: string]: unknown } = {};
+  let lastCreateAttrs: { activeInput?: number; [key: string]: unknown } = {};
   // Holds a caller-provided onHintKey typed for its own hint target shape (see create()'s parameter).
   // eslint-disable-next-line typescript/no-explicit-any
-  let _onHintKey: ((element: any) => void) | null = dispatchMouseClick;
-  let _cssSelector: string | Element[] | RegExp = "";
+  let lastOnHintKey: ((element: any) => void) | null = dispatchMouseClick;
+  let lastCssSelector: string | Element[] | RegExp = "";
 
   function isCapital(key: string): boolean {
     return (
@@ -537,7 +537,7 @@ div.hint-scrollable {
     const elm: any = hintState.matched;
     if (elm) {
       normal.appendKeysForRepeat("Hints", prefix);
-      if (typeof _onHintKey === "function") {
+      if (typeof lastOnHintKey === "function") {
         if (behaviours.regionalHints) {
           setTimeout(() => {
             const overlay = createOverlay(elm, skColorIndices.get(elm)!, "99");
@@ -545,7 +545,7 @@ div.hint-scrollable {
             regionalHints.attach(overlay);
           }, 10);
         } else {
-          _onHintKey(elm);
+          lastOnHintKey(elm);
         }
       } else {
         if (elm.constructor.name === "Array") {
@@ -634,7 +634,7 @@ div.hint-scrollable {
       return;
     }
     const start = Date.now();
-    const found = createHintsImpl(_cssSelector, _lastCreateAttrs);
+    const found = createHintsImpl(lastCssSelector, lastCreateAttrs);
     if (found > 0) {
       mode.statusLine += " - " + (Date.now() - start) + "ms / " + found;
       showModeStatus();
@@ -787,7 +787,7 @@ div.hint-scrollable {
     return ret;
   };
 
-  function _initHolder(mode: string): void {
+  function initHolder(mode: string): void {
     setSanitizedContent(holder, "");
     holder.setAttribute("mode", mode);
     holder.style.display = "";
@@ -812,10 +812,10 @@ div.hint-scrollable {
   }
 
   function placeHints(elements: HTMLElement[]): void {
-    _initHolder("click");
+    initHolder("click");
     const hintLabels = self.genLabels(elements.length);
     const bof = self.coordinate();
-    const style = createElementWithContent("style", _styleForClick);
+    const style = createElementWithContent("style", styleForClick);
     holder.prepend(style);
     if (behaviours.regionalHints) {
       elements.forEach((e, i) => {
@@ -1026,7 +1026,7 @@ div.hint-scrollable {
     }
 
     if (elements.length > 0) {
-      _initHolder("text");
+      initHolder("text");
       const hintLabels = self.genLabels(elements.length);
       elements.forEach((e, i) => {
         const label = hintLabels[i] ?? "";
@@ -1035,7 +1035,7 @@ div.hint-scrollable {
         holder.append(e);
       });
 
-      const style = createElementWithContent("style", _styleForText);
+      const style = createElementWithContent("style", styleForText);
       holder.prepend(style);
       hintsHost.shadowRoot!.appendChild(holder);
     }
@@ -1087,7 +1087,7 @@ div.hint-scrollable {
 
     if (elements.length > 1) {
       mode.enter();
-      _initHolder("input");
+      initHolder("input");
       elements.forEach((e) => {
         const be = e.getBoundingClientRect();
         const z = getZIndex(e);
@@ -1103,7 +1103,7 @@ div.hint-scrollable {
         holder.append(mask);
       });
       hintsHost.shadowRoot!.appendChild(holder);
-      _lastCreateAttrs.activeInput = 0;
+      lastCreateAttrs.activeInput = 0;
       const ai = holder.querySelector<HTMLElement>("[mode=input]>mask")!;
       ai.classList.add("activeInput");
       normal.passFocus(true);
@@ -1119,7 +1119,7 @@ div.hint-scrollable {
   };
 
   const getSelector = (): string | Element[] | RegExp => {
-    return _cssSelector;
+    return lastCssSelector;
   };
 
   /**
@@ -1154,9 +1154,9 @@ div.hint-scrollable {
     }
 
     // save last used attributes, which will be reused if the user scrolls while the hints are still open
-    _cssSelector = cssSelector;
-    _onHintKey = onHintKey;
-    _lastCreateAttrs = attrs || {};
+    lastCssSelector = cssSelector;
+    lastOnHintKey = onHintKey;
+    lastCreateAttrs = attrs || {};
 
     const start = Date.now();
     const found = createHintsImpl(cssSelector, attrs);
@@ -1179,8 +1179,8 @@ div.hint-scrollable {
     }
   };
 
-  let _styleForText = "",
-    _styleForClick = "";
+  let styleForText = "",
+    styleForClick = "";
   /**
    * Set styles for hints.
    *
@@ -1199,9 +1199,9 @@ div.hint-scrollable {
     }
 
     if (mode === "text") {
-      _styleForText = css.replaceAll(/\bdiv\b/g, "[mode='text'] div");
+      styleForText = css.replaceAll(/\bdiv\b/g, "[mode='text'] div");
     } else {
-      _styleForClick = css.replaceAll(/\bdiv\b/g, "div");
+      styleForClick = css.replaceAll(/\bdiv\b/g, "div");
     }
   };
 

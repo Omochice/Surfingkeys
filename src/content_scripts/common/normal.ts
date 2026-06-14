@@ -24,7 +24,7 @@ import {
 type ScrollHelpers = {
   skScrollBy: (x: number, y: number) => unknown;
   smoothScrollBy: (x: number, y: number, d: number) => void;
-  safeScroll_: (prop: "scrollTop" | "scrollLeft", value: number, increasing: boolean) => boolean;
+  safeScroll: (prop: "scrollTop" | "scrollLeft", value: number, increasing: boolean) => boolean;
   lastScrollTop?: number;
   lastScrollLeft?: number;
 };
@@ -200,8 +200,8 @@ function createLurk(normal: NormalMode): LurkMode {
 }
 
 function createPassThrough(): PassThroughMode {
-  let _autoExit: ReturnType<typeof setTimeout> | undefined;
-  let _timeout: number | undefined;
+  let autoExit: ReturnType<typeof setTimeout> | undefined;
+  let timeoutMs: number | undefined;
   const mode = new ModeHandle("PassThrough");
 
   mode
@@ -211,14 +211,14 @@ function createPassThrough(): PassThroughMode {
       if (isSpecialKeyOf("<Esc>", event.sk_keyName ?? "")) {
         mode.exit();
         event.sk_stopPropagation = true;
-      } else if (_timeout && _timeout > 0) {
-        if (_autoExit) {
-          clearTimeout(_autoExit);
-          _autoExit = undefined;
+      } else if (timeoutMs && timeoutMs > 0) {
+        if (autoExit) {
+          clearTimeout(autoExit);
+          autoExit = undefined;
         }
-        _autoExit = setTimeout(() => {
+        autoExit = setTimeout(() => {
           mode.exit();
-        }, _timeout);
+        }, timeoutMs);
       }
     })
     .addEventListener("mousedown", (event) => {
@@ -229,11 +229,11 @@ function createPassThrough(): PassThroughMode {
   });
 
   mode.onEnter = () => {
-    if (_timeout && _timeout > 0) {
-      _autoExit = setTimeout(() => {
+    if (timeoutMs && timeoutMs > 0) {
+      autoExit = setTimeout(() => {
         mode.exit();
-      }, _timeout);
-      mode.statusLine = `ephemeral(${_timeout}ms) pass through`;
+      }, timeoutMs);
+      mode.statusLine = `ephemeral(${timeoutMs}ms) pass through`;
     } else {
       mode.statusLine = "pass through";
     }
@@ -246,7 +246,7 @@ function createPassThrough(): PassThroughMode {
       return mode.statusLine;
     },
     setTimeout(timeout?: number): void {
-      _timeout = timeout;
+      timeoutMs = timeout;
     },
     enter(): void {
       mode.enter();
@@ -259,10 +259,10 @@ function createNormal(insert: InsertLike): NormalMode {
   const mappings = new Trie();
 
   // let next focus event pass
-  let _passFocus = false;
-  let _lurk: LurkMode | undefined = undefined;
-  let _lurkMaps: [string, string][] | undefined = [];
-  let _once = false;
+  let passFocusFlag = false;
+  let lurk: LurkMode | undefined = undefined;
+  let lurkMaps: [string, string][] | undefined = [];
+  let onceFlag = false;
   let keyHeld = 0;
   let scrollNodes: HTMLElement[] | null = null;
   let scrollIndex = 0;
@@ -280,21 +280,21 @@ function createNormal(insert: InsertLike): NormalMode {
   });
 
   const passFocus = (pf: boolean): void => {
-    _passFocus = pf;
+    passFocusFlag = pf;
   };
 
   const startLurk = (): string => {
     let state = "lurking";
-    if (!_lurk) {
+    if (!lurk) {
       mode.exit();
-      _lurk = createLurk(self);
-      _lurkMaps!.forEach((lurkMap) => {
-        mapInMode(_lurk!, lurkMap[0], lurkMap[1]);
-        _lurk!.mappings.remove(KeyboardUtils.encodeKeystroke(lurkMap[1]));
+      lurk = createLurk(self);
+      lurkMaps!.forEach((lurkMap) => {
+        mapInMode(lurk!, lurkMap[0], lurkMap[1]);
+        lurk!.mappings.remove(KeyboardUtils.encodeKeystroke(lurkMap[1]));
       });
-      _lurkMaps = undefined;
-      _lurk.enter(0, true);
-    } else if (!_lurk.isCurrent()) {
+      lurkMaps = undefined;
+      lurk.enter(0, true);
+    } else if (!lurk.isCurrent()) {
       state = "enabled";
     }
     return state;
@@ -309,10 +309,10 @@ function createNormal(insert: InsertLike): NormalMode {
     }
   };
   const getLurkMode = (): LurkMode | undefined => {
-    return _lurk;
+    return lurk;
   };
   const addLurkMap = (newKeystroke: string, oldKeystroke: string): void => {
-    _lurkMaps!.push([newKeystroke, oldKeystroke]);
+    lurkMaps!.push([newKeystroke, oldKeystroke]);
   };
 
   mode.addEventListener("keydown", (event) => {
@@ -364,12 +364,12 @@ function createNormal(insert: InsertLike): NormalMode {
     } else if (keyName.length) {
       const done = keymap.handleKey(event, () => {
         // revert to lurk only when Esc is not handled and lurk mode available.
-        if (isSpecialKeyOf("<Esc>", keyName) && _lurk) {
+        if (isSpecialKeyOf("<Esc>", keyName) && lurk) {
           self.revertToLurk();
         }
       });
-      if (_once && done) {
-        _once = false;
+      if (onceFlag && done) {
+        onceFlag = false;
         mode.exit();
       }
     }
@@ -386,10 +386,10 @@ function createNormal(insert: InsertLike): NormalMode {
     if (runtime.conf.stealFocusOnLoad && !isInUIFrame()) {
       const elm = getRealEdit(event);
       if (elm && isEditable(elm)) {
-        if (_passFocus || isAutoFocusMarked(elm)) {
+        if (passFocusFlag || isAutoFocusMarked(elm)) {
           if (!runtime.conf.enableAutoFocus) {
             // prevent focus on input only when enableAutoFocus is turned off.
-            _passFocus = false;
+            passFocusFlag = false;
           }
         } else {
           elm.blur();
@@ -457,7 +457,7 @@ function createNormal(insert: InsertLike): NormalMode {
     }
   };
 
-  const _passThrough = createPassThrough();
+  const passThroughMode = createPassThrough();
   /**
    * Enter PassThrough mode.
    *
@@ -466,12 +466,12 @@ function createNormal(insert: InsertLike): NormalMode {
    * @name Normal.passThrough
    */
   const passThrough = (timeout?: number): PassThroughMode => {
-    _passThrough.setTimeout(timeout);
-    _passThrough.enter();
-    return _passThrough;
+    passThroughMode.setTimeout(timeout);
+    passThroughMode.enter();
+    return passThroughMode;
   };
   const once = (): void => {
-    _once = true;
+    onceFlag = true;
     mode.enter();
   };
   mappings.add(KeyboardUtils.encodeKeystroke("<Alt-i>"), {
@@ -523,7 +523,7 @@ function createNormal(insert: InsertLike): NormalMode {
           dispatchSKEvent("hints", ["scrollDone"]);
         }
       },
-      safeScroll_(prop, value, increasing) {
+      safeScroll(prop, value, increasing) {
         const clientHeight =
           elm === document.scrollingElement ? window.innerHeight : elm.clientHeight;
         const clientWidth = elm === document.scrollingElement ? window.innerWidth : elm.clientWidth;
@@ -562,15 +562,15 @@ function createNormal(insert: InsertLike): NormalMode {
             if (Math.abs(old + delta - originValue) >= Math.abs(distance)) {
               stepCompleted = true;
               if (keyHeld > runtime.conf.scrollFriction) {
-                boundaryHit = helpers.safeScroll_(prop, old + delta, distance > 0);
+                boundaryHit = helpers.safeScroll(prop, old + delta, distance > 0);
                 originValue = elm[prop];
               } else if (keyHeld > 0) {
                 keyHeld++;
               } else {
-                boundaryHit = helpers.safeScroll_(prop, originValue + distance, distance > 0);
+                boundaryHit = helpers.safeScroll(prop, originValue + distance, distance > 0);
               }
             } else {
-              boundaryHit = helpers.safeScroll_(prop, old + delta, distance > 0);
+              boundaryHit = helpers.safeScroll(prop, old + delta, distance > 0);
             }
             previousTimestamp = t;
 
@@ -1201,7 +1201,7 @@ function createNormal(insert: InsertLike): NormalMode {
     },
   });
 
-  function _onMouseUp(event: MouseEvent): void {
+  function onMouseUp(event: MouseEvent): void {
     const target = event.target as Element;
     if (
       runtime.conf.mouseSelectToQuery.includes(window.origin) &&
@@ -1216,23 +1216,23 @@ function createNormal(insert: InsertLike): NormalMode {
     }
   }
 
-  let _disabled: DisabledMode | null = null;
+  let disabled: DisabledMode | null = null;
   const disable = (onElement?: boolean): void => {
-    if (!_disabled) {
-      _disabled = createDisabled(self);
-      _disabled.enter(0, true);
+    if (!disabled) {
+      disabled = createDisabled(self);
+      disabled.enter(0, true);
     }
-    _disabled.activatedOnElement = !!onElement;
+    disabled.activatedOnElement = !!onElement;
     dispatchSKEvent("observer", ["turnOff"]);
-    document.removeEventListener("mouseup", _onMouseUp);
+    document.removeEventListener("mouseup", onMouseUp);
   };
 
   const enable = (): void => {
-    if (_disabled) {
-      _disabled.exit();
-      _disabled = null;
+    if (disabled) {
+      disabled.exit();
+      disabled = null;
     }
-    document.addEventListener("mouseup", _onMouseUp);
+    document.addEventListener("mouseup", onMouseUp);
   };
   enable();
 

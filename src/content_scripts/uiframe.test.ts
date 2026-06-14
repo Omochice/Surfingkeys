@@ -15,7 +15,7 @@ afterEach(() => {
 });
 
 /**
- * `_onWindowMessage` is only exposed by being registered as a capture-phase window "message"
+ * `onWindowMessage` is only exposed by being registered as a capture-phase window "message"
  * listener inside the iframe's load handler. Boot the host, drive the load event, and capture that
  * listener so a test can invoke it directly with a crafted event.
  */

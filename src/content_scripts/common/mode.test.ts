@@ -196,7 +196,7 @@ describe("ModeHandle.addEventListener — registers a new global listened event"
   it("routes a window event of a not-yet-listened type into the mode's handler", () => {
     const mode = makeMode("GlobalEvt");
     const handler = vi.fn();
-    // "wheel" is not among the built-in _listenedEvents, so addEventListener must
+    // "wheel" is not among the built-in listenedEvents, so addEventListener must
     // install a fresh window listener that funnels through handleStack.
     mode.addEventListener("wheel", handler);
     mode.enter();

@@ -36,9 +36,9 @@ type FilterByTitleOrUrl = <T extends { title?: string | undefined; url?: string 
  */
 export function createHistoryHandlers(
   browser: HistoryBrowser,
-  _filterByTitleOrUrl: FilterByTitleOrUrl,
+  filterByTitleOrUrl: FilterByTitleOrUrl,
 ): Record<string, MessageHandler> {
-  async function _getHistory(text: string, maxResults: number, sortByMostUsed?: boolean) {
+  async function getHistory(text: string, maxResults: number, sortByMostUsed?: boolean) {
     const items = await browser.getLatestHistoryItem(text, maxResults);
     if (sortByMostUsed) {
       return items.toSorted((a, b) => (b.visitCount ?? 0) - (a.visitCount ?? 0));
@@ -58,12 +58,12 @@ export function createHistoryHandlers(
           tabs.push(s.tab);
         }
       }
-      return { urls: _filterByTitleOrUrl(tabs, query ?? "") };
+      return { urls: filterByTitleOrUrl(tabs, query ?? "") };
     },
     getTopSites: async (message: unknown) => {
       const { query } = v.parse(searchQuerySchema, message);
       if (chrome.topSites) {
-        return { urls: _filterByTitleOrUrl(await chrome.topSites.get(), query ?? "") };
+        return { urls: filterByTitleOrUrl(await chrome.topSites.get(), query ?? "") };
       }
       return { urls: [] };
     },
@@ -74,14 +74,14 @@ export function createHistoryHandlers(
       const requestCount = params.maxResults || 100;
       const maxResults = requestCount - urls.length;
       if (maxResults > 0) {
-        const historyItems = await _getHistory(params.query || "", maxResults, true);
+        const historyItems = await getHistory(params.query || "", maxResults, true);
         return { urls: urls.concat(historyItems) };
       }
       return { urls: urls.slice(0, requestCount) };
     },
     getHistory: async (message: unknown) => {
       const { query, maxResults, sortByMostUsed } = v.parse(getHistorySchema, message);
-      const history = await _getHistory(query || "", maxResults || 100, sortByMostUsed);
+      const history = await getHistory(query || "", maxResults || 100, sortByMostUsed);
       return { history };
     },
     addHistories: (message: unknown) => {

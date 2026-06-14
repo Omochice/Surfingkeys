@@ -77,7 +77,7 @@ const focusTabByIndexSchema = v.object({
 });
 
 /** Clamps a target index to between 0 and length. */
-export function _fixTo(to: number, length: number) {
+export function fixTo(to: number, length: number) {
   if (to < 0) {
     to = 0;
   } else if (to >= length) {
@@ -87,7 +87,7 @@ export function _fixTo(to: number, length: number) {
 }
 
 /** Rounds the base index ahead when a repeat count would overrun the length. */
-export function _roundBase(base: number, repeats: number, length: number) {
+export function roundBase(base: number, repeats: number, length: number) {
   if (repeats > length - base) {
     base -= repeats - (length - base);
   }
@@ -101,7 +101,7 @@ export function _roundBase(base: number, repeats: number, length: number) {
  */
 export type TabsDeps = {
   conf: BackgroundConf;
-  browser: Pick<BrowserAdapter, "_setNewTabUrl"> &
+  browser: Pick<BrowserAdapter, "setNewTabUrl"> &
     Partial<Pick<BrowserAdapter, "detectTabTitleChange">>;
   handlers: Record<string, MessageHandler>;
 };
@@ -144,28 +144,28 @@ export function createTabs(deps: TabsDeps): TabsUnit {
   > = {};
   const tabURLs: Record<number, Record<string, string>> = {};
 
-  const newTabUrl = browser._setNewTabUrl();
+  const newTabUrl = browser.setNewTabUrl();
 
-  let _lastActiveTabId: number | null = null;
+  let lastActiveTabId: number | null = null;
   let previousWindowChoice = -1;
-  let _queueURLs: string[] = [];
+  let queueURLs: string[] = [];
 
   function removeTab(tabId: number) {
     delete tabActivated[tabId];
     delete tabMessages[tabId];
     delete tabURLs[tabId];
     tabHistory.remove(tabId);
-    if (_queueURLs.length) {
+    if (queueURLs.length) {
       chrome.tabs.create({
         active: false,
-        url: _queueURLs.shift(),
+        url: queueURLs.shift(),
       });
     }
 
-    void _updateTabIndices();
+    void updateTabIndices();
   }
   chrome.tabs.onRemoved.addListener(removeTab);
-  function _setScrollPos_bg(tabId: number) {
+  function setScrollPos_bg(tabId: number) {
     const message = tabMessages[tabId];
     if (message) {
       sendTabMessage(tabId, 0, {
@@ -188,22 +188,22 @@ export function createTabs(deps: TabsDeps): TabsUnit {
       });
     }
   }
-  function _tabActivated(tabId: number) {
-    if (_lastActiveTabId !== tabId) {
-      if (_lastActiveTabId !== null) {
-        sendTabMessage(_lastActiveTabId, 0, {
+  function notifyTabActivated(tabId: number) {
+    if (lastActiveTabId !== tabId) {
+      if (lastActiveTabId !== null) {
+        sendTabMessage(lastActiveTabId, 0, {
           subject: "tabDeactivated",
         });
       }
       sendTabMessage(tabId, 0, {
         subject: "tabActivated",
       });
-      _lastActiveTabId = tabId;
+      lastActiveTabId = tabId;
     }
   }
   chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
     if (changeInfo.status === "complete" && tab.active) {
-      _tabActivated(tabId);
+      notifyTabActivated(tabId);
     }
     if (browser.detectTabTitleChange && changeInfo.title) {
       sendTabMessage(tabId, 0, {
@@ -215,29 +215,29 @@ export function createTabs(deps: TabsDeps): TabsUnit {
   chrome.windows.onFocusChanged.addListener(async () => {
     const tab = await getActiveTab();
     if (tab) {
-      _tabActivated(tab.id!);
+      notifyTabActivated(tab.id!);
     }
   });
 
   chrome.tabs.onCreated.addListener(() => {
-    void _updateTabIndices();
+    void updateTabIndices();
   });
   chrome.tabs.onMoved.addListener(() => {
-    void _updateTabIndices();
+    void updateTabIndices();
   });
   chrome.tabs.onActivated.addListener((activeInfo) => {
     tabHistory.record(activeInfo.tabId);
     tabActivated[activeInfo.tabId] = Date.now();
-    _tabActivated(activeInfo.tabId);
+    notifyTabActivated(activeInfo.tabId);
     chromelikeNewTabPosition = 0;
 
-    void _updateTabIndices();
+    void updateTabIndices();
   });
   chrome.tabs.onDetached.addListener(() => {
-    void _updateTabIndices();
+    void updateTabIndices();
   });
   chrome.tabs.onAttached.addListener(() => {
-    void _updateTabIndices();
+    void updateTabIndices();
   });
 
   async function getActiveTab(): Promise<chrome.tabs.Tab | undefined> {
@@ -279,7 +279,7 @@ export function createTabs(deps: TabsDeps): TabsUnit {
     }
   });
 
-  async function _updateTabIndices() {
+  async function updateTabIndices() {
     if (conf["showTabIndices"]) {
       const tabs = await chrome.tabs.query({ currentWindow: true });
       tabs.forEach((tab) => {
@@ -291,7 +291,7 @@ export function createTabs(deps: TabsDeps): TabsUnit {
     }
   }
 
-  function _filterByTitleOrUrl<T extends { title?: string | undefined; url?: string | undefined }>(
+  function filterTabs<T extends { title?: string | undefined; url?: string | undefined }>(
     tabs: readonly T[],
     query: string,
   ): readonly T[] {
@@ -313,7 +313,7 @@ export function createTabs(deps: TabsDeps): TabsUnit {
     });
   }
 
-  async function _nextTab(tab: chrome.tabs.Tab | undefined, step: number): Promise<void> {
+  async function nextTab(tab: chrome.tabs.Tab | undefined, step: number): Promise<void> {
     if (tab) {
       const tabs = await chrome.tabs.query({ windowId: tab.windowId });
       if (tab.index == 0 && step == -1) {
@@ -321,16 +321,16 @@ export function createTabs(deps: TabsDeps): TabsUnit {
       } else if (tab.index == tabs.length - 1 && step == 1) {
         step = 1 - tabs.length;
       }
-      const to = _fixTo(tab.index + step, tabs.length - 1);
+      const to = fixTo(tab.index + step, tabs.length - 1);
       await chrome.tabs.update(tabs[to]!.id!, {
         active: true,
       });
     } else {
-      await _nextTab(await getActiveTab(), step);
+      await nextTab(await getActiveTab(), step);
     }
   }
 
-  async function _roundRepeatTabs(
+  async function roundRepeatTabs(
     tab: chrome.tabs.Tab | undefined,
     repeats: number,
     operation: (tabIds: number[]) => void | Promise<void>,
@@ -340,15 +340,15 @@ export function createTabs(deps: TabsDeps): TabsUnit {
       const tabIds = tabs.map((e) => {
         return e.id!;
       });
-      repeats = _fixTo(repeats, tabs.length);
-      const base = _roundBase(tab.index, repeats, tabs.length);
+      repeats = fixTo(repeats, tabs.length);
+      const base = roundBase(tab.index, repeats, tabs.length);
       await operation(tabIds.slice(base, base + repeats));
     } else {
-      await _roundRepeatTabs(await getActiveTab(), repeats, operation);
+      await roundRepeatTabs(await getActiveTab(), repeats, operation);
     }
   }
 
-  async function _closeTab(s: chrome.runtime.MessageSender, n: number) {
+  async function closeTab(s: chrome.runtime.MessageSender, n: number) {
     if (!s.tab) {
       return;
     }
@@ -421,7 +421,7 @@ export function createTabs(deps: TabsDeps): TabsUnit {
       const senderTabId = sender?.tab?.id;
       const { queryInfo, filter, tabsThreshold } = v.parse(getTabsSchema, message);
       let tabs: readonly chrome.tabs.Tab[] = await chrome.tabs.query(queryInfo ?? {});
-      tabs = _filterByTitleOrUrl(tabs, filter ?? "");
+      tabs = filterTabs(tabs, filter ?? "");
       if (tabsThreshold != null && tabs.length > tabsThreshold && conf["tabsMRUOrder"]) {
         // only remove current tab when tabsMRUOrder is enabled.
         tabs = tabs.filter((b) => {
@@ -499,12 +499,12 @@ export function createTabs(deps: TabsDeps): TabsUnit {
       }
     },
     nextTab: (message: unknown, sender?: chrome.runtime.MessageSender) =>
-      _nextTab(sender?.tab, v.parse(repeatsSchema, message).repeats ?? 1),
+      nextTab(sender?.tab, v.parse(repeatsSchema, message).repeats ?? 1),
     previousTab: (message: unknown, sender?: chrome.runtime.MessageSender) =>
-      _nextTab(sender?.tab, -(v.parse(repeatsSchema, message).repeats ?? 1)),
+      nextTab(sender?.tab, -(v.parse(repeatsSchema, message).repeats ?? 1)),
     reloadTab: (message: unknown, sender?: chrome.runtime.MessageSender) => {
       const { repeats, nocache } = v.parse(reloadTabSchema, message);
-      return _roundRepeatTabs(sender?.tab, repeats ?? 1, (tabIds) => {
+      return roundRepeatTabs(sender?.tab, repeats ?? 1, (tabIds) => {
         tabIds.forEach((tabId) => {
           chrome.tabs.reload(tabId, {
             bypassCache: nocache,
@@ -513,37 +513,33 @@ export function createTabs(deps: TabsDeps): TabsUnit {
       });
     },
     closeTab: (message: unknown, sender?: chrome.runtime.MessageSender) =>
-      _roundRepeatTabs(
-        sender?.tab,
-        v.parse(repeatsSchema, message).repeats ?? 1,
-        async (tabIds) => {
-          await chrome.tabs.remove(tabIds);
-          if (conf["focusAfterClosed"] === "left") {
-            await _nextTab(sender?.tab, -1);
-          } else if (conf["focusAfterClosed"] === "last") {
-            const historyTab = handlers["historyTab"];
-            if (historyTab) {
-              historyTab({ backward: true });
-            }
+      roundRepeatTabs(sender?.tab, v.parse(repeatsSchema, message).repeats ?? 1, async (tabIds) => {
+        await chrome.tabs.remove(tabIds);
+        if (conf["focusAfterClosed"] === "left") {
+          await nextTab(sender?.tab, -1);
+        } else if (conf["focusAfterClosed"] === "last") {
+          const historyTab = handlers["historyTab"];
+          if (historyTab) {
+            historyTab({ backward: true });
           }
-        },
-      ),
+        }
+      }),
     closeTabLeft: (message: unknown, sender?: chrome.runtime.MessageSender) =>
-      sender ? _closeTab(sender, -(v.parse(repeatsSchema, message).repeats ?? 1)) : undefined,
+      sender ? closeTab(sender, -(v.parse(repeatsSchema, message).repeats ?? 1)) : undefined,
     closeTabRight: (message: unknown, sender?: chrome.runtime.MessageSender) =>
-      sender ? _closeTab(sender, v.parse(repeatsSchema, message).repeats ?? 1) : undefined,
+      sender ? closeTab(sender, v.parse(repeatsSchema, message).repeats ?? 1) : undefined,
     closeTabsToLeft: (_message: unknown, sender?: chrome.runtime.MessageSender) => {
       if (!sender?.tab) {
         return undefined;
       }
-      return _closeTab(sender, -sender.tab.index);
+      return closeTab(sender, -sender.tab.index);
     },
     closeTabsToRight: async (_message: unknown, sender?: chrome.runtime.MessageSender) => {
       if (!sender?.tab) {
         return;
       }
       const tabs = await chrome.tabs.query({ currentWindow: true });
-      await _closeTab(sender, tabs.length - sender.tab.index);
+      await closeTab(sender, tabs.length - sender.tab.index);
     },
     tabOnly: async (_message: unknown, sender?: chrome.runtime.MessageSender) => {
       const senderTabId = sender?.tab?.id;
@@ -730,7 +726,7 @@ export function createTabs(deps: TabsDeps): TabsUnit {
       }
       const { step, repeats } = v.parse(moveTabSchema, message);
       const tabs = await chrome.tabs.query({ windowId: tab.windowId });
-      const to = _fixTo(tab.index + step * (repeats ?? 1), tabs.length);
+      const to = fixTo(tab.index + step * (repeats ?? 1), tabs.length);
       chrome.tabs.move(tab.id, {
         index: to,
       });
@@ -741,7 +737,7 @@ export function createTabs(deps: TabsDeps): TabsUnit {
         return {};
       }
       const { url, title } = v.parse(tabURLAccessedSchema, message);
-      _setScrollPos_bg(tab.id);
+      setScrollPos_bg(tab.id);
       const urls = tabURLs[tab.id] ?? {};
       urls[url] = title;
       tabURLs[tab.id] = urls;
@@ -785,24 +781,24 @@ export function createTabs(deps: TabsDeps): TabsUnit {
       }
     },
     queueURLs: (message: unknown) => {
-      _queueURLs = _queueURLs.concat(v.parse(queueURLsSchema, message).urls);
+      queueURLs = queueURLs.concat(v.parse(queueURLsSchema, message).urls);
     },
     getQueueURLs: () => {
       return {
-        queueURLs: _queueURLs,
+        queueURLs: queueURLs,
       };
     },
     clearQueueURLs: () => {
-      _queueURLs = [];
+      queueURLs = [];
     },
   };
 
   return {
     handlers: handlersMap,
     sendTabMessage,
-    filterByTitleOrUrl: _filterByTitleOrUrl,
+    filterByTitleOrUrl: filterTabs,
     tabMessages,
-    setScrollPos: _setScrollPos_bg,
+    setScrollPos: setScrollPos_bg,
     newTabUrl,
   };
 }

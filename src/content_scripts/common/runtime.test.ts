@@ -166,7 +166,7 @@ describe("runtime.bookMessage / releaseMessage", () => {
   it("books a fresh message name and refuses to overwrite an existing booking", () => {
     runtime.releaseMessage("wave2-probe");
     expect(runtime.bookMessage("wave2-probe", vi.fn())).toBe(true);
-    // Second booking of the same name hits the `if (_handlers[message])` arm.
+    // Second booking of the same name hits the `if (handlers[message])` arm.
     expect(runtime.bookMessage("wave2-probe", vi.fn())).toBe(false);
     runtime.releaseMessage("wave2-probe");
     // After release the name is free to book again.

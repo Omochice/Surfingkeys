@@ -15,11 +15,11 @@ async function loadRawSettings(
   return subset;
 }
 
-function _setNewTabUrl(): string {
+function setNewTabUrl(): string {
   return "about:newtab";
 }
 
-function _getContainerName(_self: unknown) {
+function getContainerName(_self: unknown) {
   return async (_message: unknown, sender?: { tab?: { cookieStoreId?: string } }) => {
     const cookieStoreId = sender?.tab?.cookieStoreId;
     if (cookieStoreId == null) {
@@ -51,6 +51,6 @@ export const firefoxSpecifics = {
   detectTabTitleChange: true,
   getLatestHistoryItem,
   loadRawSettings,
-  _setNewTabUrl,
-  _getContainerName,
+  setNewTabUrl,
+  getContainerName,
 };

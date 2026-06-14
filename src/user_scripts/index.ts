@@ -25,7 +25,7 @@ function isInUIFrame() {
 /** Options accepted by the mapkey family: a domain filter plus arbitrary forwarded flags. */
 type MapkeyOptions = { domain?: RegExp; codeHasParameter?: number; [key: string]: unknown };
 
-function _isDomainApplicable(domain?: RegExp) {
+function isDomainApplicable(domain?: RegExp) {
   return !domain || domain.test(document.location.href) || domain.test(window.origin);
 }
 
@@ -35,7 +35,7 @@ function cmap(
   domain?: RegExp,
   _new_annotation?: string,
 ) {
-  if (_isDomainApplicable(domain)) {
+  if (isDomainApplicable(domain)) {
     dispatchSKEvent("front", ["addMapkey", "Omnibar", new_keystroke, old_keystroke]);
   }
 }
@@ -43,7 +43,7 @@ function cmap(
 const userDefinedFunctions: Record<string, (...args: unknown[]) => void> = {};
 // eslint-disable-next-line typescript/no-explicit-any -- user keypress handler of arbitrary signature
 function mapkey(keys: string, annotation: string | string[], jscode: any, options?: MapkeyOptions) {
-  if (!options || _isDomainApplicable(options.domain)) {
+  if (!options || isDomainApplicable(options.domain)) {
     const opt = options || {};
     userDefinedFunctions[`normal:${keys}`] = jscode;
     opt.codeHasParameter = jscode.length;
@@ -57,7 +57,7 @@ function imapkey(
   jscode: any,
   options?: MapkeyOptions,
 ) {
-  if (!options || _isDomainApplicable(options.domain)) {
+  if (!options || isDomainApplicable(options.domain)) {
     userDefinedFunctions[`insert:${keys}`] = jscode;
     dispatchSKEvent("api", ["imapkey", keys, annotation, options]);
   }
@@ -69,7 +69,7 @@ function vmapkey(
   jscode: any,
   options?: MapkeyOptions,
 ) {
-  if (!options || _isDomainApplicable(options.domain)) {
+  if (!options || isDomainApplicable(options.domain)) {
     userDefinedFunctions[`visual:${keys}`] = jscode;
     dispatchSKEvent("api", ["vmapkey", keys, annotation, options]);
   }

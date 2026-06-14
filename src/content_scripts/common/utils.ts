@@ -122,7 +122,7 @@ function getColor(i: number): string {
 }
 
 function isEmptyObject(obj: object): boolean {
-  for (const _name in obj) {
+  for (const _ in obj) {
     return false;
   }
   return true;
@@ -745,7 +745,7 @@ function getTextNodePos(
   return pos;
 }
 
-const _focusedRange = document.createRange();
+const focusedRange = document.createRange();
 function getTextRect(
   node: Node,
   startOffset: number,
@@ -757,15 +757,15 @@ function getTextRect(
       let rects: DOMRectList | DOMRect[] = [];
       let start = startOffset;
       while (rects.length === 0 && start >= 0) {
-        _focusedRange.setStart(node, start);
+        focusedRange.setStart(node, start);
         if (endOffset != null && typeof endNodeOrOffset === "object") {
-          _focusedRange.setEnd(endNodeOrOffset, endOffset);
+          focusedRange.setEnd(endNodeOrOffset, endOffset);
         } else if (typeof endNodeOrOffset === "number") {
-          _focusedRange.setEnd(node, endNodeOrOffset);
+          focusedRange.setEnd(node, endNodeOrOffset);
         } else {
-          _focusedRange.setEnd(node, startOffset);
+          focusedRange.setEnd(node, startOffset);
         }
-        rects = _focusedRange.getClientRects();
+        rects = focusedRange.getClientRects();
         start--;
       }
       return rects;
@@ -840,9 +840,9 @@ function getNearestWord(text: string, offset: number): [number, number] {
   return ret;
 }
 
-let _clickPos: [number, number] | null = null;
+let clickPos: [number, number] | null = null;
 document.addEventListener("mousedown", (event) => {
-  _clickPos = [event.clientX, event.clientY];
+  clickPos = [event.clientX, event.clientY];
 });
 function getWordUnderCursor(mouseCursor?: boolean): string | null {
   const selection = document.getSelection()!;
@@ -856,7 +856,7 @@ function getWordUnderCursor(mouseCursor?: boolean): string | null {
     if (
       selRect &&
       word &&
-      (!mouseCursor || (_clickPos && rectContains(selRect, _clickPos[0], _clickPos[1], 0, 0)))
+      (!mouseCursor || (clickPos && rectContains(selRect, clickPos[0], clickPos[1], 0, 0)))
     ) {
       return word.trim();
     }
@@ -1080,10 +1080,10 @@ function createElementWithContent(
   return elm;
 }
 
-const _divForHtmlEncoder = document.createElement("div");
+const divForHtmlEncoder = document.createElement("div");
 function htmlEncode(str: string): string {
-  _divForHtmlEncoder.innerText = str;
-  return _divForHtmlEncoder.innerHTML;
+  divForHtmlEncoder.innerText = str;
+  return divForHtmlEncoder.innerHTML;
 }
 
 function show(el: HTMLElement): void {

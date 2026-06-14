@@ -339,7 +339,7 @@ function createInsert(): InsertMode {
     }
   });
 
-  let _element: HTMLElement | undefined;
+  let element: HTMLElement | undefined;
   const self: InsertMode = {
     // The hub dispatches events by reading the private handle's listener map; sharing the reference
     // keeps the keydown/focus listeners registered above observable through the controller.
@@ -353,8 +353,8 @@ function createInsert(): InsertMode {
         runtime.conf.showModeStatus = false;
       }
       let changed = mode.enter(0, true) === -1;
-      if (_element !== elm) {
-        _element = elm;
+      if (element !== elm) {
+        element = elm;
         changed = true;
       }
       if (changed && !keepCursor && runtime.conf.cursorAtEndOfInput && elm.nodeName !== "SELECT") {

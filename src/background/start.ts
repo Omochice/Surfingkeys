@@ -53,8 +53,8 @@ export type BrowserAdapter = {
     keys: string | readonly string[] | null | undefined,
     defaultSet?: Record<string, unknown>,
   ) => Promise<Record<string, unknown>>;
-  _setNewTabUrl: () => string;
-  _getContainerName: (self: Record<string, MessageHandler>) => MessageHandler | undefined;
+  setNewTabUrl: () => string;
+  getContainerName: (self: Record<string, MessageHandler>) => MessageHandler | undefined;
 };
 
 // GitHub gist API responses are external data; each parsed body is validated so
@@ -130,7 +130,7 @@ const Gist = (() => {
     }
   };
 
-  async function _initGist(token: string, magic_word: string): Promise<string> {
+  async function createOrFindGist(token: string, magic_word: string): Promise<string> {
     const auth = { Authorization: "token " + token };
     const r = await request("https://api.github.com/gists", auth);
     if (Result.isFailure(r)) {
@@ -164,16 +164,16 @@ const Gist = (() => {
     return created?.success ? created.output.id : "";
   }
 
-  let _token: string;
-  let _gist = "";
-  let _comments: string[] = [];
+  let cachedToken: string;
+  let cachedGist = "";
+  let cachedComments: string[] = [];
   const initGist = async (token: string): Promise<string> => {
-    if (_token === token && _gist !== "") {
-      return _gist;
+    if (cachedToken === token && cachedGist !== "") {
+      return cachedGist;
     }
-    _token = token;
-    _gist = await _initGist(_token, "cloudboard");
-    return _gist;
+    cachedToken = token;
+    cachedGist = await createOrFindGist(cachedToken, "cloudboard");
+    return cachedGist;
   };
 
   // The Gist comment helpers below always resolve, even on request failure:
@@ -181,17 +181,17 @@ const Gist = (() => {
   // straight to the dispatcher, so a rejected promise would hang the runtime
   // sender forever. Each helper forwards the failure through a payload shaped
   // like its success path so the sender still settles.
-  async function _newComment(text: string): Promise<string> {
+  async function newComment(text: string): Promise<string> {
     const r = await request(
-      `https://api.github.com/gists/${_gist}/comments`,
-      { Authorization: "token " + _token },
+      `https://api.github.com/gists/${cachedGist}/comments`,
+      { Authorization: "token " + cachedToken },
       `{"body": "${encodeURIComponent(text)}"}`,
     );
     return Result.isSuccess(r) ? r.value : "";
   }
-  async function _readComment(cid: string): Promise<GistCommentResult> {
-    const r = await request(`https://api.github.com/gists/${_gist}/comments/${cid}`, {
-      Authorization: "token " + _token,
+  async function fetchComment(cid: string): Promise<GistCommentResult> {
+    const r = await request(`https://api.github.com/gists/${cachedGist}/comments/${cid}`, {
+      Authorization: "token " + cachedToken,
     });
     if (Result.isFailure(r)) {
       return { status: 1, error: String(r.error.cause) };
@@ -212,11 +212,11 @@ const Gist = (() => {
     }
     return { status: 0, content };
   }
-  async function _listComment(): Promise<
+  async function listComment(): Promise<
     { ok: true; comments: string[] } | { ok: false; error: string }
   > {
-    const r = await request(`https://api.github.com/gists/${_gist}/comments`, {
-      Authorization: "token " + _token,
+    const r = await request(`https://api.github.com/gists/${cachedGist}/comments`, {
+      Authorization: "token " + cachedToken,
     });
     if (Result.isFailure(r)) {
       return { ok: false, error: String(r.error.cause) };
@@ -225,59 +225,59 @@ const Gist = (() => {
     if (!comments.success) {
       return { ok: false, error: "malformed gist comment list response" };
     }
-    _comments = comments.output.map((c) => String(c.id));
-    return { ok: true, comments: _comments };
+    cachedComments = comments.output.map((c) => String(c.id));
+    return { ok: true, comments: cachedComments };
   }
-  async function _writeComment(cid: string, clip: string): Promise<string> {
+  async function writeComment(cid: string, clip: string): Promise<string> {
     const r = await request(
-      `https://api.github.com/gists/${_gist}/comments/${cid}`,
-      { Authorization: "token " + _token },
+      `https://api.github.com/gists/${cachedGist}/comments/${cid}`,
+      { Authorization: "token " + cachedToken },
       `{"body": "${encodeURIComponent(clip)}"}`,
     );
     return Result.isSuccess(r) ? r.value : "";
   }
   const readComment = async (nr: number): Promise<GistCommentResult> => {
-    if (_gist === "") {
+    if (cachedGist === "") {
       return { status: 1, content: "Please call initGist first!" };
     }
-    const cached = _comments[nr];
+    const cached = cachedComments[nr];
     if (cached !== undefined) {
-      return _readComment(cached);
+      return fetchComment(cached);
     }
-    const listed = await _listComment();
+    const listed = await listComment();
     if (!listed.ok) {
       return { status: 1, error: listed.error };
     }
     const fresh = listed.comments[nr];
     if (fresh !== undefined) {
-      return _readComment(fresh);
+      return fetchComment(fresh);
     }
     return { status: 1, content: "Register not exists!" };
   };
   const editComment = async (nr: number, clip: string): Promise<string | GistCommentResult> => {
-    if (_gist === "") {
+    if (cachedGist === "") {
       return { status: 1, content: "Please call initGist first!" };
     }
-    const cached = _comments[nr];
+    const cached = cachedComments[nr];
     if (cached !== undefined) {
-      return _writeComment(cached, clip);
+      return writeComment(cached, clip);
     }
-    const listed = await _listComment();
+    const listed = await listComment();
     if (!listed.ok) {
       return { status: 1, error: listed.error };
     }
     const fresh = listed.comments[nr];
     if (fresh !== undefined) {
-      return _writeComment(fresh, clip);
+      return writeComment(fresh, clip);
     }
     // Pad the comment list with placeholders up to the requested index, then
     // write the clip into the final new comment.
     let toCreate = nr - listed.comments.length + 1;
     while (toCreate > 1) {
-      await _newComment(".");
+      await newComment(".");
       toCreate--;
     }
-    return _newComment(clip);
+    return newComment(clip);
   };
 
   return { initGist, readComment, editComment };
@@ -360,7 +360,7 @@ function start(browser: BrowserAdapter): void {
     setScrollPos: tabs.setScrollPos,
     handlers,
     newTabUrl: tabs.newTabUrl,
-    quit: _quit,
+    quit: quit,
   });
   Object.assign(handlers, settings.handlers);
 
@@ -412,14 +412,14 @@ function start(browser: BrowserAdapter): void {
     });
     return { text: Result.isSuccess(r) ? r.value : "" };
   };
-  async function _quit() {
+  async function quit() {
     const windows = await chrome.windows.getAll({ populate: false });
     windows.forEach((w) => {
       chrome.windows.remove(w.id!);
     });
   }
   handlers["quit"] = () => {
-    void _quit();
+    void quit();
   };
   handlers["closeDownloadsShelf"] = (message: unknown) => {
     const { clearHistory } = v.parse(closeDownloadsShelfSchema, message);
@@ -439,7 +439,7 @@ function start(browser: BrowserAdapter): void {
     const { url, filename, saveAs } = v.parse(downloadSchema, message);
     chrome.downloads.download({ url, filename, saveAs });
   };
-  async function _removeURL(uid: string): Promise<void> {
+  async function removeURL(uid: string): Promise<void> {
     const type = uid[0];
     uid = uid.slice(1);
     if (type === "B") {
@@ -464,7 +464,7 @@ function start(browser: BrowserAdapter): void {
   handlers["removeURL"] = async (message: unknown) => {
     const { uid } = v.parse(removeURLSchema, message);
     const uids = typeof uid === "string" ? [uid] : uid;
-    await Promise.all(uids.map((u) => _removeURL(u)));
+    await Promise.all(uids.map((u) => removeURL(u)));
     return { response: "Done" };
   };
   handlers["localData"] = async (message: unknown) => {
@@ -515,7 +515,7 @@ function start(browser: BrowserAdapter): void {
     const { text } = v.parse(textSchema, message);
     navigator.clipboard.writeText(text);
   };
-  const containerHandler = browser._getContainerName(handlers);
+  const containerHandler = browser.getContainerName(handlers);
   if (containerHandler) {
     handlers["getContainerName"] = containerHandler;
   }

@@ -118,7 +118,7 @@ type MessageHandler = (
   sendResponse: (response?: unknown) => void,
 ) => void;
 
-const _handlers: Record<string, MessageHandler> = {};
+const handlers: Record<string, MessageHandler> = {};
 
 /**
  * The live settings bag shared across every content-script module as {@link runtime.conf}. The
@@ -281,23 +281,23 @@ const getTopURLPromise = new Promise<string>((resolve) => {
 });
 
 chrome.runtime.onMessage.addListener((msg, sender, response) => {
-  _handlers[msg.subject]?.(msg, sender, response);
+  handlers[msg.subject]?.(msg, sender, response);
 });
 
 const runtime = {
   conf,
   on(message: string, cb: MessageHandler): void {
-    _handlers[message] = cb;
+    handlers[message] = cb;
   },
   bookMessage(message: string, cb: MessageHandler): boolean {
-    if (_handlers[message]) {
+    if (handlers[message]) {
       return false;
     }
-    _handlers[message] = cb;
+    handlers[message] = cb;
     return true;
   },
   releaseMessage(message: string): void {
-    delete _handlers[message];
+    delete handlers[message];
   },
   getTopURL(cb: (url: string) => void): void {
     getTopURLPromise.then(cb);

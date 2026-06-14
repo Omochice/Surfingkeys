@@ -1,5 +1,5 @@
 import { filterByTitleOrUrl } from "../common/utils";
-import { _save, extendObject, getSubSettings } from "./settings";
+import { extendObject, getSubSettings, save } from "./settings";
 
 async function loadRawSettings(
   keys: string | readonly string[] | null | undefined,
@@ -17,7 +17,7 @@ async function loadRawSettings(
     // chrome.runtime.lastError), so a failed sync mirror is surfaced as `error`
     // on the returned settings instead of rejecting the whole load.
     try {
-      await _save(chrome.storage.sync, localSet);
+      await save(chrome.storage.sync, localSet);
     } catch (error) {
       subset["error"] =
         "Settings sync may not work thoroughly because of: " +
@@ -29,18 +29,18 @@ async function loadRawSettings(
     // don't sync local path
     delete syncSet["localPath"];
     extendObject(rawSet, syncSet);
-    void _save(chrome.storage.local, syncSet);
+    void save(chrome.storage.local, syncSet);
     return getSubSettings(rawSet, keys);
   }
   extendObject(rawSet, localSet);
   return getSubSettings(rawSet, keys);
 }
 
-function _setNewTabUrl(): string {
+function setNewTabUrl(): string {
   return "chrome://newtab/";
 }
 
-function _getContainerName(_self: unknown): undefined {}
+function getContainerName(_self: unknown): undefined {}
 
 async function getLatestHistoryItem(
   text: string,
@@ -75,6 +75,6 @@ export const chromeSpecifics = {
   detectTabTitleChange: true,
   getLatestHistoryItem,
   loadRawSettings,
-  _setNewTabUrl,
-  _getContainerName,
+  setNewTabUrl,
+  getContainerName,
 };

@@ -982,7 +982,7 @@ describe("createPassThrough keydown handler", () => {
   it("resets the auto-exit timer on non-Esc key when a timeout is active", () => {
     vi.useFakeTimers();
     const normal = createNormal(insertStub);
-    // Enter with a 1000 ms timeout so _autoExit is set on enter.
+    // Enter with a 1000 ms timeout so autoExit is set on enter.
     const pt = normal.passThrough(1000);
     const handler = pt.eventListeners["keydown"]!;
 
@@ -1317,7 +1317,7 @@ describe("createNormal feedkeys", () => {
 
 // ─── onMouseUp (via mouseup document event after enable) ─────────────────────
 
-describe("createNormal _onMouseUp — querySelectedWord dispatch", () => {
+describe("createNormal onMouseUp — querySelectedWord dispatch", () => {
   beforeEach(() => {
     vi.useFakeTimers();
   });
@@ -1328,7 +1328,7 @@ describe("createNormal _onMouseUp — querySelectedWord dispatch", () => {
   });
 
   it("dispatches at least one querySelectedWord after 1 ms when window.origin is in mouseSelectToQuery", () => {
-    // enable() registers _onMouseUp on the document. Multiple normal instances
+    // enable() registers onMouseUp on the document. Multiple normal instances
     // created in the test suite may all have mouseup listeners active (each
     // createNormal calls self.enable() which appends a listener), so we count
     // the increment rather than asserting an absolute value of 1.
@@ -1835,10 +1835,10 @@ describe("createNormal keydown handler — non-editable key dispatches the keyma
   });
 });
 
-// ─── _once flag: exits normal after an action is done ─────────────────────────
+// ─── onceFlag flag: exits normal after an action is done ─────────────────────────
 
 describe("createNormal once", () => {
-  it("sets _once so the mode exits after one action completes via the keydown handler", () => {
+  it("sets onceFlag so the mode exits after one action completes via the keydown handler", () => {
     const normal = createNormal(insertStub);
     let ran = 0;
     normal.mappings.add("z", {
@@ -1849,10 +1849,10 @@ describe("createNormal once", () => {
       },
     });
 
-    // once() sets _once=true and enters the mode.
+    // once() sets onceFlag=true and enters the mode.
     normal.once();
 
-    // Drive through the real keydown handler so the _once closure is evaluated.
+    // Drive through the real keydown handler so the onceFlag closure is evaluated.
     const handler = normal.eventListeners["keydown"]!;
     const div = document.createElement("div"); // non-editable target
     document.body.appendChild(div);
@@ -1872,7 +1872,7 @@ describe("createNormal once", () => {
     handler(evt);
 
     expect(ran).toBe(1);
-    // After the action, _once causes normal.exit() — mode is no longer at the top. The controller is
+    // After the action, onceFlag causes normal.exit() — mode is no longer at the top. The controller is
     // no longer its own ModeHandle, so identity is checked by the handle's name rather than `toBe`.
     expect(getCurrentMode()?.name).not.toBe("Normal");
 

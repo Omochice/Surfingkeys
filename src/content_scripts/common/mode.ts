@@ -22,7 +22,7 @@ let eventListenerBeats = 0;
 let suppressScrollEvent = 0;
 const keysNeedKeyupSuppressed: number[] = [];
 
-const _listenedEvents: Record<string, (event: StackEvent) => void> = {
+const listenedEvents: Record<string, (event: StackEvent) => void> = {
   sentinel: () => {
     eventListenerBeats++;
   },
@@ -90,7 +90,7 @@ function handleStack(eventName: string, event: StackEvent, cb?: (mode: ModeHandl
 
 function init(cb?: () => void): void {
   modeStack = [];
-  for (const [evtName, listener] of Object.entries(_listenedEvents)) {
+  for (const [evtName, listener] of Object.entries(listenedEvents)) {
     window.addEventListener(evtName, listener, true);
   }
   cb?.();
@@ -112,11 +112,11 @@ export class ModeHandle {
   addEventListener(evtName: string, handler: (event: StackEvent) => void): this {
     this.eventListeners[evtName] = handler;
 
-    if (!Object.hasOwn(_listenedEvents, evtName)) {
+    if (!Object.hasOwn(listenedEvents, evtName)) {
       const listener = (event: StackEvent): void => {
         handleStack(evtName, event);
       };
-      _listenedEvents[evtName] = listener;
+      listenedEvents[evtName] = listener;
       window.addEventListener(evtName, listener, true);
     }
 
