@@ -2,7 +2,7 @@ import { Result } from "@praha/byethrow";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { reportError } from "./report";
-import { dispatchSKEvent, RUNTIME, runtime } from "./runtime";
+import { dispatchSKEvent, RUNTIME, RUNTIMEAsync, runtime } from "./runtime";
 
 // `reportError` is the presentation pipeline for chrome-runtime failures; async
 // lastError failures (which Result.try's synchronous catch cannot see) must be
@@ -135,6 +135,59 @@ describe("RUNTIME", () => {
     expect(reportErrorMock).toHaveBeenCalledWith(
       expect.objectContaining({ cause: "unknown error" }),
     );
+  });
+});
+
+describe("RUNTIMEAsync", () => {
+  it("resolves with the response when no lastError is set", async () => {
+    const response = { ok: true };
+    runtimeStub.sendMessage = vi.fn((_msg: unknown, cb?: (r: unknown) => void) => {
+      cb?.(response);
+    });
+
+    await expect(RUNTIMEAsync("getTabs")).resolves.toEqual(response);
+    expect(reportErrorMock).not.toHaveBeenCalled();
+  });
+
+  it("requests a response from the background", async () => {
+    let sent: any;
+    runtimeStub.sendMessage = vi.fn((msg: unknown, cb?: (r: unknown) => void) => {
+      sent = msg;
+      cb?.(null);
+    });
+
+    await RUNTIMEAsync("getTabs");
+
+    // The async variant always consumes the reply, so it must mark needResponse so the
+    // background routes a response back.
+    expect(sent.needResponse).toBe(true);
+  });
+
+  it("rejects on an async lastError and leaves reporting to the caller", async () => {
+    runtimeStub.lastError = { message: "Could not establish connection." };
+    runtimeStub.sendMessage = vi.fn((_msg: unknown, cb?: (r: unknown) => void) => {
+      cb?.(undefined);
+    });
+
+    await expect(RUNTIMEAsync("getTabs")).rejects.toMatchObject({
+      kind: "chrome-runtime",
+      op: "sendMessage:getTabs",
+      cause: "Could not establish connection.",
+    });
+    // The async variant rejects instead of reporting, so the caller's own .catch reports
+    // exactly once rather than double-reporting.
+    expect(reportErrorMock).not.toHaveBeenCalled();
+  });
+
+  it("rejects when sendMessage throws synchronously", async () => {
+    runtimeStub.sendMessage = vi.fn(() => {
+      throw new Error("Extension context invalidated.");
+    });
+
+    await expect(RUNTIMEAsync("getTabs")).rejects.toMatchObject({
+      kind: "chrome-runtime",
+      op: "sendMessage:getTabs",
+    });
   });
 });
 

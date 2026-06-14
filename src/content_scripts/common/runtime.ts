@@ -41,35 +41,33 @@ type RuntimeFn = {
   repeats: number;
 };
 
+const actionsRepeatBackground = [
+  "closeTab",
+  "nextTab",
+  "previousTab",
+  "moveTab",
+  "reloadTab",
+  "setZoom",
+  "closeTabLeft",
+  "closeTabRight",
+  "focusTabByIndex",
+];
+
 /**
- * Call background `action` with `args`, the `callback` will be executed with response from
- * background. Returns a `Result` so callers decide whether to surface failure to the user.
+ * Shared core of {@link RUNTIME} and {@link RUNTIMEAsync}: builds the message, applies the
+ * background-repeat bookkeeping, and dispatches it.
  *
- * @example
- *   RUNTIME("getTabs", { queryInfo: { currentWindow: true } }, (response) => {
- *     console.log(response);
- *   });
- *
- * @param {string} action A background action to be called.
- * @param {object} args The parameters to be passed to the background action.
- * @param {function} callback A function to be executed with the result from the background action.
+ * When `onLastError` is supplied, the asynchronous `lastError` is handed to it instead of being
+ * routed through {@link reportError}: the async variant rejects with the failure so the caller owns
+ * presentation, which avoids double-reporting once and then again from a `.catch`. The callback
+ * form (no `onLastError`) keeps reporting-and-swallowing as before.
  */
-const RUNTIME = function (
+function sendRuntimeMessage(
   action: string,
-  args?: Record<string, unknown> | null,
-  callback?: (response: unknown) => void,
+  args: Record<string, unknown> | null | undefined,
+  callback: ((response: unknown) => void) | undefined,
+  onLastError?: (error: ChromeRuntimeError) => void,
 ): Result.Result<void, ChromeRuntimeError> {
-  const actionsRepeatBackground = [
-    "closeTab",
-    "nextTab",
-    "previousTab",
-    "moveTab",
-    "reloadTab",
-    "setZoom",
-    "closeTabLeft",
-    "closeTabRight",
-    "focusTabByIndex",
-  ];
   const a: Record<string, unknown> = args || {};
   a["action"] = action;
   if (actionsRepeatBackground.includes(action)) {
@@ -91,12 +89,15 @@ const RUNTIME = function (
           if (chrome.runtime.lastError) {
             // Pass message, not the object: formatMessage stringifies the cause,
             // turning { message } into "[object Object]".
-            reportError(
-              chromeRuntimeError(
-                `sendMessage:${action}`,
-                chrome.runtime.lastError.message ?? "unknown error",
-              ),
+            const error = chromeRuntimeError(
+              `sendMessage:${action}`,
+              chrome.runtime.lastError.message ?? "unknown error",
             );
+            if (onLastError) {
+              onLastError(error);
+            } else {
+              reportError(error);
+            }
             return;
           }
           callback(response);
@@ -107,7 +108,68 @@ const RUNTIME = function (
     },
     catch: (cause) => chromeRuntimeError(`sendMessage:${action}`, cause),
   });
+}
+
+/**
+ * Call background `action` with `args`, the `callback` will be executed with response from
+ * background. Returns a `Result` so callers decide whether to surface failure to the user.
+ *
+ * @example
+ *   RUNTIME("getTabs", { queryInfo: { currentWindow: true } }, (response) => {
+ *     console.log(response);
+ *   });
+ *
+ * @param {string} action A background action to be called.
+ * @param {object} args The parameters to be passed to the background action.
+ * @param {function} callback A function to be executed with the result from the background action.
+ */
+const RUNTIME = function (
+  action: string,
+  args?: Record<string, unknown> | null,
+  callback?: (response: unknown) => void,
+): Result.Result<void, ChromeRuntimeError> {
+  return sendRuntimeMessage(action, args, callback);
 } as RuntimeFn;
+
+/**
+ * Promise-returning counterpart of {@link RUNTIME} for the response-consuming call sites.
+ *
+ * Use this instead of the callback form when the caller needs the background's reply: the result is
+ * delivered by resolving the promise rather than by an inner callback. Fire-and-forget calls must
+ * keep using {@link RUNTIME} — this variant rejects on failure, and a fire-and-forget `await` with
+ * no try/catch would turn the routine "message port closed" into an unhandled rejection.
+ *
+ * Unlike the callback form (which reports the failure through {@link reportError} and swallows it),
+ * this variant rejects with the {@link ChromeRuntimeError} and leaves presentation to the caller, so
+ * a single failure is not reported twice. Awaiting callers should therefore catch and report (e.g.
+ * `.catch(reportError)`).
+ *
+ * @example
+ *   const response = await RUNTIMEAsync<{ urls: string[] }>("getTabURLs");
+ *
+ * @param action A background action to be called.
+ * @param args The parameters to be passed to the background action.
+ * @returns A promise that resolves with the background response, or rejects with a
+ *   {@link ChromeRuntimeError} on failure.
+ */
+function RUNTIMEAsync<R = unknown>(
+  action: string,
+  args?: Record<string, unknown> | null,
+): Promise<R> {
+  return new Promise<R>((resolve, reject) => {
+    const result = sendRuntimeMessage(
+      action,
+      args,
+      (response) => resolve(response as R),
+      // Reject so the awaiting caller does not hang on an undelivered response; the caller,
+      // not RUNTIME, decides how to surface the failure.
+      (error) => reject(error),
+    );
+    if (Result.isFailure(result)) {
+      reject(result.error);
+    }
+  });
+}
 
 type MessageHandler = (
   // Dispatch registry: handlers narrow the message themselves; a shared `unknown` parameter would
@@ -319,4 +381,4 @@ const runtime = {
   },
 };
 
-export { RUNTIME, dispatchSKEvent, runtime };
+export { RUNTIME, RUNTIMEAsync, dispatchSKEvent, runtime };
