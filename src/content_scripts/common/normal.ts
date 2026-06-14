@@ -1079,7 +1079,7 @@ function createNormal(insert: InsertLike): NormalMode {
   // instead of an expando flag on the function.
   const hintScrollCodes = new WeakSet<(...args: string[]) => void>();
   const bindScrollForHints = (action: string): (() => void) => {
-    const f = scroll.bind(undefined, action);
+    const f = () => scroll(action);
     hintScrollCodes.add(f);
     return f;
   };
@@ -1092,31 +1092,31 @@ function createNormal(insert: InsertLike): NormalMode {
     annotation: "Scroll half page up",
     feature_group: 2,
     repeatIgnore: true,
-    code: scroll.bind(undefined, "pageUp"),
+    code: () => scroll("pageUp"),
   });
   mappings.add("U", {
     annotation: "Scroll full page up",
     feature_group: 2,
     repeatIgnore: true,
-    code: scroll.bind(undefined, "fullPageUp"),
+    code: () => scroll("fullPageUp"),
   });
   mappings.add("d", {
     annotation: "Scroll half page down",
     feature_group: 2,
     repeatIgnore: true,
-    code: scroll.bind(undefined, "pageDown"),
+    code: () => scroll("pageDown"),
   });
   mappings.add("P", {
     annotation: "Scroll full page down",
     feature_group: 2,
     repeatIgnore: true,
-    code: scroll.bind(undefined, "fullPageDown"),
+    code: () => scroll("fullPageDown"),
   });
   mappings.add("gg", {
     annotation: "Scroll to the top of the page",
     feature_group: 2,
     repeatIgnore: true,
-    code: scroll.bind(undefined, "top"),
+    code: () => scroll("top"),
   });
   mappings.add("G", {
     annotation: "Scroll to the bottom of the page",
@@ -1164,7 +1164,7 @@ function createNormal(insert: InsertLike): NormalMode {
     annotation: "Scroll to percentage of current page",
     feature_group: 2,
     repeatIgnore: true,
-    code: scroll.bind(undefined, "byRatio"),
+    code: () => scroll("byRatio"),
   });
   mappings.add("cs", {
     annotation: "Change scroll target",
