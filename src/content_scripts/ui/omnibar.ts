@@ -452,7 +452,7 @@ function createOmnibar(front: OmnibarFront, clipboard: { write(text: string): vo
   const ui = requireElement<OmnibarElement>("#sk_omnibar");
 
   const triggerInput = (): void => {
-    _onInput.call(self.input);
+    _onInput();
   };
 
   let _collapsingPoint: string | undefined;
@@ -559,7 +559,7 @@ function createOmnibar(front: OmnibarFront, clipboard: { write(text: string): vo
       },
       onInput: (val: string) => {
         setQuery(val);
-        _onInput.call(self.input);
+        _onInput();
       },
       onKeyDown: (evt: KeyboardEvent) => {
         _onKeyDown(evt);
@@ -614,14 +614,14 @@ function createOmnibar(front: OmnibarFront, clipboard: { write(text: string): vo
     }
   });
 
-  function _onInput(this: HTMLInputElement) {
+  function _onInput() {
     if (lastInput !== self.input.value) {
       lastInput = self.input.value;
     }
-    handler.onInput && handler.onInput.call(this);
+    handler.onInput?.();
   }
   function _onKeyDown(evt: KeyboardEvent) {
-    if (handler && handler.onKeydown && handler.onKeydown.call(evt.target, evt)) {
+    if (handler.onKeydown?.(evt)) {
       return;
     }
     if (isSpecialKeyOf("<Esc>", evt.sk_keyName ?? "")) {
@@ -2041,7 +2041,7 @@ function Commands(omnibar: Omnibar, front: OmnibarFront): OmnibarHandler {
     const cmd = args.shift() ?? "";
     const meta = items[cmd];
     if (meta) {
-      meta.code.call(meta.code, args);
+      meta.code(args);
     } else {
       showBanner(`Unsupported command: ${cmdline}.`, 3000);
     }
