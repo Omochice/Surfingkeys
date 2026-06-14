@@ -1228,11 +1228,11 @@ function OpenBookmarks(omnibar: Omnibar): OpenBookmarksHandler {
     lastFocused = fl.focused;
   }
 
-  self.onEnter = function (this: OmnibarHandler) {
+  self.onEnter = () => {
     let ret: boolean | undefined = false;
     const fi = omnibar.focusedResult();
     const folderId = fi?.data.folderId;
-    if (folderId && !this.activeTab) {
+    if (folderId && !self.activeTab) {
       reportOnFail(
         RUNTIME(
           "getBookmarks",
@@ -1828,7 +1828,7 @@ function SearchEngine(omnibar: Omnibar, front: OmnibarFront): SearchEngineHandle
       omnibar.setQuery(fi.data.query);
     }
   };
-  self.onEnter = function (this: OmnibarHandler) {
+  self.onEnter = () => {
     const fi = omnibar.focusedResult();
     let url;
     if (fi) {
@@ -1844,14 +1844,14 @@ function SearchEngine(omnibar: Omnibar, front: OmnibarFront): SearchEngineHandle
     reportOnFail(
       RUNTIME("openLink", {
         tab: {
-          tabbed: this.tabbed,
-          active: this.activeTab,
+          tabbed: self.tabbed,
+          active: self.activeTab,
         },
         url: url,
       }),
       reportError,
     );
-    return this.activeTab;
+    return self.activeTab;
   };
   function listSuggestions(suggestions: SearchSuggestion[]) {
     omnibar.detectAndInsertURLItem(omnibar.input.value, suggestions);
