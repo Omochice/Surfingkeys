@@ -9,10 +9,9 @@
  * Paths that rely on layout geometry (offsetWidth/Height, getBoundingClientRect returning real
  * sizes) are not testable under jsdom and are skipped. Specifically skipped:
  *
- * - actions["showBubble"]: position math (offsetWidth/offsetHeight return 0 in jsdom)
+ * - Position math for actions["showBubble"] (offsetWidth/offsetHeight return 0 in jsdom)
  * - RenderTabs: relies on getBoundingClientRect().height
- * - ShowRichHints: relies on pendingHint timer being set (only set when richHintsForKeystroke is in
- *   range and can be tricky to control timing alongside clearPendingHint)
+ * - ShowRichHints: pendingHint timer (richHintsForKeystroke range only) is tricky to time
  */
 
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
