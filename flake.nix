@@ -21,6 +21,7 @@
             pkgs.nodejs_24
             pkgs.pnpm
             pkgs.typos
+            pkgs.nixfmt
           ];
         };
       }

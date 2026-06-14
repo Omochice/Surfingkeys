@@ -7,5 +7,6 @@
     "src/pages/popup/popup.ts",
     "src/user_scripts/index.ts"
   ],
-  "project": ["src/**/*.{ts,tsx,js}", "entrypoints/**/*.{ts,tsx}", "test/**/*.{ts,tsx,js}"]
+  "project": ["src/**/*.{ts,tsx,js}", "entrypoints/**/*.{ts,tsx}", "test/**/*.{ts,tsx,js}"],
+  "ignoreBinaries": ["nixfmt"]
 }
