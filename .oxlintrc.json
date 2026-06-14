@@ -11,6 +11,17 @@
     "typescript/no-explicit-any": "error",
     "typescript/consistent-type-definitions": ["error", "type"],
     "no-unused-expressions": ["error", { "allowShortCircuit": true, "allowTernary": true }],
+    "no-restricted-properties": [
+      "error",
+      {
+        "property": "call",
+        "message": "Avoid Function.prototype.call; call the function or method directly."
+      },
+      {
+        "property": "bind",
+        "message": "Avoid Function.prototype.bind; prefer an arrow closure, e.g. () => fn(arg)."
+      }
+    ],
     "curly": ["error", "multi-line"],
     "unicorn/no-array-sort": "error",
     "unicorn/no-array-reverse": "error",
@@ -61,6 +72,12 @@
       "files": ["**/*.test.ts"],
       "rules": {
         "typescript/no-explicit-any": "off"
+      }
+    },
+    {
+      "files": ["**/*.test.ts", "**/*.test.tsx"],
+      "rules": {
+        "no-restricted-properties": "off"
       }
     }
   ]

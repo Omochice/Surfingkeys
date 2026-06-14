@@ -55,19 +55,19 @@ class CursorPrompt {
       }
       event.sk_suppressed = true;
     });
-    mode.addEventListener("keyup", this.onKeyUp.bind(this));
+    mode.addEventListener("keyup", () => this.onKeyUp());
 
     mappings.add(KeyboardUtils.encodeKeystroke("<Esc>"), {
-      code: this.close.bind(this),
+      code: () => this.close(),
     });
     mappings.add(KeyboardUtils.encodeKeystroke("<Enter>"), {
-      code: this.onEnter.bind(this),
+      code: () => this.onEnter(),
     });
     mappings.add(KeyboardUtils.encodeKeystroke("<Tab>"), {
-      code: this.rotate.bind(this, false),
+      code: () => this.rotate(false),
     });
     mappings.add(KeyboardUtils.encodeKeystroke("<Shift-Tab>"), {
-      code: this.rotate.bind(this, true),
+      code: () => this.rotate(true),
     });
     this.mode = mode;
   }
