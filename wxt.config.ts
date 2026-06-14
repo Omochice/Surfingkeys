@@ -97,7 +97,7 @@ export default defineConfig({
         "128": "icons/128.png",
       },
       commands: {
-        restartext: { description: "Restart this extenstion." },
+        restartext: { description: "Restart this extension." },
         previousTab: { description: "Go to the previous tab." },
         nextTab: { description: "Go to the next tab." },
         closeTab: { description: "Close the current tab." },
