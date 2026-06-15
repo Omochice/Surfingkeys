@@ -210,6 +210,9 @@ importers:
       '@praha/byethrow':
         specifier: 0.12.0
         version: 0.12.0(typescript@6.0.3)
+      '@sk/adapter':
+        specifier: workspace:*
+        version: link:packages/adapter
       '@sk/common':
         specifier: workspace:*
         version: link:packages/common
@@ -225,9 +228,6 @@ importers:
       valibot:
         specifier: 1.4.1
         version: 1.4.1(typescript@6.0.3)
-      webextension-polyfill:
-        specifier: 0.12.0
-        version: 0.12.0
     devDependencies:
       '@solidjs/testing-library':
         specifier: 0.8.10
@@ -241,9 +241,6 @@ importers:
       '@types/firefox-webext-browser':
         specifier: 143.0.0
         version: 143.0.0
-      '@types/webextension-polyfill':
-        specifier: 0.12.5
-        version: 0.12.5
       '@vitest/coverage-v8':
         specifier: 4.1.8
         version: 4.1.8(vitest@4.1.8)
@@ -283,6 +280,19 @@ importers:
       wxt:
         specifier: 0.20.26
         version: 0.20.26(@types/node@25.9.2)(jiti@2.7.0)(oxc-parser@0.133.0)(rolldown@1.0.3)(yaml@2.9.0)
+
+  packages/adapter:
+    dependencies:
+      '@sk/core':
+        specifier: workspace:*
+        version: link:../core
+      webextension-polyfill:
+        specifier: 0.12.0
+        version: 0.12.0
+    devDependencies:
+      '@types/webextension-polyfill':
+        specifier: 0.12.5
+        version: 0.12.5
 
   packages/common:
     dependencies:

@@ -1,4 +1,5 @@
 import { Result } from "@praha/byethrow";
+import { attachFaviconToImgSrc } from "@sk/adapter/platform-utils";
 import { decodeError, reportOnFail, unwrapOr } from "@sk/common/result";
 import { filterByTitleOrUrl, regexFromString } from "@sk/common/utils";
 import { debounce } from "@sk/core/debounce";
@@ -26,7 +27,6 @@ import {
 import { createEffect, createRoot, createSignal } from "solid-js";
 import { render } from "solid-js/web";
 
-import { attachFaviconToImgSrc } from "../common/platform-utils";
 import { RUNTIME, runtime } from "../common/runtime";
 import { parseCommandLine } from "./commandLine";
 import { Prompt } from "./components/Prompt";

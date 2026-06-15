@@ -1,8 +1,8 @@
+import browser from "@sk/adapter/browser";
+import { LOG } from "@sk/adapter/log";
 import { getDocumentOrigin } from "@sk/core/utils";
 import * as v from "valibot";
 
-import browser from "./common/browser";
-import { LOG } from "./common/log";
 import { runtime } from "./common/runtime";
 
 // Any page can postMessage to this window, so the uihost envelope is external

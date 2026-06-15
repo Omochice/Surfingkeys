@@ -1,3 +1,4 @@
+import { isInUIFrame } from "@sk/adapter/platform-utils";
 import { reportOnFail } from "@sk/common/result";
 import { markSurfingKeysElement } from "@sk/core/domFlags";
 import { dispatchSKEvent } from "@sk/core/events";
@@ -17,7 +18,6 @@ import {
 import * as v from "valibot";
 
 import { tabOpenLink } from "./common/messagingActions";
-import { isInUIFrame } from "./common/platform-utils";
 import { RUNTIME, runtime } from "./common/runtime";
 import createUiHost from "./uiframe";
 import type { UiHost } from "./uiframe";

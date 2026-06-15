@@ -1,9 +1,9 @@
+import browser from "@sk/adapter/browser";
+import { LOG } from "@sk/adapter/log";
+import { isInUIFrame, reportIssue } from "@sk/adapter/platform-utils";
 import type { EngineEnv } from "@sk/core/engineEnv";
 
-import browser from "./browser";
-import { LOG } from "./log";
 import { tabOpenLink } from "./messagingActions";
-import { isInUIFrame, reportIssue } from "./platform-utils";
 import { RUNTIME } from "./runtime";
 
 /**

@@ -1,3 +1,4 @@
+import { isInUIFrame } from "@sk/adapter/platform-utils";
 import { reportOnFail } from "@sk/common/result";
 import createAPI from "@sk/core/api";
 import type { StoredSettings } from "@sk/core/conf";
@@ -11,7 +12,6 @@ import { reportError } from "@sk/core/report";
 import { generateQuickGuid, getRealEdit, showBanner } from "@sk/core/utils";
 
 import { createEngineEnv } from "./common/createEngineEnv";
-import { isInUIFrame } from "./common/platform-utils";
 import { RUNTIME, runtime } from "./common/runtime";
 import createFront from "./front";
 import { applySettings } from "./settingsApplication";

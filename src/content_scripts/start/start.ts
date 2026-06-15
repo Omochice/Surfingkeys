@@ -1,8 +1,8 @@
+import browser from "@sk/adapter/browser";
 import { reportOnFail } from "@sk/common/result";
 import { reportError } from "@sk/core/report";
 import { hide, setSanitizedContent, show } from "@sk/core/utils";
 
-import browser from "../common/browser";
 import { RUNTIME } from "../common/runtime";
 
 reportOnFail(
