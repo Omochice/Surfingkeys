@@ -1,12 +1,12 @@
 {
   "$schema": "https://unpkg.com/knip@6/schema.json",
-  "entry": [
-    "src/content_scripts/ui/frontend.ts",
-    "src/content_scripts/options/optionsPage.ts",
-    "src/content_scripts/start/startPage.ts",
-    "src/pages/popup/popup.ts",
-    "src/user_scripts/index.ts"
-  ],
-  "project": ["src/**/*.{ts,tsx,js}", "entrypoints/**/*.{ts,tsx}", "test/**/*.{ts,tsx,js}"],
+  "workspaces": {
+    "apps/extension": {
+      "entry": ["src/*.d.ts", "src/pages/popup/popup.ts", "src/user_scripts/index.ts"]
+    },
+    "packages/content": {
+      "entry": ["src/ui/frontend.ts", "src/options/optionsPage.ts", "src/start/startPage.ts"]
+    }
+  },
   "ignoreBinaries": ["nixfmt", "typos"]
 }

@@ -64,7 +64,7 @@
   },
   "overrides": [
     {
-      "files": ["src/globals.d.ts"],
+      "files": ["**/globals.d.ts"],
       "rules": {
         "typescript/consistent-type-definitions": "off"
       }
