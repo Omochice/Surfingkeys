@@ -1344,6 +1344,34 @@ describe("OpenBookmarks handler — onInput + onResponse", () => {
   });
 });
 
+describe("OpenURLs handler — Enter opens a typed URL in the current tab", () => {
+  beforeEach(() => {
+    mockRUNTIME.mockReset();
+    mockRUNTIME.mockImplementation(() => Result.succeed(undefined));
+    localStorage.clear();
+  });
+
+  it("sends RUNTIME openLink with { tab: { tabbed: false, active: true }, url } and a boolean tabbed", () => {
+    const { omnibar, ui } = makeOmnibar();
+
+    ui.onShow({ type: "URLs", tabbed: false });
+    omnibar.input.value = "https://example.com";
+
+    fireEnter(omnibar);
+
+    const openLinkArgs = mockRUNTIME.mock.calls.find((c) => c[0] === "openLink")?.[1];
+    expect(openLinkArgs).toEqual({
+      tab: { tabbed: false, active: true },
+      url: "https://example.com",
+    });
+
+    const tab = openLinkArgs?.["tab"];
+    const tabbed =
+      typeof tab === "object" && tab !== null && "tabbed" in tab ? tab.tabbed : undefined;
+    expect(typeof tabbed).toBe("boolean");
+  });
+});
+
 // ---------------------------------------------------------------------------
 // SearchEngine handler — onInput without suggestionURL lists empty suggestions
 // (no RUNTIME 'request' call); onInput with suggestionURL issues RUNTIME
