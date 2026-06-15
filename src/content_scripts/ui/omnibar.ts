@@ -629,7 +629,7 @@ function createOmnibar(front: OmnibarFront, clipboard: { write(text: string): vo
       evt.preventDefault();
     } else if (evt.keyCode === KeyboardUtils.keyCodes["enter"]) {
       handler.activeTab = !evt.ctrlKey;
-      handler.tabbed = Boolean(Number(tabbed) ^ Number(evt.shiftKey));
+      handler.tabbed = tabbed !== evt.shiftKey;
       handler.onEnter?.() && front.hidePopup();
     } else if (evt.keyCode === KeyboardUtils.keyCodes["space"]) {
       const cursor = self.input.selectionStart;
