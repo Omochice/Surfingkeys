@@ -1,8 +1,8 @@
 import { Result } from "@praha/byethrow";
 import { afterEach, describe, expect, it } from "vitest";
 
+import { conf } from "./conf";
 import KeyboardUtils from "./keyboardUtils";
-import { runtime } from "./runtime";
 import Trie from "./trie";
 import {
   applyUserSettings,
@@ -596,14 +596,14 @@ describe("isEditable — additional element types", () => {
 
   it("matches an element via editableSelector when it would otherwise fail type checks", () => {
     // Temporarily add a custom editable selector to cover the matches() branch.
-    const previous = runtime.conf.editableSelector;
-    runtime.conf.editableSelector = "div.custom-editor";
+    const previous = conf.editableSelector;
+    conf.editableSelector = "div.custom-editor";
     try {
       const div = document.createElement("div");
       div.className = "custom-editor";
       expect(isEditable(div)).toBe(true);
     } finally {
-      runtime.conf.editableSelector = previous;
+      conf.editableSelector = previous;
     }
   });
 });
@@ -634,15 +634,15 @@ describe("isElementClickable — additional branches", () => {
   });
 
   it("appends the custom clickableSelector when non-empty and uses it", () => {
-    // Cover the `runtime.conf.clickableSelector.length` truthy branch.
-    const previous = runtime.conf.clickableSelector;
-    runtime.conf.clickableSelector = ".my-clickable";
+    // Cover the `conf.clickableSelector.length` truthy branch.
+    const previous = conf.clickableSelector;
+    conf.clickableSelector = ".my-clickable";
     try {
       const el = document.createElement("div");
       el.className = "my-clickable";
       expect(isElementClickable(el)).toBe(true);
     } finally {
-      runtime.conf.clickableSelector = previous;
+      conf.clickableSelector = previous;
     }
   });
 });

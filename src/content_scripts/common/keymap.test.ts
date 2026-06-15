@@ -1,9 +1,9 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
+import { conf } from "./conf";
 import KeyboardUtils from "./keyboardUtils";
 import { type KeyEventLike, type Keymap, type KeymapOptions, createKeymap } from "./keymap";
 import { repeatCount } from "./repeatCount";
-import { runtime } from "./runtime";
 import Trie from "./trie";
 
 function makeKeymap(opts?: KeymapOptions) {
@@ -107,7 +107,7 @@ describe("Keymap.handleKey", () => {
   });
 
   it("accumulates digit repeats when digitForRepeat is true and mappings exist", () => {
-    // digitForRepeat is true by default in runtime.conf
+    // digitForRepeat is true by default in conf
     let runs = 0;
     mappings.add(KeyboardUtils.encodeKeystroke("a"), {
       annotation: "run",
@@ -481,16 +481,16 @@ describe("Keymap.handleKey — repeatThreshold dialog branch", () => {
 
   beforeEach(() => {
     savedRepeats = repeatCount.value;
-    savedThreshold = runtime.conf.repeatThreshold;
+    savedThreshold = conf.repeatThreshold;
   });
 
   afterEach(() => {
     repeatCount.value = savedRepeats;
-    runtime.conf.repeatThreshold = savedThreshold;
+    conf.repeatThreshold = savedThreshold;
   });
 
   it("dispatches showDialog instead of running inline when repeats exceed repeatThreshold", () => {
-    runtime.conf.repeatThreshold = 9;
+    conf.repeatThreshold = 9;
     let runs = 0;
     const { keymap, mappings } = makeKeymap();
     mappings.add(KeyboardUtils.encodeKeystroke("a"), {
@@ -521,7 +521,7 @@ describe("Keymap.handleKey — repeatThreshold dialog branch", () => {
   });
 
   it("runs the action inline (no dialog) when repeats stay within repeatThreshold", () => {
-    runtime.conf.repeatThreshold = 9;
+    conf.repeatThreshold = 9;
     let runs = 0;
     const { keymap, mappings } = makeKeymap();
     mappings.add(KeyboardUtils.encodeKeystroke("a"), {
