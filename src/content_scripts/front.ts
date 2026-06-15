@@ -1,6 +1,6 @@
+import { reportOnFail } from "@sk/common/result";
 import * as v from "valibot";
 
-import { reportOnFail } from "../common/result";
 import { markSurfingKeysElement } from "./common/domFlags";
 import { dispatchSKEvent } from "./common/events";
 import { tabOpenLink } from "./common/messagingActions";

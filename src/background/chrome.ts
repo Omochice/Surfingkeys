@@ -1,4 +1,5 @@
-import { filterByTitleOrUrl } from "../common/utils";
+import { filterByTitleOrUrl } from "@sk/common/utils";
+
 import { extendObject, getSubSettings, save } from "./settings";
 
 async function loadRawSettings(

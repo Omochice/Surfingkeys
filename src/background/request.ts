@@ -1,6 +1,5 @@
 import { Result } from "@praha/byethrow";
-
-import { httpError, type HttpError } from "../common/result";
+import { httpError, type HttpError } from "@sk/common/result";
 
 const CHARSET_RE = /(?:charset|encoding)\s*=\s*['"]? *([\w-]+)/i;
 

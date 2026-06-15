@@ -1,6 +1,6 @@
 import { Result } from "@praha/byethrow";
+import { userCodeError } from "@sk/common/result";
 
-import { userCodeError } from "../common/result";
 import { dispatchSKEvent } from "../content_scripts/common/events";
 import { httpRequest, tabOpenLink } from "../content_scripts/common/messagingActions";
 import { RUNTIME } from "../content_scripts/common/runtime";

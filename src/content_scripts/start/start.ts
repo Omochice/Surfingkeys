@@ -1,4 +1,5 @@
-import { reportOnFail } from "../../common/result";
+import { reportOnFail } from "@sk/common/result";
+
 import browser from "../common/browser";
 import { reportError } from "../common/report";
 import { RUNTIME } from "../common/runtime";

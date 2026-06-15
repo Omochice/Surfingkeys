@@ -1,6 +1,6 @@
 import { Result } from "@praha/byethrow";
+import { type ChromeRuntimeError, chromeRuntimeError } from "@sk/common/result";
 
-import { type ChromeRuntimeError, chromeRuntimeError } from "../../common/result";
 import { conf, getCaseSensitive } from "./conf";
 import { repeatCount } from "./repeatCount";
 import { reportError } from "./report";

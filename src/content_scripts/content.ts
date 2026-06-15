@@ -1,4 +1,5 @@
-import { reportOnFail } from "../common/result";
+import { reportOnFail } from "@sk/common/result";
+
 import createAPI from "./common/api";
 import type { StoredSettings } from "./common/conf";
 import { createEngineEnv } from "./common/createEngineEnv";

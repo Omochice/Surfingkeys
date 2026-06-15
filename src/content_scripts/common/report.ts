@@ -1,4 +1,5 @@
-import type { SkError } from "../../common/result";
+import type { SkError } from "@sk/common/result";
+
 import { dispatchSKEvent } from "./events";
 
 const formatMessage = (err: SkError): string => {

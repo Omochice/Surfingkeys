@@ -1,9 +1,9 @@
 import { Result } from "@praha/byethrow";
+import { decodeError, reportOnFail, unwrapOr } from "@sk/common/result";
+import { filterByTitleOrUrl, regexFromString } from "@sk/common/utils";
 import { createEffect, createRoot, createSignal } from "solid-js";
 import { render } from "solid-js/web";
 
-import { decodeError, reportOnFail, unwrapOr } from "../../common/result";
-import { filterByTitleOrUrl, regexFromString } from "../../common/utils";
 import { debounce } from "../common/debounce";
 import type { DebouncedFunction } from "../common/debounce";
 import KeyboardUtils from "../common/keyboardUtils";

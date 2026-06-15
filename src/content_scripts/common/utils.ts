@@ -1,13 +1,13 @@
 import { Result } from "@praha/byethrow";
-import DOMPurify from "dompurify";
-
 import {
   type DecodeError,
   type DomApiError,
   decodeError,
   domApiError,
   unwrapOr,
-} from "../../common/result";
+} from "@sk/common/result";
+import DOMPurify from "dompurify";
+
 import { conf } from "./conf";
 import { dispatchSKEvent } from "./events";
 import KeyboardUtils from "./keyboardUtils";
