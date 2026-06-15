@@ -1,7 +1,7 @@
 import { Result } from "@praha/byethrow";
+import { domApiError } from "@sk/common/result";
 import * as v from "valibot";
 
-import { domApiError } from "../common/result";
 import { createBookmarkHandlers } from "./bookmarks";
 import { createHistoryHandlers } from "./history";
 import { request } from "./request";

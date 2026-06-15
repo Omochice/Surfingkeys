@@ -1,6 +1,6 @@
 import { Result } from "@praha/byethrow";
+import { domApiError } from "@sk/common/result";
 
-import { domApiError } from "../../common/result";
 import { conf } from "./conf";
 import CursorPrompt from "./cursorPrompt";
 import type { EngineEnv } from "./engineEnv";

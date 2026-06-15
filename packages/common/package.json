@@ -1,0 +1,13 @@
+{
+  "name": "@sk/common",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    "./result": "./src/result/index.ts",
+    "./utils": "./src/utils.ts"
+  },
+  "dependencies": {
+    "@praha/byethrow": "0.12.0"
+  }
+}

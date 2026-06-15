@@ -1,6 +1,6 @@
 import { Result } from "@praha/byethrow";
+import { reportOnFail, userCodeError } from "@sk/common/result";
 
-import { reportOnFail, userCodeError } from "../common/result";
 import type createAPI from "./common/api";
 import browser from "./common/browser";
 import type { StoredSettings } from "./common/conf";

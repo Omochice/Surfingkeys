@@ -1,4 +1,5 @@
-import { unwrapOr } from "../../common/result";
+import { unwrapOr } from "@sk/common/result";
+
 import { conf, getCaseSensitive } from "./conf";
 import type { EngineEnv } from "./engineEnv";
 import { dispatchSKEvent } from "./events";

@@ -1,7 +1,7 @@
 import { Result } from "@praha/byethrow";
+import { chromeRuntimeError } from "@sk/common/result";
 import * as v from "valibot";
 
-import { chromeRuntimeError } from "../common/result";
 import { request } from "./request";
 import type { BackgroundConf, BrowserAdapter, MessageHandler } from "./start";
 

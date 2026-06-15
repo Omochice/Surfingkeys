@@ -1,6 +1,6 @@
 import { Result } from "@praha/byethrow";
+import { domApiError } from "@sk/common/result";
 
-import { domApiError } from "../../common/result";
 import { conf } from "./conf";
 import type { EngineEnv } from "./engineEnv";
 import { dispatchSKEvent } from "./events";

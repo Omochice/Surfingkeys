@@ -1,8 +1,8 @@
 import { Result } from "@praha/byethrow";
+import { chromeRuntimeError } from "@sk/common/result";
+import { filterByTitleOrUrl } from "@sk/common/utils";
 import * as v from "valibot";
 
-import { chromeRuntimeError } from "../common/result";
-import { filterByTitleOrUrl } from "../common/utils";
 import type { BackgroundConf, BrowserAdapter, MessageHandler } from "./start";
 import { createTabHistory } from "./tabHistory";
 
