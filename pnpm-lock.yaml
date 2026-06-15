@@ -210,34 +210,25 @@ importers:
       '@praha/byethrow':
         specifier: 0.12.0
         version: 0.12.0(typescript@6.0.3)
-      '@sk/adapter':
-        specifier: workspace:*
-        version: link:packages/adapter
       '@sk/background':
         specifier: workspace:*
         version: link:packages/background
       '@sk/common':
         specifier: workspace:*
         version: link:packages/common
+      '@sk/content':
+        specifier: workspace:*
+        version: link:packages/content
       '@sk/core':
         specifier: workspace:*
         version: link:packages/core
       '@sk/messaging':
         specifier: workspace:*
         version: link:packages/messaging
-      dompurify:
-        specifier: ^3.2.4
-        version: 3.4.10
       solid-js:
         specifier: 1.9.13
         version: 1.9.13
-      valibot:
-        specifier: 1.4.1
-        version: 1.4.1(typescript@6.0.3)
     devDependencies:
-      '@solidjs/testing-library':
-        specifier: 0.8.10
-        version: 0.8.10(solid-js@1.9.13)
       '@tsconfig/strictest':
         specifier: 2.0.8
         version: 2.0.8
@@ -318,6 +309,37 @@ importers:
         specifier: 0.12.0
         version: 0.12.0(typescript@6.0.3)
 
+  packages/content:
+    dependencies:
+      '@praha/byethrow':
+        specifier: 0.12.0
+        version: 0.12.0(typescript@6.0.3)
+      '@sk/adapter':
+        specifier: workspace:*
+        version: link:../adapter
+      '@sk/common':
+        specifier: workspace:*
+        version: link:../common
+      '@sk/core':
+        specifier: workspace:*
+        version: link:../core
+      '@sk/messaging':
+        specifier: workspace:*
+        version: link:../messaging
+      dompurify:
+        specifier: ^3.2.4
+        version: 3.4.9
+      solid-js:
+        specifier: 1.9.13
+        version: 1.9.13
+      valibot:
+        specifier: 1.4.1
+        version: 1.4.1(typescript@6.0.3)
+    devDependencies:
+      '@solidjs/testing-library':
+        specifier: 0.8.10
+        version: 0.8.10(solid-js@1.9.13)
+
   packages/core:
     dependencies:
       '@praha/byethrow':
@@ -328,7 +350,7 @@ importers:
         version: link:../common
       dompurify:
         specifier: ^3.2.4
-        version: 3.4.10
+        version: 3.4.9
       valibot:
         specifier: 1.4.1
         version: 1.4.1(typescript@6.0.3)
@@ -1781,8 +1803,8 @@ packages:
     resolution: {integrity: sha512-cgwlv/1iFQiFnU96XXgROh8xTeetsnJiDsTc7TYCLFd9+/WNkIqPTxiM/8pSd8VIrhXGTf1Ny1q1hquVqDJB5w==}
     engines: {node: '>= 4'}
 
-  dompurify@3.4.10:
-    resolution: {integrity: sha512-0xzNv0e7oYC6yyuOGZIABPM4qtg3QxLFniDNPP4ZP90wR8Yq3zgwpRbrNiT4N3IKqDbbYFEJLV+JWEs19aZ//w==}
+  dompurify@3.4.9:
+    resolution: {integrity: sha512-4dPSRMRDqHvs0V4YDFCsaIZo4if5u0xM+llyxiM2fwuZFdKArUBAF3VtI2+n8NKg9P870WMdYk0UhqQNoWXbfQ==}
 
   domutils@3.2.2:
     resolution: {integrity: sha512-6kZKyUajlDuqlHKVX1w7gyslj9MPIXzIFiz/rGu35uC1wMi+kMhQwGhl4lt9unC9Vb9INnY9Z3/ZA3+FhASLaw==}
@@ -4362,7 +4384,7 @@ snapshots:
     dependencies:
       domelementtype: 2.3.0
 
-  dompurify@3.4.10:
+  dompurify@3.4.9:
     optionalDependencies:
       '@types/trusted-types': 2.0.7
 
