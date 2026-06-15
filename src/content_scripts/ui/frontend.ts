@@ -7,11 +7,11 @@ import createDefaultMappings from "../common/default";
 import KeyboardUtils from "../common/keyboardUtils";
 import { ModeHandle, initModeHub } from "../common/mode";
 import createModeGraph, { type ModeContext } from "../common/modeGraph";
+import { attachFaviconToImgSrc, initL10n } from "../common/platform-utils";
 import { RUNTIME, runtime } from "../common/runtime";
 import { isSpecialKeyOf, specialKeys } from "../common/specialKeys";
 import type Trie from "../common/trie";
 import {
-  attachFaviconToImgSrc,
   format,
   generateQuickGuid,
   getAnnotations,
@@ -19,7 +19,6 @@ import {
   hintLabel,
   hintLink,
   htmlEncode,
-  initL10n,
   initSKFunctionListener,
   refreshHints,
   requireElement,

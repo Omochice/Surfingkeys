@@ -869,24 +869,6 @@ function rectContains(rect: DOMRect, x: number, y: number, ex: number, ey: numbe
   return y > rect.top - ey && y < rect.bottom + ey && x > rect.left - ex && x < rect.right + ex;
 }
 
-function initL10n(cb: (translate: (str: string) => string) => void): void {
-  const lang = runtime.conf.language || window.navigator.language;
-  if (lang === "en-US") {
-    cb((str) => str);
-  } else {
-    fetch(browser.runtime.getURL("pages/l10n.json"))
-      .then((res) => res.json())
-      .then((l10n) => {
-        if (typeof l10n[lang] === "object") {
-          const table = l10n[lang];
-          cb((str) => table[str] || str);
-        } else {
-          cb((str) => str);
-        }
-      });
-  }
-}
-
 function format(template: string, ...args: unknown[]): string {
   let formatted = template;
   for (let i = 0; i < args.length; i++) {
@@ -1211,17 +1193,6 @@ function rotateInput(
   return [curr < list.length ? list[curr] : str, curr];
 }
 
-function attachFaviconToImgSrc(
-  tab: { url: string; favIconUrl?: string },
-  imgEl: HTMLImageElement,
-): void {
-  const browserName = getBrowserName();
-  imgEl.src =
-    browserName === "Chrome"
-      ? browser.runtime.getURL(`/_favicon/?pageUrl=${encodeURIComponent(tab.url)}`)
-      : (tab.favIconUrl ?? "");
-}
-
 /**
  * Query a single element that the page is statically known to contain (markup wired up at init
  * time) and narrow it to {@link T}. A missing match throws, because it signals a broken template
@@ -1242,7 +1213,6 @@ function requireElement<T extends Element = HTMLElement>(selector: string): T {
 export {
   actionWithSelectionPreserved,
   applyUserSettings,
-  attachFaviconToImgSrc,
   constructSearchURL,
   createElementWithContent,
   dispatchMouseEvent,
@@ -1273,7 +1243,6 @@ export {
   hintLink,
   htmlEncode,
   httpRequest,
-  initL10n,
   initSKFunctionListener,
   isEditable,
   isElementClickable,
