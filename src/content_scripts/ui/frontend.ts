@@ -76,7 +76,7 @@ type FrontMode = {
 const Front = (() => {
   const engineEnv = createEngineEnv();
   initModeHub(engineEnv);
-  const { clipboard, insert, normal, hints, visual } = createModeGraph();
+  const { clipboard, insert, normal, hints, visual } = createModeGraph(engineEnv);
 
   const actions: Record<string, FrontActionFn> = {};
   // Response callbacks are stored with their callers' concrete message types (see FrontActionFn).

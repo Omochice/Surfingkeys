@@ -1,5 +1,5 @@
 import { markAutoFocus } from "./domFlags";
-import { RUNTIME } from "./runtime";
+import type { EngineEnv } from "./engineEnv";
 import {
   actionWithSelectionPreserved,
   getBrowserName,
@@ -12,7 +12,8 @@ type Clipboard = {
   write(text: string): void;
 };
 
-function createClipboard(): Clipboard {
+function createClipboard(env: EngineEnv): Clipboard {
+  const { RUNTIME } = env;
   const holder = document.createElement("textarea");
   holder.contentEditable = "true";
   // Exempt the holder from normal mode's auto-focus suppression so focusing it

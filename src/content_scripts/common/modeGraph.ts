@@ -1,4 +1,5 @@
 import createClipboard from "./clipboard";
+import type { EngineEnv } from "./engineEnv";
 import createHints from "./hints";
 import createInsert from "./insert";
 import createNormal from "./normal";
@@ -62,8 +63,8 @@ type BaseModes = Omit<ModeContext, "front">;
  * across the two entry points. The caller supplies the site-specific front to complete a
  * {@link ModeContext}: content wires createFront, the iframe wires its own Front mode.
  */
-function createModeGraph(): BaseModes {
-  const clipboard = createClipboard();
+function createModeGraph(env: EngineEnv): BaseModes {
+  const clipboard = createClipboard(env);
   const insert = createInsert();
   const normal = createNormal(insert);
   normal.enter();

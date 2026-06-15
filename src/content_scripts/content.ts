@@ -42,7 +42,7 @@ const userConfPromise = new Promise<typeof runtime.conf>((resolve) => {
 });
 
 function initModules(): Modes {
-  const { clipboard, insert, normal, hints, visual } = createModeGraph();
+  const { clipboard, insert, normal, hints, visual } = createModeGraph(engineEnv);
   // Content owns scroll-node observation; the observer is dormant until an
   // "observer" event turns it on, so its setup order relative to hints/visual
   // does not matter.
