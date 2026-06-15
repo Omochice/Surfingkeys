@@ -2,6 +2,7 @@ import { dispatchSKEvent } from "./events";
 import KeyboardUtils from "./keyboardUtils";
 import type { Keymap } from "./keymap";
 import { LOG } from "./log";
+import { tabOpenLink } from "./messagingActions";
 import type { ModeContext } from "./modeGraph";
 import { RUNTIME } from "./runtime";
 import { specialKeys } from "./specialKeys";
@@ -17,7 +18,6 @@ import {
   parseAnnotation,
   showBanner,
   showPopup,
-  tabOpenLink,
 } from "./utils";
 
 type ModeWithMappings = { name: string; mappings: Trie };

@@ -9,6 +9,7 @@ const seam = vi.hoisted(() => {
   return {
     RUNTIME,
     dispatchSKEvent: vi.fn(),
+    tabOpenLink: vi.fn(),
     runtimeConf: {
       lastKeys: ["se"],
       textAnchorPat: /x/g,
@@ -27,7 +28,6 @@ const seam = vi.hoisted(() => {
       setSanitizedContent: vi.fn(),
       showBanner: vi.fn(),
       showPopup: vi.fn(),
-      tabOpenLink: vi.fn(),
       toggleQuote: vi.fn(),
     },
   };
@@ -43,6 +43,10 @@ vi.mock("./conf", () => ({
 
 vi.mock("./events", () => ({
   dispatchSKEvent: seam.dispatchSKEvent,
+}));
+
+vi.mock("./messagingActions", () => ({
+  tabOpenLink: seam.tabOpenLink,
 }));
 
 vi.mock("./utils", () => seam.utils);
@@ -267,7 +271,7 @@ describe("tabOpenLink keys (Chrome)", () => {
     [";e", "/options.html"],
   ])("%s opens %s", (key, url) => {
     fire(key);
-    expect(seam.utils.tabOpenLink).toHaveBeenLastCalledWith(url);
+    expect(seam.tabOpenLink).toHaveBeenLastCalledWith(url);
   });
 });
 
@@ -868,7 +872,7 @@ describe("cc opens selected text or clipboard URL in a new tab", () => {
     const sel = { toString: () => "https://selected.example.com" };
     vi.spyOn(window, "getSelection").mockReturnValue(sel as unknown as Selection);
     fire("cc");
-    expect(seam.utils.tabOpenLink).toHaveBeenLastCalledWith("https://selected.example.com");
+    expect(seam.tabOpenLink).toHaveBeenLastCalledWith("https://selected.example.com");
     vi.restoreAllMocks();
   });
 
@@ -881,7 +885,7 @@ describe("cc opens selected text or clipboard URL in a new tab", () => {
     });
     fire("cc");
     capturedCb!({ data: "https://clipboard.example.com" });
-    expect(seam.utils.tabOpenLink).toHaveBeenLastCalledWith("https://clipboard.example.com");
+    expect(seam.tabOpenLink).toHaveBeenLastCalledWith("https://clipboard.example.com");
     vi.restoreAllMocks();
   });
 });
@@ -1311,7 +1315,7 @@ describe(";t translates selected text or current page", () => {
     const sel = { toString: () => "" };
     vi.spyOn(window, "getSelection").mockReturnValue(sel as unknown as Selection);
     fire(";t");
-    expect(seam.utils.tabOpenLink).toHaveBeenCalledWith(
+    expect(seam.tabOpenLink).toHaveBeenCalledWith(
       expect.stringContaining("https://translate.google.com/translate"),
     );
     delete (globalThis as any).chrome;
@@ -1685,7 +1689,7 @@ describe("Firefox-only mappings", () => {
     };
     registerDefaultMappings(ffApi as any, ctx);
     firefoxRegistry.get("on")!.cb();
-    expect(seam.utils.tabOpenLink).toHaveBeenLastCalledWith("about:blank");
+    expect(seam.tabOpenLink).toHaveBeenLastCalledWith("about:blank");
   });
 
   it("binds neither the Firefox nor the Chrome 'on' mapping for another browser", () => {

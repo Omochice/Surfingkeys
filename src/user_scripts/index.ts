@@ -2,17 +2,16 @@ import { Result } from "@praha/byethrow";
 
 import { userCodeError } from "../common/result";
 import { dispatchSKEvent } from "../content_scripts/common/events";
+import { httpRequest, tabOpenLink } from "../content_scripts/common/messagingActions";
 import { RUNTIME } from "../content_scripts/common/runtime";
 import {
   applyUserSettings,
   getBrowserName,
   getClickableElements,
-  httpRequest,
   initSKFunctionListener,
   isElementPartiallyInViewport,
   showBanner,
   showPopup,
-  tabOpenLink,
 } from "../content_scripts/common/utils";
 
 let EXTENSION_ROOT_URL = "";

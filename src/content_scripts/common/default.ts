@@ -4,6 +4,7 @@ import type { SurfingkeysApi } from "./api";
 import { conf } from "./conf";
 import { dispatchSKEvent } from "./events";
 import KeyboardUtils from "./keyboardUtils";
+import { tabOpenLink } from "./messagingActions";
 import type { ModeContext } from "./modeGraph";
 import { RUNTIME } from "./runtime";
 import {
@@ -18,7 +19,6 @@ import {
   setSanitizedContent,
   showBanner,
   showPopup,
-  tabOpenLink,
   toggleQuote,
 } from "./utils";
 

@@ -3,6 +3,7 @@ import * as v from "valibot";
 import { reportOnFail } from "../common/result";
 import { markSurfingKeysElement } from "./common/domFlags";
 import { dispatchSKEvent } from "./common/events";
+import { tabOpenLink } from "./common/messagingActions";
 import { showModeStatus } from "./common/mode";
 import { reportError } from "./common/report";
 import { RUNTIME, runtime } from "./common/runtime";
@@ -17,7 +18,6 @@ import {
   isInUIFrame,
   regExpReplacer,
   requireElement,
-  tabOpenLink,
 } from "./common/utils";
 import createUiHost from "./uiframe";
 import type { UiHost } from "./uiframe";
