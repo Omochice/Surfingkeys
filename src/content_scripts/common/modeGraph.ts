@@ -65,7 +65,7 @@ type BaseModes = Omit<ModeContext, "front">;
  */
 function createModeGraph(env: EngineEnv): BaseModes {
   const clipboard = createClipboard(env);
-  const insert = createInsert();
+  const insert = createInsert(env);
   const normal = createNormal(insert);
   normal.enter();
   const hints = createHints(insert, normal, clipboard);

@@ -1,8 +1,20 @@
+import { Result } from "@praha/byethrow";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
+import type { EngineEnv } from "./engineEnv";
 import createInsert, { deleteNextWord, nextNonWord } from "./insert";
 import KeyboardUtils from "./keyboardUtils";
 import { runtime } from "./runtime";
+
+// insert only reaches the seam via getExtensionURL (for the emoji data); the rest are inert stubs.
+const makeEnv = (): EngineEnv => ({
+  RUNTIME: () => Result.succeed(undefined),
+  isInUIFrame: () => false,
+  reportIssue: () => {},
+  tabOpenLink: () => {},
+  getExtensionURL: (path: string) => path,
+  surfingkeys: undefined,
+});
 
 describe("nextNonWord", () => {
   it("moves forward to the first non-word character after the cursor", () => {
@@ -103,7 +115,7 @@ describe("createInsert mapping codes", () => {
   let insert: ReturnType<typeof createInsert>;
 
   beforeEach(() => {
-    insert = createInsert();
+    insert = createInsert(makeEnv());
   });
 
   afterEach(() => {
@@ -356,7 +368,7 @@ describe("createInsert mapping codes — contenteditable (no setSelectionRange) 
   let insert: ReturnType<typeof createInsert>;
 
   beforeEach(() => {
-    insert = createInsert();
+    insert = createInsert(makeEnv());
   });
 
   afterEach(() => {
@@ -437,7 +449,7 @@ describe("createInsert moveCursorEOL — setSelectionRange failure handling", ()
   let insert: ReturnType<typeof createInsert>;
 
   beforeEach(() => {
-    insert = createInsert();
+    insert = createInsert(makeEnv());
   });
 
   afterEach(() => {
@@ -478,7 +490,7 @@ describe("createInsert keydown event listener", () => {
   let insert: ReturnType<typeof createInsert>;
 
   beforeEach(() => {
-    insert = createInsert();
+    insert = createInsert(makeEnv());
   });
 
   afterEach(() => {
@@ -536,7 +548,7 @@ describe("createInsert focus event listener", () => {
   let insert: ReturnType<typeof createInsert>;
 
   beforeEach(() => {
-    insert = createInsert();
+    insert = createInsert(makeEnv());
   });
 
   afterEach(() => {
@@ -583,7 +595,7 @@ describe("createInsert enter override", () => {
   });
 
   beforeEach(() => {
-    insert = createInsert();
+    insert = createInsert(makeEnv());
   });
 
   it("sets showModeStatus=false when the element is document.body", () => {

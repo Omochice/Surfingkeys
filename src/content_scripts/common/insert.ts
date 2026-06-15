@@ -1,9 +1,9 @@
 import { Result } from "@praha/byethrow";
 
 import { domApiError } from "../../common/result";
-import browser from "./browser";
 import { conf } from "./conf";
 import CursorPrompt from "./cursorPrompt";
+import type { EngineEnv } from "./engineEnv";
 import KeyboardUtils from "./keyboardUtils";
 import { type Keymap, createKeymap } from "./keymap";
 import { ModeHandle } from "./mode";
@@ -71,7 +71,7 @@ type InsertMode = {
   enableEmojiInsertion(): void;
 };
 
-function createInsert(): InsertMode {
+function createInsert(env: EngineEnv): InsertMode {
   const mode = new ModeHandle("Insert");
   const keymap = createKeymap(() => self.mappings);
 
@@ -238,7 +238,7 @@ function createInsert(): InsertMode {
     },
   });
 
-  const emojiURL = browser.runtime.getURL("pages/emoji.tsv");
+  const emojiURL = env.getExtensionURL("pages/emoji.tsv");
   const emojiPrompt = new CursorPrompt(
     (c: string) => {
       const ee = c.split("\t");
