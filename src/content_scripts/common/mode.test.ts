@@ -13,6 +13,7 @@ function makeTestEnv(overrides: Partial<EngineEnv> = {}): EngineEnv {
     reportIssue: vi.fn(),
     tabOpenLink: () => {},
     getExtensionURL: (path: string) => path,
+    log: () => {},
     surfingkeys: undefined,
     ...overrides,
   };

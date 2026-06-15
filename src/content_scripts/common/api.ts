@@ -2,7 +2,6 @@ import type { EngineEnv } from "./engineEnv";
 import { dispatchSKEvent } from "./events";
 import KeyboardUtils from "./keyboardUtils";
 import type { Keymap } from "./keymap";
-import { LOG } from "./log";
 import type { ModeContext } from "./modeGraph";
 import { specialKeys } from "./specialKeys";
 import Trie from "./trie";
@@ -33,7 +32,7 @@ type MapOptions = { domain?: RegExp; repeatIgnore?: boolean; codeHasParameter?: 
 
 function createAPI(ctx: ModeContext, env: EngineEnv) {
   const { clipboard, insert, normal, hints, visual, front } = ctx;
-  const { RUNTIME, isInUIFrame, tabOpenLink } = env;
+  const { RUNTIME, isInUIFrame, tabOpenLink, log: LOG } = env;
   function createKeyTarget(
     // User keypress handler of arbitrary signature (see mapkey's jscode).
     // eslint-disable-next-line typescript/no-explicit-any

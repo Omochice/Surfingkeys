@@ -13,6 +13,7 @@ const makeEnv = (): EngineEnv => ({
   reportIssue: () => {},
   tabOpenLink: () => {},
   getExtensionURL: (path: string) => path,
+  log: () => {},
   surfingkeys: undefined,
 });
 

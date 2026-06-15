@@ -1,5 +1,6 @@
 import browser from "./browser";
 import type { EngineEnv } from "./engineEnv";
+import { LOG } from "./log";
 import { tabOpenLink } from "./messagingActions";
 import { isInUIFrame, reportIssue } from "./platform-utils";
 import { RUNTIME } from "./runtime";
@@ -17,6 +18,7 @@ function createEngineEnv(): EngineEnv {
     reportIssue,
     tabOpenLink,
     getExtensionURL: (path) => browser.runtime.getURL(path),
+    log: LOG,
     get surfingkeys() {
       return chrome.surfingkeys;
     },

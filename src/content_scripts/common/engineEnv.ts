@@ -30,6 +30,8 @@ export type EngineEnv = {
   tabOpenLink: (str: string | string[] | NodeList, simultaneousness?: number) => void;
   /** Resolve a path against the extension's base URL (browser.runtime.getURL). */
   getExtensionURL: (path: string) => string;
+  /** Log a message at the given level, gated by the stored logLevels setting. */
+  log: (level: "log" | "warn" | "error", msg: unknown) => void;
   /** The companion native API, or undefined when it is not injected. */
   readonly surfingkeys: SurfingkeysHost | undefined;
 };
