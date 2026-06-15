@@ -4,7 +4,7 @@ import { domApiError } from "../../common/result";
 import { conf } from "./conf";
 import { dispatchSKEvent } from "./events";
 import KeyboardUtils from "./keyboardUtils";
-import { isInUIFrame, reportIssue } from "./utils";
+import { isInUIFrame, reportIssue } from "./platform-utils";
 
 type StackEvent = Event & { keyCode?: number };
 

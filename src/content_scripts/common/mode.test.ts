@@ -1,10 +1,10 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { ModeHandle, checkEventListener, getCurrentMode, initModeHub, suppressKeyUp } from "./mode";
-import * as utils from "./utils";
+import * as platformUtils from "./platform-utils";
 
-vi.mock("./utils", async () => {
-  const actual = await vi.importActual<typeof import("./utils")>("./utils");
+vi.mock("./platform-utils", async () => {
+  const actual = await vi.importActual<typeof import("./platform-utils")>("./platform-utils");
   return { ...actual, reportIssue: vi.fn() };
 });
 
@@ -165,7 +165,7 @@ describe("checkEventListener", () => {
 
 describe("ModeHandle.enter — reentrant=false re-entry reports an issue and leaves the stack intact", () => {
   it("reports an issue and does not pop modes when a non-top mode is re-entered without reentrant", () => {
-    const reportIssue = vi.mocked(utils.reportIssue);
+    const reportIssue = vi.mocked(platformUtils.reportIssue);
     reportIssue.mockClear();
     const lower = new ModeHandle("Lower");
     const upper = new ModeHandle("Upper");

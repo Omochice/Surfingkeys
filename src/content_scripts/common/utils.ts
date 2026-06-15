@@ -8,7 +8,6 @@ import {
   domApiError,
   unwrapOr,
 } from "../../common/result";
-import browser from "./browser";
 import { conf } from "./conf";
 import { dispatchSKEvent } from "./events";
 import KeyboardUtils from "./keyboardUtils";
@@ -154,10 +153,6 @@ function getBrowserName(): "Chrome" | "Firefox" {
     return "Firefox";
   }
   return "Chrome";
-}
-
-function isInUIFrame(): boolean {
-  return window !== top && document.location.href.indexOf(browser.runtime.getURL("/")) === 0;
 }
 
 function timeStampString(t: number): string {
@@ -388,14 +383,6 @@ function isEditable(element: unknown): boolean {
     formElement instanceof HTMLInputElement &&
     /^(?!button|checkbox|file|hidden|image|radio|reset|submit)/i.test(formElement.type)
   );
-}
-
-function reportIssue(title: string, description: string): void {
-  title = encodeURIComponent(title);
-  description = `%23%23+Error+details%0A%0A${encodeURIComponent(description)}%0A%0ASurfingKeys%3A+${browser.runtime.getManifest().version}%0A%0AChrome%3A+${encodeURIComponent(navigator.userAgent)}%0A%0AURL%3A+${encodeURIComponent(window.location.href)}%0A%0A%23%23+Context%0A%0A%2A%2APlease+replace+this+with+a+description+of+how+you+were+using+SurfingKeys.%2A%2A`;
-  const error = `<h2>Uh-oh! The SurfingKeys extension encountered a bug.</h2> <p>Please click <a href="https://github.com/brookhong/Surfingkeys/issues/new?title=${title}&body=${description}" target=_blank>here</a> to start filing a new issue, append a description of how you were using SurfingKeys before this message appeared, then submit it.  Thanks for your help!</p>`;
-
-  showPopup(error);
 }
 
 function scrollIntoViewIfNeeded(elm: Element, ignoreSize?: boolean): void {
@@ -921,6 +908,9 @@ function mapInMode(
   mode: { name: string; mappings: Trie },
   nks: string,
   oks: string,
+  // Whether the caller is the Surfingkeys UI iframe; injected because this pure helper must not
+  // reach the WebExtension API. Only a non-UI frame notifies the front about the added mapkey.
+  inUIFrame: boolean,
   new_annotation?: string | string[],
 ): Trie | undefined {
   oks = KeyboardUtils.encodeKeystroke(oks);
@@ -934,7 +924,7 @@ function mapInMode(
       meta = Object.assign(meta, parseAnnotation({ annotation: new_annotation })) as TrieMeta;
     }
     mode.mappings.add(nks, meta);
-    if (!isInUIFrame()) {
+    if (!inUIFrame) {
       dispatchSKEvent("front", ["addMapkey", mode.name, nks, oks]);
     }
   }
@@ -1184,7 +1174,6 @@ export {
   isElementClickable,
   isElementDrawn,
   isElementPartiallyInViewport,
-  isInUIFrame,
   listElements,
   locateFocusNode,
   mapInMode,
@@ -1192,7 +1181,6 @@ export {
   refreshHints,
   regExpReplacer,
   removeAttributes,
-  reportIssue,
   requireElement,
   rotateInput,
   tryDecodeURI,

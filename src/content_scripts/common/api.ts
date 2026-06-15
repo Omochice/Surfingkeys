@@ -4,6 +4,7 @@ import type { Keymap } from "./keymap";
 import { LOG } from "./log";
 import { tabOpenLink } from "./messagingActions";
 import type { ModeContext } from "./modeGraph";
+import { isInUIFrame } from "./platform-utils";
 import { RUNTIME } from "./runtime";
 import { specialKeys } from "./specialKeys";
 import Trie from "./trie";
@@ -13,7 +14,6 @@ import {
   getClickableElements,
   initSKFunctionListener,
   isElementPartiallyInViewport,
-  isInUIFrame,
   mapInMode,
   parseAnnotation,
   showBanner,
@@ -229,7 +229,7 @@ function createAPI(ctx: ModeContext) {
       } else {
         const specialKey = specialKeys[old_keystroke];
         if (
-          !mapInMode(normal, new_keystroke, old_keystroke, new_annotation) &&
+          !mapInMode(normal, new_keystroke, old_keystroke, isInUIFrame(), new_annotation) &&
           specialKey != null
         ) {
           specialKey.push(new_keystroke);
@@ -318,7 +318,7 @@ function createAPI(ctx: ModeContext) {
     new_annotation?: string,
   ): void {
     if (isDomainApplicable(domain)) {
-      mapInMode(insert, new_keystroke, old_keystroke, new_annotation);
+      mapInMode(insert, new_keystroke, old_keystroke, isInUIFrame(), new_annotation);
     }
   }
 
@@ -376,7 +376,7 @@ function createAPI(ctx: ModeContext) {
     new_annotation?: string,
   ): void {
     if (isDomainApplicable(domain)) {
-      mapInMode(visual, new_keystroke, old_keystroke, new_annotation);
+      mapInMode(visual, new_keystroke, old_keystroke, isInUIFrame(), new_annotation);
     }
   }
 

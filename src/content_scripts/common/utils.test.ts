@@ -448,7 +448,7 @@ describe("mapInMode", () => {
     const code = () => {};
     mode.mappings.add(KeyboardUtils.encodeKeystroke("j"), { annotation: "down", code });
 
-    const old = mapInMode(mode, "x", "j");
+    const old = mapInMode(mode, "x", "j", false);
 
     expect(old).toBeDefined();
     const rebound = mode.mappings.find(KeyboardUtils.encodeKeystroke("x"));
@@ -460,7 +460,7 @@ describe("mapInMode", () => {
     const mode = { name: "normal", mappings: new Trie() };
     mode.mappings.add(KeyboardUtils.encodeKeystroke("j"), { annotation: "down" });
 
-    mapInMode(mode, "x", "j", "#5Custom");
+    mapInMode(mode, "x", "j", false, "#5Custom");
 
     const rebound = mode.mappings.find(KeyboardUtils.encodeKeystroke("x"));
     expect(rebound?.meta?.feature_group).toBe(5);
@@ -469,7 +469,7 @@ describe("mapInMode", () => {
 
   it("returns undefined when the source mapping does not exist", () => {
     const mode = { name: "normal", mappings: new Trie() };
-    expect(mapInMode(mode, "x", "nonexistent")).toBeUndefined();
+    expect(mapInMode(mode, "x", "nonexistent", false)).toBeUndefined();
   });
 });
 
@@ -751,7 +751,7 @@ describe("mapInMode — additional branches", () => {
     const mode = { name: "normal", mappings: new Trie() };
     mode.mappings.add(KeyboardUtils.encodeKeystroke("k"), { annotation: "up" });
 
-    mapInMode(mode, "y", "k", ["Custom annotation", "param"]);
+    mapInMode(mode, "y", "k", false, ["Custom annotation", "param"]);
 
     const rebound = mode.mappings.find(KeyboardUtils.encodeKeystroke("y"));
     // The array form passes through parseAnnotation: first element has no #N,

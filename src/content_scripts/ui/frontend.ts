@@ -7,7 +7,7 @@ import createDefaultMappings from "../common/default";
 import KeyboardUtils from "../common/keyboardUtils";
 import { ModeHandle, initModeHub } from "../common/mode";
 import createModeGraph, { type ModeContext } from "../common/modeGraph";
-import { attachFaviconToImgSrc, initL10n } from "../common/platform-utils";
+import { attachFaviconToImgSrc, initL10n, isInUIFrame } from "../common/platform-utils";
 import { RUNTIME, runtime } from "../common/runtime";
 import { isSpecialKeyOf, specialKeys } from "../common/specialKeys";
 import type Trie from "../common/trie";
@@ -608,7 +608,7 @@ const Front = (() => {
     } else if (mode != null && Object.hasOwn(modes, mode)) {
       const targetMode = modes[mode];
       if (targetMode != null) {
-        mapInMode(targetMode, new_keystroke, old_keystroke);
+        mapInMode(targetMode, new_keystroke, old_keystroke, isInUIFrame());
       }
     }
   };

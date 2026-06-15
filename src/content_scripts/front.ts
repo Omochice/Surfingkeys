@@ -5,6 +5,7 @@ import { markSurfingKeysElement } from "./common/domFlags";
 import { dispatchSKEvent } from "./common/events";
 import { tabOpenLink } from "./common/messagingActions";
 import { showModeStatus } from "./common/mode";
+import { isInUIFrame } from "./common/platform-utils";
 import { reportError } from "./common/report";
 import { RUNTIME, runtime } from "./common/runtime";
 import type Trie from "./common/trie";
@@ -15,7 +16,6 @@ import {
   getBrowserName,
   getDocumentOrigin,
   initSKFunctionListener,
-  isInUIFrame,
   regExpReplacer,
   requireElement,
 } from "./common/utils";

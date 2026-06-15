@@ -5,6 +5,7 @@ import { dispatchSKEvent } from "./events";
 import KeyboardUtils from "./keyboardUtils";
 import { type Keymap, createKeymap } from "./keymap";
 import { ModeHandle, getCurrentMode, showModeStatus, suppressKeyUp } from "./mode";
+import { isInUIFrame } from "./platform-utils";
 import { RUNTIME } from "./runtime";
 import { getScrollableElements, hasScroll } from "./scrollDetection";
 import { isSpecialKeyOf } from "./specialKeys";
@@ -14,7 +15,6 @@ import {
   isEditable,
   isElementClickable,
   isElementPartiallyInViewport,
-  isInUIFrame,
   mapInMode,
   scrollIntoViewIfNeeded,
   showBanner,
@@ -291,7 +291,7 @@ function createNormal(insert: InsertLike): NormalMode {
       mode.exit();
       lurk = createLurk(self);
       lurkMaps!.forEach((lurkMap) => {
-        mapInMode(lurk!, lurkMap[0], lurkMap[1]);
+        mapInMode(lurk!, lurkMap[0], lurkMap[1], isInUIFrame());
         lurk!.mappings.remove(KeyboardUtils.encodeKeystroke(lurkMap[1]));
       });
       lurkMaps = undefined;

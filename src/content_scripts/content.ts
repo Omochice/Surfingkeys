@@ -7,9 +7,10 @@ import { checkEventListener, initModeHub } from "./common/mode";
 import createModeGraph, { type ModeContext } from "./common/modeGraph";
 import createNormal from "./common/normal";
 import startScrollNodeObserver from "./common/observer";
+import { isInUIFrame } from "./common/platform-utils";
 import { reportError } from "./common/report";
 import { RUNTIME, runtime } from "./common/runtime";
-import { generateQuickGuid, getRealEdit, isInUIFrame, showBanner } from "./common/utils";
+import { generateQuickGuid, getRealEdit, showBanner } from "./common/utils";
 import createFront from "./front";
 import { applySettings } from "./settingsApplication";
 
