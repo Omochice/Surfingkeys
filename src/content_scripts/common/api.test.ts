@@ -1,8 +1,13 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import createAPI from "./api";
+import { createEngineEnv } from "./createEngineEnv";
 import KeyboardUtils from "./keyboardUtils";
 import Trie from "./trie";
+
+// api asserts real seam behaviour (chrome.runtime.sendMessage spies via RUNTIME/tabOpenLink), so it
+// runs against the real env built from the seams.
+const env = createEngineEnv();
 
 // ---------------------------------------------------------------------------
 // Minimal ModeContext factory
@@ -81,7 +86,7 @@ function makeCtx() {
 describe("createAPI mapkey", () => {
   it("adds the encoded key to normal.mappings with the supplied annotation", () => {
     const ctx = makeCtx();
-    const api = createAPI(ctx as any);
+    const api = createAPI(ctx as any, env);
 
     const jscode = vi.fn();
     api.mapkey("g", "Go somewhere", jscode);
@@ -94,7 +99,7 @@ describe("createAPI mapkey", () => {
 
   it("stores the code function in the mapped node", () => {
     const ctx = makeCtx();
-    const api = createAPI(ctx as any);
+    const api = createAPI(ctx as any, env);
 
     const jscode = vi.fn();
     api.mapkey("x", "test action", jscode);
@@ -106,7 +111,7 @@ describe("createAPI mapkey", () => {
 
   it("does not add a mapping when the domain regex does not match", () => {
     const ctx = makeCtx();
-    const api = createAPI(ctx as any);
+    const api = createAPI(ctx as any, env);
 
     api.mapkey("z", "unreachable", vi.fn(), { domain: /this-domain-will-never-match\.example/ });
 
@@ -117,7 +122,7 @@ describe("createAPI mapkey", () => {
 
   it("stores repeatIgnore on the node when the option is set", () => {
     const ctx = makeCtx();
-    const api = createAPI(ctx as any);
+    const api = createAPI(ctx as any, env);
 
     api.mapkey("r", "no repeat", vi.fn(), { repeatIgnore: true });
 
@@ -128,7 +133,7 @@ describe("createAPI mapkey", () => {
 
   it("extracts feature_group from #N annotation prefix", () => {
     const ctx = makeCtx();
-    const api = createAPI(ctx as any);
+    const api = createAPI(ctx as any, env);
 
     api.mapkey("f", "#6Search selected with Google", vi.fn());
 
@@ -145,7 +150,7 @@ describe("createAPI mapkey", () => {
 describe("createAPI vmapkey", () => {
   it("adds the key to visual.mappings, not normal.mappings", () => {
     const ctx = makeCtx();
-    const api = createAPI(ctx as any);
+    const api = createAPI(ctx as any, env);
 
     api.vmapkey("v", "visual action", vi.fn());
 
@@ -156,7 +161,7 @@ describe("createAPI vmapkey", () => {
 
   it("assigns feature_group 9 for visual mode mappings", () => {
     const ctx = makeCtx();
-    const api = createAPI(ctx as any);
+    const api = createAPI(ctx as any, env);
 
     api.vmapkey("q", "visual query", vi.fn());
 
@@ -174,7 +179,7 @@ describe("createAPI vmapkey", () => {
 describe("createAPI imapkey", () => {
   it("adds the key to insert.mappings", () => {
     const ctx = makeCtx();
-    const api = createAPI(ctx as any);
+    const api = createAPI(ctx as any, env);
 
     api.imapkey("i", "insert action", vi.fn());
 
@@ -191,7 +196,7 @@ describe("createAPI imapkey", () => {
 describe("createAPI unmap", () => {
   it("removes a previously mapped key from normal.mappings", () => {
     const ctx = makeCtx();
-    const api = createAPI(ctx as any);
+    const api = createAPI(ctx as any, env);
 
     api.mapkey("u", "test", vi.fn());
     const encoded = KeyboardUtils.encodeKeystroke("u");
@@ -203,7 +208,7 @@ describe("createAPI unmap", () => {
 
   it("does nothing when the domain regex does not match", () => {
     const ctx = makeCtx();
-    const api = createAPI(ctx as any);
+    const api = createAPI(ctx as any, env);
 
     api.mapkey("w", "test", vi.fn());
     const encoded = KeyboardUtils.encodeKeystroke("w");
@@ -222,7 +227,7 @@ describe("createAPI unmap", () => {
 describe("createAPI vunmap", () => {
   it("removes a previously mapped key from visual.mappings", () => {
     const ctx = makeCtx();
-    const api = createAPI(ctx as any);
+    const api = createAPI(ctx as any, env);
 
     api.vmapkey("b", "visual test", vi.fn());
     const encoded = KeyboardUtils.encodeKeystroke("b");
@@ -240,7 +245,7 @@ describe("createAPI vunmap", () => {
 describe("createAPI iunmap", () => {
   it("removes a previously mapped key from insert.mappings", () => {
     const ctx = makeCtx();
-    const api = createAPI(ctx as any);
+    const api = createAPI(ctx as any, env);
 
     api.imapkey("j", "insert test", vi.fn());
     const encoded = KeyboardUtils.encodeKeystroke("j");
@@ -258,7 +263,7 @@ describe("createAPI iunmap", () => {
 describe("createAPI unmapAllExcept", () => {
   it("clears normal mappings except the ones listed", () => {
     const ctx = makeCtx();
-    const api = createAPI(ctx as any);
+    const api = createAPI(ctx as any, env);
 
     api.mapkey("a", "first", vi.fn());
     api.mapkey("b", "second", vi.fn());
@@ -275,7 +280,7 @@ describe("createAPI unmapAllExcept", () => {
 
   it("clears insert mappings except the ones listed", () => {
     const ctx = makeCtx();
-    const api = createAPI(ctx as any);
+    const api = createAPI(ctx as any, env);
 
     api.imapkey("c", "insert c", vi.fn());
     api.imapkey("d", "insert d", vi.fn());
@@ -298,7 +303,7 @@ describe("createAPI unmapAllExcept", () => {
 describe("createAPI cmap", () => {
   it("dispatches a surfingkeys:front event with Omnibar addMapkey args", () => {
     const ctx = makeCtx();
-    createAPI(ctx as any);
+    createAPI(ctx as any, env);
 
     // cmap dispatches via dispatchSKEvent which fires a CustomEvent on document.
     // Capture it before creating the api.
@@ -306,7 +311,7 @@ describe("createAPI cmap", () => {
     const handler = (e: Event) => captured.push(e as CustomEvent);
     document.addEventListener("surfingkeys:front", handler);
 
-    const api = createAPI(ctx as any);
+    const api = createAPI(ctx as any, env);
     api.cmap("ctrl-n", "ctrl-j");
 
     document.removeEventListener("surfingkeys:front", handler);
@@ -330,7 +335,7 @@ describe("createAPI cmap", () => {
 describe("createAPI map with command-line prefix", () => {
   it("adds a normal mapping that calls front.executeCommand with the command", () => {
     const ctx = makeCtx();
-    const api = createAPI(ctx as any);
+    const api = createAPI(ctx as any, env);
 
     api.map("e", ":echo");
 
@@ -363,7 +368,7 @@ describe("createAPI addSearchAlias key mappings", () => {
 
   it("registers the composed 'sg' search alias in normal.mappings", () => {
     const ctx = makeCtx();
-    const api = createAPI(ctx as any);
+    const api = createAPI(ctx as any, env);
 
     api.addSearchAlias("g", "Google", "https://www.google.com/search?q=");
 
@@ -383,7 +388,7 @@ describe("createAPI addSearchAlias key mappings", () => {
 
   it("registers the open-omnibar key 'o<alias>' in normal.mappings", () => {
     const ctx = makeCtx();
-    const api = createAPI(ctx as any);
+    const api = createAPI(ctx as any, env);
 
     api.addSearchAlias("d", "DuckDuckGo", "https://duckduckgo.com/?q=");
 
@@ -398,7 +403,7 @@ describe("createAPI addSearchAlias key mappings", () => {
 
   it("registers the vmapkey 's<alias>' in visual.mappings", () => {
     const ctx = makeCtx();
-    const api = createAPI(ctx as any);
+    const api = createAPI(ctx as any, env);
 
     api.addSearchAlias("g", "Google", "https://www.google.com/search?q=");
 
@@ -412,7 +417,7 @@ describe("createAPI addSearchAlias key mappings", () => {
 
   it("calls front.addSearchAlias with alias, prompt, search_url and options", () => {
     const ctx = makeCtx();
-    const api = createAPI(ctx as any);
+    const api = createAPI(ctx as any, env);
 
     const suggestionCb = vi.fn();
     api.addSearchAlias(
@@ -436,7 +441,7 @@ describe("createAPI addSearchAlias key mappings", () => {
 
   it("throws for a non-ASCII alias", () => {
     const ctx = makeCtx();
-    const api = createAPI(ctx as any);
+    const api = createAPI(ctx as any, env);
 
     expect(() => {
       api.addSearchAlias("日", "Japanese", "https://example.com/?q=");
@@ -445,7 +450,7 @@ describe("createAPI addSearchAlias key mappings", () => {
 
   it("skips registering any key mappings when skipMaps is true", () => {
     const ctx = makeCtx();
-    const api = createAPI(ctx as any);
+    const api = createAPI(ctx as any, env);
 
     // Before: no mappings starting with 's' related to this alias
     api.addSearchAlias("k", "Kagi", "https://kagi.com/search?q=", "s", undefined, undefined, "o", {
@@ -462,7 +467,7 @@ describe("createAPI addSearchAlias key mappings", () => {
 
   it("registers uppercase alias mappings when alias has a lowercase form", () => {
     const ctx = makeCtx();
-    const api = createAPI(ctx as any);
+    const api = createAPI(ctx as any, env);
 
     api.addSearchAlias("g", "Google", "https://www.google.com/search?q=");
 
@@ -476,7 +481,7 @@ describe("createAPI addSearchAlias key mappings", () => {
 
   it("uses a custom search_leader_key when provided", () => {
     const ctx = makeCtx();
-    const api = createAPI(ctx as any);
+    const api = createAPI(ctx as any, env);
 
     api.addSearchAlias("x", "Example", "https://example.com/?q=", "t");
 
@@ -490,7 +495,7 @@ describe("createAPI addSearchAlias key mappings", () => {
 
   it("uses a custom only_this_site_key when provided", () => {
     const ctx = makeCtx();
-    const api = createAPI(ctx as any);
+    const api = createAPI(ctx as any, env);
 
     api.addSearchAlias(
       "y",
@@ -518,7 +523,7 @@ describe("createAPI addSearchAlias key mappings", () => {
 describe("createAPI removeSearchAlias", () => {
   it("removes normal mode mappings that addSearchAlias created", () => {
     const ctx = makeCtx();
-    const api = createAPI(ctx as any);
+    const api = createAPI(ctx as any, env);
 
     api.addSearchAlias("m", "MDN", "https://developer.mozilla.org/en-US/search?q=");
 
@@ -534,7 +539,7 @@ describe("createAPI removeSearchAlias", () => {
 
   it("calls front.removeSearchAlias with the alias", () => {
     const ctx = makeCtx();
-    const api = createAPI(ctx as any);
+    const api = createAPI(ctx as any, env);
 
     api.addSearchAlias("p", "Python", "https://docs.python.org/3/search.html?q=");
     ctx.front.removeSearchAlias.mockClear();
@@ -552,7 +557,7 @@ describe("createAPI removeSearchAlias", () => {
 describe("createAPI searchSelectedWith", () => {
   it("passes the constructed URL to tabOpenLink via RUNTIME openLink", () => {
     const ctx = makeCtx();
-    const api = createAPI(ctx as any);
+    const api = createAPI(ctx as any, env);
 
     // Simulate a text selection of "surfingkeys"
     const getSelection = vi.spyOn(window, "getSelection").mockReturnValue({
@@ -582,7 +587,7 @@ describe("createAPI searchSelectedWith", () => {
 
   it("prepends 'site:<hostname>' to query when onlyThisSite is true", () => {
     const ctx = makeCtx();
-    const api = createAPI(ctx as any);
+    const api = createAPI(ctx as any, env);
 
     vi.spyOn(window, "getSelection").mockReturnValue({
       toString: () => "test query",
@@ -609,7 +614,7 @@ describe("createAPI searchSelectedWith", () => {
 
   it("opens the omnibar with pref set to the query when interactive is true", () => {
     const ctx = makeCtx();
-    const api = createAPI(ctx as any);
+    const api = createAPI(ctx as any, env);
 
     vi.spyOn(window, "getSelection").mockReturnValue({
       toString: () => "my query",
@@ -629,7 +634,7 @@ describe("createAPI searchSelectedWith", () => {
 
   it("falls back to clipboard data when selection is empty", () => {
     const ctx = makeCtx();
-    const api = createAPI(ctx as any);
+    const api = createAPI(ctx as any, env);
 
     vi.spyOn(window, "getSelection").mockReturnValue({
       toString: () => "",
@@ -654,7 +659,7 @@ describe("createAPI searchSelectedWith", () => {
 
   it("handles search URL with {0} placeholder correctly", () => {
     const ctx = makeCtx();
-    const api = createAPI(ctx as any);
+    const api = createAPI(ctx as any, env);
 
     vi.spyOn(window, "getSelection").mockReturnValue({
       toString: () => "hello",
@@ -685,7 +690,7 @@ describe("createAPI searchSelectedWith", () => {
 describe("createAPI lmap", () => {
   it("calls normal.addLurkMap with the two keystroke arguments", () => {
     const ctx = makeCtx();
-    const api = createAPI(ctx as any);
+    const api = createAPI(ctx as any, env);
 
     api.lmap("x", "<Alt-i>");
 
@@ -694,7 +699,7 @@ describe("createAPI lmap", () => {
 
   it("does not call normal.addLurkMap when domain does not match", () => {
     const ctx = makeCtx();
-    const api = createAPI(ctx as any);
+    const api = createAPI(ctx as any, env);
 
     api.lmap("x", "<Alt-i>", /this-domain-will-never-match\.example/);
 
@@ -709,7 +714,7 @@ describe("createAPI lmap", () => {
 describe("createAPI Hints.setCharacters", () => {
   it("calls hints.setCharacters and front.setHintsCharacters with the provided string", () => {
     const ctx = makeCtx();
-    const api = createAPI(ctx as any);
+    const api = createAPI(ctx as any, env);
 
     api.Hints.setCharacters("asdfghjkl");
 
@@ -720,7 +725,7 @@ describe("createAPI Hints.setCharacters", () => {
   it("skips front.setHintsCharacters when front lacks it", () => {
     const ctx = makeCtx();
     ctx.front.setHintsCharacters = undefined;
-    const api = createAPI(ctx as any);
+    const api = createAPI(ctx as any, env);
     // The `if (front.setHintsCharacters)` guard takes its false arm; hints still
     // receives the update and nothing throws.
     api.Hints.setCharacters("qwerty");
@@ -735,7 +740,7 @@ describe("createAPI Hints.setCharacters", () => {
 describe("createAPI mapkey override and precedence", () => {
   it("rebinds a key to the newest code when the same key is mapped twice", () => {
     const ctx = makeCtx();
-    const api = createAPI(ctx as any);
+    const api = createAPI(ctx as any, env);
 
     const first = vi.fn();
     const second = vi.fn();
@@ -750,7 +755,7 @@ describe("createAPI mapkey override and precedence", () => {
 
   it("refuses to add a longer key whose prefix is already a leaf mapping", () => {
     const ctx = makeCtx();
-    const api = createAPI(ctx as any);
+    const api = createAPI(ctx as any, env);
 
     api.mapkey("a", "leaf", vi.fn());
     // 'ab' would shadow the existing leaf 'a', so the precedence guard returns
@@ -766,7 +771,7 @@ describe("createAPI mapkey override and precedence", () => {
 
   it("overrides a branch node (no own meta) that has descendant mappings", () => {
     const ctx = makeCtx();
-    const api = createAPI(ctx as any);
+    const api = createAPI(ctx as any, env);
 
     // 'ab' makes 'a' a branch node without its own meta. Mapping 'a' then removes
     // that branch (exercising the `old.meta` false arm that reports child metas)
@@ -791,7 +796,7 @@ describe("createAPI map special-key and not-found arms", () => {
     document.addEventListener("surfingkeys:front", (e) => {
       dispatched.push((e as CustomEvent).detail);
     });
-    const api = createAPI(ctx as any);
+    const api = createAPI(ctx as any, env);
 
     api.map("w", "<Esc>");
 
@@ -804,7 +809,7 @@ describe("createAPI map special-key and not-found arms", () => {
 
   it("does nothing observable in normal.mappings when the source keystroke is unknown", () => {
     const ctx = makeCtx();
-    const api = createAPI(ctx as any);
+    const api = createAPI(ctx as any, env);
 
     api.map("w", "totally-unknown-keystroke");
 
@@ -814,7 +819,7 @@ describe("createAPI map special-key and not-found arms", () => {
 
   it("uses the supplied annotation for a command-line ':' mapping", () => {
     const ctx = makeCtx();
-    const api = createAPI(ctx as any);
+    const api = createAPI(ctx as any, env);
 
     api.map("e", ":echo", undefined, "#3Echo it");
 
@@ -824,7 +829,7 @@ describe("createAPI map special-key and not-found arms", () => {
 
   it("binds a ':' mapping with a plain annotation that carries no feature group", () => {
     const ctx = makeCtx();
-    const api = createAPI(ctx as any);
+    const api = createAPI(ctx as any, env);
 
     // No "#N" prefix → parseAnnotation yields no feature_group, exercising the
     // `ag.feature_group != null` false arm of createKeyTarget.
@@ -837,7 +842,7 @@ describe("createAPI map special-key and not-found arms", () => {
 
   it("does not register the mapping when the domain does not match", () => {
     const ctx = makeCtx();
-    const api = createAPI(ctx as any);
+    const api = createAPI(ctx as any, env);
 
     api.map("e", ":echo", /this-domain-will-never-match\.example/);
 
@@ -852,7 +857,7 @@ describe("createAPI map special-key and not-found arms", () => {
 describe("createAPI unmap special-key arm", () => {
   it("removes a previously mapped special-key alias from the special-key list", () => {
     const ctx = makeCtx();
-    const api = createAPI(ctx as any);
+    const api = createAPI(ctx as any, env);
 
     // Bind an alias to the <Esc> special key, then unmap it. The alias is not in
     // normal.mappings, so unmap walks specialKeys and splices it out.
@@ -878,7 +883,7 @@ describe("createAPI unmap special-key arm", () => {
 describe("createAPI imap / vmap", () => {
   it("imap maps a source insert mapping onto a new insert keystroke", () => {
     const ctx = makeCtx();
-    const api = createAPI(ctx as any);
+    const api = createAPI(ctx as any, env);
 
     api.imapkey("i", "insert source", vi.fn());
     api.imap("p", "i");
@@ -888,7 +893,7 @@ describe("createAPI imap / vmap", () => {
 
   it("vmap maps a source visual mapping onto a new visual keystroke", () => {
     const ctx = makeCtx();
-    const api = createAPI(ctx as any);
+    const api = createAPI(ctx as any, env);
 
     api.vmapkey("v", "visual source", vi.fn());
     api.vmap("p", "v");
@@ -898,7 +903,7 @@ describe("createAPI imap / vmap", () => {
 
   it("imap does nothing when the domain does not match", () => {
     const ctx = makeCtx();
-    const api = createAPI(ctx as any);
+    const api = createAPI(ctx as any, env);
     api.imapkey("i", "insert source", vi.fn());
     api.imap("p", "i", /this-domain-will-never-match\.example/);
     expect(ctx.insert.mappings.find(KeyboardUtils.encodeKeystroke("p"))).toBeUndefined();
@@ -906,7 +911,7 @@ describe("createAPI imap / vmap", () => {
 
   it("vmap does nothing when the domain does not match", () => {
     const ctx = makeCtx();
-    const api = createAPI(ctx as any);
+    const api = createAPI(ctx as any, env);
     api.vmapkey("v", "visual source", vi.fn());
     api.vmap("p", "v", /this-domain-will-never-match\.example/);
     expect(ctx.visual.mappings.find(KeyboardUtils.encodeKeystroke("p"))).toBeUndefined();
@@ -916,7 +921,7 @@ describe("createAPI imap / vmap", () => {
 describe("createAPI unmapAllExcept domain guard", () => {
   it("keeps all mappings when the domain does not match", () => {
     const ctx = makeCtx();
-    const api = createAPI(ctx as any);
+    const api = createAPI(ctx as any, env);
     api.mapkey("a", "first", vi.fn());
     api.mapkey("b", "second", vi.fn());
 
@@ -932,7 +937,7 @@ describe("createAPI unmap-family domain guard (no-op when domain mismatches)", (
 
   it("iunmap keeps the insert mapping when the domain does not match", () => {
     const ctx = makeCtx();
-    const api = createAPI(ctx as any);
+    const api = createAPI(ctx as any, env);
     api.imapkey("j", "insert", vi.fn());
     api.iunmap("j", noMatch);
     expect(ctx.insert.mappings.find(KeyboardUtils.encodeKeystroke("j"))?.meta).not.toBeUndefined();
@@ -940,7 +945,7 @@ describe("createAPI unmap-family domain guard (no-op when domain mismatches)", (
 
   it("vunmap keeps the visual mapping when the domain does not match", () => {
     const ctx = makeCtx();
-    const api = createAPI(ctx as any);
+    const api = createAPI(ctx as any, env);
     api.vmapkey("b", "visual", vi.fn());
     api.vunmap("b", noMatch);
     expect(ctx.visual.mappings.find(KeyboardUtils.encodeKeystroke("b"))?.meta).not.toBeUndefined();
@@ -952,7 +957,7 @@ describe("createAPI unmap-family domain guard (no-op when domain mismatches)", (
     document.addEventListener("surfingkeys:front", (e) => {
       dispatched.push((e as CustomEvent).detail);
     });
-    const api = createAPI(ctx as any);
+    const api = createAPI(ctx as any, env);
     api.cmap("ctrl-n", "ctrl-j", noMatch);
     const omnibarAdds = dispatched.filter((d) => Array.isArray(d) && d[1] === "Omnibar");
     expect(omnibarAdds).toHaveLength(0);
@@ -978,7 +983,7 @@ describe("createAPI search-alias defensive arms", () => {
   it("addSearchAlias still registers key mappings when front lacks addSearchAlias", () => {
     const ctx = makeCtx();
     ctx.front.addSearchAlias = undefined;
-    const api = createAPI(ctx as any);
+    const api = createAPI(ctx as any, env);
 
     // The `&& front.addSearchAlias` short-circuit takes its false arm; local key
     // mappings are still created.
@@ -992,7 +997,7 @@ describe("createAPI search-alias defensive arms", () => {
 
   it("removeSearchAlias does not unmap capital variants for an already-uppercase alias", () => {
     const ctx = makeCtx();
-    const api = createAPI(ctx as any);
+    const api = createAPI(ctx as any, env);
 
     api.addSearchAlias("G", "Google", "https://www.google.com/search?q=");
     // capitalAlias === alias ("G"), so the `if (capitalAlias !== alias)` arm is

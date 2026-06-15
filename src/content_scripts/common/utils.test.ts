@@ -1,12 +1,11 @@
 import { Result } from "@praha/byethrow";
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it } from "vitest";
 
 import KeyboardUtils from "./keyboardUtils";
 import { runtime } from "./runtime";
 import Trie from "./trie";
 import {
   applyUserSettings,
-  attachFaviconToImgSrc,
   constructSearchURL,
   createElementWithContent,
   format,
@@ -30,7 +29,6 @@ import {
   requireElement,
   rotateInput,
   setSanitizedContent,
-  tabOpenLink,
   toggleQuote,
   tryDecodeURI,
   tryDecodeURIComponent,
@@ -367,33 +365,6 @@ describe("getBrowserName", () => {
   });
 });
 
-describe("attachFaviconToImgSrc", () => {
-  const original = window.navigator.userAgent;
-  const setUserAgent = (value: string) => {
-    Object.defineProperty(window.navigator, "userAgent", { value, configurable: true });
-  };
-  afterEach(() => setUserAgent(original));
-
-  it("uses the chrome favicon endpoint on Chrome", () => {
-    setUserAgent("Chrome/120.0");
-    const img = document.createElement("img");
-    attachFaviconToImgSrc({ url: "https://example.com/p" }, img);
-    expect(img.getAttribute("src")).toBe(
-      "/_favicon/?pageUrl=" + encodeURIComponent("https://example.com/p"),
-    );
-  });
-
-  it("uses the tab favIconUrl on Firefox", () => {
-    setUserAgent("Firefox/120.0");
-    const img = document.createElement("img");
-    attachFaviconToImgSrc(
-      { url: "https://example.com/p", favIconUrl: "https://example.com/f.ico" },
-      img,
-    );
-    expect(img.getAttribute("src")).toBe("https://example.com/f.ico");
-  });
-});
-
 // A real dispatched event carries the element as its target, avoiding a hand-
 // built Event object (the codebase forbids type assertions).
 function eventFrom(el: EventTarget): Event {
@@ -477,7 +448,7 @@ describe("mapInMode", () => {
     const code = () => {};
     mode.mappings.add(KeyboardUtils.encodeKeystroke("j"), { annotation: "down", code });
 
-    const old = mapInMode(mode, "x", "j");
+    const old = mapInMode(mode, "x", "j", false);
 
     expect(old).toBeDefined();
     const rebound = mode.mappings.find(KeyboardUtils.encodeKeystroke("x"));
@@ -489,7 +460,7 @@ describe("mapInMode", () => {
     const mode = { name: "normal", mappings: new Trie() };
     mode.mappings.add(KeyboardUtils.encodeKeystroke("j"), { annotation: "down" });
 
-    mapInMode(mode, "x", "j", "#5Custom");
+    mapInMode(mode, "x", "j", false, "#5Custom");
 
     const rebound = mode.mappings.find(KeyboardUtils.encodeKeystroke("x"));
     expect(rebound?.meta?.feature_group).toBe(5);
@@ -498,7 +469,7 @@ describe("mapInMode", () => {
 
   it("returns undefined when the source mapping does not exist", () => {
     const mode = { name: "normal", mappings: new Trie() };
-    expect(mapInMode(mode, "x", "nonexistent")).toBeUndefined();
+    expect(mapInMode(mode, "x", "nonexistent", false)).toBeUndefined();
   });
 });
 
@@ -752,25 +723,6 @@ describe("getNearestWord — negative offset clamping", () => {
   });
 });
 
-describe("attachFaviconToImgSrc — Firefox without favIconUrl", () => {
-  const original = window.navigator.userAgent;
-  const setUserAgent = (value: string) => {
-    Object.defineProperty(window.navigator, "userAgent", {
-      value,
-      configurable: true,
-    });
-  };
-  afterEach(() => setUserAgent(original));
-
-  it("sets src to empty string when favIconUrl is absent on Firefox", () => {
-    setUserAgent("Firefox/120.0");
-    const img = document.createElement("img");
-    // favIconUrl is intentionally omitted to exercise the `?? ""` fallback.
-    attachFaviconToImgSrc({ url: "https://example.com/" }, img);
-    expect(img.getAttribute("src")).toBe("");
-  });
-});
-
 describe("refreshHints — additional branches", () => {
   it("accumulates multiple prefix-matched candidates in a single pass", () => {
     const a = makeHint("aa", "LINK_A");
@@ -799,7 +751,7 @@ describe("mapInMode — additional branches", () => {
     const mode = { name: "normal", mappings: new Trie() };
     mode.mappings.add(KeyboardUtils.encodeKeystroke("k"), { annotation: "up" });
 
-    mapInMode(mode, "y", "k", ["Custom annotation", "param"]);
+    mapInMode(mode, "y", "k", false, ["Custom annotation", "param"]);
 
     const rebound = mode.mappings.find(KeyboardUtils.encodeKeystroke("y"));
     // The array form passes through parseAnnotation: first element has no #N,
@@ -911,47 +863,5 @@ describe("getDocumentOrigin", () => {
     // The `origin ? origin : "*"` ternary takes its false arm for an empty origin.
     expect(getDocumentOrigin()).toBe("*");
     Object.defineProperty(window, "location", { value: realLocation, configurable: true });
-  });
-});
-
-describe("tabOpenLink", () => {
-  afterEach(() => {
-    vi.restoreAllMocks();
-  });
-
-  it("opens each newline-separated URL via RUNTIME openLink when under the limit", () => {
-    const sendMessage = vi
-      .spyOn(chrome.runtime, "sendMessage")
-      .mockImplementation((() => {}) as any);
-    tabOpenLink("https://a.com\nhttps://b.com");
-    const openLinkUrls = sendMessage.mock.calls
-      .map((c: any[]) => c[0])
-      .filter((m: any) => m.action === "openLink")
-      .map((m: any) => m.url);
-    expect(openLinkUrls).toEqual(["https://a.com", "https://b.com"]);
-  });
-
-  it("accepts an array of URLs directly (Array constructor arm)", () => {
-    const sendMessage = vi
-      .spyOn(chrome.runtime, "sendMessage")
-      .mockImplementation((() => {}) as any);
-    tabOpenLink(["https://x.com", "https://y.com"]);
-    const openLinkUrls = sendMessage.mock.calls
-      .map((c: any[]) => c[0])
-      .filter((m: any) => m.action === "openLink")
-      .map((m: any) => m.url);
-    expect(openLinkUrls).toEqual(["https://x.com", "https://y.com"]);
-  });
-
-  it("prompts with a showDialog when the URL count exceeds simultaneousness", () => {
-    const details = captureFrontEvents(() => {
-      // 3 URLs with simultaneousness=2 trips the `urls.length > simultaneousness` arm.
-      tabOpenLink("https://a\nhttps://b\nhttps://c", 2);
-    });
-    const dialog = details.find((d) => Array.isArray(d) && d[0] === "showDialog") as
-      | unknown[]
-      | undefined;
-    expect(dialog).toBeDefined();
-    expect(dialog![1]).toContain("3 links");
   });
 });

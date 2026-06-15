@@ -1,12 +1,11 @@
 import KeyboardUtils from "../common/keyboardUtils";
 import { ModeHandle } from "../common/mode";
+import { initL10n, reportIssue } from "../common/platform-utils";
 import { RUNTIME } from "../common/runtime";
 import {
   createElementWithContent,
   getBrowserName,
   htmlEncode,
-  initL10n,
-  reportIssue,
   setSanitizedContent,
   showBanner,
 } from "../common/utils";

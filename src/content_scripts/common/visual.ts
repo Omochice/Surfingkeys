@@ -1,8 +1,10 @@
 import { unwrapOr } from "../../common/result";
+import { conf, getCaseSensitive } from "./conf";
+import type { EngineEnv } from "./engineEnv";
+import { dispatchSKEvent } from "./events";
 import KeyboardUtils from "./keyboardUtils";
 import { createKeymap } from "./keymap";
 import { ModeHandle, showModeStatus } from "./mode";
-import { RUNTIME, dispatchSKEvent, runtime } from "./runtime";
 import { isSpecialKeyOf } from "./specialKeys";
 import Trie from "./trie";
 import type { TrieMeta } from "./trie";
@@ -77,7 +79,8 @@ const win = window as unknown as {
   ): boolean;
 };
 
-function createVisual(clipboard: ClipboardLike, hints: HintsLike): VisualMode {
+function createVisual(clipboard: ClipboardLike, hints: HintsLike, env: EngineEnv): VisualMode {
+  const { RUNTIME } = env;
   const mode = new ModeHandle("Visual");
   const mappings = new Trie();
   const keymap = createKeymap(() => mappings, { enableRepeats: true });
@@ -165,8 +168,8 @@ function createVisual(clipboard: ClipboardLike, hints: HintsLike): VisualMode {
   });
 
   mode.addEventListener("resize", () => {
-    if (runtime.conf.lastQuery) {
-      self.visualUpdate(runtime.conf.lastQuery);
+    if (conf.lastQuery) {
+      self.visualUpdate(conf.lastQuery);
     }
     const cur = matches[currentOccurrence];
     if (cur) {
@@ -350,12 +353,12 @@ function createVisual(clipboard: ClipboardLike, hints: HintsLike): VisualMode {
       code: () => {
         const pos: [Node | null, number] = [selection.focusNode, selection.focusOffset];
         clipboard.write(selection.toString());
-        if (runtime.conf.modeAfterYank === "Caret") {
+        if (conf.modeAfterYank === "Caret") {
           selection.setPosition(pos[0], pos[1]);
           self.showCursor();
           state = 1;
           onStateChange();
-        } else if (runtime.conf.modeAfterYank === "Normal") {
+        } else if (conf.modeAfterYank === "Normal") {
           state = 2;
           self.toggle();
         }
@@ -760,7 +763,7 @@ function createVisual(clipboard: ClipboardLike, hints: HintsLike): VisualMode {
         break;
       }
       default: {
-        hints.create(runtime.conf.textAnchorPat, (element) => {
+        hints.create(conf.textAnchorPat, (element) => {
           setTimeout(() => {
             selection.setPosition(element[0], element[1]);
             self.enter();
@@ -788,7 +791,7 @@ function createVisual(clipboard: ClipboardLike, hints: HintsLike): VisualMode {
         const pos: [Node | null, number] = [selection.focusNode, selection.focusOffset];
         RUNTIME("updateInputHistory", { find: query });
         self.visualClear();
-        highlight(new RegExp(query, runtime.getCaseSensitive(query) ? "" : "i"));
+        highlight(new RegExp(query, getCaseSensitive(query) ? "" : "i"));
         selection.setPosition(pos[0], pos[1]);
         self.showCursor();
       }
@@ -812,14 +815,9 @@ function createVisual(clipboard: ClipboardLike, hints: HintsLike): VisualMode {
         "showStatus",
         [undefined, undefined, currentOccurrence + 1 + " / " + matches.length],
       ]);
-    } else if (runtime.conf.lastQuery) {
-      highlight(
-        new RegExp(
-          runtime.conf.lastQuery,
-          runtime.getCaseSensitive(runtime.conf.lastQuery) ? "" : "i",
-        ),
-      );
-      self.visualEnter(runtime.conf.lastQuery);
+    } else if (conf.lastQuery) {
+      highlight(new RegExp(conf.lastQuery, getCaseSensitive(conf.lastQuery) ? "" : "i"));
+      self.visualEnter(conf.lastQuery);
     }
   };
 
@@ -858,7 +856,7 @@ function createVisual(clipboard: ClipboardLike, hints: HintsLike): VisualMode {
     let scrollTop = document.scrollingElement!.scrollTop,
       posToStartFind: [Node | null, number] = [selection.anchorNode, selection.anchorOffset];
 
-    const caseSensitive = runtime.getCaseSensitive(query);
+    const caseSensitive = getCaseSensitive(query);
     if (findNextTextNodeBy(query, caseSensitive, false)) {
       selection.setPosition(posToStartFind[0], posToStartFind[1]);
     } else {
@@ -900,7 +898,7 @@ function createVisual(clipboard: ClipboardLike, hints: HintsLike): VisualMode {
       return;
     }
     self.visualClear();
-    highlight(new RegExp(query, runtime.getCaseSensitive(query) ? "" : "i"));
+    highlight(new RegExp(query, getCaseSensitive(query) ? "" : "i"));
     if (matches.length) {
       self.enter();
       const cur = matches[currentOccurrence];

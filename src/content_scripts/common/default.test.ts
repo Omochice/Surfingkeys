@@ -1,5 +1,8 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
+import type { EngineEnv } from "./engineEnv";
+import { repeatCount } from "./repeatCount";
+
 // default.ts wires the built-in key map onto an api/ctx pair. These tests pin
 // that contract: which keys are bound, and where each key's action delegates
 // (RUNTIME message, front, visual, clipboard, tabOpenLink, search aliases).
@@ -9,6 +12,7 @@ const seam = vi.hoisted(() => {
   return {
     RUNTIME,
     dispatchSKEvent: vi.fn(),
+    tabOpenLink: vi.fn(),
     runtimeConf: {
       lastKeys: ["se"],
       textAnchorPat: /x/g,
@@ -27,21 +31,37 @@ const seam = vi.hoisted(() => {
       setSanitizedContent: vi.fn(),
       showBanner: vi.fn(),
       showPopup: vi.fn(),
-      tabOpenLink: vi.fn(),
       toggleQuote: vi.fn(),
     },
   };
 });
 
-vi.mock("./runtime", () => ({
-  RUNTIME: seam.RUNTIME,
+vi.mock("./conf", () => ({
+  conf: seam.runtimeConf,
+}));
+
+vi.mock("./events", () => ({
   dispatchSKEvent: seam.dispatchSKEvent,
-  runtime: { conf: seam.runtimeConf },
 }));
 
 vi.mock("./utils", () => seam.utils);
 
 import registerDefaultMappings from "./default";
+
+// default.ts now reaches RUNTIME / tabOpenLink / chrome.surfingkeys through the injected env; build
+// it from the seam spies. surfingkeys is a live getter so the per-test globalThis.chrome swaps below
+// are reflected at handler-invocation time.
+const makeEnv = (): EngineEnv => ({
+  RUNTIME: seam.RUNTIME,
+  isInUIFrame: () => false,
+  reportIssue: () => {},
+  tabOpenLink: seam.tabOpenLink,
+  getExtensionURL: (path: string) => path,
+  log: () => {},
+  get surfingkeys() {
+    return chrome.surfingkeys;
+  },
+});
 
 type Registration = {
   mode: string;
@@ -95,7 +115,7 @@ beforeEach(() => {
     visual: autoMock(),
     front: autoMock(),
   };
-  registerDefaultMappings(api, ctx);
+  registerDefaultMappings(api, ctx, makeEnv());
 });
 
 const fire = (key: string) => registry.get(key)!.cb();
@@ -261,7 +281,7 @@ describe("tabOpenLink keys (Chrome)", () => {
     [";e", "/options.html"],
   ])("%s opens %s", (key, url) => {
     fire(key);
-    expect(seam.utils.tabOpenLink).toHaveBeenLastCalledWith(url);
+    expect(seam.tabOpenLink).toHaveBeenLastCalledWith(url);
   });
 });
 
@@ -862,7 +882,7 @@ describe("cc opens selected text or clipboard URL in a new tab", () => {
     const sel = { toString: () => "https://selected.example.com" };
     vi.spyOn(window, "getSelection").mockReturnValue(sel as unknown as Selection);
     fire("cc");
-    expect(seam.utils.tabOpenLink).toHaveBeenLastCalledWith("https://selected.example.com");
+    expect(seam.tabOpenLink).toHaveBeenLastCalledWith("https://selected.example.com");
     vi.restoreAllMocks();
   });
 
@@ -875,7 +895,7 @@ describe("cc opens selected text or clipboard URL in a new tab", () => {
     });
     fire("cc");
     capturedCb!({ data: "https://clipboard.example.com" });
-    expect(seam.utils.tabOpenLink).toHaveBeenLastCalledWith("https://clipboard.example.com");
+    expect(seam.tabOpenLink).toHaveBeenLastCalledWith("https://clipboard.example.com");
     vi.restoreAllMocks();
   });
 });
@@ -1305,7 +1325,7 @@ describe(";t translates selected text or current page", () => {
     const sel = { toString: () => "" };
     vi.spyOn(window, "getSelection").mockReturnValue(sel as unknown as Selection);
     fire(";t");
-    expect(seam.utils.tabOpenLink).toHaveBeenCalledWith(
+    expect(seam.tabOpenLink).toHaveBeenCalledWith(
       expect.stringContaining("https://translate.google.com/translate"),
     );
     delete (globalThis as any).chrome;
@@ -1335,7 +1355,7 @@ describe("w switches frames when window !== top", () => {
     const originalTop = window.top;
     Object.defineProperty(window, "top", { value: {}, configurable: true });
     vi.clearAllMocks();
-    registerDefaultMappings(api, ctx);
+    registerDefaultMappings(api, ctx, makeEnv());
     fire("w");
     expect(ctx.normal.rotateFrame).toHaveBeenCalled();
     // The ensureFrontEnd dispatch also happens regardless of frame position.
@@ -1376,10 +1396,10 @@ describe("gu navigates up URL path", () => {
 describe("gu with multiple repeats", () => {
   afterEach(() => vi.restoreAllMocks());
 
-  it("walks up multiple path segments when RUNTIME.repeats > 1", () => {
+  it("walks up multiple path segments when repeatCount.value > 1", () => {
     // jsdom default location.pathname is "/" (length 1), which is guarded by
     // `if (pathname.length > 1)`.  Mock a deeper path so the guard is entered
-    // and `RUNTIME.repeats` is consumed and reset to 1.
+    // and `repeatCount.value` is consumed and reset to 1.
     vi.spyOn(window, "location", "get").mockReturnValue({
       ...window.location,
       pathname: "/a/b/c",
@@ -1387,10 +1407,10 @@ describe("gu with multiple repeats", () => {
       href: "https://example.com/a/b/c",
     } as unknown as Location);
 
-    seam.RUNTIME.repeats = 3;
+    repeatCount.value = 3;
     fire("gu");
     // repeats must be reset to 1 after gu consumes it
-    expect(seam.RUNTIME.repeats).toBe(1);
+    expect(repeatCount.value).toBe(1);
   });
 });
 
@@ -1436,9 +1456,9 @@ describe("gu goes up one path segment", () => {
   });
 
   it("breaks out and goes to the root when repeats exceed the path depth", () => {
-    seam.RUNTIME.repeats = 5; // more levels than the path has
+    repeatCount.value = 5; // more levels than the path has
     const assigned = withInterceptedHref("/only/", () => fire("gu"));
-    seam.RUNTIME.repeats = 1;
+    repeatCount.value = 1;
     // The lastIndexOf("/", last-1) search returns -1 and breaks, leaving the
     // root path "".
     expect(assigned).toBe(window.location.origin + "");
@@ -1677,9 +1697,9 @@ describe("Firefox-only mappings", () => {
       mapkey: (keys: string, annotation: any, cb: any, options: any) =>
         firefoxRegistry.set(keys, { mode: "normal", annotation, cb, options }),
     };
-    registerDefaultMappings(ffApi as any, ctx);
+    registerDefaultMappings(ffApi as any, ctx, makeEnv());
     firefoxRegistry.get("on")!.cb();
-    expect(seam.utils.tabOpenLink).toHaveBeenLastCalledWith("about:blank");
+    expect(seam.tabOpenLink).toHaveBeenLastCalledWith("about:blank");
   });
 
   it("binds neither the Firefox nor the Chrome 'on' mapping for another browser", () => {
@@ -1690,7 +1710,7 @@ describe("Firefox-only mappings", () => {
       mapkey: (keys: string, annotation: any, cb: any, options: any) =>
         otherRegistry.set(keys, { mode: "normal", annotation, cb, options }),
     };
-    registerDefaultMappings(otherApi as any, ctx);
+    registerDefaultMappings(otherApi as any, ctx, makeEnv());
     // Neither the Firefox arm nor the Chrome else-if arm runs, so 'on' is absent.
     expect(otherRegistry.has("on")).toBe(false);
   });

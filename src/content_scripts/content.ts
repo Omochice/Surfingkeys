@@ -1,14 +1,17 @@
 import { reportOnFail } from "../common/result";
 import createAPI from "./common/api";
+import type { StoredSettings } from "./common/conf";
+import { createEngineEnv } from "./common/createEngineEnv";
 import createDefaultMappings from "./common/default";
+import { dispatchSKEvent } from "./common/events";
 import { checkEventListener, initModeHub } from "./common/mode";
 import createModeGraph, { type ModeContext } from "./common/modeGraph";
 import createNormal from "./common/normal";
 import startScrollNodeObserver from "./common/observer";
+import { isInUIFrame } from "./common/platform-utils";
 import { reportError } from "./common/report";
-import { RUNTIME, dispatchSKEvent, runtime } from "./common/runtime";
-import type { StoredSettings } from "./common/runtime";
-import { generateQuickGuid, getRealEdit, isInUIFrame, showBanner } from "./common/utils";
+import { RUNTIME, runtime } from "./common/runtime";
+import { generateQuickGuid, getRealEdit, showBanner } from "./common/utils";
 import createFront from "./front";
 import { applySettings } from "./settingsApplication";
 
@@ -20,6 +23,8 @@ type BrowserAdapter = {
 };
 
 let adapter: BrowserAdapter = {};
+
+const engineEnv = createEngineEnv();
 
 type Api = ReturnType<typeof createAPI>;
 type Normal = ReturnType<typeof createNormal>;
@@ -37,7 +42,7 @@ const userConfPromise = new Promise<typeof runtime.conf>((resolve) => {
 });
 
 function initModules(): Modes {
-  const { clipboard, insert, normal, hints, visual } = createModeGraph();
+  const { clipboard, insert, normal, hints, visual } = createModeGraph(engineEnv);
   // Content owns scroll-node observation; the observer is dormant until an
   // "observer" event turns it on, so its setup order relative to hints/visual
   // does not matter.
@@ -45,8 +50,8 @@ function initModules(): Modes {
   const front = createFront(insert, normal, hints, visual, adapter);
 
   const ctx: ModeContext = { clipboard, insert, normal, hints, visual, front };
-  const api = createAPI(ctx);
-  createDefaultMappings(api, ctx);
+  const api = createAPI(ctx, engineEnv);
+  createDefaultMappings(api, ctx, engineEnv);
   if (typeof adapter.plugin === "function") {
     adapter.plugin({ front });
   }
@@ -116,6 +121,7 @@ window.getFrameId = function () {
   return window.frameId;
 };
 initModeHub(
+  engineEnv,
   window === top
     ? undefined
     : () => {

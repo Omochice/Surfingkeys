@@ -8,9 +8,9 @@ import {
   domApiError,
   unwrapOr,
 } from "../../common/result";
-import browser from "./browser";
+import { conf } from "./conf";
+import { dispatchSKEvent } from "./events";
 import KeyboardUtils from "./keyboardUtils";
-import { RUNTIME, dispatchSKEvent, runtime } from "./runtime";
 import type Trie from "./trie";
 import type { TrieMeta } from "./trie";
 
@@ -155,10 +155,6 @@ function getBrowserName(): "Chrome" | "Firefox" {
   return "Chrome";
 }
 
-function isInUIFrame(): boolean {
-  return window !== top && document.location.href.indexOf(browser.runtime.getURL("/")) === 0;
-}
-
 function timeStampString(t: number): string {
   const dt = new Date();
   dt.setTime(t);
@@ -207,8 +203,8 @@ function listElements<T extends Node = Element>(
 function isElementClickable(e: Element): boolean {
   let cssSelector =
     "a, button, select, input, textarea, summary, *[onclick], *[contenteditable=true], *.jfk-button, *.goog-flat-menu-button, *[role=button], *[role=link], *[role=menuitem], *[role=option], *[role=switch], *[role=tab], *[role=checkbox], *[role=combobox], *[role=menuitemcheckbox], *[role=menuitemradio]";
-  if (runtime.conf.clickableSelector.length) {
-    cssSelector += ", " + runtime.conf.clickableSelector;
+  if (conf.clickableSelector.length) {
+    cssSelector += ", " + conf.clickableSelector;
   }
 
   return (
@@ -380,21 +376,13 @@ function isEditable(element: unknown): boolean {
   if (element instanceof HTMLElement && element.isContentEditable) {
     return true;
   }
-  if (element.matches(runtime.conf.editableSelector)) {
+  if (element.matches(conf.editableSelector)) {
     return true;
   }
   return (
     formElement instanceof HTMLInputElement &&
     /^(?!button|checkbox|file|hidden|image|radio|reset|submit)/i.test(formElement.type)
   );
-}
-
-function reportIssue(title: string, description: string): void {
-  title = encodeURIComponent(title);
-  description = `%23%23+Error+details%0A%0A${encodeURIComponent(description)}%0A%0ASurfingKeys%3A+${browser.runtime.getManifest().version}%0A%0AChrome%3A+${encodeURIComponent(navigator.userAgent)}%0A%0AURL%3A+${encodeURIComponent(window.location.href)}%0A%0A%23%23+Context%0A%0A%2A%2APlease+replace+this+with+a+description+of+how+you+were+using+SurfingKeys.%2A%2A`;
-  const error = `<h2>Uh-oh! The SurfingKeys extension encountered a bug.</h2> <p>Please click <a href="https://github.com/brookhong/Surfingkeys/issues/new?title=${title}&body=${description}" target=_blank>here</a> to start filing a new issue, append a description of how you were using SurfingKeys before this message appeared, then submit it.  Thanks for your help!</p>`;
-
-  showPopup(error);
 }
 
 function scrollIntoViewIfNeeded(elm: Element, ignoreSize?: boolean): void {
@@ -619,7 +607,7 @@ function getRealRect(elm: Element): DOMRect {
 }
 
 function isExplicitlyRequested(element: Element): boolean {
-  return !!runtime.conf.clickableSelector && element.matches(runtime.conf.clickableSelector);
+  return !!conf.clickableSelector && element.matches(conf.clickableSelector);
 }
 
 function filterOverlapElements(elements: Element[]): Element[] {
@@ -869,24 +857,6 @@ function rectContains(rect: DOMRect, x: number, y: number, ex: number, ey: numbe
   return y > rect.top - ey && y < rect.bottom + ey && x > rect.left - ex && x < rect.right + ex;
 }
 
-function initL10n(cb: (translate: (str: string) => string) => void): void {
-  const lang = runtime.conf.language || window.navigator.language;
-  if (lang === "en-US") {
-    cb((str) => str);
-  } else {
-    fetch(browser.runtime.getURL("pages/l10n.json"))
-      .then((res) => res.json())
-      .then((l10n) => {
-        if (typeof l10n[lang] === "object") {
-          const table = l10n[lang];
-          cb((str) => table[str] || str);
-        } else {
-          cb((str) => str);
-        }
-      });
-  }
-}
-
 function format(template: string, ...args: unknown[]): string {
   let formatted = template;
   for (let i = 0; i < args.length; i++) {
@@ -938,6 +908,9 @@ function mapInMode(
   mode: { name: string; mappings: Trie },
   nks: string,
   oks: string,
+  // Whether the caller is the Surfingkeys UI iframe; injected because this pure helper must not
+  // reach the WebExtension API. Only a non-UI frame notifies the front about the added mapkey.
+  inUIFrame: boolean,
   new_annotation?: string | string[],
 ): Trie | undefined {
   oks = KeyboardUtils.encodeKeystroke(oks);
@@ -951,7 +924,7 @@ function mapInMode(
       meta = Object.assign(meta, parseAnnotation({ annotation: new_annotation })) as TrieMeta;
     }
     mode.mappings.add(nks, meta);
-    if (!isInUIFrame()) {
+    if (!inUIFrame) {
       dispatchSKEvent("front", ["addMapkey", mode.name, nks, oks]);
     }
   }
@@ -985,62 +958,6 @@ function constructSearchURL(se: string, word: string): string {
     return se + word;
   }
 }
-
-/**
- * Open links in new tabs.
- *
- * @example
- *   tabOpenLink("https://github.com/brookhong/Surfingkeys");
- *
- * @param {string} str Links to be opened, the links should be split by `\n` if there are more than
- *   one.
- * @param {number} [simultaneousness=5] How many tabs will be opened simultaneously, the rest will
- *   be queued and opened later whenever a tab is closed. Default is `5`
- */
-function tabOpenLink(str: string | string[] | NodeList, simultaneousness: number = 5): void {
-  let urls: string[];
-  if (Array.isArray(str)) {
-    urls = str;
-  } else if (str instanceof NodeList) {
-    urls = Array.from(str).map((n) => (n as HTMLAnchorElement).href);
-  } else {
-    urls = str.trim().split("\n");
-  }
-
-  urls = urls.map((u) => u.trim()).filter((u) => u.length > 0);
-
-  if (urls.length > simultaneousness) {
-    dispatchSKEvent("front", [
-      "showDialog",
-      `Do you really want to open all these ${urls.length} links?`,
-      () => {
-        // open the first batch links immediately
-        urls.slice(0, simultaneousness).forEach((url) => {
-          RUNTIME("openLink", {
-            tab: {
-              tabbed: true,
-            },
-            url: url,
-          });
-        });
-        // queue the left for later opening when there is one tab closed.
-        RUNTIME("queueURLs", {
-          urls: urls.slice(simultaneousness),
-        });
-      },
-    ]);
-  } else {
-    urls.forEach((url) => {
-      RUNTIME("openLink", {
-        tab: {
-          tabbed: true,
-        },
-        url: url,
-      });
-    });
-  }
-}
-////////////////////////////////////////////////////////////////////////////////
 
 function filterInvisibleElements(nodes: HTMLElement[]): HTMLElement[] {
   return nodes.filter((n) => {
@@ -1098,14 +1015,6 @@ function removeAttributes(el: HTMLElement): void {
   for (const attr of Array.from(el.attributes)) {
     el.removeAttribute(attr.name);
   }
-}
-
-function httpRequest<R = unknown>(
-  args: Record<string, unknown>,
-  onSuccess: (response: R) => void,
-): void {
-  args["method"] = "get";
-  RUNTIME("request", args, onSuccess);
 }
 
 const flashElem = createElementWithContent("div", "", {
@@ -1211,17 +1120,6 @@ function rotateInput(
   return [curr < list.length ? list[curr] : str, curr];
 }
 
-function attachFaviconToImgSrc(
-  tab: { url: string; favIconUrl?: string },
-  imgEl: HTMLImageElement,
-): void {
-  const browserName = getBrowserName();
-  imgEl.src =
-    browserName === "Chrome"
-      ? browser.runtime.getURL(`/_favicon/?pageUrl=${encodeURIComponent(tab.url)}`)
-      : (tab.favIconUrl ?? "");
-}
-
 /**
  * Query a single element that the page is statically known to contain (markup wired up at init
  * time) and narrow it to {@link T}. A missing match throws, because it signals a broken template
@@ -1242,7 +1140,6 @@ function requireElement<T extends Element = HTMLElement>(selector: string): T {
 export {
   actionWithSelectionPreserved,
   applyUserSettings,
-  attachFaviconToImgSrc,
   constructSearchURL,
   createElementWithContent,
   dispatchMouseEvent,
@@ -1272,14 +1169,11 @@ export {
   hintLabel,
   hintLink,
   htmlEncode,
-  httpRequest,
-  initL10n,
   initSKFunctionListener,
   isEditable,
   isElementClickable,
   isElementDrawn,
   isElementPartiallyInViewport,
-  isInUIFrame,
   listElements,
   locateFocusNode,
   mapInMode,
@@ -1287,7 +1181,6 @@ export {
   refreshHints,
   regExpReplacer,
   removeAttributes,
-  reportIssue,
   requireElement,
   rotateInput,
   tryDecodeURI,
@@ -1297,7 +1190,6 @@ export {
   show,
   showBanner,
   showPopup,
-  tabOpenLink,
   timeStampString,
   toggleQuote,
 };

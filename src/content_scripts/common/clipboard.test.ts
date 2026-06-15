@@ -1,11 +1,7 @@
+import { Result } from "@praha/byethrow";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-// Mock the runtime module so RUNTIME is a spy we can inspect.
-vi.mock("./runtime", () => {
-  const RUNTIME = vi.fn(() => ({ ok: true })) as any;
-  RUNTIME.repeats = 1;
-  return { RUNTIME, dispatchSKEvent: vi.fn(), runtime: { conf: {} } };
-});
+import type { EngineEnv } from "./engineEnv";
 
 // Mock utils so we can control getBrowserName and capture showBanner calls.
 vi.mock("./utils", () => ({
@@ -21,12 +17,22 @@ vi.mock("./domFlags", () => ({
 }));
 
 import createClipboard from "./clipboard";
-import { RUNTIME } from "./runtime";
 import { getBrowserName, showBanner } from "./utils";
 
 const mockGetBrowserName = vi.mocked(getBrowserName);
 const mockShowBanner = vi.mocked(showBanner);
-const mockRUNTIME = vi.mocked(RUNTIME as any);
+const mockRUNTIME = vi.fn(() => Result.succeed(undefined));
+
+// clipboard only reaches the messaging seam via RUNTIME; the other env members are inert stubs.
+const makeEnv = (): EngineEnv => ({
+  RUNTIME: mockRUNTIME,
+  isInUIFrame: () => false,
+  reportIssue: () => {},
+  tabOpenLink: () => {},
+  getExtensionURL: (path: string) => path,
+  log: () => {},
+  surfingkeys: undefined,
+});
 
 describe("Clipboard.write on Chrome", () => {
   beforeEach(() => {
@@ -48,13 +54,13 @@ describe("Clipboard.write on Chrome", () => {
   });
 
   it("shows a banner with the copied text", () => {
-    const clipboard = createClipboard();
+    const clipboard = createClipboard(makeEnv());
     clipboard.write("hello world");
     expect(mockShowBanner).toHaveBeenCalledWith("Copied: hello world");
   });
 
   it("does not call RUNTIME for Chrome (uses execCommand path)", () => {
-    const clipboard = createClipboard();
+    const clipboard = createClipboard(makeEnv());
     clipboard.write("some text");
     expect(mockRUNTIME).not.toHaveBeenCalled();
   });
@@ -68,13 +74,13 @@ describe("Clipboard.write on Firefox", () => {
   });
 
   it("calls RUNTIME('writeClipboard') with the text", () => {
-    const clipboard = createClipboard();
+    const clipboard = createClipboard(makeEnv());
     clipboard.write("firefox text");
     expect(mockRUNTIME).toHaveBeenCalledWith("writeClipboard", { text: "firefox text" });
   });
 
   it("still shows a banner after RUNTIME call", () => {
-    const clipboard = createClipboard();
+    const clipboard = createClipboard(makeEnv());
     clipboard.write("firefox text");
     expect(mockShowBanner).toHaveBeenCalledWith("Copied: firefox text");
   });
@@ -98,7 +104,7 @@ describe("Clipboard.read on Chrome (execCommand path)", () => {
   });
 
   it("delivers clipboard text synchronously via the onReady callback", () => {
-    const clipboard = createClipboard();
+    const clipboard = createClipboard(makeEnv());
 
     // Simulate the browser pasting text into the holder by intercepting
     // document.execCommand.  After execCommand("paste") the holder's value
@@ -125,7 +131,7 @@ describe("Clipboard.read on Chrome (execCommand path)", () => {
   });
 
   it("falls back to innerHTML when holder.value is empty after paste", () => {
-    const clipboard = createClipboard();
+    const clipboard = createClipboard(makeEnv());
 
     // jsdom treats textarea innerHTML as escaped text, so we use a <div>
     // replacement strategy: override the property on the holder element directly
@@ -171,7 +177,7 @@ describe("Clipboard.read on Firefox (navigator.clipboard path)", () => {
     });
 
     try {
-      const clipboard = createClipboard();
+      const clipboard = createClipboard(makeEnv());
 
       let received: string | undefined;
       clipboard.read((response) => {

@@ -1,9 +1,11 @@
-import browser from "./browser";
+import { conf } from "./conf";
 import { isAutoFocusMarked, isNewlyCreated, unmarkNewlyCreated } from "./domFlags";
+import type { EngineEnv } from "./engineEnv";
+import { dispatchSKEvent } from "./events";
 import KeyboardUtils from "./keyboardUtils";
 import { type Keymap, createKeymap } from "./keymap";
 import { ModeHandle, getCurrentMode, showModeStatus, suppressKeyUp } from "./mode";
-import { RUNTIME, dispatchSKEvent, runtime } from "./runtime";
+import { repeatCount } from "./repeatCount";
 import { getScrollableElements, hasScroll } from "./scrollDetection";
 import { isSpecialKeyOf } from "./specialKeys";
 import Trie from "./trie";
@@ -12,7 +14,6 @@ import {
   isEditable,
   isElementClickable,
   isElementPartiallyInViewport,
-  isInUIFrame,
   mapInMode,
   scrollIntoViewIfNeeded,
   showBanner,
@@ -131,7 +132,7 @@ function createDisabled(normal: NormalMode): DisabledMode {
     const keyName = event.sk_keyName ?? "";
     if (
       self.activatedOnElement &&
-      !document.activeElement!.matches(runtime.conf.disabledOnActiveElementPattern as string)
+      !document.activeElement!.matches(conf.disabledOnActiveElementPattern as string)
     ) {
       normal.enable();
       self.activatedOnElement = false;
@@ -145,7 +146,7 @@ function createDisabled(normal: NormalMode): DisabledMode {
   return self;
 }
 
-function createLurk(normal: NormalMode): LurkMode {
+function createLurk(normal: NormalMode, RUNTIME: EngineEnv["RUNTIME"]): LurkMode {
   const mode = new ModeHandle("Lurk");
   const mappings = new Trie();
   const keymap = createKeymap(() => mappings);
@@ -254,7 +255,8 @@ function createPassThrough(): PassThroughMode {
   };
 }
 
-function createNormal(insert: InsertLike): NormalMode {
+function createNormal(insert: InsertLike, env: EngineEnv): NormalMode {
+  const { RUNTIME, isInUIFrame, getExtensionURL } = env;
   const mode = new ModeHandle("Normal");
   const mappings = new Trie();
 
@@ -287,9 +289,9 @@ function createNormal(insert: InsertLike): NormalMode {
     let state = "lurking";
     if (!lurk) {
       mode.exit();
-      lurk = createLurk(self);
+      lurk = createLurk(self, RUNTIME);
       lurkMaps!.forEach((lurkMap) => {
-        mapInMode(lurk!, lurkMap[0], lurkMap[1]);
+        mapInMode(lurk!, lurkMap[0], lurkMap[1], isInUIFrame());
         lurk!.mappings.remove(KeyboardUtils.encodeKeystroke(lurkMap[1]));
       });
       lurkMaps = undefined;
@@ -324,15 +326,15 @@ function createNormal(insert: InsertLike): NormalMode {
         realTarget.blur();
         insert.exit();
       } else {
-        if (runtime.conf.editableBodyCare && realTarget === document.body && eventKey !== "i") {
+        if (conf.editableBodyCare && realTarget === document.body && eventKey !== "i") {
           mode.statusLine = "Press i to enter Insert mode";
-          runtime.conf.showModeStatus = true;
+          conf.showModeStatus = true;
           if (keyName.length) {
             keymap.handleKey(event);
           }
         } else {
           event.sk_stopPropagation =
-            runtime.conf.editableBodyCare && realTarget === document.body && eventKey === "i";
+            conf.editableBodyCare && realTarget === document.body && eventKey === "i";
           if (event.sk_stopPropagation) {
             self.passFocus(true);
             realTarget.focus();
@@ -383,11 +385,11 @@ function createNormal(insert: InsertLike): NormalMode {
   });
   mode.addEventListener("focus", (event) => {
     showModeStatus();
-    if (runtime.conf.stealFocusOnLoad && !isInUIFrame()) {
+    if (conf.stealFocusOnLoad && !isInUIFrame()) {
       const elm = getRealEdit(event);
       if (elm && isEditable(elm)) {
         if (passFocusFlag || isAutoFocusMarked(elm)) {
-          if (!runtime.conf.enableAutoFocus) {
+          if (!conf.enableAutoFocus) {
             // prevent focus on input only when enableAutoFocus is turned off.
             passFocusFlag = false;
           }
@@ -409,7 +411,7 @@ function createNormal(insert: InsertLike): NormalMode {
     // when the event was created or modified by a script or dispatched via dispatchEvent.
 
     // enable only mouse click from human being to focus input
-    if (runtime.conf.enableAutoFocus) {
+    if (conf.enableAutoFocus) {
       self.passFocus(true);
     } else {
       self.passFocus(event.isTrusted);
@@ -423,7 +425,7 @@ function createNormal(insert: InsertLike): NormalMode {
       insert.exit();
     }
 
-    if (document.activeElement!.matches(runtime.conf.disabledOnActiveElementPattern as string)) {
+    if (document.activeElement!.matches(conf.disabledOnActiveElementPattern as string)) {
       setTimeout(() => {
         self.disable(true);
       }, 100);
@@ -431,11 +433,11 @@ function createNormal(insert: InsertLike): NormalMode {
   });
 
   const toggleBlocklist = (): void => {
-    if (document.location.href.indexOf(browser.runtime.getURL("/")) !== 0) {
+    if (document.location.href.indexOf(getExtensionURL("/")) !== 0) {
       RUNTIME(
         "toggleBlocklist",
         {
-          blocklistPattern: runtime.conf.blocklistPattern || "",
+          blocklistPattern: conf.blocklistPattern || "",
         },
         (resp: { state: string; blocklist: Record<string, unknown>; url?: string }) => {
           if (resp.state === "disabled") {
@@ -493,7 +495,7 @@ function createNormal(insert: InsertLike): NormalMode {
     const helpers: ScrollHelpers = {
       skScrollBy(x: number, y: number) {
         if (
-          runtime.conf.smartPageBoundary &&
+          conf.smartPageBoundary &&
           (elm === document.scrollingElement ||
             (scrollNodes!.length === 1 && elm === scrollNodes![0]))
         ) {
@@ -504,12 +506,12 @@ function createNormal(insert: InsertLike): NormalMode {
             return dispatchSKEvent("hints", ["bottomBoundaryHit"]);
           }
         }
-        if (RUNTIME.repeats > 1) {
-          x = RUNTIME.repeats * x;
-          y = RUNTIME.repeats * y;
-          RUNTIME.repeats = 0;
+        if (repeatCount.value > 1) {
+          x = repeatCount.value * x;
+          y = repeatCount.value * y;
+          repeatCount.value = 0;
         }
-        if (runtime.conf.smoothScroll) {
+        if (conf.smoothScroll) {
           const d = Math.max(100, 20 * Math.log(Math.abs(x || y)));
           helpers.smoothScrollBy(x, y, d);
         } else {
@@ -561,7 +563,7 @@ function createNormal(insert: InsertLike): NormalMode {
             let boundaryHit = false;
             if (Math.abs(old + delta - originValue) >= Math.abs(distance)) {
               stepCompleted = true;
-              if (keyHeld > runtime.conf.scrollFriction) {
+              if (keyHeld > conf.scrollFriction) {
                 boundaryHit = helpers.safeScroll(prop, old + delta, distance > 0);
                 originValue = elm[prop];
               } else if (keyHeld > 0) {
@@ -733,7 +735,7 @@ function createNormal(insert: InsertLike): NormalMode {
 
     // Fall back to document scrolling if enabled and current element can't scroll in requested direction
     if (
-      runtime.conf.scrollFallback &&
+      conf.scrollFallback &&
       scrollNode !== document.scrollingElement &&
       scrollNode !== document.body
     ) {
@@ -763,11 +765,11 @@ function createNormal(insert: InsertLike): NormalMode {
     helpers.lastScrollLeft = scrollNode.scrollLeft;
     switch (type) {
       case "down": {
-        helpers.skScrollBy(0, runtime.conf.scrollStepSize);
+        helpers.skScrollBy(0, conf.scrollStepSize);
         break;
       }
       case "up": {
-        helpers.skScrollBy(0, -runtime.conf.scrollStepSize);
+        helpers.skScrollBy(0, -conf.scrollStepSize);
         break;
       }
       case "pageDown": {
@@ -795,11 +797,11 @@ function createNormal(insert: InsertLike): NormalMode {
         break;
       }
       case "left": {
-        helpers.skScrollBy(-Math.round(runtime.conf.scrollStepSize / 2), 0);
+        helpers.skScrollBy(-Math.round(conf.scrollStepSize / 2), 0);
         break;
       }
       case "right": {
-        helpers.skScrollBy(Math.round(runtime.conf.scrollStepSize / 2), 0);
+        helpers.skScrollBy(Math.round(conf.scrollStepSize / 2), 0);
         break;
       }
       case "leftmost": {
@@ -812,10 +814,10 @@ function createNormal(insert: InsertLike): NormalMode {
       }
       case "byRatio": {
         const y =
-          Number.parseInt(String((RUNTIME.repeats * scrollNode.scrollHeight) / 100)) -
+          Number.parseInt(String((repeatCount.value * scrollNode.scrollHeight) / 100)) -
           size[1] / 2 -
           scrollNode.scrollTop;
-        RUNTIME.repeats = 0;
+        repeatCount.value = 0;
         helpers.skScrollBy(0, y);
         break;
       }
@@ -1204,7 +1206,7 @@ function createNormal(insert: InsertLike): NormalMode {
   function onMouseUp(event: MouseEvent): void {
     const target = event.target as Element;
     if (
-      runtime.conf.mouseSelectToQuery.includes(window.origin) &&
+      conf.mouseSelectToQuery.includes(window.origin) &&
       !isElementClickable(target) &&
       !target.matches(".cm-matchhighlight")
     ) {

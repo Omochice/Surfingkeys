@@ -9,12 +9,12 @@ import type { DebouncedFunction } from "../common/debounce";
 import KeyboardUtils from "../common/keyboardUtils";
 import { createKeymap } from "../common/keymap";
 import { ModeHandle } from "../common/mode";
+import { attachFaviconToImgSrc } from "../common/platform-utils";
 import { reportError } from "../common/report";
 import { RUNTIME, runtime } from "../common/runtime";
 import { isSpecialKeyOf } from "../common/specialKeys";
 import Trie from "../common/trie";
 import {
-  attachFaviconToImgSrc,
   constructSearchURL,
   createElementWithContent,
   getBrowserName,

@@ -1,12 +1,12 @@
 import { Result } from "@praha/byethrow";
 
 import { domApiError } from "../../common/result";
-import browser from "./browser";
+import { conf } from "./conf";
 import CursorPrompt from "./cursorPrompt";
+import type { EngineEnv } from "./engineEnv";
 import KeyboardUtils from "./keyboardUtils";
 import { type Keymap, createKeymap } from "./keymap";
 import { ModeHandle } from "./mode";
-import { runtime } from "./runtime";
 import Trie from "./trie";
 import { getRealEdit, isEditable, isTextInput } from "./utils";
 
@@ -71,7 +71,7 @@ type InsertMode = {
   enableEmojiInsertion(): void;
 };
 
-function createInsert(): InsertMode {
+function createInsert(env: EngineEnv): InsertMode {
   const mode = new ModeHandle("Insert");
   const keymap = createKeymap(() => self.mappings);
 
@@ -238,7 +238,7 @@ function createInsert(): InsertMode {
     },
   });
 
-  const emojiURL = browser.runtime.getURL("pages/emoji.tsv");
+  const emojiURL = env.getExtensionURL("pages/emoji.tsv");
   const emojiPrompt = new CursorPrompt(
     (c: string) => {
       const ee = c.split("\t");
@@ -269,7 +269,7 @@ function createInsert(): InsertMode {
         setTimeout(() => {
           const elm = getRealEdit();
           if (elm) {
-            emojiPrompt.activate(elm, undefined, runtime.conf.startToShowEmoji, -1);
+            emojiPrompt.activate(elm, undefined, conf.startToShowEmoji, -1);
           }
         }, 100);
       },
@@ -350,14 +350,14 @@ function createInsert(): InsertMode {
     enableEmojiInsertion,
     enter(elm: HTMLElement, keepCursor?: boolean): void {
       if (elm === document.body) {
-        runtime.conf.showModeStatus = false;
+        conf.showModeStatus = false;
       }
       let changed = mode.enter(0, true) === -1;
       if (element !== elm) {
         element = elm;
         changed = true;
       }
-      if (changed && !keepCursor && runtime.conf.cursorAtEndOfInput && elm.nodeName !== "SELECT") {
+      if (changed && !keepCursor && conf.cursorAtEndOfInput && elm.nodeName !== "SELECT") {
         moveCursorEOL();
       }
     },

@@ -1,9 +1,12 @@
 import * as v from "valibot";
 
 import type { SurfingkeysApi } from "./api";
+import { conf } from "./conf";
+import type { EngineEnv } from "./engineEnv";
+import { dispatchSKEvent } from "./events";
 import KeyboardUtils from "./keyboardUtils";
 import type { ModeContext } from "./modeGraph";
-import { RUNTIME, dispatchSKEvent, runtime } from "./runtime";
+import { repeatCount } from "./repeatCount";
 import {
   getBrowserName,
   getCssSelectorsOfEditable,
@@ -16,7 +19,6 @@ import {
   setSanitizedContent,
   showBanner,
   showPopup,
-  tabOpenLink,
   toggleQuote,
 } from "./utils";
 
@@ -56,8 +58,13 @@ const youtubeSuggestSchema = v.tupleWithRest(
 const clipboardSettingsSchema = v.record(v.string(), v.unknown());
 const clipboardFormsSchema = v.record(v.string(), v.record(v.string(), v.unknown()));
 
-export default function createDefaultMappings(api: SurfingkeysApi, ctx: ModeContext): void {
+export default function createDefaultMappings(
+  api: SurfingkeysApi,
+  ctx: ModeContext,
+  env: EngineEnv,
+): void {
   const { clipboard, normal, hints, visual, front } = ctx;
+  const { RUNTIME, tabOpenLink } = env;
   const { addSearchAlias, cmap, map, mapkey, imapkey, vmapkey, searchSelectedWith } = api;
 
   mapkey("[[", "#1Click on the previous link on current page", hints.previousPage);
@@ -79,7 +86,7 @@ export default function createDefaultMappings(api: SurfingkeysApi, ctx: ModeCont
     () => {
       showPopup(
         htmlEncode(
-          runtime.conf.lastKeys
+          conf.lastKeys
             .map((k) => {
               return KeyboardUtils.decodeKeystroke(k);
             })
@@ -104,14 +111,14 @@ export default function createDefaultMappings(api: SurfingkeysApi, ctx: ModeCont
     visual.toggle("z");
   });
   mapkey("yv", "#7Yank text of an element", () => {
-    hints.create(runtime.conf.textAnchorPat, (element: TextAnchorMatch) => {
+    hints.create(conf.textAnchorPat, (element: TextAnchorMatch) => {
       clipboard.write(element[1] === 0 ? element[0].data.trim() : element[2].trim());
     });
   });
   mapkey("ymv", "#7Yank text of multiple elements", () => {
     const textToYank: string[] = [];
     hints.create(
-      runtime.conf.textAnchorPat,
+      conf.textAnchorPat,
       (element: TextAnchorMatch) => {
         textToYank.push(element[1] === 0 ? element[0].data.trim() : element[2].trim());
         clipboard.write(textToYank.join("\n"));
@@ -180,8 +187,8 @@ export default function createDefaultMappings(api: SurfingkeysApi, ctx: ModeCont
     if (pathname.length > 1) {
       pathname = pathname.endsWith("/") ? pathname.slice(0, -1) : pathname;
       let last = pathname.lastIndexOf("/");
-      let repeats = RUNTIME.repeats;
-      RUNTIME.repeats = 1;
+      let repeats = repeatCount.value;
+      repeatCount.value = 1;
       while (repeats-- > 1) {
         const p = pathname.lastIndexOf("/", last - 1);
         if (p === -1) {
@@ -221,8 +228,8 @@ export default function createDefaultMappings(api: SurfingkeysApi, ctx: ModeCont
     }
   }
   mapkey(";t", "Translate selected text with google", () => {
-    if (chrome.surfingkeys) {
-      chrome.surfingkeys.translateCurrentPage();
+    if (env.surfingkeys) {
+      env.surfingkeys.translateCurrentPage();
     } else {
       openGoogleTranslate();
     }
@@ -231,7 +238,7 @@ export default function createDefaultMappings(api: SurfingkeysApi, ctx: ModeCont
 
   mapkey("O", "#1Open detected links from text", () => {
     hints.create(
-      runtime.conf.clickablePat,
+      conf.clickablePat,
       (element: TextAnchorMatch) => {
         window.location.assign(element[2]);
       },
@@ -246,7 +253,7 @@ export default function createDefaultMappings(api: SurfingkeysApi, ctx: ModeCont
       // lastKeys in format: <keys in normal mode>[,(<mode name>\t<keys in this mode>)*], examples
       // ['se']
       // ['f', 'Hints\tBA']
-      const lastKeys = runtime.conf.lastKeys;
+      const lastKeys = conf.lastKeys;
       const firstKey = lastKeys[0];
       if (firstKey != null) {
         normal.feedkeys(firstKey);
@@ -332,7 +339,7 @@ export default function createDefaultMappings(api: SurfingkeysApi, ctx: ModeCont
   });
 
   mapkey("cq", "#7Query word with Hints", () => {
-    hints.create(runtime.conf.textAnchorPat, (element: TextAnchorMatch) => {
+    hints.create(conf.textAnchorPat, (element: TextAnchorMatch) => {
       const word = element[2].trim().replace(/[^A-z].*$/, "");
       const b = getTextNodePos(element[0], element[1], element[2].length);
       front.performInlineQuery(
@@ -395,10 +402,10 @@ export default function createDefaultMappings(api: SurfingkeysApi, ctx: ModeCont
     hints.create(
       "",
       (element: HTMLElement) => {
-        if (chrome.surfingkeys) {
+        if (env.surfingkeys) {
           const r = element.getClientRects()[0];
           if (r) {
-            chrome.surfingkeys.sendMouseEvent(
+            env.surfingkeys.sendMouseEvent(
               2,
               Math.round(r.x + r.width / 2),
               Math.round(r.y + r.height / 2),

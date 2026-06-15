@@ -1,8 +1,8 @@
-import { LOG } from "../../common/utils";
+import type { EngineEnv } from "./engineEnv";
+import { dispatchSKEvent } from "./events";
 import KeyboardUtils from "./keyboardUtils";
 import type { Keymap } from "./keymap";
 import type { ModeContext } from "./modeGraph";
-import { RUNTIME, dispatchSKEvent } from "./runtime";
 import { specialKeys } from "./specialKeys";
 import Trie from "./trie";
 import {
@@ -11,12 +11,10 @@ import {
   getClickableElements,
   initSKFunctionListener,
   isElementPartiallyInViewport,
-  isInUIFrame,
   mapInMode,
   parseAnnotation,
   showBanner,
   showPopup,
-  tabOpenLink,
 } from "./utils";
 
 type ModeWithMappings = { name: string; mappings: Trie };
@@ -32,8 +30,9 @@ type KeyTarget = {
 type Annotation = { annotation: string | string[]; feature_group?: number };
 type MapOptions = { domain?: RegExp; repeatIgnore?: boolean; codeHasParameter?: boolean };
 
-function createAPI(ctx: ModeContext) {
+function createAPI(ctx: ModeContext, env: EngineEnv) {
   const { clipboard, insert, normal, hints, visual, front } = ctx;
+  const { RUNTIME, isInUIFrame, tabOpenLink, log: LOG } = env;
   function createKeyTarget(
     // User keypress handler of arbitrary signature (see mapkey's jscode).
     // eslint-disable-next-line typescript/no-explicit-any
@@ -228,7 +227,7 @@ function createAPI(ctx: ModeContext) {
       } else {
         const specialKey = specialKeys[old_keystroke];
         if (
-          !mapInMode(normal, new_keystroke, old_keystroke, new_annotation) &&
+          !mapInMode(normal, new_keystroke, old_keystroke, isInUIFrame(), new_annotation) &&
           specialKey != null
         ) {
           specialKey.push(new_keystroke);
@@ -317,7 +316,7 @@ function createAPI(ctx: ModeContext) {
     new_annotation?: string,
   ): void {
     if (isDomainApplicable(domain)) {
-      mapInMode(insert, new_keystroke, old_keystroke, new_annotation);
+      mapInMode(insert, new_keystroke, old_keystroke, isInUIFrame(), new_annotation);
     }
   }
 
@@ -375,7 +374,7 @@ function createAPI(ctx: ModeContext) {
     new_annotation?: string,
   ): void {
     if (isDomainApplicable(domain)) {
-      mapInMode(visual, new_keystroke, old_keystroke, new_annotation);
+      mapInMode(visual, new_keystroke, old_keystroke, isInUIFrame(), new_annotation);
     }
   }
 

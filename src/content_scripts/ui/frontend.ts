@@ -3,15 +3,16 @@ import { render } from "solid-js/web";
 import * as v from "valibot";
 
 import createAPI from "../common/api";
+import { createEngineEnv } from "../common/createEngineEnv";
 import createDefaultMappings from "../common/default";
 import KeyboardUtils from "../common/keyboardUtils";
 import { ModeHandle, initModeHub } from "../common/mode";
 import createModeGraph, { type ModeContext } from "../common/modeGraph";
+import { attachFaviconToImgSrc, initL10n, isInUIFrame } from "../common/platform-utils";
 import { RUNTIME, runtime } from "../common/runtime";
 import { isSpecialKeyOf, specialKeys } from "../common/specialKeys";
 import type Trie from "../common/trie";
 import {
-  attachFaviconToImgSrc,
   format,
   generateQuickGuid,
   getAnnotations,
@@ -19,7 +20,6 @@ import {
   hintLabel,
   hintLink,
   htmlEncode,
-  initL10n,
   initSKFunctionListener,
   refreshHints,
   requireElement,
@@ -74,8 +74,9 @@ type FrontMode = {
 };
 
 const Front = (() => {
-  initModeHub();
-  const { clipboard, insert, normal, hints, visual } = createModeGraph();
+  const engineEnv = createEngineEnv();
+  initModeHub(engineEnv);
+  const { clipboard, insert, normal, hints, visual } = createModeGraph(engineEnv);
 
   const actions: Record<string, FrontActionFn> = {};
   // Response callbacks are stored with their callers' concrete message types (see FrontActionFn).
@@ -136,8 +137,8 @@ const Front = (() => {
     visual,
     front: self as unknown as ModeContext["front"],
   };
-  const api = createAPI(ctx);
-  createDefaultMappings(api, ctx);
+  const api = createAPI(ctx, engineEnv);
+  createDefaultMappings(api, ctx, engineEnv);
 
   function addDestroyListener(task: () => void): void {
     destroyListeners.push(task);
@@ -609,7 +610,7 @@ const Front = (() => {
     } else if (mode != null && Object.hasOwn(modes, mode)) {
       const targetMode = modes[mode];
       if (targetMode != null) {
-        mapInMode(targetMode, new_keystroke, old_keystroke);
+        mapInMode(targetMode, new_keystroke, old_keystroke, isInUIFrame());
       }
     }
   };
