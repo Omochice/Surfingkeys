@@ -1,10 +1,11 @@
 import * as v from "valibot";
 
 import type { SurfingkeysApi } from "./api";
+import { conf } from "./conf";
 import { dispatchSKEvent } from "./events";
 import KeyboardUtils from "./keyboardUtils";
 import type { ModeContext } from "./modeGraph";
-import { RUNTIME, runtime } from "./runtime";
+import { RUNTIME } from "./runtime";
 import {
   getBrowserName,
   getCssSelectorsOfEditable,
@@ -80,7 +81,7 @@ export default function createDefaultMappings(api: SurfingkeysApi, ctx: ModeCont
     () => {
       showPopup(
         htmlEncode(
-          runtime.conf.lastKeys
+          conf.lastKeys
             .map((k) => {
               return KeyboardUtils.decodeKeystroke(k);
             })
@@ -105,14 +106,14 @@ export default function createDefaultMappings(api: SurfingkeysApi, ctx: ModeCont
     visual.toggle("z");
   });
   mapkey("yv", "#7Yank text of an element", () => {
-    hints.create(runtime.conf.textAnchorPat, (element: TextAnchorMatch) => {
+    hints.create(conf.textAnchorPat, (element: TextAnchorMatch) => {
       clipboard.write(element[1] === 0 ? element[0].data.trim() : element[2].trim());
     });
   });
   mapkey("ymv", "#7Yank text of multiple elements", () => {
     const textToYank: string[] = [];
     hints.create(
-      runtime.conf.textAnchorPat,
+      conf.textAnchorPat,
       (element: TextAnchorMatch) => {
         textToYank.push(element[1] === 0 ? element[0].data.trim() : element[2].trim());
         clipboard.write(textToYank.join("\n"));
@@ -232,7 +233,7 @@ export default function createDefaultMappings(api: SurfingkeysApi, ctx: ModeCont
 
   mapkey("O", "#1Open detected links from text", () => {
     hints.create(
-      runtime.conf.clickablePat,
+      conf.clickablePat,
       (element: TextAnchorMatch) => {
         window.location.assign(element[2]);
       },
@@ -247,7 +248,7 @@ export default function createDefaultMappings(api: SurfingkeysApi, ctx: ModeCont
       // lastKeys in format: <keys in normal mode>[,(<mode name>\t<keys in this mode>)*], examples
       // ['se']
       // ['f', 'Hints\tBA']
-      const lastKeys = runtime.conf.lastKeys;
+      const lastKeys = conf.lastKeys;
       const firstKey = lastKeys[0];
       if (firstKey != null) {
         normal.feedkeys(firstKey);
@@ -333,7 +334,7 @@ export default function createDefaultMappings(api: SurfingkeysApi, ctx: ModeCont
   });
 
   mapkey("cq", "#7Query word with Hints", () => {
-    hints.create(runtime.conf.textAnchorPat, (element: TextAnchorMatch) => {
+    hints.create(conf.textAnchorPat, (element: TextAnchorMatch) => {
       const word = element[2].trim().replace(/[^A-z].*$/, "");
       const b = getTextNodePos(element[0], element[1], element[2].length);
       front.performInlineQuery(

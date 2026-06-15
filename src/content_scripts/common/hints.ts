@@ -1,8 +1,8 @@
+import { conf } from "./conf";
 import { dispatchSKEvent } from "./events";
 import KeyboardUtils from "./keyboardUtils";
 import { createKeymap } from "./keymap";
 import { ModeHandle, getCurrentMode, showModeStatus, suppressKeyUp } from "./mode";
-import { runtime } from "./runtime";
 import { isSpecialKeyOf } from "./specialKeys";
 import Trie from "./trie";
 import {
@@ -450,7 +450,7 @@ div.hint-scrollable {
         shiftKey?: boolean | undefined;
         metaKey?: boolean | undefined;
       } = { shiftKey: shiftKey || active };
-      if (shiftKey && runtime.conf.hintShiftNonActive) {
+      if (shiftKey && conf.hintShiftNonActive) {
         tabbed = true;
         mouseEventModifiers.shiftKey = false;
       }
@@ -464,9 +464,7 @@ div.hint-scrollable {
           dispatchMouseEvent(element, behaviours.mouseEvents, mouseEventModifiers);
           dispatchSKEvent("observer", ["turnOn"]);
           lastMouseTarget = element;
-          if (
-            document.activeElement!.matches(runtime.conf.disabledOnActiveElementPattern as string)
-          ) {
+          if (document.activeElement!.matches(conf.disabledOnActiveElementPattern as string)) {
             setTimeout(() => {
               normal.disable(true);
             }, 100);
@@ -643,7 +641,7 @@ div.hint-scrollable {
   }
 
   function walkPageUrl(step: number): boolean {
-    for (const re of runtime.conf.pageUrlRegex) {
+    for (const re of conf.pageUrlRegex) {
       if (re == null) {
         continue;
       }
@@ -708,7 +706,7 @@ div.hint-scrollable {
   };
 
   const previousPage = (): boolean => {
-    const prevLinks = uniqueLinks(getClickableElements("[rel=prev]", runtime.conf.prevLinkRegex));
+    const prevLinks = uniqueLinks(getClickableElements("[rel=prev]", conf.prevLinkRegex));
     if (prevLinks.length) {
       self.click(prevLinks);
       return true;
@@ -718,7 +716,7 @@ div.hint-scrollable {
   };
 
   const nextPage = (): boolean => {
-    const nextLinks = uniqueLinks(getClickableElements("[rel=next]", runtime.conf.nextLinkRegex));
+    const nextLinks = uniqueLinks(getClickableElements("[rel=next]", conf.nextLinkRegex));
     if (nextLinks.length) {
       self.click(nextLinks);
       return true;
@@ -831,9 +829,9 @@ div.hint-scrollable {
         z = getZIndex(elm);
       let left;
       const width = Math.min(r.width, window.innerWidth);
-      if (runtime.conf.hintAlign === "right") {
+      if (conf.hintAlign === "right") {
         left = window.pageXOffset + r.left - bof.left + width;
-      } else if (runtime.conf.hintAlign === "left") {
+      } else if (conf.hintAlign === "left") {
         left = window.pageXOffset + r.left - bof.left;
       } else {
         left = window.pageXOffset + r.left - bof.left + width / 2;
@@ -990,8 +988,8 @@ div.hint-scrollable {
       .map((e) => {
         const pos = getTextNodePos(e[0], e[1]);
         let caretViewport: number[] = [0, 0, window.innerHeight, window.innerWidth];
-        if (runtime.conf.caretViewport && runtime.conf.caretViewport.length === 4) {
-          caretViewport = runtime.conf.caretViewport;
+        if (conf.caretViewport && conf.caretViewport.length === 4) {
+          caretViewport = conf.caretViewport;
         }
         const [topMin, leftMin, topMax, leftMax] = caretViewport;
         if (
@@ -1161,7 +1159,7 @@ div.hint-scrollable {
 
     const start = Date.now();
     const found = createHintsImpl(cssSelector, attrs);
-    if (found > (runtime.conf.hintExplicit ? 0 : 1)) {
+    if (found > (conf.hintExplicit ? 0 : 1)) {
       mode.statusLine += " - " + (Date.now() - start) + "ms / " + found;
       mode.enter();
     } else {

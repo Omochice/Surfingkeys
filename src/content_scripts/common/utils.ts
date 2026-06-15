@@ -9,9 +9,10 @@ import {
   unwrapOr,
 } from "../../common/result";
 import browser from "./browser";
+import { conf } from "./conf";
 import { dispatchSKEvent } from "./events";
 import KeyboardUtils from "./keyboardUtils";
-import { RUNTIME, runtime } from "./runtime";
+import { RUNTIME } from "./runtime";
 import type Trie from "./trie";
 import type { TrieMeta } from "./trie";
 
@@ -208,8 +209,8 @@ function listElements<T extends Node = Element>(
 function isElementClickable(e: Element): boolean {
   let cssSelector =
     "a, button, select, input, textarea, summary, *[onclick], *[contenteditable=true], *.jfk-button, *.goog-flat-menu-button, *[role=button], *[role=link], *[role=menuitem], *[role=option], *[role=switch], *[role=tab], *[role=checkbox], *[role=combobox], *[role=menuitemcheckbox], *[role=menuitemradio]";
-  if (runtime.conf.clickableSelector.length) {
-    cssSelector += ", " + runtime.conf.clickableSelector;
+  if (conf.clickableSelector.length) {
+    cssSelector += ", " + conf.clickableSelector;
   }
 
   return (
@@ -381,7 +382,7 @@ function isEditable(element: unknown): boolean {
   if (element instanceof HTMLElement && element.isContentEditable) {
     return true;
   }
-  if (element.matches(runtime.conf.editableSelector)) {
+  if (element.matches(conf.editableSelector)) {
     return true;
   }
   return (
@@ -620,7 +621,7 @@ function getRealRect(elm: Element): DOMRect {
 }
 
 function isExplicitlyRequested(element: Element): boolean {
-  return !!runtime.conf.clickableSelector && element.matches(runtime.conf.clickableSelector);
+  return !!conf.clickableSelector && element.matches(conf.clickableSelector);
 }
 
 function filterOverlapElements(elements: Element[]): Element[] {

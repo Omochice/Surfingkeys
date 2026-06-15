@@ -1,6 +1,7 @@
+import { conf } from "./conf";
 import { dispatchSKEvent } from "./events";
 import KeyboardUtils from "./keyboardUtils";
-import { RUNTIME, runtime } from "./runtime";
+import { RUNTIME } from "./runtime";
 import { isSpecialKeyOf } from "./specialKeys";
 import type Trie from "./trie";
 import type { TrieMeta } from "./trie";
@@ -106,7 +107,7 @@ export function createKeymap(getRoot: () => Trie, opts?: KeymapOptions): Keymap 
     } else if (
       repeats != null &&
       currentNode == null &&
-      runtime.conf.digitForRepeat &&
+      conf.digitForRepeat &&
       (key >= "1" || (repeats !== "" && key >= "0")) &&
       key <= "9" &&
       getRoot().getWords().length > 0
@@ -134,7 +135,7 @@ export function createKeymap(getRoot: () => Trie, opts?: KeymapOptions): Keymap 
           opts?.onKeysExecuted?.(meta.word, meta);
           RUNTIME.repeats = Number.parseInt(repeats ?? "", 10) || 1;
           event.sk_stopPropagation = !meta.stopPropagation || callStopPropagation(meta, key);
-          if (RUNTIME.repeats > runtime.conf.repeatThreshold) {
+          if (RUNTIME.repeats > conf.repeatThreshold) {
             dispatchSKEvent("front", [
               "showDialog",
               `Do you really want to repeat this action (${meta.annotation}) ${RUNTIME.repeats} times?`,

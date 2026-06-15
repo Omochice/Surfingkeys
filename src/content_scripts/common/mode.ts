@@ -1,9 +1,9 @@
 import { Result } from "@praha/byethrow";
 
 import { domApiError } from "../../common/result";
+import { conf } from "./conf";
 import { dispatchSKEvent } from "./events";
 import KeyboardUtils from "./keyboardUtils";
-import { runtime } from "./runtime";
 import { isInUIFrame, reportIssue } from "./utils";
 
 type StackEvent = Event & { keyCode?: number };
@@ -219,7 +219,7 @@ export function showModeStatus(): void {
     if (cm == null) {
       return;
     }
-    let sl = cm.statusLine || (runtime.conf.showModeStatus ? cm.name : "");
+    let sl = cm.statusLine || (conf.showModeStatus ? cm.name : "");
     if (sl !== "" && window !== top && !isInUIFrame()) {
       const pathname = window.location.pathname.split("/");
       if (pathname.length) {
