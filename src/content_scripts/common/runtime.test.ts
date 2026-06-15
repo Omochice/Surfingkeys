@@ -1,6 +1,7 @@
 import { Result } from "@praha/byethrow";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
+import { repeatCount } from "./repeatCount";
 import { reportError } from "./report";
 import { RUNTIME, runtime } from "./runtime";
 
@@ -76,19 +77,19 @@ describe("RUNTIME", () => {
     }
   });
 
-  it("forwards repeats to the background and resets RUNTIME.repeats for a background-repeat action", () => {
+  it("forwards repeats to the background and resets repeatCount.value for a background-repeat action", () => {
     let sent: any;
     runtimeStub.sendMessage = vi.fn((msg: unknown) => {
       sent = msg;
     });
-    RUNTIME.repeats = 5;
+    repeatCount.value = 5;
 
     RUNTIME("closeTab");
 
     // The background-repeat branch copies repeats into the message then resets
     // the foreground counter to 1.
     expect(sent.repeats).toBe(5);
-    expect(RUNTIME.repeats).toBe(1);
+    expect(repeatCount.value).toBe(1);
   });
 
   it("does not attach a repeats field for a non-background-repeat action", () => {
@@ -96,15 +97,15 @@ describe("RUNTIME", () => {
     runtimeStub.sendMessage = vi.fn((msg: unknown) => {
       sent = msg;
     });
-    RUNTIME.repeats = 3;
+    repeatCount.value = 3;
 
     RUNTIME("getTabs");
 
     // 'getTabs' is not in actionsRepeatBackground, so the index === -1 arm runs
     // and repeats is left untouched on both the message and the counter.
     expect(sent.repeats).toBeUndefined();
-    expect(RUNTIME.repeats).toBe(3);
-    RUNTIME.repeats = 1;
+    expect(repeatCount.value).toBe(3);
+    repeatCount.value = 1;
   });
 
   it("sends without a callback and marks needResponse false when no callback is given", () => {

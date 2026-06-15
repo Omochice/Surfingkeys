@@ -2,6 +2,7 @@ import { Result } from "@praha/byethrow";
 
 import { type ChromeRuntimeError, chromeRuntimeError } from "../../common/result";
 import { conf, getCaseSensitive } from "./conf";
+import { repeatCount } from "./repeatCount";
 import { reportError } from "./report";
 
 // This module is the messaging service. It deliberately keeps the raw,
@@ -17,8 +18,6 @@ type RuntimeFn = {
     args?: Record<string, unknown> | null,
     callback?: (response: R) => void,
   ): Result.Result<void, ChromeRuntimeError>;
-  /** Pending repeat count shared with the mode system; set per key action. */
-  repeats: number;
 };
 
 /**
@@ -54,9 +53,9 @@ const RUNTIME = function (
   a["action"] = action;
   if (actionsRepeatBackground.includes(action)) {
     // if the action can only be repeated in background, pass repeats to background with args,
-    // and set RUNTIME.repeats 1, so that it won't be repeated in foreground's _handleMapKey
-    a["repeats"] = RUNTIME.repeats;
-    RUNTIME.repeats = 1;
+    // and set repeatCount.value 1, so that it won't be repeated in foreground's _handleMapKey
+    a["repeats"] = repeatCount.value;
+    repeatCount.value = 1;
   }
   return Result.try({
     try: (): void => {

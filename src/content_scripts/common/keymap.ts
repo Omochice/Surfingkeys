@@ -1,7 +1,7 @@
 import { conf } from "./conf";
 import { dispatchSKEvent } from "./events";
 import KeyboardUtils from "./keyboardUtils";
-import { RUNTIME } from "./runtime";
+import { repeatCount } from "./repeatCount";
 import { isSpecialKeyOf } from "./specialKeys";
 import type Trie from "./trie";
 import type { TrieMeta } from "./trie";
@@ -133,23 +133,23 @@ export function createKeymap(getRoot: () => Trie, opts?: KeymapOptions): Keymap 
           event.sk_stopPropagation = true;
         } else {
           opts?.onKeysExecuted?.(meta.word, meta);
-          RUNTIME.repeats = Number.parseInt(repeats ?? "", 10) || 1;
+          repeatCount.value = Number.parseInt(repeats ?? "", 10) || 1;
           event.sk_stopPropagation = !meta.stopPropagation || callStopPropagation(meta, key);
-          if (RUNTIME.repeats > conf.repeatThreshold) {
+          if (repeatCount.value > conf.repeatThreshold) {
             dispatchSKEvent("front", [
               "showDialog",
-              `Do you really want to repeat this action (${meta.annotation}) ${RUNTIME.repeats} times?`,
+              `Do you really want to repeat this action (${meta.annotation}) ${repeatCount.value} times?`,
               () => {
-                while (RUNTIME.repeats > 0) {
+                while (repeatCount.value > 0) {
                   code!();
-                  RUNTIME.repeats--;
+                  repeatCount.value--;
                 }
               },
             ]);
           } else {
-            while (RUNTIME.repeats > 0) {
+            while (repeatCount.value > 0) {
               code!();
-              RUNTIME.repeats--;
+              repeatCount.value--;
             }
           }
           actionDone = finish();

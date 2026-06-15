@@ -2,7 +2,8 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import KeyboardUtils from "./keyboardUtils";
 import { type KeyEventLike, type Keymap, type KeymapOptions, createKeymap } from "./keymap";
-import { RUNTIME, runtime } from "./runtime";
+import { repeatCount } from "./repeatCount";
+import { runtime } from "./runtime";
 import Trie from "./trie";
 
 function makeKeymap(opts?: KeymapOptions) {
@@ -479,12 +480,12 @@ describe("Keymap.handleKey — repeatThreshold dialog branch", () => {
   let savedThreshold: number;
 
   beforeEach(() => {
-    savedRepeats = RUNTIME.repeats;
+    savedRepeats = repeatCount.value;
     savedThreshold = runtime.conf.repeatThreshold;
   });
 
   afterEach(() => {
-    RUNTIME.repeats = savedRepeats;
+    repeatCount.value = savedRepeats;
     runtime.conf.repeatThreshold = savedThreshold;
   });
 

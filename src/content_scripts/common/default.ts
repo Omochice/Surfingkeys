@@ -6,6 +6,7 @@ import { dispatchSKEvent } from "./events";
 import KeyboardUtils from "./keyboardUtils";
 import { tabOpenLink } from "./messagingActions";
 import type { ModeContext } from "./modeGraph";
+import { repeatCount } from "./repeatCount";
 import { RUNTIME } from "./runtime";
 import {
   getBrowserName,
@@ -182,8 +183,8 @@ export default function createDefaultMappings(api: SurfingkeysApi, ctx: ModeCont
     if (pathname.length > 1) {
       pathname = pathname.endsWith("/") ? pathname.slice(0, -1) : pathname;
       let last = pathname.lastIndexOf("/");
-      let repeats = RUNTIME.repeats;
-      RUNTIME.repeats = 1;
+      let repeats = repeatCount.value;
+      repeatCount.value = 1;
       while (repeats-- > 1) {
         const p = pathname.lastIndexOf("/", last - 1);
         if (p === -1) {

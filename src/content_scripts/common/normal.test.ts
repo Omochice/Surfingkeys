@@ -4,7 +4,8 @@ import { markAutoFocus, markNewlyCreated } from "./domFlags";
 import KeyboardUtils from "./keyboardUtils";
 import { getCurrentMode } from "./mode";
 import createNormal from "./normal";
-import { RUNTIME, runtime } from "./runtime";
+import { repeatCount } from "./repeatCount";
+import { runtime } from "./runtime";
 import { getScrollableElements } from "./scrollDetection";
 
 // Wrapped so individual tests can stub the scroll-list discovery with
@@ -163,11 +164,11 @@ describe("createNormal scroll — skScrollBy reaches the scrolling element", () 
   beforeEach(() => {
     savedSmoothScroll = runtime.conf.smoothScroll;
     savedSmartPageBoundary = runtime.conf.smartPageBoundary;
-    savedRepeats = RUNTIME.repeats;
+    savedRepeats = repeatCount.value;
     runtime.conf.smoothScroll = false;
     // The all-zero jsdom rect otherwise trips skScrollBy's bottom-boundary guard.
     runtime.conf.smartPageBoundary = false;
-    RUNTIME.repeats = 1;
+    repeatCount.value = 1;
     Object.defineProperty(document, "scrollingElement", {
       value: document.documentElement,
       configurable: true,
@@ -180,7 +181,7 @@ describe("createNormal scroll — skScrollBy reaches the scrolling element", () 
   afterEach(() => {
     runtime.conf.smoothScroll = savedSmoothScroll;
     runtime.conf.smartPageBoundary = savedSmartPageBoundary;
-    RUNTIME.repeats = savedRepeats;
+    repeatCount.value = savedRepeats;
     scrollTarget().style.scrollBehavior = "";
     Reflect.deleteProperty(document, "scrollingElement");
     Reflect.deleteProperty(scrollTarget(), "scrollBy");
@@ -251,10 +252,10 @@ describe("createNormal scroll — all non-smooth scroll types dispatch correct a
   beforeEach(() => {
     savedSmoothScroll = runtime.conf.smoothScroll;
     savedSmartPageBoundary = runtime.conf.smartPageBoundary;
-    savedRepeats = RUNTIME.repeats;
+    savedRepeats = repeatCount.value;
     runtime.conf.smoothScroll = false;
     runtime.conf.smartPageBoundary = false;
-    RUNTIME.repeats = 1;
+    repeatCount.value = 1;
     Object.defineProperty(document, "scrollingElement", {
       value: document.documentElement,
       configurable: true,
@@ -278,7 +279,7 @@ describe("createNormal scroll — all non-smooth scroll types dispatch correct a
   afterEach(() => {
     runtime.conf.smoothScroll = savedSmoothScroll;
     runtime.conf.smartPageBoundary = savedSmartPageBoundary;
-    RUNTIME.repeats = savedRepeats;
+    repeatCount.value = savedRepeats;
     scrollTarget().style.scrollBehavior = "";
     Reflect.deleteProperty(document, "scrollingElement");
     Reflect.deleteProperty(scrollTarget(), "scrollBy");
@@ -350,8 +351,8 @@ describe("createNormal scroll — all non-smooth scroll types dispatch correct a
     expect(scrollBy).toHaveBeenCalledWith({ behavior: "instant", left: -10, top: 0 });
   });
 
-  it("RUNTIME.repeats > 1 multiplies the scroll delta and resets repeats to 0", () => {
-    RUNTIME.repeats = 3;
+  it("repeatCount.value > 1 multiplies the scroll delta and resets repeats to 0", () => {
+    repeatCount.value = 3;
     const normal = createNormal(insertStub);
 
     normal.scroll("down");
@@ -361,7 +362,7 @@ describe("createNormal scroll — all non-smooth scroll types dispatch correct a
       left: 0,
       top: 3 * runtime.conf.scrollStepSize,
     });
-    expect(RUNTIME.repeats).toBe(0);
+    expect(repeatCount.value).toBe(0);
   });
 });
 
@@ -376,7 +377,7 @@ describe("createNormal scroll — byRatio positions relative to scrollHeight", (
   beforeEach(() => {
     savedSmoothScroll = runtime.conf.smoothScroll;
     savedSmartPageBoundary = runtime.conf.smartPageBoundary;
-    savedRepeats = RUNTIME.repeats;
+    savedRepeats = repeatCount.value;
     runtime.conf.smoothScroll = false;
     runtime.conf.smartPageBoundary = false;
     Object.defineProperty(document, "scrollingElement", {
@@ -401,7 +402,7 @@ describe("createNormal scroll — byRatio positions relative to scrollHeight", (
   afterEach(() => {
     runtime.conf.smoothScroll = savedSmoothScroll;
     runtime.conf.smartPageBoundary = savedSmartPageBoundary;
-    RUNTIME.repeats = savedRepeats;
+    repeatCount.value = savedRepeats;
     scrollTarget().style.scrollBehavior = "";
     Reflect.deleteProperty(document, "scrollingElement");
     Reflect.deleteProperty(scrollTarget(), "scrollBy");
@@ -410,8 +411,8 @@ describe("createNormal scroll — byRatio positions relative to scrollHeight", (
     Reflect.deleteProperty(scrollTarget(), "scrollLeft");
   });
 
-  it("byRatio at 50% targets mid-scroll and resets RUNTIME.repeats", () => {
-    RUNTIME.repeats = 50;
+  it("byRatio at 50% targets mid-scroll and resets repeatCount.value", () => {
+    repeatCount.value = 50;
     const normal = createNormal(insertStub);
 
     normal.scroll("byRatio");
@@ -424,7 +425,7 @@ describe("createNormal scroll — byRatio positions relative to scrollHeight", (
       left: 0,
       top: expectedY,
     });
-    expect(RUNTIME.repeats).toBe(0);
+    expect(repeatCount.value).toBe(0);
   });
 });
 
@@ -1218,7 +1219,7 @@ describe("createNormal smoothScrollBy — requestAnimationFrame path", () => {
     savedSmartPageBoundary = runtime.conf.smartPageBoundary;
     runtime.conf.smoothScroll = true;
     runtime.conf.smartPageBoundary = false;
-    RUNTIME.repeats = 1;
+    repeatCount.value = 1;
     Object.defineProperty(document, "scrollingElement", {
       value: document.documentElement,
       configurable: true,
@@ -1432,11 +1433,11 @@ describe("createNormal scroll — scrollFallback falls back when element cannot 
     savedSmoothScroll = runtime.conf.smoothScroll;
     savedSmartPageBoundary = runtime.conf.smartPageBoundary;
     savedScrollFallback = runtime.conf.scrollFallback;
-    savedRepeats = RUNTIME.repeats;
+    savedRepeats = repeatCount.value;
     runtime.conf.smoothScroll = false;
     runtime.conf.smartPageBoundary = false;
     runtime.conf.scrollFallback = true;
-    RUNTIME.repeats = 1;
+    repeatCount.value = 1;
     Object.defineProperty(document, "scrollingElement", {
       value: document.documentElement,
       configurable: true,
@@ -1466,7 +1467,7 @@ describe("createNormal scroll — scrollFallback falls back when element cannot 
     runtime.conf.smoothScroll = savedSmoothScroll;
     runtime.conf.smartPageBoundary = savedSmartPageBoundary;
     runtime.conf.scrollFallback = savedScrollFallback;
-    RUNTIME.repeats = savedRepeats;
+    repeatCount.value = savedRepeats;
     document.documentElement.style.scrollBehavior = "";
     Reflect.deleteProperty(document, "scrollingElement");
     Reflect.deleteProperty(document.documentElement, "scrollBy");
@@ -1529,10 +1530,10 @@ describe("createNormal scroll — smartPageBoundary fires boundary events", () =
   beforeEach(() => {
     savedSmoothScroll = runtime.conf.smoothScroll;
     savedSmartPageBoundary = runtime.conf.smartPageBoundary;
-    savedRepeats = RUNTIME.repeats;
+    savedRepeats = repeatCount.value;
     runtime.conf.smoothScroll = false;
     runtime.conf.smartPageBoundary = true;
-    RUNTIME.repeats = 1;
+    repeatCount.value = 1;
     Object.defineProperty(document, "scrollingElement", {
       value: document.documentElement,
       configurable: true,
@@ -1565,7 +1566,7 @@ describe("createNormal scroll — smartPageBoundary fires boundary events", () =
   afterEach(() => {
     runtime.conf.smoothScroll = savedSmoothScroll;
     runtime.conf.smartPageBoundary = savedSmartPageBoundary;
-    RUNTIME.repeats = savedRepeats;
+    repeatCount.value = savedRepeats;
     document.documentElement.style.scrollBehavior = "";
     Reflect.deleteProperty(document, "scrollingElement");
     Reflect.deleteProperty(document.documentElement, "scrollBy");
@@ -1631,10 +1632,10 @@ describe("createNormal scroll — bottom and rightmost scroll types", () => {
   beforeEach(() => {
     savedSmoothScroll = runtime.conf.smoothScroll;
     savedSmartPageBoundary = runtime.conf.smartPageBoundary;
-    savedRepeats = RUNTIME.repeats;
+    savedRepeats = repeatCount.value;
     runtime.conf.smoothScroll = false;
     runtime.conf.smartPageBoundary = false;
-    RUNTIME.repeats = 1;
+    repeatCount.value = 1;
     Object.defineProperty(document, "scrollingElement", {
       value: document.documentElement,
       configurable: true,
@@ -1667,7 +1668,7 @@ describe("createNormal scroll — bottom and rightmost scroll types", () => {
   afterEach(() => {
     runtime.conf.smoothScroll = savedSmoothScroll;
     runtime.conf.smartPageBoundary = savedSmartPageBoundary;
-    RUNTIME.repeats = savedRepeats;
+    repeatCount.value = savedRepeats;
     document.documentElement.style.scrollBehavior = "";
     Reflect.deleteProperty(document, "scrollingElement");
     Reflect.deleteProperty(document.documentElement, "scrollBy");

@@ -6,6 +6,7 @@ import KeyboardUtils from "./keyboardUtils";
 import { type Keymap, createKeymap } from "./keymap";
 import { ModeHandle, getCurrentMode, showModeStatus, suppressKeyUp } from "./mode";
 import { isInUIFrame } from "./platform-utils";
+import { repeatCount } from "./repeatCount";
 import { RUNTIME } from "./runtime";
 import { getScrollableElements, hasScroll } from "./scrollDetection";
 import { isSpecialKeyOf } from "./specialKeys";
@@ -506,10 +507,10 @@ function createNormal(insert: InsertLike): NormalMode {
             return dispatchSKEvent("hints", ["bottomBoundaryHit"]);
           }
         }
-        if (RUNTIME.repeats > 1) {
-          x = RUNTIME.repeats * x;
-          y = RUNTIME.repeats * y;
-          RUNTIME.repeats = 0;
+        if (repeatCount.value > 1) {
+          x = repeatCount.value * x;
+          y = repeatCount.value * y;
+          repeatCount.value = 0;
         }
         if (conf.smoothScroll) {
           const d = Math.max(100, 20 * Math.log(Math.abs(x || y)));
@@ -814,10 +815,10 @@ function createNormal(insert: InsertLike): NormalMode {
       }
       case "byRatio": {
         const y =
-          Number.parseInt(String((RUNTIME.repeats * scrollNode.scrollHeight) / 100)) -
+          Number.parseInt(String((repeatCount.value * scrollNode.scrollHeight) / 100)) -
           size[1] / 2 -
           scrollNode.scrollTop;
-        RUNTIME.repeats = 0;
+        repeatCount.value = 0;
         helpers.skScrollBy(0, y);
         break;
       }

@@ -1,5 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
+import { repeatCount } from "./repeatCount";
+
 // default.ts wires the built-in key map onto an api/ctx pair. These tests pin
 // that contract: which keys are bound, and where each key's action delegates
 // (RUNTIME message, front, visual, clipboard, tabOpenLink, search aliases).
@@ -1386,10 +1388,10 @@ describe("gu navigates up URL path", () => {
 describe("gu with multiple repeats", () => {
   afterEach(() => vi.restoreAllMocks());
 
-  it("walks up multiple path segments when RUNTIME.repeats > 1", () => {
+  it("walks up multiple path segments when repeatCount.value > 1", () => {
     // jsdom default location.pathname is "/" (length 1), which is guarded by
     // `if (pathname.length > 1)`.  Mock a deeper path so the guard is entered
-    // and `RUNTIME.repeats` is consumed and reset to 1.
+    // and `repeatCount.value` is consumed and reset to 1.
     vi.spyOn(window, "location", "get").mockReturnValue({
       ...window.location,
       pathname: "/a/b/c",
@@ -1397,10 +1399,10 @@ describe("gu with multiple repeats", () => {
       href: "https://example.com/a/b/c",
     } as unknown as Location);
 
-    seam.RUNTIME.repeats = 3;
+    repeatCount.value = 3;
     fire("gu");
     // repeats must be reset to 1 after gu consumes it
-    expect(seam.RUNTIME.repeats).toBe(1);
+    expect(repeatCount.value).toBe(1);
   });
 });
 
@@ -1446,9 +1448,9 @@ describe("gu goes up one path segment", () => {
   });
 
   it("breaks out and goes to the root when repeats exceed the path depth", () => {
-    seam.RUNTIME.repeats = 5; // more levels than the path has
+    repeatCount.value = 5; // more levels than the path has
     const assigned = withInterceptedHref("/only/", () => fire("gu"));
-    seam.RUNTIME.repeats = 1;
+    repeatCount.value = 1;
     // The lastIndexOf("/", last-1) search returns -1 and breaks, leaving the
     // root path "".
     expect(assigned).toBe(window.location.origin + "");
