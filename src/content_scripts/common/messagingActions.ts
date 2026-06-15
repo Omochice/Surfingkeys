@@ -1,4 +1,5 @@
-import { dispatchSKEvent } from "./events";
+import { dispatchSKEvent } from "@sk/core/events";
+
 import { RUNTIME } from "./runtime";
 
 /**

@@ -213,6 +213,9 @@ importers:
       '@sk/common':
         specifier: workspace:*
         version: link:packages/common
+      '@sk/core':
+        specifier: workspace:*
+        version: link:packages/core
       dompurify:
         specifier: ^3.2.4
         version: 3.4.10
@@ -286,6 +289,21 @@ importers:
       '@praha/byethrow':
         specifier: 0.12.0
         version: 0.12.0(typescript@6.0.3)
+
+  packages/core:
+    dependencies:
+      '@praha/byethrow':
+        specifier: 0.12.0
+        version: 0.12.0(typescript@6.0.3)
+      '@sk/common':
+        specifier: workspace:*
+        version: link:../common
+      dompurify:
+        specifier: ^3.2.4
+        version: 3.4.9
+      valibot:
+        specifier: 1.4.1
+        version: 1.4.1(typescript@6.0.3)
 
 packages:
 

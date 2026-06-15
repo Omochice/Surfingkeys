@@ -15,7 +15,7 @@ import { getScrollableElements } from "./scrollDetection";
 // chrome.runtime.getURL, keeping those assertions intact without depending on the chrome seams.
 const env: EngineEnv = {
   RUNTIME: (action, args, callback) => {
-    const message = { ...(args ?? {}), action, needResponse: callback != null };
+    const message = { ...args, action, needResponse: callback != null };
     if (callback) {
       chrome.runtime.sendMessage(message, callback);
     } else {

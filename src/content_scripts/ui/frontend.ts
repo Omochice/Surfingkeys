@@ -1,17 +1,10 @@
-import { createSignal } from "solid-js";
-import { render } from "solid-js/web";
-import * as v from "valibot";
-
-import createAPI from "../common/api";
-import { createEngineEnv } from "../common/createEngineEnv";
-import createDefaultMappings from "../common/default";
-import KeyboardUtils from "../common/keyboardUtils";
-import { ModeHandle, initModeHub } from "../common/mode";
-import createModeGraph, { type ModeContext } from "../common/modeGraph";
-import { attachFaviconToImgSrc, initL10n, isInUIFrame } from "../common/platform-utils";
-import { RUNTIME, runtime } from "../common/runtime";
-import { isSpecialKeyOf, specialKeys } from "../common/specialKeys";
-import type Trie from "../common/trie";
+import createAPI from "@sk/core/api";
+import createDefaultMappings from "@sk/core/default";
+import KeyboardUtils from "@sk/core/keyboardUtils";
+import { ModeHandle, initModeHub } from "@sk/core/mode";
+import createModeGraph, { type ModeContext } from "@sk/core/modeGraph";
+import { isSpecialKeyOf, specialKeys } from "@sk/core/specialKeys";
+import type Trie from "@sk/core/trie";
 import {
   format,
   generateQuickGuid,
@@ -26,7 +19,14 @@ import {
   rotateInput,
   setSanitizedContent,
   mapInMode,
-} from "../common/utils";
+} from "@sk/core/utils";
+import { createSignal } from "solid-js";
+import { render } from "solid-js/web";
+import * as v from "valibot";
+
+import { createEngineEnv } from "../common/createEngineEnv";
+import { attachFaviconToImgSrc, initL10n, isInUIFrame } from "../common/platform-utils";
+import { RUNTIME, runtime } from "../common/runtime";
 import createCommands from "./command";
 import { Banner as BannerView } from "./components/Banner";
 import { Bubble as BubbleView } from "./components/Bubble";

@@ -1,8 +1,8 @@
+import { hintLabel, hintLink, refreshHints } from "@sk/core/utils";
 import { render } from "@solidjs/testing-library";
 import { describe, expect, it } from "vitest";
 
 import { expectDefined } from "../../../../test/helpers";
-import { hintLabel, hintLink, refreshHints } from "../../common/utils";
 import { Tabs } from "./Tabs";
 import type { TabsTab } from "./Tabs";
 

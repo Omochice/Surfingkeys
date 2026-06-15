@@ -1,16 +1,16 @@
 import { Result } from "@praha/byethrow";
 import { reportOnFail, userCodeError } from "@sk/common/result";
+import type createAPI from "@sk/core/api";
+import type { StoredSettings } from "@sk/core/conf";
+import { dispatchSKEvent } from "@sk/core/events";
+import { showModeStatus } from "@sk/core/mode";
+import type createNormal from "@sk/core/normal";
+import { reportError } from "@sk/core/report";
+import type { TrieMeta } from "@sk/core/trie";
+import { applyUserSettings } from "@sk/core/utils";
 
-import type createAPI from "./common/api";
 import browser from "./common/browser";
-import type { StoredSettings } from "./common/conf";
-import { dispatchSKEvent } from "./common/events";
-import { showModeStatus } from "./common/mode";
-import type createNormal from "./common/normal";
-import { reportError } from "./common/report";
 import { RUNTIME, runtime } from "./common/runtime";
-import type { TrieMeta } from "./common/trie";
-import { applyUserSettings } from "./common/utils";
 
 // This module owns the single concern of applying stored/user settings onto the
 // live extension state: the runtime config, the basic key remaps, search-alias

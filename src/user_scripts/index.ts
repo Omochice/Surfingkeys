@@ -1,9 +1,6 @@
 import { Result } from "@praha/byethrow";
 import { userCodeError } from "@sk/common/result";
-
-import { dispatchSKEvent } from "../content_scripts/common/events";
-import { httpRequest, tabOpenLink } from "../content_scripts/common/messagingActions";
-import { RUNTIME } from "../content_scripts/common/runtime";
+import { dispatchSKEvent } from "@sk/core/events";
 import {
   applyUserSettings,
   getBrowserName,
@@ -12,7 +9,10 @@ import {
   isElementPartiallyInViewport,
   showBanner,
   showPopup,
-} from "../content_scripts/common/utils";
+} from "@sk/core/utils";
+
+import { httpRequest, tabOpenLink } from "../content_scripts/common/messagingActions";
+import { RUNTIME } from "../content_scripts/common/runtime";
 
 let EXTENSION_ROOT_URL = "";
 function isInUIFrame() {

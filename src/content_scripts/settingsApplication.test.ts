@@ -1,3 +1,4 @@
+import Trie from "@sk/core/trie";
 /**
  * Tests for the settings-application logic (apply stored/user settings onto the live runtime
  * config, basic remaps, and search aliases). The RUNTIME-driven applyRuntimeConf side effects are
@@ -6,7 +7,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { runtime } from "./common/runtime";
-import Trie from "./common/trie";
 import { applyBasicMappings, applySettings, ensureRegex } from "./settingsApplication";
 
 // ---------------------------------------------------------------------------

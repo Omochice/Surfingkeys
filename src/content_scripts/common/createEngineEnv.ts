@@ -1,5 +1,6 @@
+import type { EngineEnv } from "@sk/core/engineEnv";
+
 import browser from "./browser";
-import type { EngineEnv } from "./engineEnv";
 import { LOG } from "./log";
 import { tabOpenLink } from "./messagingActions";
 import { isInUIFrame, reportIssue } from "./platform-utils";

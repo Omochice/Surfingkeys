@@ -14,10 +14,10 @@
  * - ShowRichHints: pendingHint timer (richHintsForKeystroke range only) is tricky to time
  */
 
+import { specialKeys } from "@sk/core/specialKeys";
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { runtime } from "../common/runtime";
-import { specialKeys } from "../common/specialKeys";
 
 // ---------------------------------------------------------------------------
 // Module mocks — hoisted before any import executes.
@@ -64,8 +64,8 @@ vi.mock("./omnibar", () => ({
 vi.mock("./command", () => ({ default: vi.fn() }));
 
 // ../common/api + ../common/default: heavy wiring we don't need.
-vi.mock("../common/api", () => ({ default: vi.fn(() => ({})) }));
-vi.mock("../common/default", () => ({ default: vi.fn() }));
+vi.mock("@sk/core/api", () => ({ default: vi.fn(() => ({})) }));
+vi.mock("@sk/core/default", () => ({ default: vi.fn() }));
 
 // ../common/runtime: intercept RUNTIME calls so no chrome.runtime.sendMessage
 // reaches the chrome stub.

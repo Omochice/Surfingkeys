@@ -1,14 +1,9 @@
 import { reportOnFail } from "@sk/common/result";
-import * as v from "valibot";
-
-import { markSurfingKeysElement } from "./common/domFlags";
-import { dispatchSKEvent } from "./common/events";
-import { tabOpenLink } from "./common/messagingActions";
-import { showModeStatus } from "./common/mode";
-import { isInUIFrame } from "./common/platform-utils";
-import { reportError } from "./common/report";
-import { RUNTIME, runtime } from "./common/runtime";
-import type Trie from "./common/trie";
+import { markSurfingKeysElement } from "@sk/core/domFlags";
+import { dispatchSKEvent } from "@sk/core/events";
+import { showModeStatus } from "@sk/core/mode";
+import { reportError } from "@sk/core/report";
+import type Trie from "@sk/core/trie";
 import {
   createElementWithContent,
   generateQuickGuid,
@@ -18,7 +13,12 @@ import {
   initSKFunctionListener,
   regExpReplacer,
   requireElement,
-} from "./common/utils";
+} from "@sk/core/utils";
+import * as v from "valibot";
+
+import { tabOpenLink } from "./common/messagingActions";
+import { isInUIFrame } from "./common/platform-utils";
+import { RUNTIME, runtime } from "./common/runtime";
 import createUiHost from "./uiframe";
 import type { UiHost } from "./uiframe";
 

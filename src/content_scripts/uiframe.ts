@@ -1,9 +1,9 @@
+import { getDocumentOrigin } from "@sk/core/utils";
 import * as v from "valibot";
 
 import browser from "./common/browser";
 import { LOG } from "./common/log";
 import { runtime } from "./common/runtime";
-import { getDocumentOrigin } from "./common/utils";
 
 // Any page can postMessage to this window, so the uihost envelope is external
 // data; validate its shape before dispatching or forwarding. looseObject keeps

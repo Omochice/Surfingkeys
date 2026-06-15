@@ -1,4 +1,5 @@
-import { createElementWithContent } from "../common/utils";
+import { createElementWithContent } from "@sk/core/utils";
+
 import type { ResultListItem } from "./components/ResultList";
 
 /**

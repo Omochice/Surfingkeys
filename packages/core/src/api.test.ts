@@ -10,7 +10,7 @@ import Trie from "./trie";
 // against; RUNTIME forwards to chrome.runtime.sendMessage to keep any other messaging inert.
 const env: EngineEnv = {
   RUNTIME: (action, args, callback) => {
-    const message = { ...(args ?? {}), action, needResponse: callback != null };
+    const message = { ...args, action, needResponse: callback != null };
     if (callback) {
       chrome.runtime.sendMessage(message, callback);
     } else {
