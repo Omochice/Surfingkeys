@@ -1,13 +1,11 @@
-import browser from "./browser";
 import { conf } from "./conf";
 import { isAutoFocusMarked, isNewlyCreated, unmarkNewlyCreated } from "./domFlags";
+import type { EngineEnv } from "./engineEnv";
 import { dispatchSKEvent } from "./events";
 import KeyboardUtils from "./keyboardUtils";
 import { type Keymap, createKeymap } from "./keymap";
 import { ModeHandle, getCurrentMode, showModeStatus, suppressKeyUp } from "./mode";
-import { isInUIFrame } from "./platform-utils";
 import { repeatCount } from "./repeatCount";
-import { RUNTIME } from "./runtime";
 import { getScrollableElements, hasScroll } from "./scrollDetection";
 import { isSpecialKeyOf } from "./specialKeys";
 import Trie from "./trie";
@@ -148,7 +146,7 @@ function createDisabled(normal: NormalMode): DisabledMode {
   return self;
 }
 
-function createLurk(normal: NormalMode): LurkMode {
+function createLurk(normal: NormalMode, RUNTIME: EngineEnv["RUNTIME"]): LurkMode {
   const mode = new ModeHandle("Lurk");
   const mappings = new Trie();
   const keymap = createKeymap(() => mappings);
@@ -257,7 +255,8 @@ function createPassThrough(): PassThroughMode {
   };
 }
 
-function createNormal(insert: InsertLike): NormalMode {
+function createNormal(insert: InsertLike, env: EngineEnv): NormalMode {
+  const { RUNTIME, isInUIFrame, getExtensionURL } = env;
   const mode = new ModeHandle("Normal");
   const mappings = new Trie();
 
@@ -290,7 +289,7 @@ function createNormal(insert: InsertLike): NormalMode {
     let state = "lurking";
     if (!lurk) {
       mode.exit();
-      lurk = createLurk(self);
+      lurk = createLurk(self, RUNTIME);
       lurkMaps!.forEach((lurkMap) => {
         mapInMode(lurk!, lurkMap[0], lurkMap[1], isInUIFrame());
         lurk!.mappings.remove(KeyboardUtils.encodeKeystroke(lurkMap[1]));
@@ -434,7 +433,7 @@ function createNormal(insert: InsertLike): NormalMode {
   });
 
   const toggleBlocklist = (): void => {
-    if (document.location.href.indexOf(browser.runtime.getURL("/")) !== 0) {
+    if (document.location.href.indexOf(getExtensionURL("/")) !== 0) {
       RUNTIME(
         "toggleBlocklist",
         {

@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
+import { createEngineEnv } from "./createEngineEnv";
 import { markAutoFocus, markNewlyCreated } from "./domFlags";
 import KeyboardUtils from "./keyboardUtils";
 import { getCurrentMode } from "./mode";
@@ -7,6 +8,10 @@ import createNormal from "./normal";
 import { repeatCount } from "./repeatCount";
 import { runtime } from "./runtime";
 import { getScrollableElements } from "./scrollDetection";
+
+// normal asserts real seam behaviour (chrome.runtime.sendMessage spies, extension-URL checks), so it
+// runs against the real env built from the seams rather than inert stubs.
+const env = createEngineEnv();
 
 // Wrapped so individual tests can stub the scroll-list discovery with
 // mockReturnValueOnce; every other test keeps the real implementation.
@@ -48,7 +53,7 @@ describe("createNormal focus handler — auto-focus suppression", () => {
   });
 
   it("blurs an editable element that is not marked for auto-focus", () => {
-    const normal = createNormal(insertStub);
+    const normal = createNormal(insertStub, env);
     const textarea = document.createElement("textarea");
     document.body.appendChild(textarea);
     const blur = vi.spyOn(textarea, "blur");
@@ -62,7 +67,7 @@ describe("createNormal focus handler — auto-focus suppression", () => {
   });
 
   it("does not blur an editable element marked for auto-focus", () => {
-    const normal = createNormal(insertStub);
+    const normal = createNormal(insertStub, env);
     const textarea = document.createElement("textarea");
     document.body.appendChild(textarea);
     markAutoFocus(textarea);
@@ -104,7 +109,7 @@ function dispatchKeydown(normal: ReturnType<typeof createNormal>, target: Elemen
 describe("createNormal keydown handler — newly-created focus steal", () => {
   it("enters insert mode for an editable element that is not newly-created", () => {
     const insert = { enter: vi.fn(), exit: vi.fn() };
-    const normal = createNormal(insert);
+    const normal = createNormal(insert, env);
     const textarea = document.createElement("textarea");
     document.body.appendChild(textarea);
     const blur = vi.spyOn(textarea, "blur");
@@ -119,7 +124,7 @@ describe("createNormal keydown handler — newly-created focus steal", () => {
 
   it("steals focus from an editable element marked as newly-created", () => {
     const insert = { enter: vi.fn(), exit: vi.fn() };
-    const normal = createNormal(insert);
+    const normal = createNormal(insert, env);
     const textarea = document.createElement("textarea");
     document.body.appendChild(textarea);
     markNewlyCreated(textarea);
@@ -135,7 +140,7 @@ describe("createNormal keydown handler — newly-created focus steal", () => {
 
   it("clears the mark after stealing once, so the next keydown enters insert mode", () => {
     const insert = { enter: vi.fn(), exit: vi.fn() };
-    const normal = createNormal(insert);
+    const normal = createNormal(insert, env);
     const textarea = document.createElement("textarea");
     document.body.appendChild(textarea);
     markNewlyCreated(textarea);
@@ -188,7 +193,7 @@ describe("createNormal scroll — skScrollBy reaches the scrolling element", () 
   });
 
   it("scrolls the page down by the step size", () => {
-    const normal = createNormal(insertStub);
+    const normal = createNormal(insertStub, env);
 
     normal.scroll("down");
 
@@ -200,7 +205,7 @@ describe("createNormal scroll — skScrollBy reaches the scrolling element", () 
   });
 
   it("scrolls the page up by the step size", () => {
-    const normal = createNormal(insertStub);
+    const normal = createNormal(insertStub, env);
 
     normal.scroll("up");
 
@@ -212,7 +217,7 @@ describe("createNormal scroll — skScrollBy reaches the scrolling element", () 
   });
 
   it("scrolls right and left along the x-axis by half the step size", () => {
-    const normal = createNormal(insertStub);
+    const normal = createNormal(insertStub, env);
     const half = Math.round(runtime.conf.scrollStepSize / 2);
 
     normal.scroll("right");
@@ -223,7 +228,7 @@ describe("createNormal scroll — skScrollBy reaches the scrolling element", () 
   });
 
   it("scrolls again on a second call (the per-element helper is reused, not suppressed)", () => {
-    const normal = createNormal(insertStub);
+    const normal = createNormal(insertStub, env);
 
     normal.scroll("down");
     normal.scroll("down");
@@ -233,7 +238,7 @@ describe("createNormal scroll — skScrollBy reaches the scrolling element", () 
 
   it("takes the smooth-scroll path when smoothScroll is on", () => {
     runtime.conf.smoothScroll = true;
-    const normal = createNormal(insertStub);
+    const normal = createNormal(insertStub, env);
 
     normal.scroll("down");
 
@@ -290,7 +295,7 @@ describe("createNormal scroll — all non-smooth scroll types dispatch correct a
   });
 
   it("pageDown scrolls by half the viewport height", () => {
-    const normal = createNormal(insertStub);
+    const normal = createNormal(insertStub, env);
     const half = Math.round(window.innerHeight / 2);
 
     normal.scroll("pageDown");
@@ -299,7 +304,7 @@ describe("createNormal scroll — all non-smooth scroll types dispatch correct a
   });
 
   it("pageUp scrolls by negative half the viewport height", () => {
-    const normal = createNormal(insertStub);
+    const normal = createNormal(insertStub, env);
     const half = -Math.round(window.innerHeight / 2);
 
     normal.scroll("pageUp");
@@ -308,7 +313,7 @@ describe("createNormal scroll — all non-smooth scroll types dispatch correct a
   });
 
   it("fullPageDown scrolls by the full viewport height", () => {
-    const normal = createNormal(insertStub);
+    const normal = createNormal(insertStub, env);
 
     normal.scroll("fullPageDown");
 
@@ -320,7 +325,7 @@ describe("createNormal scroll — all non-smooth scroll types dispatch correct a
   });
 
   it("fullPageUp scrolls by the negative full viewport height", () => {
-    const normal = createNormal(insertStub);
+    const normal = createNormal(insertStub, env);
 
     normal.scroll("fullPageUp");
 
@@ -335,7 +340,7 @@ describe("createNormal scroll — all non-smooth scroll types dispatch correct a
     // scrollTop is set to 0 in beforeEach; negative of 0 is -0 which equals 0 numerically
     // but Object.is distinguishes them, so we set scrollTop to a positive value to be explicit.
     (scrollTarget() as any).scrollTop = 50;
-    const normal = createNormal(insertStub);
+    const normal = createNormal(insertStub, env);
 
     normal.scroll("top");
 
@@ -344,7 +349,7 @@ describe("createNormal scroll — all non-smooth scroll types dispatch correct a
 
   it("leftmost scrolls left past the current scrollLeft position", () => {
     // scrollLeft is 0 so delta is -(0 + 10) = -10
-    const normal = createNormal(insertStub);
+    const normal = createNormal(insertStub, env);
 
     normal.scroll("leftmost");
 
@@ -353,7 +358,7 @@ describe("createNormal scroll — all non-smooth scroll types dispatch correct a
 
   it("repeatCount.value > 1 multiplies the scroll delta and resets repeats to 0", () => {
     repeatCount.value = 3;
-    const normal = createNormal(insertStub);
+    const normal = createNormal(insertStub, env);
 
     normal.scroll("down");
 
@@ -413,7 +418,7 @@ describe("createNormal scroll — byRatio positions relative to scrollHeight", (
 
   it("byRatio at 50% targets mid-scroll and resets repeatCount.value", () => {
     repeatCount.value = 50;
-    const normal = createNormal(insertStub);
+    const normal = createNormal(insertStub, env);
 
     normal.scroll("byRatio");
 
@@ -433,21 +438,21 @@ describe("createNormal scroll — byRatio positions relative to scrollHeight", (
 
 describe("createNormal isScrollKeyInHints", () => {
   it("returns true for a key whose scroll binding is marked for Hints mode", () => {
-    const normal = createNormal(insertStub);
+    const normal = createNormal(insertStub, env);
 
     // "j" is bound through bindScrollForHints, so it may also scroll in Hints mode.
     expect(normal.isScrollKeyInHints("j")).toBe(true);
   });
 
   it("returns false for a scroll binding not marked for Hints mode", () => {
-    const normal = createNormal(insertStub);
+    const normal = createNormal(insertStub, env);
 
     // "e" scrolls in Normal mode but is not registered as a Hints-mode scroll key.
     expect(normal.isScrollKeyInHints("e")).toBe(false);
   });
 
   it("returns false for an unbound key", () => {
-    const normal = createNormal(insertStub);
+    const normal = createNormal(insertStub, env);
 
     expect(normal.isScrollKeyInHints("q")).toBe(false);
   });
@@ -457,7 +462,7 @@ describe("createNormal isScrollKeyInHints", () => {
 
 describe("createNormal getLurkMode", () => {
   it("returns undefined before startLurk is called", () => {
-    const normal = createNormal(insertStub);
+    const normal = createNormal(insertStub, env);
 
     expect(normal.getLurkMode()).toBeUndefined();
   });
@@ -467,7 +472,7 @@ describe("createNormal getLurkMode", () => {
 
 describe("createNormal addLurkMap + startLurk", () => {
   it("a lurk map added before startLurk is transferred to the lurk mode's trie", () => {
-    const normal = createNormal(insertStub);
+    const normal = createNormal(insertStub, env);
     // Lurk mode only has <Alt-i> and p by default. We remap <Alt-i> to x so
     // mapInMode finds the source binding and adds x to the lurk trie.
     normal.addLurkMap("x", "<Alt-i>");
@@ -491,7 +496,7 @@ describe("createNormal appendKeysForRepeat", () => {
     // lastKeys is undefined initially; appendKeysForRepeat should silently skip
     const sendMessage = vi.fn();
     (globalThis as any).chrome.runtime.sendMessage = sendMessage;
-    const normal = createNormal(insertStub);
+    const normal = createNormal(insertStub, env);
 
     normal.appendKeysForRepeat("Normal", "gg");
 
@@ -547,7 +552,7 @@ describe("createNormal jumpVIMark", () => {
   });
 
   it(String.raw`mark=\' swaps scroll position with the saved lastScrollTop/lastScrollLeft`, () => {
-    const normal = createNormal(insertStub);
+    const normal = createNormal(insertStub, env);
 
     // Prime scroll state: a scroll call records lastScrollTop/lastScrollLeft
     normal.scroll("down");
@@ -568,7 +573,7 @@ describe("createNormal jumpVIMark", () => {
   it(String.raw`non-\' mark sends RUNTIME jumpVIMark with the mark character`, () => {
     const sendMessage = vi.fn();
     (globalThis as any).chrome.runtime.sendMessage = sendMessage;
-    const normal = createNormal(insertStub);
+    const normal = createNormal(insertStub, env);
 
     normal.jumpVIMark("a");
 
@@ -585,7 +590,7 @@ describe("createNormal moveTab", () => {
   it("sends RUNTIME moveTab with the given position", () => {
     const sendMessage = vi.fn();
     (globalThis as any).chrome.runtime.sendMessage = sendMessage;
-    const normal = createNormal(insertStub);
+    const normal = createNormal(insertStub, env);
 
     normal.moveTab(3);
 
@@ -606,7 +611,7 @@ describe("createNormal addVIMark", () => {
       value: document.documentElement,
       configurable: true,
     });
-    const normal = createNormal(insertStub);
+    const normal = createNormal(insertStub, env);
 
     normal.addVIMark("a", "https://example.com/");
 
@@ -632,7 +637,7 @@ describe("createNormal addVIMark", () => {
       value: document.documentElement,
       configurable: true,
     });
-    const normal = createNormal(insertStub);
+    const normal = createNormal(insertStub, env);
 
     normal.addVIMark("b");
 
@@ -649,7 +654,7 @@ describe("createNormal addVIMark", () => {
 
 describe("createNormal passThrough", () => {
   it("returns a mode object with name PassThrough", () => {
-    const normal = createNormal(insertStub);
+    const normal = createNormal(insertStub, env);
 
     const pt = normal.passThrough();
 
@@ -657,7 +662,7 @@ describe("createNormal passThrough", () => {
   });
 
   it("passThrough with a timeout sets the status line to include the timeout value", () => {
-    const normal = createNormal(insertStub);
+    const normal = createNormal(insertStub, env);
 
     const pt = normal.passThrough(1000);
 
@@ -698,7 +703,7 @@ function dispatchMousedown(
 describe("createNormal mousedown handler", () => {
   it("calls insert.enter when mousedown target is an editable element", () => {
     const insert = { enter: vi.fn(), exit: vi.fn() };
-    const normal = createNormal(insert);
+    const normal = createNormal(insert, env);
     const textarea = document.createElement("textarea");
     document.body.appendChild(textarea);
 
@@ -711,7 +716,7 @@ describe("createNormal mousedown handler", () => {
 
   it("calls insert.exit when mousedown target is not editable", () => {
     const insert = { enter: vi.fn(), exit: vi.fn() };
-    const normal = createNormal(insert);
+    const normal = createNormal(insert, env);
     const div = document.createElement("div");
     document.body.appendChild(div);
 
@@ -729,7 +734,7 @@ describe("createNormal mousedown handler", () => {
     runtime.conf.enableAutoFocus = false;
     runtime.conf.stealFocusOnLoad = true;
     const insert = { enter: vi.fn(), exit: vi.fn() };
-    const normal = createNormal(insert);
+    const normal = createNormal(insert, env);
     const div = document.createElement("div");
     document.body.appendChild(div);
 
@@ -756,7 +761,7 @@ describe("createNormal mousedown handler", () => {
 
 describe("createNormal built-in mapping registration", () => {
   it("registers the Alt-i PassThrough mapping under the correct encoded key", () => {
-    const normal = createNormal(insertStub);
+    const normal = createNormal(insertStub, env);
     const encoded = KeyboardUtils.encodeKeystroke("<Alt-i>");
 
     const node = normal.mappings.find(encoded);
@@ -765,7 +770,7 @@ describe("createNormal built-in mapping registration", () => {
   });
 
   it("registers yG, yS, cS, gg, G, j, k, h, l, e, d, P, U, 0, $, %, cs, /, E, R, p", () => {
-    const normal = createNormal(insertStub);
+    const normal = createNormal(insertStub, env);
     const expectedKeys = ["yG", "yS", "cS", "gg", "G", "j", "k", "h", "l", "e", "d", "P", "U"];
     for (const key of expectedKeys) {
       let node: any = normal.mappings;
@@ -784,7 +789,7 @@ describe("createNormal rotateFrame", () => {
     const sendMessage = vi.fn();
     (globalThis as any).chrome.runtime.sendMessage = sendMessage;
     (window as any).frameId = 42;
-    const normal = createNormal(insertStub);
+    const normal = createNormal(insertStub, env);
 
     normal.rotateFrame();
 
@@ -814,7 +819,7 @@ describe("createNormal toggleBlocklist", () => {
     // start with the extension origin returned by browser.runtime.getURL("/") = "/"
     const sendMessage = makeSendMessage({ state: "enabled", url: "http://example.com/" });
     (globalThis as any).chrome.runtime.sendMessage = sendMessage;
-    const normal = createNormal(insertStub);
+    const normal = createNormal(insertStub, env);
 
     normal.toggleBlocklist();
 
@@ -836,7 +841,7 @@ describe("createNormal toggleBlocklist", () => {
     };
     document.addEventListener("surfingkeys:front", capture);
 
-    const normal = createNormal(insertStub);
+    const normal = createNormal(insertStub, env);
     normal.toggleBlocklist();
 
     document.removeEventListener("surfingkeys:front", capture);
@@ -860,7 +865,7 @@ describe("createNormal toggleBlocklist", () => {
     };
     document.addEventListener("surfingkeys:front", capture);
 
-    const normal = createNormal(insertStub);
+    const normal = createNormal(insertStub, env);
     normal.toggleBlocklist();
 
     document.removeEventListener("surfingkeys:front", capture);
@@ -887,7 +892,7 @@ describe("createNormal toggleBlocklist", () => {
     };
     document.addEventListener("surfingkeys:front", capture);
 
-    const normal = createNormal(insertStub);
+    const normal = createNormal(insertStub, env);
     normal.toggleBlocklist();
 
     document.removeEventListener("surfingkeys:front", capture);
@@ -913,7 +918,7 @@ describe("createPassThrough auto-exit via timeout", () => {
   });
 
   it("exits PassThrough mode automatically after the configured timeout elapses", () => {
-    const normal = createNormal(insertStub);
+    const normal = createNormal(insertStub, env);
     const pt = normal.passThrough(500);
 
     expect(pt.name).toBe("PassThrough");
@@ -928,14 +933,14 @@ describe("createPassThrough auto-exit via timeout", () => {
   });
 
   it("sets statusLine to include the timeout value when timeout > 0", () => {
-    const normal = createNormal(insertStub);
+    const normal = createNormal(insertStub, env);
     const pt = normal.passThrough(1234);
 
     expect(pt.statusLine).toContain("1234");
   });
 
   it("sets statusLine to 'pass through' when no timeout is given", () => {
-    const normal = createNormal(insertStub);
+    const normal = createNormal(insertStub, env);
     const pt = normal.passThrough();
 
     expect(pt.statusLine).toBe("pass through");
@@ -946,7 +951,7 @@ describe("createPassThrough auto-exit via timeout", () => {
 
 describe("createPassThrough keydown handler", () => {
   it("marks the event as sk_suppressed for any key", () => {
-    const normal = createNormal(insertStub);
+    const normal = createNormal(insertStub, env);
     const pt = normal.passThrough();
     const handler = pt.eventListeners["keydown"];
     if (handler == null) throw new Error("PassThrough has no keydown handler");
@@ -963,7 +968,7 @@ describe("createPassThrough keydown handler", () => {
   });
 
   it("sets sk_stopPropagation on Esc and suppresses the event", () => {
-    const normal = createNormal(insertStub);
+    const normal = createNormal(insertStub, env);
     const pt = normal.passThrough();
     const handler = pt.eventListeners["keydown"];
     if (handler == null) throw new Error("PassThrough has no keydown handler");
@@ -982,7 +987,7 @@ describe("createPassThrough keydown handler", () => {
 
   it("resets the auto-exit timer on non-Esc key when a timeout is active", () => {
     vi.useFakeTimers();
-    const normal = createNormal(insertStub);
+    const normal = createNormal(insertStub, env);
     // Enter with a 1000 ms timeout so autoExit is set on enter.
     const pt = normal.passThrough(1000);
     const handler = pt.eventListeners["keydown"]!;
@@ -1009,7 +1014,7 @@ describe("createPassThrough keydown handler", () => {
 
 describe("createPassThrough mousedown and focus handlers", () => {
   it("mousedown marks event sk_suppressed", () => {
-    const normal = createNormal(insertStub);
+    const normal = createNormal(insertStub, env);
     const pt = normal.passThrough();
     const handler = pt.eventListeners["mousedown"];
     if (handler == null) throw new Error("PassThrough has no mousedown handler");
@@ -1021,7 +1026,7 @@ describe("createPassThrough mousedown and focus handlers", () => {
   });
 
   it("focus marks event sk_suppressed", () => {
-    const normal = createNormal(insertStub);
+    const normal = createNormal(insertStub, env);
     const pt = normal.passThrough();
     const handler = pt.eventListeners["focus"];
     if (handler == null) throw new Error("PassThrough has no focus handler");
@@ -1039,7 +1044,7 @@ describe("createNormal revertToLurk", () => {
   it("sends RUNTIME setSurfingkeysIcon with status lurking when window === top", () => {
     const sendMessage = vi.fn();
     (globalThis as any).chrome.runtime.sendMessage = sendMessage;
-    const normal = createNormal(insertStub);
+    const normal = createNormal(insertStub, env);
 
     normal.revertToLurk();
 
@@ -1057,7 +1062,7 @@ describe("createNormal revertToLurk", () => {
 
 describe("createNormal startLurk state return values", () => {
   it("returns 'lurking' on the first call", () => {
-    const normal = createNormal(insertStub);
+    const normal = createNormal(insertStub, env);
 
     const state = normal.startLurk();
 
@@ -1075,7 +1080,7 @@ describe("createNormal disable and enable", () => {
     };
     document.addEventListener("surfingkeys:observer", capture);
 
-    const normal = createNormal(insertStub);
+    const normal = createNormal(insertStub, env);
     normal.disable();
 
     document.removeEventListener("surfingkeys:observer", capture);
@@ -1093,7 +1098,7 @@ describe("createNormal disable and enable", () => {
     };
     document.addEventListener("surfingkeys:observer", capture);
 
-    const normal = createNormal(insertStub);
+    const normal = createNormal(insertStub, env);
     normal.disable();
     normal.disable();
 
@@ -1140,7 +1145,7 @@ describe("createNormal captureElement", () => {
       // img.onload which requires a real canvas rendering environment.
     };
 
-    const normal = createNormal(insertStub);
+    const normal = createNormal(insertStub, env);
     const elm = document.documentElement;
 
     normal.captureElement(elm);
@@ -1166,7 +1171,7 @@ describe("createNormal captureElement", () => {
       }
     };
 
-    const normal = createNormal(insertStub);
+    const normal = createNormal(insertStub, env);
     const elm = document.documentElement;
 
     normal.captureElement(elm);
@@ -1195,7 +1200,7 @@ describe("createNormal captureElement", () => {
       }
     };
 
-    const normal = createNormal(insertStub);
+    const normal = createNormal(insertStub, env);
     normal.captureElement(document.documentElement);
 
     document.removeEventListener("surfingkeys:front", capture);
@@ -1247,7 +1252,7 @@ describe("createNormal smoothScrollBy — requestAnimationFrame path", () => {
   });
 
   it("sets scrollBehavior to 'auto' on the target element when smooth scrolling begins", () => {
-    const normal = createNormal(insertStub);
+    const normal = createNormal(insertStub, env);
 
     normal.scroll("down");
 
@@ -1260,7 +1265,7 @@ describe("createNormal smoothScrollBy — requestAnimationFrame path", () => {
     // scrollBy directly (the rAF chain cannot be easily exercised in jsdom because
     // repeated rAF calls cause an infinite-loop under fake timers, so we only
     // verify the immediate side-effect: scrollBehavior is set to 'auto').
-    const normal = createNormal(insertStub);
+    const normal = createNormal(insertStub, env);
 
     normal.scroll("down");
 
@@ -1283,7 +1288,7 @@ describe("createNormal feedkeys", () => {
   it("does not process keys before the 1 ms timeout fires", () => {
     // Register a mapping to detect if it was executed.
     let executed = false;
-    const normal = createNormal(insertStub);
+    const normal = createNormal(insertStub, env);
     normal.mappings.add("z", {
       annotation: "test",
       feature_group: 0,
@@ -1300,7 +1305,7 @@ describe("createNormal feedkeys", () => {
 
   it("processes each character as a keydown event after the 1 ms timeout fires", () => {
     let executed = false;
-    const normal = createNormal(insertStub);
+    const normal = createNormal(insertStub, env);
     normal.mappings.add("z", {
       annotation: "test",
       feature_group: 0,
@@ -1347,7 +1352,7 @@ describe("createNormal onMouseUp — querySelectedWord dispatch", () => {
     };
     document.addEventListener("surfingkeys:front", capture);
 
-    const normal = createNormal(insertStub);
+    const normal = createNormal(insertStub, env);
 
     // Dispatch on the div element so event.target has a .matches() method.
     // The listener is on document so it still fires, and target is the div.
@@ -1375,7 +1380,7 @@ describe("createNormal onMouseUp — querySelectedWord dispatch", () => {
     };
     document.addEventListener("surfingkeys:front", capture);
 
-    const normal = createNormal(insertStub);
+    const normal = createNormal(insertStub, env);
 
     const div = document.createElement("div");
     document.body.appendChild(div);
@@ -1406,7 +1411,7 @@ describe("createNormal onExit", () => {
     };
     document.addEventListener("surfingkeys:observer", capture);
 
-    const normal = createNormal(insertStub);
+    const normal = createNormal(insertStub, env);
     normal.onExit!();
 
     document.removeEventListener("surfingkeys:observer", capture);
@@ -1494,7 +1499,7 @@ describe("createNormal scroll — scrollFallback falls back when element cannot 
       ({ left: 0, top: 0, right: 100, bottom: 100, width: 100, height: 100 }) as DOMRect;
     document.body.appendChild(inner);
 
-    const normal = createNormal(insertStub);
+    const normal = createNormal(insertStub, env);
     // Manually set the scroll list to [inner] so the code picks it as the target.
     normal.addScrollableElement(inner);
     // refreshScrollableElements forces Mode.getScrollableElements() which in jsdom
@@ -1584,7 +1589,7 @@ describe("createNormal scroll — smartPageBoundary fires boundary events", () =
     };
     document.addEventListener("surfingkeys:hints", capture);
 
-    const normal = createNormal(insertStub);
+    const normal = createNormal(insertStub, env);
     normal.scroll("up");
 
     document.removeEventListener("surfingkeys:hints", capture);
@@ -1608,7 +1613,7 @@ describe("createNormal scroll — smartPageBoundary fires boundary events", () =
     };
     document.addEventListener("surfingkeys:hints", capture);
 
-    const normal = createNormal(insertStub);
+    const normal = createNormal(insertStub, env);
     normal.scroll("down");
 
     document.removeEventListener("surfingkeys:hints", capture);
@@ -1680,7 +1685,7 @@ describe("createNormal scroll — bottom and rightmost scroll types", () => {
 
   it("bottom scrolls to scrollHeight minus scrollTop (bringing element to bottom)", () => {
     // skScrollBy(scrollLeft, scrollHeight - scrollTop) = skScrollBy(50, 2000 - 100) = skScrollBy(50, 1900)
-    const normal = createNormal(insertStub);
+    const normal = createNormal(insertStub, env);
 
     normal.scroll("bottom");
 
@@ -1690,7 +1695,7 @@ describe("createNormal scroll — bottom and rightmost scroll types", () => {
   it("rightmost scrolls right by scrollWidth minus scrollLeft minus viewport width plus 20", () => {
     // size[0] = window.innerWidth (jsdom default 1024)
     // delta = scrollWidth - scrollLeft - size[0] + 20 = 3000 - 50 - 1024 + 20 = 1946
-    const normal = createNormal(insertStub);
+    const normal = createNormal(insertStub, env);
     const expected = 3000 - 50 - window.innerWidth + 20;
 
     normal.scroll("rightmost");
@@ -1750,7 +1755,7 @@ describe("createNormal addScrollableElement — duplicate guard", () => {
     const first = makeTarget();
     const second = makeTarget();
 
-    const normal = createNormal(insertStub);
+    const normal = createNormal(insertStub, env);
     normal.addScrollableElement(first.el);
     normal.addScrollableElement(second.el); // scrollIndex now points at `second`
     normal.addScrollableElement(first.el); // duplicate: indexOf(first) !== -1 → no push, index unchanged
@@ -1788,7 +1793,7 @@ describe(String.raw`createNormal jumpVIMark — no scrollable elements on '\' ma
       writable: true,
       configurable: true,
     });
-    const normal = createNormal(insertStub);
+    const normal = createNormal(insertStub, env);
 
     normal.jumpVIMark("'");
 
@@ -1803,7 +1808,7 @@ describe(String.raw`createNormal jumpVIMark — no scrollable elements on '\' ma
 
 describe("createNormal keydown handler — non-editable key dispatches the keymap", () => {
   it("routes the key through keymap.handleKey and leaves the event un-suppressed", () => {
-    const normal = createNormal(insertStub);
+    const normal = createNormal(insertStub, env);
     const div = document.createElement("div");
     document.body.appendChild(div);
 
@@ -1840,7 +1845,7 @@ describe("createNormal keydown handler — non-editable key dispatches the keyma
 
 describe("createNormal once", () => {
   it("sets onceFlag so the mode exits after one action completes via the keydown handler", () => {
-    const normal = createNormal(insertStub);
+    const normal = createNormal(insertStub, env);
     let ran = 0;
     normal.mappings.add("z", {
       annotation: "once-test",
@@ -1885,7 +1890,7 @@ describe("createNormal once", () => {
 
 describe("createNormal disable — disabled mode keydown branches", () => {
   it("disabled mode sets sk_suppressed for any key", () => {
-    const normal = createNormal(insertStub);
+    const normal = createNormal(insertStub, env);
     normal.disable();
 
     // Get the disabled mode's keydown handler via the mode stack's first entry.
@@ -1934,7 +1939,7 @@ function dispatchKeydownWith(
 describe("createNormal keydown handler — editable target branches", () => {
   it("exits insert mode and does not enter it when Esc is pressed on an editable element", () => {
     const insert = { enter: vi.fn(), exit: vi.fn() };
-    const normal = createNormal(insert);
+    const normal = createNormal(insert, env);
     const input = document.createElement("input");
     document.body.appendChild(input);
     const blur = vi.spyOn(input, "blur");
@@ -1956,7 +1961,7 @@ describe("createNormal keydown handler — editable target branches", () => {
     runtime.conf.editableBodyCare = true;
     runtime.conf.showModeStatus = false;
     const insert = { enter: vi.fn(), exit: vi.fn() };
-    const normal = createNormal(insert);
+    const normal = createNormal(insert, env);
     // jsdom reports isContentEditable as undefined, so force isEditable(body) to be true.
     Object.defineProperty(document.body, "isContentEditable", {
       value: true,
@@ -1980,7 +1985,7 @@ describe("createNormal keydown handler — editable target branches", () => {
     const savedCare = runtime.conf.editableBodyCare;
     runtime.conf.editableBodyCare = true;
     const insert = { enter: vi.fn(), exit: vi.fn() };
-    const normal = createNormal(insert);
+    const normal = createNormal(insert, env);
     Object.defineProperty(document.body, "isContentEditable", {
       value: true,
       configurable: true,
