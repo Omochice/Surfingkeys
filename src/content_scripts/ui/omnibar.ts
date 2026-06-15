@@ -93,7 +93,7 @@ type OmnibarHandler = {
   focusFirstCandidate?: boolean;
   omnibarPosition?: "top" | "middle" | "bottom";
   activeTab?: boolean;
-  tabbed?: number | boolean;
+  tabbed?: boolean;
   // Method syntax (rather than arrow properties) so a handler may declare a narrower onOpen extra or
   // onKeydown event than the controller's call site; the registry is intentionally bivariant here.
   onOpen?(extra?: unknown): void;
@@ -629,7 +629,7 @@ function createOmnibar(front: OmnibarFront, clipboard: { write(text: string): vo
       evt.preventDefault();
     } else if (evt.keyCode === KeyboardUtils.keyCodes["enter"]) {
       handler.activeTab = !evt.ctrlKey;
-      handler.tabbed = Number(tabbed) ^ Number(evt.shiftKey);
+      handler.tabbed = Boolean(Number(tabbed) ^ Number(evt.shiftKey));
       handler.onEnter?.() && front.hidePopup();
     } else if (evt.keyCode === KeyboardUtils.keyCodes["space"]) {
       const cursor = self.input.selectionStart;
