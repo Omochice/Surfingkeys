@@ -1,6 +1,7 @@
 import { reportOnFail } from "../common/result";
 import createAPI from "./common/api";
 import type { StoredSettings } from "./common/conf";
+import { createEngineEnv } from "./common/createEngineEnv";
 import createDefaultMappings from "./common/default";
 import { dispatchSKEvent } from "./common/events";
 import { checkEventListener, initModeHub } from "./common/mode";
@@ -22,6 +23,8 @@ type BrowserAdapter = {
 };
 
 let adapter: BrowserAdapter = {};
+
+const engineEnv = createEngineEnv();
 
 type Api = ReturnType<typeof createAPI>;
 type Normal = ReturnType<typeof createNormal>;
@@ -118,6 +121,7 @@ window.getFrameId = function () {
   return window.frameId;
 };
 initModeHub(
+  engineEnv,
   window === top
     ? undefined
     : () => {

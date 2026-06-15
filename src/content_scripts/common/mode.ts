@@ -2,9 +2,14 @@ import { Result } from "@praha/byethrow";
 
 import { domApiError } from "../../common/result";
 import { conf } from "./conf";
+import type { EngineEnv } from "./engineEnv";
 import { dispatchSKEvent } from "./events";
 import KeyboardUtils from "./keyboardUtils";
-import { isInUIFrame, reportIssue } from "./platform-utils";
+
+// The WebExtension-facing capabilities the mode hub needs (isInUIFrame / reportIssue). The hub is
+// module-level (showModeStatus is an exported free function called from ~10 sites), so unlike the
+// factories it receives its env once via initModeHub rather than a constructor argument.
+let engineEnv: EngineEnv | undefined;
 
 type StackEvent = Event & { keyCode?: number };
 
@@ -139,7 +144,7 @@ export class ModeHandle {
         modeStack = modeStack.slice(pos);
       } else {
         const modeList = modeStack.map((u) => u.name).join(",");
-        reportIssue(
+        engineEnv?.reportIssue(
           `Mode ${this.name} pushed into mode stack again.`,
           `Modes in stack: ${modeList}`,
         );
@@ -189,8 +194,13 @@ export function suppressKeyUp(keyCode: number): void {
   }
 }
 
-/** Reset the stack and install the global window listeners that drive the mode hub. */
-export function initModeHub(cb?: () => void): void {
+/**
+ * Inject the engine env and install the global window listeners that drive the mode hub. The env is
+ * stored synchronously so showModeStatus / ModeHandle.enter can reach it even when init itself is
+ * deferred (the about:blank iframe case below).
+ */
+export function initModeHub(env: EngineEnv, cb?: () => void): void {
+  engineEnv = env;
   // For blank page in frames, we defer init to page loaded
   // as document.write will clear added eventListeners.
   if (
@@ -220,7 +230,7 @@ export function showModeStatus(): void {
       return;
     }
     let sl = cm.statusLine || (conf.showModeStatus ? cm.name : "");
-    if (sl !== "" && window !== top && !isInUIFrame()) {
+    if (sl !== "" && window !== top && engineEnv && !engineEnv.isInUIFrame()) {
       const pathname = window.location.pathname.split("/");
       if (pathname.length) {
         sl += " - frame: " + pathname.at(-1);

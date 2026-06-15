@@ -3,6 +3,7 @@ import { render } from "solid-js/web";
 import * as v from "valibot";
 
 import createAPI from "../common/api";
+import { createEngineEnv } from "../common/createEngineEnv";
 import createDefaultMappings from "../common/default";
 import KeyboardUtils from "../common/keyboardUtils";
 import { ModeHandle, initModeHub } from "../common/mode";
@@ -73,7 +74,8 @@ type FrontMode = {
 };
 
 const Front = (() => {
-  initModeHub();
+  const engineEnv = createEngineEnv();
+  initModeHub(engineEnv);
   const { clipboard, insert, normal, hints, visual } = createModeGraph();
 
   const actions: Record<string, FrontActionFn> = {};

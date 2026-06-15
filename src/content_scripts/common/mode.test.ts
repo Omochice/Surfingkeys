@@ -1,12 +1,22 @@
+import { Result } from "@praha/byethrow";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
+import type { EngineEnv } from "./engineEnv";
 import { ModeHandle, checkEventListener, getCurrentMode, initModeHub, suppressKeyUp } from "./mode";
-import * as platformUtils from "./platform-utils";
 
-vi.mock("./platform-utils", async () => {
-  const actual = await vi.importActual<typeof import("./platform-utils")>("./platform-utils");
-  return { ...actual, reportIssue: vi.fn() };
-});
+// A complete EngineEnv whose chrome-facing members are inert stubs; mode.ts only exercises
+// isInUIFrame and reportIssue, so tests override just those.
+function makeTestEnv(overrides: Partial<EngineEnv> = {}): EngineEnv {
+  return {
+    RUNTIME: () => Result.succeed(undefined),
+    isInUIFrame: () => false,
+    reportIssue: vi.fn(),
+    tabOpenLink: () => {},
+    getExtensionURL: (path: string) => path,
+    surfingkeys: undefined,
+    ...overrides,
+  };
+}
 
 function makeMode(name = "Test"): ModeHandle {
   return new ModeHandle(name);
@@ -142,7 +152,7 @@ describe("ModeHandle.addEventListener", () => {
 describe("initModeHub", () => {
   it("runs the callback immediately on a normal (non-blank) page", () => {
     const cb = vi.fn();
-    initModeHub(cb);
+    initModeHub(makeTestEnv(), cb);
     expect(cb).toHaveBeenCalledOnce();
   });
 });
@@ -165,8 +175,8 @@ describe("checkEventListener", () => {
 
 describe("ModeHandle.enter — reentrant=false re-entry reports an issue and leaves the stack intact", () => {
   it("reports an issue and does not pop modes when a non-top mode is re-entered without reentrant", () => {
-    const reportIssue = vi.mocked(platformUtils.reportIssue);
-    reportIssue.mockClear();
+    const reportIssue = vi.fn();
+    initModeHub(makeTestEnv({ reportIssue }));
     const lower = new ModeHandle("Lower");
     const upper = new ModeHandle("Upper");
     // lower enters first (lower priority), upper enters on top (higher priority).
