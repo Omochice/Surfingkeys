@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-import { expectDefined } from "../../test/helpers";
+import { expectDefined } from "../../../test/helpers";
 import { createTabs, fixTo, roundBase } from "./tabs";
 
 type AnyChrome = {
