@@ -1,9 +1,10 @@
 import browser from "./browser";
 import { isAutoFocusMarked, isNewlyCreated, unmarkNewlyCreated } from "./domFlags";
+import { dispatchSKEvent } from "./events";
 import KeyboardUtils from "./keyboardUtils";
 import { type Keymap, createKeymap } from "./keymap";
 import { ModeHandle, getCurrentMode, showModeStatus, suppressKeyUp } from "./mode";
-import { RUNTIME, dispatchSKEvent, runtime } from "./runtime";
+import { RUNTIME, runtime } from "./runtime";
 import { getScrollableElements, hasScroll } from "./scrollDetection";
 import { isSpecialKeyOf } from "./specialKeys";
 import Trie from "./trie";

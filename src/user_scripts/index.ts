@@ -1,7 +1,8 @@
 import { Result } from "@praha/byethrow";
 
 import { userCodeError } from "../common/result";
-import { RUNTIME, dispatchSKEvent } from "../content_scripts/common/runtime";
+import { dispatchSKEvent } from "../content_scripts/common/events";
+import { RUNTIME } from "../content_scripts/common/runtime";
 import {
   applyUserSettings,
   getBrowserName,

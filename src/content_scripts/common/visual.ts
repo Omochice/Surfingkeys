@@ -1,8 +1,9 @@
 import { unwrapOr } from "../../common/result";
+import { dispatchSKEvent } from "./events";
 import KeyboardUtils from "./keyboardUtils";
 import { createKeymap } from "./keymap";
 import { ModeHandle, showModeStatus } from "./mode";
-import { RUNTIME, dispatchSKEvent, runtime } from "./runtime";
+import { RUNTIME, runtime } from "./runtime";
 import { isSpecialKeyOf } from "./specialKeys";
 import Trie from "./trie";
 import type { TrieMeta } from "./trie";

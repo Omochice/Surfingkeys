@@ -35,8 +35,11 @@ const seam = vi.hoisted(() => {
 
 vi.mock("./runtime", () => ({
   RUNTIME: seam.RUNTIME,
-  dispatchSKEvent: seam.dispatchSKEvent,
   runtime: { conf: seam.runtimeConf },
+}));
+
+vi.mock("./events", () => ({
+  dispatchSKEvent: seam.dispatchSKEvent,
 }));
 
 vi.mock("./utils", () => seam.utils);

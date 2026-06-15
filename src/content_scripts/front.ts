@@ -2,9 +2,10 @@ import * as v from "valibot";
 
 import { reportOnFail } from "../common/result";
 import { markSurfingKeysElement } from "./common/domFlags";
+import { dispatchSKEvent } from "./common/events";
 import { showModeStatus } from "./common/mode";
 import { reportError } from "./common/report";
-import { RUNTIME, dispatchSKEvent, runtime } from "./common/runtime";
+import { RUNTIME, runtime } from "./common/runtime";
 import type Trie from "./common/trie";
 import {
   createElementWithContent,

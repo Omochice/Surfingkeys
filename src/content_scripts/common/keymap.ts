@@ -1,5 +1,6 @@
+import { dispatchSKEvent } from "./events";
 import KeyboardUtils from "./keyboardUtils";
-import { RUNTIME, dispatchSKEvent, runtime } from "./runtime";
+import { RUNTIME, runtime } from "./runtime";
 import { isSpecialKeyOf } from "./specialKeys";
 import type Trie from "./trie";
 import type { TrieMeta } from "./trie";

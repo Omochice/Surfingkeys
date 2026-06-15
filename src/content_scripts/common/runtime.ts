@@ -10,27 +10,6 @@ import { reportError } from "./report";
 // "message port closed" into an unhandled rejection. onMessage stays here too
 // for the same callback contract.
 
-/**
- * Custom-event channels dispatched as `surfingkeys:<type>` for content↔frontend communication.
- * `front`/`api`/`user`/`hints`/`observer` are the registered {@link initSKFunctionListener}
- * namespaces; the rest are one-off lifecycle events listened to directly.
- */
-type SKEventType =
-  | "front"
-  | "api"
-  | "user"
-  | "hints"
-  | "observer"
-  | "userSettingsLoaded"
-  | "settingsFromSnippetsLoaded"
-  | "iframeBoot"
-  | "ensureFrontEnd"
-  | "defaultSettingsLoaded";
-
-function dispatchSKEvent(type: SKEventType, args?: unknown, target: EventTarget = document): void {
-  target.dispatchEvent(new CustomEvent(`surfingkeys:${type}`, { detail: args }));
-}
-
 type RuntimeFn = {
   <R = unknown>(
     action: string,
@@ -319,4 +298,4 @@ const runtime = {
   },
 };
 
-export { RUNTIME, dispatchSKEvent, runtime };
+export { RUNTIME, runtime };

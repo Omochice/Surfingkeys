@@ -1,8 +1,9 @@
 import { Result } from "@praha/byethrow";
 
 import { domApiError } from "../../common/result";
+import { dispatchSKEvent } from "./events";
 import KeyboardUtils from "./keyboardUtils";
-import { dispatchSKEvent, runtime } from "./runtime";
+import { runtime } from "./runtime";
 import { isInUIFrame, reportIssue } from "./utils";
 
 type StackEvent = Event & { keyCode?: number };

@@ -1,12 +1,13 @@
 import { reportOnFail } from "../common/result";
 import createAPI from "./common/api";
 import createDefaultMappings from "./common/default";
+import { dispatchSKEvent } from "./common/events";
 import { checkEventListener, initModeHub } from "./common/mode";
 import createModeGraph, { type ModeContext } from "./common/modeGraph";
 import createNormal from "./common/normal";
 import startScrollNodeObserver from "./common/observer";
 import { reportError } from "./common/report";
-import { RUNTIME, dispatchSKEvent, runtime } from "./common/runtime";
+import { RUNTIME, runtime } from "./common/runtime";
 import type { StoredSettings } from "./common/runtime";
 import { generateQuickGuid, getRealEdit, isInUIFrame, showBanner } from "./common/utils";
 import createFront from "./front";

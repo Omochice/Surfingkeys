@@ -9,8 +9,9 @@ import {
   unwrapOr,
 } from "../../common/result";
 import browser from "./browser";
+import { dispatchSKEvent } from "./events";
 import KeyboardUtils from "./keyboardUtils";
-import { RUNTIME, dispatchSKEvent, runtime } from "./runtime";
+import { RUNTIME, runtime } from "./runtime";
 import type Trie from "./trie";
 import type { TrieMeta } from "./trie";
 

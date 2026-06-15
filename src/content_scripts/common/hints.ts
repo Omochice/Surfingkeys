@@ -1,7 +1,8 @@
+import { dispatchSKEvent } from "./events";
 import KeyboardUtils from "./keyboardUtils";
 import { createKeymap } from "./keymap";
 import { ModeHandle, getCurrentMode, showModeStatus, suppressKeyUp } from "./mode";
-import { dispatchSKEvent, runtime } from "./runtime";
+import { runtime } from "./runtime";
 import { isSpecialKeyOf } from "./specialKeys";
 import Trie from "./trie";
 import {

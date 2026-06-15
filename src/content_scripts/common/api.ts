@@ -1,8 +1,9 @@
+import { dispatchSKEvent } from "./events";
 import KeyboardUtils from "./keyboardUtils";
 import type { Keymap } from "./keymap";
 import { LOG } from "./log";
 import type { ModeContext } from "./modeGraph";
-import { RUNTIME, dispatchSKEvent } from "./runtime";
+import { RUNTIME } from "./runtime";
 import { specialKeys } from "./specialKeys";
 import Trie from "./trie";
 import {

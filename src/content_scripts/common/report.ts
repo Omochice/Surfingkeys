@@ -1,5 +1,5 @@
 import type { SkError } from "../../common/result";
-import { dispatchSKEvent } from "./runtime";
+import { dispatchSKEvent } from "./events";
 
 const formatMessage = (err: SkError): string => {
   switch (err.kind) {

@@ -1,9 +1,10 @@
 import * as v from "valibot";
 
 import type { SurfingkeysApi } from "./api";
+import { dispatchSKEvent } from "./events";
 import KeyboardUtils from "./keyboardUtils";
 import type { ModeContext } from "./modeGraph";
-import { RUNTIME, dispatchSKEvent, runtime } from "./runtime";
+import { RUNTIME, runtime } from "./runtime";
 import {
   getBrowserName,
   getCssSelectorsOfEditable,

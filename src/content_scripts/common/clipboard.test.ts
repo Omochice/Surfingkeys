@@ -4,7 +4,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 vi.mock("./runtime", () => {
   const RUNTIME = vi.fn(() => ({ ok: true })) as any;
   RUNTIME.repeats = 1;
-  return { RUNTIME, dispatchSKEvent: vi.fn(), runtime: { conf: {} } };
+  return { RUNTIME, runtime: { conf: {} } };
 });
 
 // Mock utils so we can control getBrowserName and capture showBanner calls.

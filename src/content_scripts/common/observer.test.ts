@@ -1,8 +1,8 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { isNewlyCreated, markSurfingKeysElement } from "./domFlags";
+import { dispatchSKEvent } from "./events";
 import startScrollNodeObserver from "./observer";
-import { dispatchSKEvent } from "./runtime";
 
 const stubNormal = { addScrollableElement: () => {} };
 
