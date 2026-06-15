@@ -50,7 +50,7 @@ function initModules(): Modes {
   const front = createFront(insert, normal, hints, visual, adapter);
 
   const ctx: ModeContext = { clipboard, insert, normal, hints, visual, front };
-  const api = createAPI(ctx);
+  const api = createAPI(ctx, engineEnv);
   createDefaultMappings(api, ctx);
   if (typeof adapter.plugin === "function") {
     adapter.plugin({ front });

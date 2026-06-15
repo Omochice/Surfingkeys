@@ -137,7 +137,7 @@ const Front = (() => {
     visual,
     front: self as unknown as ModeContext["front"],
   };
-  const api = createAPI(ctx);
+  const api = createAPI(ctx, engineEnv);
   createDefaultMappings(api, ctx);
 
   function addDestroyListener(task: () => void): void {
