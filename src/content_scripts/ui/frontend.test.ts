@@ -15,9 +15,8 @@
  */
 
 import { specialKeys } from "@sk/core/specialKeys";
+import { runtime } from "@sk/messaging/runtime";
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
-
-import { runtime } from "../common/runtime";
 
 // ---------------------------------------------------------------------------
 // Module mocks — hoisted before any import executes.
@@ -69,8 +68,8 @@ vi.mock("@sk/core/default", () => ({ default: vi.fn() }));
 
 // ../common/runtime: intercept RUNTIME calls so no chrome.runtime.sendMessage
 // reaches the chrome stub.
-vi.mock("../common/runtime", async (importOriginal) => {
-  const orig = await importOriginal<typeof import("../common/runtime")>();
+vi.mock("@sk/messaging/runtime", async (importOriginal) => {
+  const orig = await importOriginal<typeof import("@sk/messaging/runtime")>();
   return {
     ...orig,
     RUNTIME: vi.fn(() => ({ tag: "success", value: undefined })),

@@ -219,6 +219,9 @@ importers:
       '@sk/core':
         specifier: workspace:*
         version: link:packages/core
+      '@sk/messaging':
+        specifier: workspace:*
+        version: link:packages/messaging
       dompurify:
         specifier: ^3.2.4
         version: 3.4.10
@@ -314,6 +317,18 @@ importers:
       valibot:
         specifier: 1.4.1
         version: 1.4.1(typescript@6.0.3)
+
+  packages/messaging:
+    dependencies:
+      '@praha/byethrow':
+        specifier: 0.12.0
+        version: 0.12.0(typescript@6.0.3)
+      '@sk/common':
+        specifier: workspace:*
+        version: link:../common
+      '@sk/core':
+        specifier: workspace:*
+        version: link:../core
 
 packages:
 

@@ -15,10 +15,10 @@ import {
   regExpReplacer,
   requireElement,
 } from "@sk/core/utils";
+import { tabOpenLink } from "@sk/messaging/messagingActions";
+import { RUNTIME, runtime } from "@sk/messaging/runtime";
 import * as v from "valibot";
 
-import { tabOpenLink } from "./common/messagingActions";
-import { RUNTIME, runtime } from "./common/runtime";
 import createUiHost from "./uiframe";
 import type { UiHost } from "./uiframe";
 

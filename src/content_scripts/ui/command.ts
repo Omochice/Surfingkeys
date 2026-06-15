@@ -1,6 +1,5 @@
 import { createElementWithContent } from "@sk/core/utils";
-
-import { RUNTIME } from "../common/runtime";
+import { RUNTIME } from "@sk/messaging/runtime";
 
 type NormalLike = { feedkeys(keys: string): void };
 type CommandFn = (

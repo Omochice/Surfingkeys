@@ -10,9 +10,9 @@ import createNormal from "@sk/core/normal";
 import startScrollNodeObserver from "@sk/core/observer";
 import { reportError } from "@sk/core/report";
 import { generateQuickGuid, getRealEdit, showBanner } from "@sk/core/utils";
+import { RUNTIME, runtime } from "@sk/messaging/runtime";
 
 import { createEngineEnv } from "./common/createEngineEnv";
-import { RUNTIME, runtime } from "./common/runtime";
 import createFront from "./front";
 import { applySettings } from "./settingsApplication";
 

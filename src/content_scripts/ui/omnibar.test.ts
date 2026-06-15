@@ -1,7 +1,7 @@
 import { Result } from "@praha/byethrow";
+import { RUNTIME, runtime } from "@sk/messaging/runtime";
 import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 
-import { RUNTIME, runtime } from "../common/runtime";
 import createOmnibar from "./omnibar";
 
 // ---------------------------------------------------------------------------
@@ -9,8 +9,8 @@ import createOmnibar from "./omnibar";
 // calls RUNTIME(...) does not reach chrome.runtime.sendMessage.
 // The return value must be a real @praha/byethrow Result so reportOnFail works.
 // ---------------------------------------------------------------------------
-vi.mock("../common/runtime", async (importOriginal) => {
-  const orig = await importOriginal<typeof import("../common/runtime")>();
+vi.mock("@sk/messaging/runtime", async (importOriginal) => {
+  const orig = await importOriginal<typeof import("@sk/messaging/runtime")>();
   return {
     ...orig,
     RUNTIME: vi.fn(() => Result.succeed(undefined)),

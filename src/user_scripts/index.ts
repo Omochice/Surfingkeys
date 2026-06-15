@@ -10,9 +10,8 @@ import {
   showBanner,
   showPopup,
 } from "@sk/core/utils";
-
-import { httpRequest, tabOpenLink } from "../content_scripts/common/messagingActions";
-import { RUNTIME } from "../content_scripts/common/runtime";
+import { httpRequest, tabOpenLink } from "@sk/messaging/messagingActions";
+import { RUNTIME } from "@sk/messaging/runtime";
 
 let EXTENSION_ROOT_URL = "";
 function isInUIFrame() {
