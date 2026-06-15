@@ -1,13 +1,30 @@
+import { Result } from "@praha/byethrow";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import createAPI from "./api";
-import { createEngineEnv } from "./createEngineEnv";
+import type { EngineEnv } from "./engineEnv";
 import KeyboardUtils from "./keyboardUtils";
 import Trie from "./trie";
 
-// api asserts real seam behaviour (chrome.runtime.sendMessage spies via RUNTIME/tabOpenLink), so it
-// runs against the real env built from the seams.
-const env = createEngineEnv();
+// api delegates tab-opening to env.tabOpenLink, so the stub exposes it as a spy the tests assert
+// against; RUNTIME forwards to chrome.runtime.sendMessage to keep any other messaging inert.
+const env: EngineEnv = {
+  RUNTIME: (action, args, callback) => {
+    const message = { ...(args ?? {}), action, needResponse: callback != null };
+    if (callback) {
+      chrome.runtime.sendMessage(message, callback);
+    } else {
+      chrome.runtime.sendMessage(message);
+    }
+    return Result.succeed();
+  },
+  isInUIFrame: () => false,
+  reportIssue: () => {},
+  tabOpenLink: vi.fn(),
+  getExtensionURL: (path) => chrome.runtime.getURL(path),
+  log: () => {},
+  surfingkeys: undefined,
+};
 
 // ---------------------------------------------------------------------------
 // Minimal ModeContext factory
@@ -555,9 +572,12 @@ describe("createAPI removeSearchAlias", () => {
 // ---------------------------------------------------------------------------
 
 describe("createAPI searchSelectedWith", () => {
-  it("passes the constructed URL to tabOpenLink via RUNTIME openLink", () => {
+  it("passes the constructed URL to tabOpenLink", () => {
     const ctx = makeCtx();
     const api = createAPI(ctx as any, env);
+
+    const tabOpenLink = vi.mocked(env.tabOpenLink);
+    tabOpenLink.mockClear();
 
     // Simulate a text selection of "surfingkeys"
     const getSelection = vi.spyOn(window, "getSelection").mockReturnValue({
@@ -567,22 +587,14 @@ describe("createAPI searchSelectedWith", () => {
     // clipboard.read is synchronous in our mock — call cb immediately
     ctx.clipboard.read.mockImplementation((cb: any) => cb({ data: "" }));
 
-    const sendMessage = vi.fn();
-    (globalThis as any).chrome.runtime.sendMessage = sendMessage;
-
     api.searchSelectedWith("https://www.google.com/search?q=");
 
-    // RUNTIME("openLink", ...) sends a chrome runtime message with action=openLink
-    const openLinkCalls = sendMessage.mock.calls.filter(
-      (args: any[]) => args[0]?.action === "openLink",
-    );
-    expect(openLinkCalls).toHaveLength(1);
-    expect(openLinkCalls[0]![0].url).toBe(
+    expect(tabOpenLink).toHaveBeenCalledTimes(1);
+    expect(tabOpenLink).toHaveBeenCalledWith(
       `https://www.google.com/search?q=${encodeURIComponent("surfingkeys")}`,
     );
 
     getSelection.mockRestore();
-    (globalThis as any).chrome.runtime.sendMessage = () => {};
   });
 
   it("prepends 'site:<hostname>' to query when onlyThisSite is true", () => {
@@ -594,22 +606,18 @@ describe("createAPI searchSelectedWith", () => {
     } as any);
     ctx.clipboard.read.mockImplementation((cb: any) => cb({ data: "" }));
 
-    const sendMessage = vi.fn();
-    (globalThis as any).chrome.runtime.sendMessage = sendMessage;
+    const tabOpenLink = vi.mocked(env.tabOpenLink);
+    tabOpenLink.mockClear();
 
     api.searchSelectedWith("https://www.google.com/search?q=", true);
 
-    const openLinkCalls = sendMessage.mock.calls.filter(
-      (args: any[]) => args[0]?.action === "openLink",
-    );
-    expect(openLinkCalls).toHaveLength(1);
-    const url = openLinkCalls[0]![0].url as string;
+    expect(tabOpenLink).toHaveBeenCalledTimes(1);
+    const url = tabOpenLink.mock.calls[0]![0] as string;
     // URL should contain the encoded "site:<hostname> test query"
     expect(url).toContain("site%3A");
     expect(url).toContain("test%20query");
 
     vi.restoreAllMocks();
-    (globalThis as any).chrome.runtime.sendMessage = () => {};
   });
 
   it("opens the omnibar with pref set to the query when interactive is true", () => {
@@ -641,20 +649,16 @@ describe("createAPI searchSelectedWith", () => {
     } as any);
     ctx.clipboard.read.mockImplementation((cb: any) => cb({ data: "clipboard text" }));
 
-    const sendMessage = vi.fn();
-    (globalThis as any).chrome.runtime.sendMessage = sendMessage;
+    const tabOpenLink = vi.mocked(env.tabOpenLink);
+    tabOpenLink.mockClear();
 
     api.searchSelectedWith("https://www.google.com/search?q=");
 
-    const openLinkCall = sendMessage.mock.calls.find(
-      (args: any[]) => args[0]?.action === "openLink",
-    );
-    expect(openLinkCall![0].url).toBe(
+    expect(tabOpenLink).toHaveBeenCalledWith(
       `https://www.google.com/search?q=${encodeURIComponent("clipboard text")}`,
     );
 
     vi.restoreAllMocks();
-    (globalThis as any).chrome.runtime.sendMessage = () => {};
   });
 
   it("handles search URL with {0} placeholder correctly", () => {
@@ -666,20 +670,16 @@ describe("createAPI searchSelectedWith", () => {
     } as any);
     ctx.clipboard.read.mockImplementation((cb: any) => cb({ data: "" }));
 
-    const sendMessage = vi.fn();
-    (globalThis as any).chrome.runtime.sendMessage = sendMessage;
+    const tabOpenLink = vi.mocked(env.tabOpenLink);
+    tabOpenLink.mockClear();
 
     api.searchSelectedWith("https://example.com/search?q={0}&lang=en");
 
-    const openLinkCall = sendMessage.mock.calls.find(
-      (args: any[]) => args[0]?.action === "openLink",
-    );
-    expect(openLinkCall![0].url).toBe(
+    expect(tabOpenLink).toHaveBeenCalledWith(
       `https://example.com/search?q=${encodeURIComponent("hello")}&lang=en`,
     );
 
     vi.restoreAllMocks();
-    (globalThis as any).chrome.runtime.sendMessage = () => {};
   });
 });
 

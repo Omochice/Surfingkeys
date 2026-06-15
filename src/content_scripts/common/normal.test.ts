@@ -1,17 +1,35 @@
+import { Result } from "@praha/byethrow";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-import { createEngineEnv } from "./createEngineEnv";
+import { conf } from "./conf";
 import { markAutoFocus, markNewlyCreated } from "./domFlags";
+import type { EngineEnv } from "./engineEnv";
 import KeyboardUtils from "./keyboardUtils";
 import { getCurrentMode } from "./mode";
 import createNormal from "./normal";
 import { repeatCount } from "./repeatCount";
-import { runtime } from "./runtime";
 import { getScrollableElements } from "./scrollDetection";
 
-// normal asserts real seam behaviour (chrome.runtime.sendMessage spies, extension-URL checks), so it
-// runs against the real env built from the seams rather than inert stubs.
-const env = createEngineEnv();
+// normal asserts real seam behaviour (chrome.runtime.sendMessage spies, extension-URL checks), so its
+// stub env forwards RUNTIME to chrome.runtime.sendMessage and resolves getExtensionURL via
+// chrome.runtime.getURL, keeping those assertions intact without depending on the chrome seams.
+const env: EngineEnv = {
+  RUNTIME: (action, args, callback) => {
+    const message = { ...(args ?? {}), action, needResponse: callback != null };
+    if (callback) {
+      chrome.runtime.sendMessage(message, callback);
+    } else {
+      chrome.runtime.sendMessage(message);
+    }
+    return Result.succeed();
+  },
+  isInUIFrame: () => false,
+  reportIssue: () => {},
+  tabOpenLink: vi.fn(),
+  getExtensionURL: (path) => chrome.runtime.getURL(path),
+  log: () => {},
+  surfingkeys: undefined,
+};
 
 // Wrapped so individual tests can stub the scroll-list discovery with
 // mockReturnValueOnce; every other test keeps the real implementation.
@@ -41,15 +59,15 @@ describe("createNormal focus handler — auto-focus suppression", () => {
   let savedEnableAutoFocus: boolean;
 
   beforeEach(() => {
-    savedStealFocusOnLoad = runtime.conf.stealFocusOnLoad;
-    savedEnableAutoFocus = runtime.conf.enableAutoFocus;
-    runtime.conf.stealFocusOnLoad = true;
-    runtime.conf.enableAutoFocus = false;
+    savedStealFocusOnLoad = conf.stealFocusOnLoad;
+    savedEnableAutoFocus = conf.enableAutoFocus;
+    conf.stealFocusOnLoad = true;
+    conf.enableAutoFocus = false;
   });
 
   afterEach(() => {
-    runtime.conf.stealFocusOnLoad = savedStealFocusOnLoad;
-    runtime.conf.enableAutoFocus = savedEnableAutoFocus;
+    conf.stealFocusOnLoad = savedStealFocusOnLoad;
+    conf.enableAutoFocus = savedEnableAutoFocus;
   });
 
   it("blurs an editable element that is not marked for auto-focus", () => {
@@ -167,12 +185,12 @@ describe("createNormal scroll — skScrollBy reaches the scrolling element", () 
   let scrollBy: ReturnType<typeof vi.fn>;
 
   beforeEach(() => {
-    savedSmoothScroll = runtime.conf.smoothScroll;
-    savedSmartPageBoundary = runtime.conf.smartPageBoundary;
+    savedSmoothScroll = conf.smoothScroll;
+    savedSmartPageBoundary = conf.smartPageBoundary;
     savedRepeats = repeatCount.value;
-    runtime.conf.smoothScroll = false;
+    conf.smoothScroll = false;
     // The all-zero jsdom rect otherwise trips skScrollBy's bottom-boundary guard.
-    runtime.conf.smartPageBoundary = false;
+    conf.smartPageBoundary = false;
     repeatCount.value = 1;
     Object.defineProperty(document, "scrollingElement", {
       value: document.documentElement,
@@ -184,8 +202,8 @@ describe("createNormal scroll — skScrollBy reaches the scrolling element", () 
   });
 
   afterEach(() => {
-    runtime.conf.smoothScroll = savedSmoothScroll;
-    runtime.conf.smartPageBoundary = savedSmartPageBoundary;
+    conf.smoothScroll = savedSmoothScroll;
+    conf.smartPageBoundary = savedSmartPageBoundary;
     repeatCount.value = savedRepeats;
     scrollTarget().style.scrollBehavior = "";
     Reflect.deleteProperty(document, "scrollingElement");
@@ -200,7 +218,7 @@ describe("createNormal scroll — skScrollBy reaches the scrolling element", () 
     expect(scrollBy).toHaveBeenCalledWith({
       behavior: "instant",
       left: 0,
-      top: runtime.conf.scrollStepSize,
+      top: conf.scrollStepSize,
     });
   });
 
@@ -212,13 +230,13 @@ describe("createNormal scroll — skScrollBy reaches the scrolling element", () 
     expect(scrollBy).toHaveBeenCalledWith({
       behavior: "instant",
       left: 0,
-      top: -runtime.conf.scrollStepSize,
+      top: -conf.scrollStepSize,
     });
   });
 
   it("scrolls right and left along the x-axis by half the step size", () => {
     const normal = createNormal(insertStub, env);
-    const half = Math.round(runtime.conf.scrollStepSize / 2);
+    const half = Math.round(conf.scrollStepSize / 2);
 
     normal.scroll("right");
     normal.scroll("left");
@@ -237,7 +255,7 @@ describe("createNormal scroll — skScrollBy reaches the scrolling element", () 
   });
 
   it("takes the smooth-scroll path when smoothScroll is on", () => {
-    runtime.conf.smoothScroll = true;
+    conf.smoothScroll = true;
     const normal = createNormal(insertStub, env);
 
     normal.scroll("down");
@@ -255,11 +273,11 @@ describe("createNormal scroll — all non-smooth scroll types dispatch correct a
   let scrollBy: ReturnType<typeof vi.fn>;
 
   beforeEach(() => {
-    savedSmoothScroll = runtime.conf.smoothScroll;
-    savedSmartPageBoundary = runtime.conf.smartPageBoundary;
+    savedSmoothScroll = conf.smoothScroll;
+    savedSmartPageBoundary = conf.smartPageBoundary;
     savedRepeats = repeatCount.value;
-    runtime.conf.smoothScroll = false;
-    runtime.conf.smartPageBoundary = false;
+    conf.smoothScroll = false;
+    conf.smartPageBoundary = false;
     repeatCount.value = 1;
     Object.defineProperty(document, "scrollingElement", {
       value: document.documentElement,
@@ -282,8 +300,8 @@ describe("createNormal scroll — all non-smooth scroll types dispatch correct a
   });
 
   afterEach(() => {
-    runtime.conf.smoothScroll = savedSmoothScroll;
-    runtime.conf.smartPageBoundary = savedSmartPageBoundary;
+    conf.smoothScroll = savedSmoothScroll;
+    conf.smartPageBoundary = savedSmartPageBoundary;
     repeatCount.value = savedRepeats;
     scrollTarget().style.scrollBehavior = "";
     Reflect.deleteProperty(document, "scrollingElement");
@@ -365,7 +383,7 @@ describe("createNormal scroll — all non-smooth scroll types dispatch correct a
     expect(scrollBy).toHaveBeenCalledWith({
       behavior: "instant",
       left: 0,
-      top: 3 * runtime.conf.scrollStepSize,
+      top: 3 * conf.scrollStepSize,
     });
     expect(repeatCount.value).toBe(0);
   });
@@ -380,11 +398,11 @@ describe("createNormal scroll — byRatio positions relative to scrollHeight", (
   let scrollBy: ReturnType<typeof vi.fn>;
 
   beforeEach(() => {
-    savedSmoothScroll = runtime.conf.smoothScroll;
-    savedSmartPageBoundary = runtime.conf.smartPageBoundary;
+    savedSmoothScroll = conf.smoothScroll;
+    savedSmartPageBoundary = conf.smartPageBoundary;
     savedRepeats = repeatCount.value;
-    runtime.conf.smoothScroll = false;
-    runtime.conf.smartPageBoundary = false;
+    conf.smoothScroll = false;
+    conf.smartPageBoundary = false;
     Object.defineProperty(document, "scrollingElement", {
       value: document.documentElement,
       configurable: true,
@@ -405,8 +423,8 @@ describe("createNormal scroll — byRatio positions relative to scrollHeight", (
   });
 
   afterEach(() => {
-    runtime.conf.smoothScroll = savedSmoothScroll;
-    runtime.conf.smartPageBoundary = savedSmartPageBoundary;
+    conf.smoothScroll = savedSmoothScroll;
+    conf.smartPageBoundary = savedSmartPageBoundary;
     repeatCount.value = savedRepeats;
     scrollTarget().style.scrollBehavior = "";
     Reflect.deleteProperty(document, "scrollingElement");
@@ -517,10 +535,10 @@ describe("createNormal jumpVIMark", () => {
   let scrollBy: ReturnType<typeof vi.fn>;
 
   beforeEach(() => {
-    savedSmartPageBoundary = runtime.conf.smartPageBoundary;
-    savedSmoothScroll = runtime.conf.smoothScroll;
-    runtime.conf.smartPageBoundary = false;
-    runtime.conf.smoothScroll = false;
+    savedSmartPageBoundary = conf.smartPageBoundary;
+    savedSmoothScroll = conf.smoothScroll;
+    conf.smartPageBoundary = false;
+    conf.smoothScroll = false;
     Object.defineProperty(document, "scrollingElement", {
       value: document.documentElement,
       configurable: true,
@@ -541,8 +559,8 @@ describe("createNormal jumpVIMark", () => {
   });
 
   afterEach(() => {
-    runtime.conf.smartPageBoundary = savedSmartPageBoundary;
-    runtime.conf.smoothScroll = savedSmoothScroll;
+    conf.smartPageBoundary = savedSmartPageBoundary;
+    conf.smoothScroll = savedSmoothScroll;
     scrollTarget().style.scrollBehavior = "";
     Reflect.deleteProperty(document, "scrollingElement");
     Reflect.deleteProperty(scrollTarget(), "scrollBy");
@@ -729,10 +747,10 @@ describe("createNormal mousedown handler", () => {
   });
 
   it("sets passFocus when isTrusted=true and enableAutoFocus is false, so next focus is not suppressed", () => {
-    const savedEnableAutoFocus = runtime.conf.enableAutoFocus;
-    const savedStealFocusOnLoad = runtime.conf.stealFocusOnLoad;
-    runtime.conf.enableAutoFocus = false;
-    runtime.conf.stealFocusOnLoad = true;
+    const savedEnableAutoFocus = conf.enableAutoFocus;
+    const savedStealFocusOnLoad = conf.stealFocusOnLoad;
+    conf.enableAutoFocus = false;
+    conf.stealFocusOnLoad = true;
     const insert = { enter: vi.fn(), exit: vi.fn() };
     const normal = createNormal(insert, env);
     const div = document.createElement("div");
@@ -750,8 +768,8 @@ describe("createNormal mousedown handler", () => {
     normal.eventListeners["focus"]!(focusEvent);
     expect(blur).not.toHaveBeenCalled();
 
-    runtime.conf.enableAutoFocus = savedEnableAutoFocus;
-    runtime.conf.stealFocusOnLoad = savedStealFocusOnLoad;
+    conf.enableAutoFocus = savedEnableAutoFocus;
+    conf.stealFocusOnLoad = savedStealFocusOnLoad;
     div.remove();
     textarea.remove();
   });
@@ -1220,10 +1238,10 @@ describe("createNormal smoothScrollBy — requestAnimationFrame path", () => {
   let savedSmartPageBoundary: boolean;
 
   beforeEach(() => {
-    savedSmoothScroll = runtime.conf.smoothScroll;
-    savedSmartPageBoundary = runtime.conf.smartPageBoundary;
-    runtime.conf.smoothScroll = true;
-    runtime.conf.smartPageBoundary = false;
+    savedSmoothScroll = conf.smoothScroll;
+    savedSmartPageBoundary = conf.smartPageBoundary;
+    conf.smoothScroll = true;
+    conf.smartPageBoundary = false;
     repeatCount.value = 1;
     Object.defineProperty(document, "scrollingElement", {
       value: document.documentElement,
@@ -1242,8 +1260,8 @@ describe("createNormal smoothScrollBy — requestAnimationFrame path", () => {
   });
 
   afterEach(() => {
-    runtime.conf.smoothScroll = savedSmoothScroll;
-    runtime.conf.smartPageBoundary = savedSmartPageBoundary;
+    conf.smoothScroll = savedSmoothScroll;
+    conf.smartPageBoundary = savedSmartPageBoundary;
     document.documentElement.style.scrollBehavior = "";
     Reflect.deleteProperty(document, "scrollingElement");
     Reflect.deleteProperty(document.documentElement, "scrollTop");
@@ -1330,7 +1348,7 @@ describe("createNormal onMouseUp — querySelectedWord dispatch", () => {
 
   afterEach(() => {
     vi.useRealTimers();
-    runtime.conf.mouseSelectToQuery = [];
+    conf.mouseSelectToQuery = [];
   });
 
   it("dispatches at least one querySelectedWord after 1 ms when window.origin is in mouseSelectToQuery", () => {
@@ -1338,7 +1356,7 @@ describe("createNormal onMouseUp — querySelectedWord dispatch", () => {
     // created in the test suite may all have mouseup listeners active (each
     // createNormal calls self.enable() which appends a listener), so we count
     // the increment rather than asserting an absolute value of 1.
-    runtime.conf.mouseSelectToQuery = [window.origin];
+    conf.mouseSelectToQuery = [window.origin];
 
     const div = document.createElement("div");
     document.body.appendChild(div);
@@ -1372,7 +1390,7 @@ describe("createNormal onMouseUp — querySelectedWord dispatch", () => {
   });
 
   it("does not dispatch querySelectedWord when window.origin is not in mouseSelectToQuery", () => {
-    runtime.conf.mouseSelectToQuery = [];
+    conf.mouseSelectToQuery = [];
 
     const events: CustomEvent[] = [];
     const capture = (e: Event): void => {
@@ -1435,13 +1453,13 @@ describe("createNormal scroll — scrollFallback falls back when element cannot 
   let scrollBy: ReturnType<typeof vi.fn>;
 
   beforeEach(() => {
-    savedSmoothScroll = runtime.conf.smoothScroll;
-    savedSmartPageBoundary = runtime.conf.smartPageBoundary;
-    savedScrollFallback = runtime.conf.scrollFallback;
+    savedSmoothScroll = conf.smoothScroll;
+    savedSmartPageBoundary = conf.smartPageBoundary;
+    savedScrollFallback = conf.scrollFallback;
     savedRepeats = repeatCount.value;
-    runtime.conf.smoothScroll = false;
-    runtime.conf.smartPageBoundary = false;
-    runtime.conf.scrollFallback = true;
+    conf.smoothScroll = false;
+    conf.smartPageBoundary = false;
+    conf.scrollFallback = true;
     repeatCount.value = 1;
     Object.defineProperty(document, "scrollingElement", {
       value: document.documentElement,
@@ -1469,9 +1487,9 @@ describe("createNormal scroll — scrollFallback falls back when element cannot 
   });
 
   afterEach(() => {
-    runtime.conf.smoothScroll = savedSmoothScroll;
-    runtime.conf.smartPageBoundary = savedSmartPageBoundary;
-    runtime.conf.scrollFallback = savedScrollFallback;
+    conf.smoothScroll = savedSmoothScroll;
+    conf.smartPageBoundary = savedSmartPageBoundary;
+    conf.scrollFallback = savedScrollFallback;
     repeatCount.value = savedRepeats;
     document.documentElement.style.scrollBehavior = "";
     Reflect.deleteProperty(document, "scrollingElement");
@@ -1517,7 +1535,7 @@ describe("createNormal scroll — scrollFallback falls back when element cannot 
     expect(scrollBy).toHaveBeenCalledWith({
       behavior: "instant",
       left: 0,
-      top: runtime.conf.scrollStepSize,
+      top: conf.scrollStepSize,
     });
 
     inner.remove();
@@ -1533,11 +1551,11 @@ describe("createNormal scroll — smartPageBoundary fires boundary events", () =
   let scrollBy: ReturnType<typeof vi.fn>;
 
   beforeEach(() => {
-    savedSmoothScroll = runtime.conf.smoothScroll;
-    savedSmartPageBoundary = runtime.conf.smartPageBoundary;
+    savedSmoothScroll = conf.smoothScroll;
+    savedSmartPageBoundary = conf.smartPageBoundary;
     savedRepeats = repeatCount.value;
-    runtime.conf.smoothScroll = false;
-    runtime.conf.smartPageBoundary = true;
+    conf.smoothScroll = false;
+    conf.smartPageBoundary = true;
     repeatCount.value = 1;
     Object.defineProperty(document, "scrollingElement", {
       value: document.documentElement,
@@ -1569,8 +1587,8 @@ describe("createNormal scroll — smartPageBoundary fires boundary events", () =
   });
 
   afterEach(() => {
-    runtime.conf.smoothScroll = savedSmoothScroll;
-    runtime.conf.smartPageBoundary = savedSmartPageBoundary;
+    conf.smoothScroll = savedSmoothScroll;
+    conf.smartPageBoundary = savedSmartPageBoundary;
     repeatCount.value = savedRepeats;
     document.documentElement.style.scrollBehavior = "";
     Reflect.deleteProperty(document, "scrollingElement");
@@ -1635,11 +1653,11 @@ describe("createNormal scroll — bottom and rightmost scroll types", () => {
   let scrollBy: ReturnType<typeof vi.fn>;
 
   beforeEach(() => {
-    savedSmoothScroll = runtime.conf.smoothScroll;
-    savedSmartPageBoundary = runtime.conf.smartPageBoundary;
+    savedSmoothScroll = conf.smoothScroll;
+    savedSmartPageBoundary = conf.smartPageBoundary;
     savedRepeats = repeatCount.value;
-    runtime.conf.smoothScroll = false;
-    runtime.conf.smartPageBoundary = false;
+    conf.smoothScroll = false;
+    conf.smartPageBoundary = false;
     repeatCount.value = 1;
     Object.defineProperty(document, "scrollingElement", {
       value: document.documentElement,
@@ -1671,8 +1689,8 @@ describe("createNormal scroll — bottom and rightmost scroll types", () => {
   });
 
   afterEach(() => {
-    runtime.conf.smoothScroll = savedSmoothScroll;
-    runtime.conf.smartPageBoundary = savedSmartPageBoundary;
+    conf.smoothScroll = savedSmoothScroll;
+    conf.smartPageBoundary = savedSmartPageBoundary;
     repeatCount.value = savedRepeats;
     document.documentElement.style.scrollBehavior = "";
     Reflect.deleteProperty(document, "scrollingElement");
@@ -1711,10 +1729,10 @@ describe("createNormal addScrollableElement — duplicate guard", () => {
   let savedSmartPageBoundary: boolean;
 
   beforeEach(() => {
-    savedSmoothScroll = runtime.conf.smoothScroll;
-    savedSmartPageBoundary = runtime.conf.smartPageBoundary;
-    runtime.conf.smoothScroll = false;
-    runtime.conf.smartPageBoundary = false;
+    savedSmoothScroll = conf.smoothScroll;
+    savedSmartPageBoundary = conf.smartPageBoundary;
+    conf.smoothScroll = false;
+    conf.smartPageBoundary = false;
     Object.defineProperty(document, "scrollingElement", {
       value: document.documentElement,
       configurable: true,
@@ -1726,15 +1744,15 @@ describe("createNormal addScrollableElement — duplicate guard", () => {
   });
 
   afterEach(() => {
-    runtime.conf.smoothScroll = savedSmoothScroll;
-    runtime.conf.smartPageBoundary = savedSmartPageBoundary;
+    conf.smoothScroll = savedSmoothScroll;
+    conf.smartPageBoundary = savedSmartPageBoundary;
     Reflect.deleteProperty(document, "scrollingElement");
     Reflect.deleteProperty(document.documentElement, "scrollBy");
   });
 
   it("does not add a duplicate element to the scroll list", () => {
-    const savedScrollFallback = runtime.conf.scrollFallback;
-    runtime.conf.scrollFallback = false;
+    const savedScrollFallback = conf.scrollFallback;
+    conf.scrollFallback = false;
     // Suppress auto-detection so addScrollableElement is the only source of scroll nodes;
     // otherwise jsdom reports the freshly-built divs as already-scrollable and skips the push.
     // The discovery runs exactly once (the later calls see a non-empty list), so Once suffices.
@@ -1767,11 +1785,11 @@ describe("createNormal addScrollableElement — duplicate guard", () => {
     expect(second.scrollBy).toHaveBeenCalledWith({
       behavior: "instant",
       left: 0,
-      top: runtime.conf.scrollStepSize,
+      top: conf.scrollStepSize,
     });
     expect(first.scrollBy).not.toHaveBeenCalled();
 
-    runtime.conf.scrollFallback = savedScrollFallback;
+    conf.scrollFallback = savedScrollFallback;
     first.el.remove();
     second.el.remove();
   });
@@ -1956,10 +1974,10 @@ describe("createNormal keydown handler — editable target branches", () => {
   });
 
   it("shows the 'Press i' hint and routes the key through mappings when editableBodyCare is on and body is the target", () => {
-    const savedCare = runtime.conf.editableBodyCare;
-    const savedShow = runtime.conf.showModeStatus;
-    runtime.conf.editableBodyCare = true;
-    runtime.conf.showModeStatus = false;
+    const savedCare = conf.editableBodyCare;
+    const savedShow = conf.showModeStatus;
+    conf.editableBodyCare = true;
+    conf.showModeStatus = false;
     const insert = { enter: vi.fn(), exit: vi.fn() };
     const normal = createNormal(insert, env);
     // jsdom reports isContentEditable as undefined, so force isEditable(body) to be true.
@@ -1973,17 +1991,17 @@ describe("createNormal keydown handler — editable target branches", () => {
     // editableBodyCare + body + key!=="i" arm: status hint set, mode status shown,
     // and the key is fed to mappings rather than entering insert mode.
     expect(normal.statusLine).toBe("Press i to enter Insert mode");
-    expect(runtime.conf.showModeStatus).toBe(true);
+    expect(conf.showModeStatus).toBe(true);
     expect(insert.enter).not.toHaveBeenCalled();
 
     Reflect.deleteProperty(document.body, "isContentEditable");
-    runtime.conf.editableBodyCare = savedCare;
-    runtime.conf.showModeStatus = savedShow;
+    conf.editableBodyCare = savedCare;
+    conf.showModeStatus = savedShow;
   });
 
   it("stops propagation and focuses the body when 'i' is pressed with editableBodyCare on the body", () => {
-    const savedCare = runtime.conf.editableBodyCare;
-    runtime.conf.editableBodyCare = true;
+    const savedCare = conf.editableBodyCare;
+    conf.editableBodyCare = true;
     const insert = { enter: vi.fn(), exit: vi.fn() };
     const normal = createNormal(insert, env);
     Object.defineProperty(document.body, "isContentEditable", {
@@ -2002,6 +2020,6 @@ describe("createNormal keydown handler — editable target branches", () => {
     expect(focus).toHaveBeenCalledOnce();
 
     Reflect.deleteProperty(document.body, "isContentEditable");
-    runtime.conf.editableBodyCare = savedCare;
+    conf.editableBodyCare = savedCare;
   });
 });
