@@ -1,7 +1,7 @@
 import * as v from "valibot";
 
-import { LOG } from "../common/utils";
 import browser from "./common/browser";
+import { LOG } from "./common/log";
 import { runtime } from "./common/runtime";
 import { getDocumentOrigin } from "./common/utils";
 
