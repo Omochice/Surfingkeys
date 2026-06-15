@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
+import type { EngineEnv } from "./engineEnv";
 import { repeatCount } from "./repeatCount";
 
 // default.ts wires the built-in key map onto an api/ctx pair. These tests pin
@@ -35,10 +36,6 @@ const seam = vi.hoisted(() => {
   };
 });
 
-vi.mock("./runtime", () => ({
-  RUNTIME: seam.RUNTIME,
-}));
-
 vi.mock("./conf", () => ({
   conf: seam.runtimeConf,
 }));
@@ -47,13 +44,24 @@ vi.mock("./events", () => ({
   dispatchSKEvent: seam.dispatchSKEvent,
 }));
 
-vi.mock("./messagingActions", () => ({
-  tabOpenLink: seam.tabOpenLink,
-}));
-
 vi.mock("./utils", () => seam.utils);
 
 import registerDefaultMappings from "./default";
+
+// default.ts now reaches RUNTIME / tabOpenLink / chrome.surfingkeys through the injected env; build
+// it from the seam spies. surfingkeys is a live getter so the per-test globalThis.chrome swaps below
+// are reflected at handler-invocation time.
+const makeEnv = (): EngineEnv => ({
+  RUNTIME: seam.RUNTIME,
+  isInUIFrame: () => false,
+  reportIssue: () => {},
+  tabOpenLink: seam.tabOpenLink,
+  getExtensionURL: (path: string) => path,
+  log: () => {},
+  get surfingkeys() {
+    return chrome.surfingkeys;
+  },
+});
 
 type Registration = {
   mode: string;
@@ -107,7 +115,7 @@ beforeEach(() => {
     visual: autoMock(),
     front: autoMock(),
   };
-  registerDefaultMappings(api, ctx);
+  registerDefaultMappings(api, ctx, makeEnv());
 });
 
 const fire = (key: string) => registry.get(key)!.cb();
@@ -1347,7 +1355,7 @@ describe("w switches frames when window !== top", () => {
     const originalTop = window.top;
     Object.defineProperty(window, "top", { value: {}, configurable: true });
     vi.clearAllMocks();
-    registerDefaultMappings(api, ctx);
+    registerDefaultMappings(api, ctx, makeEnv());
     fire("w");
     expect(ctx.normal.rotateFrame).toHaveBeenCalled();
     // The ensureFrontEnd dispatch also happens regardless of frame position.
@@ -1689,7 +1697,7 @@ describe("Firefox-only mappings", () => {
       mapkey: (keys: string, annotation: any, cb: any, options: any) =>
         firefoxRegistry.set(keys, { mode: "normal", annotation, cb, options }),
     };
-    registerDefaultMappings(ffApi as any, ctx);
+    registerDefaultMappings(ffApi as any, ctx, makeEnv());
     firefoxRegistry.get("on")!.cb();
     expect(seam.tabOpenLink).toHaveBeenLastCalledWith("about:blank");
   });
@@ -1702,7 +1710,7 @@ describe("Firefox-only mappings", () => {
       mapkey: (keys: string, annotation: any, cb: any, options: any) =>
         otherRegistry.set(keys, { mode: "normal", annotation, cb, options }),
     };
-    registerDefaultMappings(otherApi as any, ctx);
+    registerDefaultMappings(otherApi as any, ctx, makeEnv());
     // Neither the Firefox arm nor the Chrome else-if arm runs, so 'on' is absent.
     expect(otherRegistry.has("on")).toBe(false);
   });

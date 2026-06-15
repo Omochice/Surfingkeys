@@ -2,12 +2,11 @@ import * as v from "valibot";
 
 import type { SurfingkeysApi } from "./api";
 import { conf } from "./conf";
+import type { EngineEnv } from "./engineEnv";
 import { dispatchSKEvent } from "./events";
 import KeyboardUtils from "./keyboardUtils";
-import { tabOpenLink } from "./messagingActions";
 import type { ModeContext } from "./modeGraph";
 import { repeatCount } from "./repeatCount";
-import { RUNTIME } from "./runtime";
 import {
   getBrowserName,
   getCssSelectorsOfEditable,
@@ -59,8 +58,13 @@ const youtubeSuggestSchema = v.tupleWithRest(
 const clipboardSettingsSchema = v.record(v.string(), v.unknown());
 const clipboardFormsSchema = v.record(v.string(), v.record(v.string(), v.unknown()));
 
-export default function createDefaultMappings(api: SurfingkeysApi, ctx: ModeContext): void {
+export default function createDefaultMappings(
+  api: SurfingkeysApi,
+  ctx: ModeContext,
+  env: EngineEnv,
+): void {
   const { clipboard, normal, hints, visual, front } = ctx;
+  const { RUNTIME, tabOpenLink } = env;
   const { addSearchAlias, cmap, map, mapkey, imapkey, vmapkey, searchSelectedWith } = api;
 
   mapkey("[[", "#1Click on the previous link on current page", hints.previousPage);
@@ -224,8 +228,8 @@ export default function createDefaultMappings(api: SurfingkeysApi, ctx: ModeCont
     }
   }
   mapkey(";t", "Translate selected text with google", () => {
-    if (chrome.surfingkeys) {
-      chrome.surfingkeys.translateCurrentPage();
+    if (env.surfingkeys) {
+      env.surfingkeys.translateCurrentPage();
     } else {
       openGoogleTranslate();
     }
@@ -398,10 +402,10 @@ export default function createDefaultMappings(api: SurfingkeysApi, ctx: ModeCont
     hints.create(
       "",
       (element: HTMLElement) => {
-        if (chrome.surfingkeys) {
+        if (env.surfingkeys) {
           const r = element.getClientRects()[0];
           if (r) {
-            chrome.surfingkeys.sendMouseEvent(
+            env.surfingkeys.sendMouseEvent(
               2,
               Math.round(r.x + r.width / 2),
               Math.round(r.y + r.height / 2),
