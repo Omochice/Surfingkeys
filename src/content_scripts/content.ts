@@ -1,5 +1,6 @@
 import { reportOnFail } from "../common/result";
 import createAPI from "./common/api";
+import type { StoredSettings } from "./common/conf";
 import createDefaultMappings from "./common/default";
 import { dispatchSKEvent } from "./common/events";
 import { checkEventListener, initModeHub } from "./common/mode";
@@ -8,7 +9,6 @@ import createNormal from "./common/normal";
 import startScrollNodeObserver from "./common/observer";
 import { reportError } from "./common/report";
 import { RUNTIME, runtime } from "./common/runtime";
-import type { StoredSettings } from "./common/runtime";
 import { generateQuickGuid, getRealEdit, isInUIFrame, showBanner } from "./common/utils";
 import createFront from "./front";
 import { applySettings } from "./settingsApplication";

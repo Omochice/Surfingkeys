@@ -3,12 +3,12 @@ import { Result } from "@praha/byethrow";
 import { reportOnFail, userCodeError } from "../common/result";
 import type createAPI from "./common/api";
 import browser from "./common/browser";
+import type { StoredSettings } from "./common/conf";
 import { dispatchSKEvent } from "./common/events";
 import { showModeStatus } from "./common/mode";
 import type createNormal from "./common/normal";
 import { reportError } from "./common/report";
 import { RUNTIME, runtime } from "./common/runtime";
-import type { StoredSettings } from "./common/runtime";
 import type { TrieMeta } from "./common/trie";
 import { applyUserSettings } from "./common/utils";
 

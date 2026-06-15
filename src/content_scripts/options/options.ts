@@ -1,10 +1,10 @@
 import { Result } from "@praha/byethrow";
 
 import { type ChromeRuntimeError, reportOnFail } from "../../common/result";
+import type { StoredSettings } from "../common/conf";
 // Type-only: the ModeHandle constructor itself is injected through optionsMain's parameters.
 import type { ModeHandle } from "../common/mode";
 import { reportError } from "../common/report";
-import type { StoredSettings } from "../common/runtime";
 import { hide, requireElement, show } from "../common/utils";
 
 type RuntimeFn = <R = unknown>(
