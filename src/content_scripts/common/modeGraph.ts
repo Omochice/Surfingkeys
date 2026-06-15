@@ -69,7 +69,7 @@ function createModeGraph(env: EngineEnv): BaseModes {
   const normal = createNormal(insert);
   normal.enter();
   const hints = createHints(insert, normal, clipboard);
-  const visual = createVisual(clipboard, hints);
+  const visual = createVisual(clipboard, hints, env);
   return { clipboard, insert, normal, hints, visual };
 }
 

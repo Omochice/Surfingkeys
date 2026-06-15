@@ -1,10 +1,24 @@
+import { Result } from "@praha/byethrow";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
+import type { EngineEnv } from "./engineEnv";
 import KeyboardUtils from "./keyboardUtils";
 import { runtime } from "./runtime";
 import createVisual from "./visual";
 
 // ─── helpers ─────────────────────────────────────────────────────────────────
+
+// visual reaches the seam only via RUNTIME (find-history update); the rest are inert stubs.
+function makeEnv(): EngineEnv {
+  return {
+    RUNTIME: () => Result.succeed(undefined),
+    isInUIFrame: () => false,
+    reportIssue: () => {},
+    tabOpenLink: () => {},
+    getExtensionURL: (path: string) => path,
+    surfingkeys: undefined,
+  };
+}
 
 function makeClipboard() {
   return { write: vi.fn() };
@@ -47,7 +61,7 @@ function captureEvents(target: EventTarget): { detail: unknown }[] {
 
 describe("createVisual — mode identity", () => {
   it("creates a mode named 'Visual'", () => {
-    const visual = createVisual(makeClipboard(), makeHints());
+    const visual = createVisual(makeClipboard(), makeHints(), makeEnv());
     expect(visual.name).toBe("Visual");
   });
 });
@@ -82,21 +96,21 @@ describe("createVisual — mapping registrations", () => {
 
   for (const key of singleKeys) {
     it(`registers the mapping '${key}'`, () => {
-      const visual = createVisual(makeClipboard(), makeHints());
+      const visual = createVisual(makeClipboard(), makeHints(), makeEnv());
       const node = visual.mappings.find(key);
       expect(node?.meta, `expected mapping for key "${key}"`).toBeDefined();
     });
   }
 
   it("registers 'gg' as a two-key sequence", () => {
-    const visual = createVisual(makeClipboard(), makeHints());
+    const visual = createVisual(makeClipboard(), makeHints(), makeEnv());
     const node = visual.mappings.find("gg");
     expect(node?.meta).toBeDefined();
     expect(node?.meta?.annotation).toContain("documentboundary");
   });
 
   it("registers 'zt', 'zz', 'zb' as two-key sequences", () => {
-    const visual = createVisual(makeClipboard(), makeHints());
+    const visual = createVisual(makeClipboard(), makeHints(), makeEnv());
     for (const key of ["zt", "zz", "zb"]) {
       const node = visual.mappings.find(key);
       expect(node?.meta, `expected mapping for "${key}"`).toBeDefined();
@@ -104,14 +118,14 @@ describe("createVisual — mapping registrations", () => {
   });
 
   it("registers the <Enter> mapping for clicking links", () => {
-    const visual = createVisual(makeClipboard(), makeHints());
+    const visual = createVisual(makeClipboard(), makeHints(), makeEnv());
     const encoded = KeyboardUtils.encodeKeystroke("<Enter>");
     const node = visual.mappings.find(encoded);
     expect(node?.meta?.annotation).toContain("Click");
   });
 
   it("registers the <Shift-Enter> mapping for clicking links with shift", () => {
-    const visual = createVisual(makeClipboard(), makeHints());
+    const visual = createVisual(makeClipboard(), makeHints(), makeEnv());
     const encoded = KeyboardUtils.encodeKeystroke("<Shift-Enter>");
     const node = visual.mappings.find(encoded);
     expect(node?.meta?.annotation).toContain("Click");
@@ -124,7 +138,7 @@ describe("createVisual — mapping registrations", () => {
 
 describe("createVisual — emptySelection()", () => {
   it("collapses any existing selection", () => {
-    const visual = createVisual(makeClipboard(), makeHints());
+    const visual = createVisual(makeClipboard(), makeHints(), makeEnv());
 
     // Put something in the document so we can form a selection.
     const p = document.createElement("p");
@@ -156,7 +170,7 @@ describe("createVisual — statusLine reflects state transitions", () => {
   });
 
   it("starts with an empty statusLine (state=0)", () => {
-    const visual = createVisual(makeClipboard(), makeHints());
+    const visual = createVisual(makeClipboard(), makeHints(), makeEnv());
     // Before enter(), the statusLine is whatever Mode constructed it as.
     // We exercise onStateChange by triggering onEnter (which calls incState).
     // state=0 -> after enter -> state=1, statusLine == "Visual - Caret"
@@ -165,14 +179,14 @@ describe("createVisual — statusLine reflects state transitions", () => {
   });
 
   it("second enter() increments state to 2 (Range) and updates statusLine", () => {
-    const visual = createVisual(makeClipboard(), makeHints());
+    const visual = createVisual(makeClipboard(), makeHints(), makeEnv());
     visual.onEnter!();
     visual.onEnter!();
     expect(visual.statusLine).toBe("Visual - Range");
   });
 
   it("third enter() wraps state back to 0 and sets statusLine to 'Visual - '", () => {
-    const visual = createVisual(makeClipboard(), makeHints());
+    const visual = createVisual(makeClipboard(), makeHints(), makeEnv());
     visual.onEnter!();
     visual.onEnter!();
     visual.onEnter!();
@@ -189,7 +203,7 @@ describe("createVisual — visualClear()", () => {
   });
 
   it("dispatches a showStatus '' event via surfingkeys:front", () => {
-    const visual = createVisual(makeClipboard(), makeHints());
+    const visual = createVisual(makeClipboard(), makeHints(), makeEnv());
     const captured = captureEvents(document);
 
     visual.visualClear();
@@ -213,7 +227,7 @@ describe("createVisual — visualEnter()", () => {
   });
 
   it("returns early without entering the mode for an empty query", () => {
-    const visual = createVisual(makeClipboard(), makeHints());
+    const visual = createVisual(makeClipboard(), makeHints(), makeEnv());
     // Entering a fresh visual and then calling visualEnter with "" should not
     // change state (the mode should stay unentered).
     const enterSpy = vi.spyOn(visual, "enter");
@@ -224,7 +238,7 @@ describe("createVisual — visualEnter()", () => {
   });
 
   it("returns early without entering the mode for the '.' query", () => {
-    const visual = createVisual(makeClipboard(), makeHints());
+    const visual = createVisual(makeClipboard(), makeHints(), makeEnv());
     const enterSpy = vi.spyOn(visual, "enter");
 
     visual.visualEnter(".");
@@ -233,7 +247,7 @@ describe("createVisual — visualEnter()", () => {
   });
 
   it("dispatches a 'Pattern not found' status when the query has no matches in the document", () => {
-    const visual = createVisual(makeClipboard(), makeHints());
+    const visual = createVisual(makeClipboard(), makeHints(), makeEnv());
     document.body.textContent = "no match here";
     const captured = captureEvents(document);
 
@@ -279,7 +293,7 @@ describe("createVisual — next()", () => {
     // visualEnter dispatches a 'Pattern not found' status when highlight finds nothing.
     runtime.conf.lastQuery = "xyzzy_absent";
     document.body.textContent = "unrelated content";
-    const visual = createVisual(makeClipboard(), makeHints());
+    const visual = createVisual(makeClipboard(), makeHints(), makeEnv());
     const captured = captureEvents(document);
 
     const origFind = (window as any).find;
@@ -316,7 +330,7 @@ describe("createVisual — findSentenceOf()", () => {
   it("returns an empty string when the query word is not visible in the document", () => {
     // No element in document contains 'xyzzy_nonexistent'.
     document.body.textContent = "completely different content here";
-    const visual = createVisual(makeClipboard(), makeHints());
+    const visual = createVisual(makeClipboard(), makeHints(), makeEnv());
 
     const result = visual.findSentenceOf("xyzzy_nonexistent");
 
@@ -333,7 +347,7 @@ describe("createVisual — toggle() state transitions", () => {
 
   it("in state=0 (default) calls hints.create with textAnchorPat", () => {
     const hints = makeHints();
-    const visual = createVisual(makeClipboard(), hints);
+    const visual = createVisual(makeClipboard(), hints, makeEnv());
     // State is 0 after construction; toggle() should fall into the default branch.
     visual.toggle();
 
@@ -343,7 +357,7 @@ describe("createVisual — toggle() state transitions", () => {
   });
 
   it("in state=1 (Caret) extends selection anchor and increments state to 2", () => {
-    const visual = createVisual(makeClipboard(), makeHints());
+    const visual = createVisual(makeClipboard(), makeHints(), makeEnv());
 
     // Advance to state=1 by calling onEnter once.
     visual.onEnter!();
@@ -364,7 +378,7 @@ describe("createVisual — toggle() state transitions", () => {
   });
 
   it("in state=2 (Range) exits the mode and wraps state back to 0", () => {
-    const visual = createVisual(makeClipboard(), makeHints());
+    const visual = createVisual(makeClipboard(), makeHints(), makeEnv());
 
     // Advance to state=2.
     visual.onEnter!();
@@ -388,7 +402,7 @@ describe("createVisual — toggle() state transitions", () => {
 
 describe("createVisual — keydown: 'f' sets visualf=1 and updates statusLine", () => {
   it("the 'f' mapping sets statusLine to include '- forward'", () => {
-    const visual = createVisual(makeClipboard(), makeHints());
+    const visual = createVisual(makeClipboard(), makeHints(), makeEnv());
     visual.onEnter!(); // state=1
     expect(visual.statusLine).toBe("Visual - Caret");
 
@@ -400,7 +414,7 @@ describe("createVisual — keydown: 'f' sets visualf=1 and updates statusLine", 
   });
 
   it("the 'F' mapping sets statusLine to include '- backward'", () => {
-    const visual = createVisual(makeClipboard(), makeHints());
+    const visual = createVisual(makeClipboard(), makeHints(), makeEnv());
     visual.onEnter!(); // state=1
 
     const fNode = visual.mappings.find("F");
@@ -418,7 +432,7 @@ describe("createVisual — keydown: <Esc> when state <= 1 calls visualClear and 
   });
 
   it("<Esc> in state=1 calls visualClear", () => {
-    const visual = createVisual(makeClipboard(), makeHints());
+    const visual = createVisual(makeClipboard(), makeHints(), makeEnv());
     visual.onEnter!(); // state=1
     const clearSpy = vi.spyOn(visual, "visualClear");
 
@@ -436,7 +450,7 @@ describe("createVisual — keydown: <Esc> when state <= 1 calls visualClear and 
 
 describe("createVisual — getCursorPixelPos()", () => {
   it("returns a DOMRect (all zeros in jsdom since cursor is not in DOM)", () => {
-    const visual = createVisual(makeClipboard(), makeHints());
+    const visual = createVisual(makeClipboard(), makeHints(), makeEnv());
     const rect = visual.getCursorPixelPos();
     // In jsdom getBoundingClientRect always returns zeros; the important
     // contract is that a DOMRect-shaped object is returned, not null/undefined.
@@ -450,7 +464,7 @@ describe("createVisual — getCursorPixelPos()", () => {
 
 describe("createVisual — onExit()", () => {
   it("onExit calls visualClear", () => {
-    const visual = createVisual(makeClipboard(), makeHints());
+    const visual = createVisual(makeClipboard(), makeHints(), makeEnv());
     const clearSpy = vi.spyOn(visual, "visualClear");
 
     visual.onExit!();
@@ -467,7 +481,7 @@ describe("createVisual — restore()", () => {
   });
 
   it("does not enter visual mode when there is no existing selection anchor", () => {
-    const visual = createVisual(makeClipboard(), makeHints());
+    const visual = createVisual(makeClipboard(), makeHints(), makeEnv());
     const enterSpy = vi.spyOn(visual, "enter");
     document.getSelection()!.removeAllRanges();
 
@@ -477,7 +491,7 @@ describe("createVisual — restore()", () => {
   });
 
   it("calls enter() and showCursor() when a selection anchor exists", () => {
-    const visual = createVisual(makeClipboard(), makeHints());
+    const visual = createVisual(makeClipboard(), makeHints(), makeEnv());
     const enterSpy = vi.spyOn(visual, "enter");
 
     const p = document.createElement("p");
@@ -497,7 +511,7 @@ describe("createVisual — restore()", () => {
 
 describe("createVisual — 'y' mapping is registered after state change", () => {
   it("'y' has no code in the initial state=0 (yankFunctions[0] is empty)", () => {
-    const visual = createVisual(makeClipboard(), makeHints());
+    const visual = createVisual(makeClipboard(), makeHints(), makeEnv());
     // In state=0, yankFunctions[0] = {} which has no code. The mapping may
     // exist but code should be undefined.
     const yNode = visual.mappings.find("y");
@@ -506,7 +520,7 @@ describe("createVisual — 'y' mapping is registered after state change", () => 
   });
 
   it("'y' has a code function after entering state=1 (Caret)", () => {
-    const visual = createVisual(makeClipboard(), makeHints());
+    const visual = createVisual(makeClipboard(), makeHints(), makeEnv());
     visual.onEnter!(); // advances to state=1, onStateChange adds yankFunctions[1]
     const yNode = visual.mappings.find("y");
     expect(yNode?.meta?.code).toBeTypeOf("function");
@@ -514,7 +528,7 @@ describe("createVisual — 'y' mapping is registered after state change", () => 
 
   it("'y' in state=2 (Range) has a code function that writes selection to clipboard", () => {
     const clipboard = makeClipboard();
-    const visual = createVisual(clipboard, makeHints());
+    const visual = createVisual(clipboard, makeHints(), makeEnv());
     visual.onEnter!();
     visual.onEnter!(); // state=2
 
@@ -549,7 +563,7 @@ describe("createVisual — 'o' mapping swaps anchor and focus", () => {
   });
 
   it("after 'o', the anchor and focus positions are swapped", () => {
-    const visual = createVisual(makeClipboard(), makeHints());
+    const visual = createVisual(makeClipboard(), makeHints(), makeEnv());
 
     const p = document.createElement("p");
     p.textContent = "abcdef";
@@ -601,7 +615,7 @@ describe("createVisual — 'y' yank honours modeAfterYank", () => {
   it("drops to Caret state (status 'Caret') after yank when modeAfterYank is 'Caret'", () => {
     runtime.conf.modeAfterYank = "Caret";
     const clipboard = makeClipboard();
-    const visual = createVisual(clipboard, makeHints());
+    const visual = createVisual(clipboard, makeHints(), makeEnv());
     visual.onEnter!();
     visual.onEnter!(); // state=2 (Range)
     selectRange("yank me");
@@ -616,7 +630,7 @@ describe("createVisual — 'y' yank honours modeAfterYank", () => {
   it("toggles out via self.toggle (exit) after yank when modeAfterYank is 'Normal'", () => {
     runtime.conf.modeAfterYank = "Normal";
     const clipboard = makeClipboard();
-    const visual = createVisual(clipboard, makeHints());
+    const visual = createVisual(clipboard, makeHints(), makeEnv());
     visual.onEnter!();
     visual.onEnter!(); // state=2 (Range)
     selectRange("take this");
@@ -645,7 +659,7 @@ describe("createVisual — keydown while visualf is active", () => {
   }
 
   it("a word character while finding resets the status line and suppresses the event", () => {
-    const visual = createVisual(makeClipboard(), makeHints());
+    const visual = createVisual(makeClipboard(), makeHints(), makeEnv());
     enterFindMode(visual);
 
     // window.find is unimplemented in jsdom; stub it to false (as the next() test
@@ -666,7 +680,7 @@ describe("createVisual — keydown while visualf is active", () => {
   });
 
   it("Esc while finding cancels find without throwing and restores the status line", () => {
-    const visual = createVisual(makeClipboard(), makeHints());
+    const visual = createVisual(makeClipboard(), makeHints(), makeEnv());
     enterFindMode(visual);
 
     const escKey = KeyboardUtils.encodeKeystroke("<Esc>");

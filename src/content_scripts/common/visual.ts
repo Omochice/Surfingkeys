@@ -1,10 +1,10 @@
 import { unwrapOr } from "../../common/result";
 import { conf, getCaseSensitive } from "./conf";
+import type { EngineEnv } from "./engineEnv";
 import { dispatchSKEvent } from "./events";
 import KeyboardUtils from "./keyboardUtils";
 import { createKeymap } from "./keymap";
 import { ModeHandle, showModeStatus } from "./mode";
-import { RUNTIME } from "./runtime";
 import { isSpecialKeyOf } from "./specialKeys";
 import Trie from "./trie";
 import type { TrieMeta } from "./trie";
@@ -79,7 +79,8 @@ const win = window as unknown as {
   ): boolean;
 };
 
-function createVisual(clipboard: ClipboardLike, hints: HintsLike): VisualMode {
+function createVisual(clipboard: ClipboardLike, hints: HintsLike, env: EngineEnv): VisualMode {
+  const { RUNTIME } = env;
   const mode = new ModeHandle("Visual");
   const mappings = new Trie();
   const keymap = createKeymap(() => mappings, { enableRepeats: true });
