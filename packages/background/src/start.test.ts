@@ -2,7 +2,7 @@ import { Result } from "@praha/byethrow";
 import { httpError } from "@sk/common/result";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-import { expectDefined } from "../../test/helpers";
+import { expectDefined } from "../../../test/helpers";
 import { start, type MessageHandler } from "./start";
 
 // The Gist closure and every message handler reach the network through the

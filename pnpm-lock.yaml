@@ -213,6 +213,9 @@ importers:
       '@sk/adapter':
         specifier: workspace:*
         version: link:packages/adapter
+      '@sk/background':
+        specifier: workspace:*
+        version: link:packages/background
       '@sk/common':
         specifier: workspace:*
         version: link:packages/common
@@ -296,6 +299,18 @@ importers:
       '@types/webextension-polyfill':
         specifier: 0.12.5
         version: 0.12.5
+
+  packages/background:
+    dependencies:
+      '@praha/byethrow':
+        specifier: 0.12.0
+        version: 0.12.0(typescript@6.0.3)
+      '@sk/common':
+        specifier: workspace:*
+        version: link:../common
+      valibot:
+        specifier: 1.4.1
+        version: 1.4.1(typescript@6.0.3)
 
   packages/common:
     dependencies:

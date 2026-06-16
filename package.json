@@ -46,6 +46,7 @@
   "dependencies": {
     "@praha/byethrow": "0.12.0",
     "@sk/adapter": "workspace:*",
+    "@sk/background": "workspace:*",
     "@sk/common": "workspace:*",
     "@sk/core": "workspace:*",
     "@sk/messaging": "workspace:*",
