@@ -8,6 +8,6 @@
     "./utils": "./src/utils.ts"
   },
   "dependencies": {
-    "@praha/byethrow": "0.12.0"
+    "@praha/byethrow": "catalog:"
   }
 }

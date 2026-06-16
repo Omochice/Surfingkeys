@@ -7,9 +7,9 @@
     "./*": "./src/*.ts"
   },
   "dependencies": {
-    "@praha/byethrow": "0.12.0",
+    "@praha/byethrow": "catalog:",
     "@sk/common": "workspace:*",
-    "dompurify": "^3.2.4",
-    "valibot": "1.4.1"
+    "dompurify": "catalog:",
+    "valibot": "catalog:"
   }
 }

@@ -7,7 +7,7 @@
     "./*": "./src/*.ts"
   },
   "dependencies": {
-    "@praha/byethrow": "0.12.0",
+    "@praha/byethrow": "catalog:",
     "@sk/common": "workspace:*",
     "@sk/core": "workspace:*"
   }
