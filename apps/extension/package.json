@@ -1,0 +1,30 @@
+{
+  "name": "@sk/extension",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build:dev": "wxt build --mode development",
+    "build:dev:firefox": "wxt build --mode development -b firefox",
+    "build:prod": "wxt build",
+    "build:prod:firefox": "wxt build -b firefox",
+    "dev": "wxt",
+    "dev:firefox": "wxt -b firefox",
+    "postinstall": "wxt prepare",
+    "zip": "wxt zip",
+    "zip:firefox": "wxt zip -b firefox"
+  },
+  "dependencies": {
+    "@praha/byethrow": "0.12.0",
+    "@sk/background": "workspace:*",
+    "@sk/common": "workspace:*",
+    "@sk/content": "workspace:*",
+    "@sk/core": "workspace:*",
+    "@sk/messaging": "workspace:*"
+  },
+  "devDependencies": {
+    "@wxt-dev/module-solid": "1.1.4",
+    "vite": "8.0.16",
+    "wxt": "0.20.26"
+  }
+}

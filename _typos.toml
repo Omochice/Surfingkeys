@@ -1,5 +1,5 @@
 [files]
-extend-exclude = ["public/pages/emoji.tsv"]
+extend-exclude = ["apps/extension/public/pages/emoji.tsv"]
 
 [default.extend-identifiers]
 # Not left to the built-in dictionary, which misses `mtches`: pin it so a
