@@ -66,7 +66,7 @@ vi.mock("./command", () => ({ default: vi.fn() }));
 vi.mock("@sk/core/api", () => ({ default: vi.fn(() => ({})) }));
 vi.mock("@sk/core/default", () => ({ default: vi.fn() }));
 
-// ../common/runtime: intercept RUNTIME calls so no chrome.runtime.sendMessage
+// @sk/messaging/runtime: intercept RUNTIME calls so no chrome.runtime.sendMessage
 // reaches the chrome stub.
 vi.mock("@sk/messaging/runtime", async (importOriginal) => {
   const orig = await importOriginal<typeof import("@sk/messaging/runtime")>();
