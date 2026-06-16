@@ -1,6 +1,5 @@
+import { start } from "@sk/content/content";
 import { defineContentScript } from "wxt/utils/define-content-script";
-
-import { start } from "../src/content_scripts/content";
 
 // content.css is injected via the manifest (added in wxt.config's
 // build:manifestGenerated hook from the public/ copy), not bundled per-entry, so

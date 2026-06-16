@@ -2,7 +2,7 @@ import { fireEvent, render } from "@solidjs/testing-library";
 import { createSignal } from "solid-js";
 import { describe, expect, it, vi } from "vitest";
 
-import { expectDefined } from "../../../../test/helpers";
+import { expectDefined } from "../../../../../test/helpers";
 import { ResultList } from "./ResultList";
 import type { ResultListItem } from "./ResultList";
 
