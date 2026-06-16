@@ -1,7 +1,7 @@
+import { conf } from "@sk/core/conf";
 import { getBrowserName, showPopup } from "@sk/core/utils";
 
 import browser from "./browser";
-import { runtime } from "./runtime";
 
 /** Whether the current frame is the Surfingkeys UI iframe (an extension-page child frame). */
 function isInUIFrame(): boolean {
@@ -17,7 +17,7 @@ function reportIssue(title: string, description: string): void {
 }
 
 function initL10n(cb: (translate: (str: string) => string) => void): void {
-  const lang = runtime.conf.language || window.navigator.language;
+  const lang = conf.language || window.navigator.language;
   if (lang === "en-US") {
     cb((str) => str);
   } else {

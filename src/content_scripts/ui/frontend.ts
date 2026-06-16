@@ -1,3 +1,4 @@
+import { attachFaviconToImgSrc, initL10n, isInUIFrame } from "@sk/adapter/platform-utils";
 import createAPI from "@sk/core/api";
 import createDefaultMappings from "@sk/core/default";
 import KeyboardUtils from "@sk/core/keyboardUtils";
@@ -25,7 +26,6 @@ import { render } from "solid-js/web";
 import * as v from "valibot";
 
 import { createEngineEnv } from "../common/createEngineEnv";
-import { attachFaviconToImgSrc, initL10n, isInUIFrame } from "../common/platform-utils";
 import { RUNTIME, runtime } from "../common/runtime";
 import createCommands from "./command";
 import { Banner as BannerView } from "./components/Banner";

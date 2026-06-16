@@ -1,0 +1,16 @@
+{
+  "name": "@sk/adapter",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    "./*": "./src/*.ts"
+  },
+  "dependencies": {
+    "@sk/core": "workspace:*",
+    "webextension-polyfill": "0.12.0"
+  },
+  "devDependencies": {
+    "@types/webextension-polyfill": "0.12.5"
+  }
+}

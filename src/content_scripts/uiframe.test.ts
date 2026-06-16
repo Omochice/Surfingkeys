@@ -4,7 +4,7 @@ import createUiHost from "./uiframe";
 
 // createUiHost reaches the extension URL through the browser polyfill, which is
 // absent under jsdom; stub just the getURL the host needs to build the iframe.
-vi.mock("./common/browser", () => ({
+vi.mock("@sk/adapter/browser", () => ({
   default: { runtime: { getURL: (path: string) => path } },
 }));
 

@@ -1,4 +1,5 @@
 import { Result } from "@praha/byethrow";
+import browser from "@sk/adapter/browser";
 import { reportOnFail, userCodeError } from "@sk/common/result";
 import type createAPI from "@sk/core/api";
 import type { StoredSettings } from "@sk/core/conf";
@@ -9,7 +10,6 @@ import { reportError } from "@sk/core/report";
 import type { TrieMeta } from "@sk/core/trie";
 import { applyUserSettings } from "@sk/core/utils";
 
-import browser from "./common/browser";
 import { RUNTIME, runtime } from "./common/runtime";
 
 // This module owns the single concern of applying stored/user settings onto the
