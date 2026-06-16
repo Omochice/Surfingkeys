@@ -243,12 +243,6 @@ importers:
       '@tsconfig/strictest':
         specifier: 2.0.8
         version: 2.0.8
-      '@types/chrome':
-        specifier: 'catalog:'
-        version: 0.1.43
-      '@types/firefox-webext-browser':
-        specifier: 'catalog:'
-        version: 143.0.0
       '@vitest/coverage-v8':
         specifier: 4.1.8
         version: 4.1.8(vitest@4.1.8)
@@ -276,9 +270,6 @@ importers:
       sort-package-json:
         specifier: 4.0.0
         version: 4.0.0
-      typescript:
-        specifier: 'catalog:'
-        version: 6.0.3
       vite-plugin-solid:
         specifier: 2.11.12
         version: 2.11.12(solid-js@1.9.13)(vite@8.0.16(@types/node@25.9.2)(esbuild@0.27.7)(jiti@2.7.0)(yaml@2.9.0))
@@ -310,9 +301,18 @@ importers:
         specifier: workspace:*
         version: link:../../packages/messaging
     devDependencies:
+      '@types/chrome':
+        specifier: 'catalog:'
+        version: 0.1.43
+      '@types/firefox-webext-browser':
+        specifier: 'catalog:'
+        version: 143.0.0
       '@wxt-dev/module-solid':
         specifier: 1.1.4
         version: 1.1.4(solid-js@1.9.13)(vite@8.0.16(@types/node@25.9.2)(esbuild@0.27.7)(jiti@2.7.0)(yaml@2.9.0))(wxt@0.20.26(@types/node@25.9.2)(jiti@2.7.0)(oxc-parser@0.133.0)(rolldown@1.0.3)(yaml@2.9.0))
+      typescript:
+        specifier: 'catalog:'
+        version: 6.0.3
       vite:
         specifier: 8.0.16
         version: 8.0.16(@types/node@25.9.2)(esbuild@0.27.7)(jiti@2.7.0)(yaml@2.9.0)
@@ -329,9 +329,18 @@ importers:
         specifier: 0.12.0
         version: 0.12.0
     devDependencies:
+      '@types/chrome':
+        specifier: 'catalog:'
+        version: 0.1.43
+      '@types/firefox-webext-browser':
+        specifier: 'catalog:'
+        version: 143.0.0
       '@types/webextension-polyfill':
         specifier: 0.12.5
         version: 0.12.5
+      typescript:
+        specifier: 'catalog:'
+        version: 6.0.3
 
   packages/background:
     dependencies:
@@ -344,12 +353,26 @@ importers:
       valibot:
         specifier: 'catalog:'
         version: 1.4.1(typescript@6.0.3)
+    devDependencies:
+      '@types/chrome':
+        specifier: 'catalog:'
+        version: 0.1.43
+      '@types/firefox-webext-browser':
+        specifier: 'catalog:'
+        version: 143.0.0
+      typescript:
+        specifier: 'catalog:'
+        version: 6.0.3
 
   packages/common:
     dependencies:
       '@praha/byethrow':
         specifier: 'catalog:'
         version: 0.12.0(typescript@6.0.3)
+    devDependencies:
+      typescript:
+        specifier: 'catalog:'
+        version: 6.0.3
 
   packages/content:
     dependencies:
@@ -381,6 +404,15 @@ importers:
       '@solidjs/testing-library':
         specifier: 0.8.10
         version: 0.8.10(solid-js@1.9.13)
+      '@types/chrome':
+        specifier: 'catalog:'
+        version: 0.1.43
+      '@types/firefox-webext-browser':
+        specifier: 'catalog:'
+        version: 143.0.0
+      typescript:
+        specifier: 'catalog:'
+        version: 6.0.3
 
   packages/core:
     dependencies:
@@ -396,6 +428,10 @@ importers:
       valibot:
         specifier: 'catalog:'
         version: 1.4.1(typescript@6.0.3)
+    devDependencies:
+      typescript:
+        specifier: 'catalog:'
+        version: 6.0.3
 
   packages/messaging:
     dependencies:
@@ -408,6 +444,16 @@ importers:
       '@sk/core':
         specifier: workspace:*
         version: link:../core
+    devDependencies:
+      '@types/chrome':
+        specifier: 'catalog:'
+        version: 0.1.43
+      '@types/firefox-webext-browser':
+        specifier: 'catalog:'
+        version: 143.0.0
+      typescript:
+        specifier: 'catalog:'
+        version: 6.0.3
 
 packages:
 

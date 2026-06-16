@@ -2,7 +2,7 @@ import type { Result } from "@praha/byethrow";
 import type { ChromeRuntimeError } from "@sk/common/result";
 
 /** The companion native API (chrome.surfingkeys), present only in environments that inject it. */
-type SurfingkeysHost = {
+export type SurfingkeysHost = {
   translateCurrentPage(): void;
   sendMouseEvent(type: number, x: number, y: number, button: number): void;
 };

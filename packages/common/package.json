@@ -7,7 +7,13 @@
     "./result": "./src/result/index.ts",
     "./utils": "./src/utils.ts"
   },
+  "scripts": {
+    "check:type": "tsc --noEmit -p tsconfig.json"
+  },
   "dependencies": {
     "@praha/byethrow": "catalog:"
+  },
+  "devDependencies": {
+    "typescript": "catalog:"
   }
 }

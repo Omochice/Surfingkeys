@@ -5,7 +5,7 @@
       "ignoreDependencies": ["wxt"]
     },
     "apps/extension": {
-      "entry": ["src/*.d.ts", "src/pages/popup/popup.ts", "src/user_scripts/index.ts"]
+      "entry": ["src/pages/popup/popup.ts", "src/user_scripts/index.ts"]
     },
     "packages/content": {
       "entry": ["src/ui/frontend.ts", "src/options/optionsPage.ts", "src/start/startPage.ts"]

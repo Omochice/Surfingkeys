@@ -6,9 +6,17 @@
   "exports": {
     "./*": "./src/*.ts"
   },
+  "scripts": {
+    "check:type": "tsc --noEmit -p tsconfig.json"
+  },
   "dependencies": {
     "@praha/byethrow": "catalog:",
     "@sk/common": "workspace:*",
     "valibot": "catalog:"
+  },
+  "devDependencies": {
+    "@types/chrome": "catalog:",
+    "@types/firefox-webext-browser": "catalog:",
+    "typescript": "catalog:"
   }
 }

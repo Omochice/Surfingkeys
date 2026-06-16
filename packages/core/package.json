@@ -6,10 +6,16 @@
   "exports": {
     "./*": "./src/*.ts"
   },
+  "scripts": {
+    "check:type": "tsc --noEmit -p tsconfig.json"
+  },
   "dependencies": {
     "@praha/byethrow": "catalog:",
     "@sk/common": "workspace:*",
     "dompurify": "catalog:",
     "valibot": "catalog:"
+  },
+  "devDependencies": {
+    "typescript": "catalog:"
   }
 }
