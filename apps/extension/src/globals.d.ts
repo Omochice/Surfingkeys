@@ -3,11 +3,6 @@
 // this file via overrides in .oxlintrc.json.
 
 declare global {
-  interface Event {
-    sk_keyName?: string;
-    sk_stopPropagation?: boolean;
-    sk_suppressed?: boolean;
-  }
   interface Document {
     /** Set by the Dictorium extension when its dictionary integration is active. */
     dictEnabled?: boolean;
