@@ -1,14 +1,15 @@
-import KeyboardUtils from "../common/keyboardUtils";
-import { ModeHandle } from "../common/mode";
-import { initL10n, reportIssue } from "../common/platform-utils";
-import { RUNTIME } from "../common/runtime";
+import KeyboardUtils from "@sk/core/keyboardUtils";
+import { ModeHandle } from "@sk/core/mode";
 import {
   createElementWithContent,
   getBrowserName,
   htmlEncode,
   setSanitizedContent,
   showBanner,
-} from "../common/utils";
+} from "@sk/core/utils";
+
+import { initL10n, reportIssue } from "../common/platform-utils";
+import { RUNTIME } from "../common/runtime";
 import { start } from "../content";
 import optionsMain from "./options";
 

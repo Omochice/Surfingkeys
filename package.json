@@ -46,6 +46,7 @@
   "dependencies": {
     "@praha/byethrow": "0.12.0",
     "@sk/common": "workspace:*",
+    "@sk/core": "workspace:*",
     "dompurify": "^3.2.4",
     "solid-js": "1.9.13",
     "valibot": "1.4.1",

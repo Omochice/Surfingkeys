@@ -1,10 +1,10 @@
 import { Result } from "@praha/byethrow";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
+import { conf } from "./conf";
 import type { EngineEnv } from "./engineEnv";
 import createInsert, { deleteNextWord, nextNonWord } from "./insert";
 import KeyboardUtils from "./keyboardUtils";
-import { runtime } from "./runtime";
 
 // insert only reaches the seam via getExtensionURL (for the emoji data); the rest are inert stubs.
 const makeEnv = (): EngineEnv => ({
@@ -591,8 +591,8 @@ describe("createInsert enter override", () => {
 
   afterEach(() => {
     document.body.innerHTML = "";
-    runtime.conf.showModeStatus = false;
-    runtime.conf.cursorAtEndOfInput = true;
+    conf.showModeStatus = false;
+    conf.cursorAtEndOfInput = true;
   });
 
   beforeEach(() => {
@@ -600,13 +600,13 @@ describe("createInsert enter override", () => {
   });
 
   it("sets showModeStatus=false when the element is document.body", () => {
-    runtime.conf.showModeStatus = true;
+    conf.showModeStatus = true;
     insert.enter(document.body);
-    expect(runtime.conf.showModeStatus).toBe(false);
+    expect(conf.showModeStatus).toBe(false);
   });
 
   it("moves the cursor to end of input when entering a new element with cursorAtEndOfInput", () => {
-    runtime.conf.cursorAtEndOfInput = true;
+    conf.cursorAtEndOfInput = true;
     const input = makeInput("hello world", 0);
     insert.enter(input);
     // moveCursorEOL should have moved the caret to position 11.
@@ -614,7 +614,7 @@ describe("createInsert enter override", () => {
   });
 
   it("does not move cursor when keepCursor is true", () => {
-    runtime.conf.cursorAtEndOfInput = true;
+    conf.cursorAtEndOfInput = true;
     const input = makeInput("hello world", 0);
     insert.enter(input, true);
     // cursor should remain at 0 because keepCursor=true suppresses moveCursorEOL.
@@ -622,14 +622,14 @@ describe("createInsert enter override", () => {
   });
 
   it("does not move cursor when cursorAtEndOfInput is false", () => {
-    runtime.conf.cursorAtEndOfInput = false;
+    conf.cursorAtEndOfInput = false;
     const input = makeInput("hello world", 0);
     insert.enter(input);
     expect(input.selectionStart).toBe(0);
   });
 
   it("does not move cursor when the element is a SELECT element", () => {
-    runtime.conf.cursorAtEndOfInput = true;
+    conf.cursorAtEndOfInput = true;
     const sel = document.createElement("select");
     document.body.appendChild(sel);
     sel.focus();
@@ -645,7 +645,7 @@ describe("createInsert enter override", () => {
   });
 
   it("entering the same element twice does not move cursor on the second call (not changed)", () => {
-    runtime.conf.cursorAtEndOfInput = true;
+    conf.cursorAtEndOfInput = true;
     const input = makeInput("hello world", 0);
     insert.enter(input); // first call: changed=true, moves cursor to 11
     // Move the cursor manually back to position 3 to detect if it moves again.

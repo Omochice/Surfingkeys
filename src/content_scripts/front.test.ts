@@ -21,7 +21,8 @@ vi.mock("./uiframe", () => ({
   default: vi.fn(),
 }));
 
-import Trie from "./common/trie";
+import Trie from "@sk/core/trie";
+
 // ---------------------------------------------------------------------------
 // Helpers to build minimal mode stubs.
 // ---------------------------------------------------------------------------

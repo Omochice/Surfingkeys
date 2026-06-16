@@ -1,9 +1,8 @@
 import { Result } from "@praha/byethrow";
 import { type ChromeRuntimeError, chromeRuntimeError } from "@sk/common/result";
-
-import { conf, getCaseSensitive } from "./conf";
-import { repeatCount } from "./repeatCount";
-import { reportError } from "./report";
+import { conf, getCaseSensitive } from "@sk/core/conf";
+import { repeatCount } from "@sk/core/repeatCount";
+import { reportError } from "@sk/core/report";
 
 // This module is the messaging service. It deliberately keeps the raw,
 // callback-based chrome.runtime API rather than the promise-based

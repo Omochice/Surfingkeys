@@ -1,9 +1,9 @@
 import { reportOnFail } from "@sk/common/result";
+import { reportError } from "@sk/core/report";
+import { hide, setSanitizedContent, show } from "@sk/core/utils";
 
 import browser from "../common/browser";
-import { reportError } from "../common/report";
 import { RUNTIME } from "../common/runtime";
-import { hide, setSanitizedContent, show } from "../common/utils";
 
 reportOnFail(
   RUNTIME("getTopSites", null, (response: { urls: { url: string; title: string }[] }) => {

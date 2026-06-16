@@ -1,19 +1,14 @@
 import { Result } from "@praha/byethrow";
 import { decodeError, reportOnFail, unwrapOr } from "@sk/common/result";
 import { filterByTitleOrUrl, regexFromString } from "@sk/common/utils";
-import { createEffect, createRoot, createSignal } from "solid-js";
-import { render } from "solid-js/web";
-
-import { debounce } from "../common/debounce";
-import type { DebouncedFunction } from "../common/debounce";
-import KeyboardUtils from "../common/keyboardUtils";
-import { createKeymap } from "../common/keymap";
-import { ModeHandle } from "../common/mode";
-import { attachFaviconToImgSrc } from "../common/platform-utils";
-import { reportError } from "../common/report";
-import { RUNTIME, runtime } from "../common/runtime";
-import { isSpecialKeyOf } from "../common/specialKeys";
-import Trie from "../common/trie";
+import { debounce } from "@sk/core/debounce";
+import type { DebouncedFunction } from "@sk/core/debounce";
+import KeyboardUtils from "@sk/core/keyboardUtils";
+import { createKeymap } from "@sk/core/keymap";
+import { ModeHandle } from "@sk/core/mode";
+import { reportError } from "@sk/core/report";
+import { isSpecialKeyOf } from "@sk/core/specialKeys";
+import Trie from "@sk/core/trie";
 import {
   constructSearchURL,
   createElementWithContent,
@@ -27,7 +22,12 @@ import {
   timeStampString,
   tryDecodeURI,
   tryDecodeURIComponent,
-} from "../common/utils";
+} from "@sk/core/utils";
+import { createEffect, createRoot, createSignal } from "solid-js";
+import { render } from "solid-js/web";
+
+import { attachFaviconToImgSrc } from "../common/platform-utils";
+import { RUNTIME, runtime } from "../common/runtime";
 import { parseCommandLine } from "./commandLine";
 import { Prompt } from "./components/Prompt";
 import type { PromptValue } from "./components/Prompt";

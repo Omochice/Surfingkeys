@@ -1,7 +1,6 @@
+import { hintLabel, hintLink } from "@sk/core/utils";
 import { For, Show } from "solid-js";
 import type { Component } from "solid-js";
-
-import { hintLabel, hintLink } from "../../common/utils";
 
 export type TabsTab = {
   id: number;

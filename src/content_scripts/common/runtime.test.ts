@@ -1,14 +1,14 @@
 import { Result } from "@praha/byethrow";
+import { repeatCount } from "@sk/core/repeatCount";
+import { reportError } from "@sk/core/report";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-import { repeatCount } from "./repeatCount";
-import { reportError } from "./report";
 import { RUNTIME, runtime } from "./runtime";
 
 // `reportError` is the presentation pipeline for chrome-runtime failures; async
 // lastError failures (which Result.try's synchronous catch cannot see) must be
 // routed through it instead of reaching the user callback with undefined.
-vi.mock("./report", () => ({ reportError: vi.fn() }));
+vi.mock("@sk/core/report", () => ({ reportError: vi.fn() }));
 
 const reportErrorMock = vi.mocked(reportError);
 

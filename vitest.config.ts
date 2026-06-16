@@ -10,13 +10,13 @@ export default defineConfig({
   },
   test: {
     environment: "jsdom",
-    include: ["src/**/*.test.{ts,tsx,js}"],
+    include: ["src/**/*.test.{ts,tsx,js}", "packages/*/src/**/*.test.{ts,tsx,js}"],
     setupFiles: ["test/setup.ts"],
     coverage: {
       provider: "v8",
       reporter: ["text", "lcov", "json-summary"],
-      include: ["src/**/*.{ts,tsx}"],
-      exclude: ["src/**/*.test.{ts,tsx}", "src/**/*.d.ts", "src/icons/**"],
+      include: ["src/**/*.{ts,tsx}", "packages/*/src/**/*.{ts,tsx}"],
+      exclude: ["**/*.test.{ts,tsx}", "src/**/*.d.ts", "src/icons/**"],
     },
   },
 });

@@ -1,9 +1,9 @@
 import { Result } from "@praha/byethrow";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
+import { conf } from "./conf";
 import type { EngineEnv } from "./engineEnv";
 import KeyboardUtils from "./keyboardUtils";
-import { runtime } from "./runtime";
 import createVisual from "./visual";
 
 // ─── helpers ─────────────────────────────────────────────────────────────────
@@ -281,18 +281,18 @@ describe("createVisual — next()", () => {
   let savedLastQuery: string;
 
   beforeEach(() => {
-    savedLastQuery = runtime.conf.lastQuery;
+    savedLastQuery = conf.lastQuery;
   });
 
   afterEach(() => {
-    runtime.conf.lastQuery = savedLastQuery;
+    conf.lastQuery = savedLastQuery;
     document.body.replaceChildren();
   });
 
   it("when no matches and lastQuery is set, dispatches 'Pattern not found' via visualEnter", () => {
     // next() falls through to visualEnter(lastQuery) when matches is empty.
     // visualEnter dispatches a 'Pattern not found' status when highlight finds nothing.
-    runtime.conf.lastQuery = "xyzzy_absent";
+    conf.lastQuery = "xyzzy_absent";
     document.body.textContent = "unrelated content";
     const visual = createVisual(makeClipboard(), makeHints(), makeEnv());
     const captured = captureEvents(document);
@@ -353,8 +353,8 @@ describe("createVisual — toggle() state transitions", () => {
     visual.toggle();
 
     expect(hints.create).toHaveBeenCalledOnce();
-    // First argument should be runtime.conf.textAnchorPat.
-    expect(hints.create.mock.calls[0]?.[0]).toBe(runtime.conf.textAnchorPat);
+    // First argument should be conf.textAnchorPat.
+    expect(hints.create.mock.calls[0]?.[0]).toBe(conf.textAnchorPat);
   });
 
   it("in state=1 (Caret) extends selection anchor and increments state to 2", () => {
@@ -594,11 +594,11 @@ describe("createVisual — 'y' yank honours modeAfterYank", () => {
   let savedMode: string;
 
   beforeEach(() => {
-    savedMode = runtime.conf.modeAfterYank;
+    savedMode = conf.modeAfterYank;
   });
 
   afterEach(() => {
-    runtime.conf.modeAfterYank = savedMode;
+    conf.modeAfterYank = savedMode;
     document.body.replaceChildren();
   });
 
@@ -614,7 +614,7 @@ describe("createVisual — 'y' yank honours modeAfterYank", () => {
   }
 
   it("drops to Caret state (status 'Caret') after yank when modeAfterYank is 'Caret'", () => {
-    runtime.conf.modeAfterYank = "Caret";
+    conf.modeAfterYank = "Caret";
     const clipboard = makeClipboard();
     const visual = createVisual(clipboard, makeHints(), makeEnv());
     visual.onEnter!();
@@ -629,7 +629,7 @@ describe("createVisual — 'y' yank honours modeAfterYank", () => {
   });
 
   it("toggles out via self.toggle (exit) after yank when modeAfterYank is 'Normal'", () => {
-    runtime.conf.modeAfterYank = "Normal";
+    conf.modeAfterYank = "Normal";
     const clipboard = makeClipboard();
     const visual = createVisual(clipboard, makeHints(), makeEnv());
     visual.onEnter!();

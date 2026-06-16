@@ -1,6 +1,7 @@
+import { getBrowserName, showPopup } from "@sk/core/utils";
+
 import browser from "./browser";
 import { runtime } from "./runtime";
-import { getBrowserName, showPopup } from "./utils";
 
 /** Whether the current frame is the Surfingkeys UI iframe (an extension-page child frame). */
 function isInUIFrame(): boolean {

@@ -1,18 +1,18 @@
 import { reportOnFail } from "@sk/common/result";
+import createAPI from "@sk/core/api";
+import type { StoredSettings } from "@sk/core/conf";
+import createDefaultMappings from "@sk/core/default";
+import { dispatchSKEvent } from "@sk/core/events";
+import { checkEventListener, initModeHub } from "@sk/core/mode";
+import createModeGraph, { type ModeContext } from "@sk/core/modeGraph";
+import createNormal from "@sk/core/normal";
+import startScrollNodeObserver from "@sk/core/observer";
+import { reportError } from "@sk/core/report";
+import { generateQuickGuid, getRealEdit, showBanner } from "@sk/core/utils";
 
-import createAPI from "./common/api";
-import type { StoredSettings } from "./common/conf";
 import { createEngineEnv } from "./common/createEngineEnv";
-import createDefaultMappings from "./common/default";
-import { dispatchSKEvent } from "./common/events";
-import { checkEventListener, initModeHub } from "./common/mode";
-import createModeGraph, { type ModeContext } from "./common/modeGraph";
-import createNormal from "./common/normal";
-import startScrollNodeObserver from "./common/observer";
 import { isInUIFrame } from "./common/platform-utils";
-import { reportError } from "./common/report";
 import { RUNTIME, runtime } from "./common/runtime";
-import { generateQuickGuid, getRealEdit, showBanner } from "./common/utils";
 import createFront from "./front";
 import { applySettings } from "./settingsApplication";
 
