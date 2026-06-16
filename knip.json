@@ -1,11 +1,11 @@
 {
   "$schema": "https://unpkg.com/knip@6/schema.json",
   "workspaces": {
+    ".": {
+      "ignoreDependencies": ["wxt"]
+    },
     "apps/extension": {
       "entry": ["src/*.d.ts", "src/pages/popup/popup.ts", "src/user_scripts/index.ts"]
-    },
-    "packages/background": {
-      "ignoreDependencies": ["wxt"]
     },
     "packages/content": {
       "entry": ["src/ui/frontend.ts", "src/options/optionsPage.ts", "src/start/startPage.ts"]

@@ -9,7 +9,6 @@
   "dependencies": {
     "@praha/byethrow": "0.12.0",
     "@sk/common": "workspace:*",
-    "valibot": "1.4.1",
-    "wxt": "0.20.26"
+    "valibot": "1.4.1"
   }
 }

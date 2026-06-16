@@ -252,6 +252,9 @@ importers:
       vitest:
         specifier: 4.1.8
         version: 4.1.8(@types/node@25.9.2)(@vitest/coverage-v8@4.1.8)(jsdom@29.1.1)(vite@8.0.16(@types/node@25.9.2)(esbuild@0.27.7)(jiti@2.7.0)(yaml@2.9.0))
+      wxt:
+        specifier: 0.20.26
+        version: 0.20.26(@types/node@25.9.2)(jiti@2.7.0)(oxc-parser@0.133.0)(rolldown@1.0.3)(yaml@2.9.0)
 
   apps/extension:
     dependencies:
@@ -308,9 +311,6 @@ importers:
       valibot:
         specifier: 1.4.1
         version: 1.4.1(typescript@6.0.3)
-      wxt:
-        specifier: 0.20.26
-        version: 0.20.26(@types/node@25.9.2)(jiti@2.7.0)(oxc-parser@0.133.0)(rolldown@1.0.3)(yaml@2.9.0)
 
   packages/common:
     dependencies:
