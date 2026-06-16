@@ -1,5 +1,3 @@
-import browser from "webextension-polyfill";
-
 import { extendObject, getSubSettings } from "./settings";
 
 async function loadRawSettings(

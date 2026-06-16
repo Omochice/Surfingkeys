@@ -10,9 +10,6 @@
     "@praha/byethrow": "0.12.0",
     "@sk/common": "workspace:*",
     "valibot": "1.4.1",
-    "webextension-polyfill": "0.12.0"
-  },
-  "devDependencies": {
-    "@types/webextension-polyfill": "0.12.5"
+    "wxt": "0.20.26"
   }
 }
