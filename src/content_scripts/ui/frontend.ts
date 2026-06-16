@@ -21,12 +21,12 @@ import {
   setSanitizedContent,
   mapInMode,
 } from "@sk/core/utils";
+import { RUNTIME, runtime } from "@sk/messaging/runtime";
 import { createSignal } from "solid-js";
 import { render } from "solid-js/web";
 import * as v from "valibot";
 
 import { createEngineEnv } from "../common/createEngineEnv";
-import { RUNTIME, runtime } from "../common/runtime";
 import createCommands from "./command";
 import { Banner as BannerView } from "./components/Banner";
 import { Bubble as BubbleView } from "./components/Bubble";

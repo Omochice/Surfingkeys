@@ -1,3 +1,4 @@
+import { runtime } from "@sk/messaging/runtime";
 /**
  * Tests for createFront: the factory that wires up the content-script ↔ frontend communication
  * layer.
@@ -10,7 +11,6 @@
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-import { runtime } from "./common/runtime";
 import createFront from "./front";
 
 // ---------------------------------------------------------------------------

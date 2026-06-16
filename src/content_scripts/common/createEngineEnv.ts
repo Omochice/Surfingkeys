@@ -2,9 +2,8 @@ import browser from "@sk/adapter/browser";
 import { LOG } from "@sk/adapter/log";
 import { isInUIFrame, reportIssue } from "@sk/adapter/platform-utils";
 import type { EngineEnv } from "@sk/core/engineEnv";
-
-import { tabOpenLink } from "./messagingActions";
-import { RUNTIME } from "./runtime";
+import { tabOpenLink } from "@sk/messaging/messagingActions";
+import { RUNTIME } from "@sk/messaging/runtime";
 
 /**
  * Build the concrete {@link EngineEnv} from the WebExtension seams. This is the one wiring point

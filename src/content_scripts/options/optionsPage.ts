@@ -8,8 +8,8 @@ import {
   setSanitizedContent,
   showBanner,
 } from "@sk/core/utils";
+import { RUNTIME } from "@sk/messaging/runtime";
 
-import { RUNTIME } from "../common/runtime";
 import { start } from "../content";
 import optionsMain from "./options";
 

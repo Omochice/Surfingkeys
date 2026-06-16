@@ -2,8 +2,7 @@ import browser from "@sk/adapter/browser";
 import { reportOnFail } from "@sk/common/result";
 import { reportError } from "@sk/core/report";
 import { hide, setSanitizedContent, show } from "@sk/core/utils";
-
-import { RUNTIME } from "../common/runtime";
+import { RUNTIME } from "@sk/messaging/runtime";
 
 reportOnFail(
   RUNTIME("getTopSites", null, (response: { urls: { url: string; title: string }[] }) => {

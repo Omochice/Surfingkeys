@@ -9,8 +9,7 @@ import type createNormal from "@sk/core/normal";
 import { reportError } from "@sk/core/report";
 import type { TrieMeta } from "@sk/core/trie";
 import { applyUserSettings } from "@sk/core/utils";
-
-import { RUNTIME, runtime } from "./common/runtime";
+import { RUNTIME, runtime } from "@sk/messaging/runtime";
 
 // This module owns the single concern of applying stored/user settings onto the
 // live extension state: the runtime config, the basic key remaps, search-alias

@@ -1,0 +1,14 @@
+{
+  "name": "@sk/messaging",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    "./*": "./src/*.ts"
+  },
+  "dependencies": {
+    "@praha/byethrow": "0.12.0",
+    "@sk/common": "workspace:*",
+    "@sk/core": "workspace:*"
+  }
+}

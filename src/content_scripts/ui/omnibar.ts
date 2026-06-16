@@ -24,10 +24,10 @@ import {
   tryDecodeURI,
   tryDecodeURIComponent,
 } from "@sk/core/utils";
+import { RUNTIME, runtime } from "@sk/messaging/runtime";
 import { createEffect, createRoot, createSignal } from "solid-js";
 import { render } from "solid-js/web";
 
-import { RUNTIME, runtime } from "../common/runtime";
 import { parseCommandLine } from "./commandLine";
 import { Prompt } from "./components/Prompt";
 import type { PromptValue } from "./components/Prompt";
