@@ -17,6 +17,6 @@
     "valibot": "catalog:"
   },
   "devDependencies": {
-    "@solidjs/testing-library": "catalog:"
+    "@solidjs/testing-library": "0.8.10"
   }
 }

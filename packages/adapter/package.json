@@ -8,9 +8,9 @@
   },
   "dependencies": {
     "@sk/core": "workspace:*",
-    "webextension-polyfill": "catalog:"
+    "webextension-polyfill": "0.12.0"
   },
   "devDependencies": {
-    "@types/webextension-polyfill": "catalog:"
+    "@types/webextension-polyfill": "0.12.5"
   }
 }

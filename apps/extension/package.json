@@ -23,8 +23,8 @@
     "@sk/messaging": "workspace:*"
   },
   "devDependencies": {
-    "@wxt-dev/module-solid": "catalog:",
-    "vite": "catalog:",
+    "@wxt-dev/module-solid": "1.1.4",
+    "vite": "8.0.16",
     "wxt": "catalog:"
   }
 }
