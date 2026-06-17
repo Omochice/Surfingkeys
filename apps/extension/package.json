@@ -15,7 +15,7 @@
     "zip:firefox": "wxt zip -b firefox"
   },
   "dependencies": {
-    "@praha/byethrow": "0.12.0",
+    "@praha/byethrow": "catalog:",
     "@sk/background": "workspace:*",
     "@sk/common": "workspace:*",
     "@sk/content": "workspace:*",
@@ -25,6 +25,6 @@
   "devDependencies": {
     "@wxt-dev/module-solid": "1.1.4",
     "vite": "8.0.16",
-    "wxt": "0.20.26"
+    "wxt": "catalog:"
   }
 }
