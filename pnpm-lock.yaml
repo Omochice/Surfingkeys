@@ -218,7 +218,7 @@ catalogs:
       specifier: 0.12.5
       version: 0.12.5
     dompurify:
-      specifier: ^3.2.4
+      specifier: 3.4.10
       version: 3.4.10
     jsdom:
       specifier: 29.1.1
