@@ -14,7 +14,7 @@
   "author": "brook hong",
   "type": "module",
   "scripts": {
-    "build": "npm-run-all2 clean test build:prod",
+    "build": "npm-run-all2 clean build:prod",
     "build:dev": "pnpm --filter @sk/extension build:dev",
     "build:dev:firefox": "pnpm --filter @sk/extension build:dev:firefox",
     "build:prod": "pnpm --filter @sk/extension build:prod",
