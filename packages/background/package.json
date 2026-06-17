@@ -16,13 +16,15 @@
   "dependencies": {
     "@praha/byethrow": "catalog:",
     "@sk/common": "workspace:*",
-    "valibot": "catalog:"
+    "valibot": "catalog:",
+    "webextension-polyfill": "catalog:"
   },
   "devDependencies": {
     "@sk/test-support": "workspace:*",
     "@sk/types": "workspace:*",
     "@types/chrome": "catalog:",
     "@types/firefox-webext-browser": "catalog:",
+    "@types/webextension-polyfill": "catalog:",
     "jsdom": "catalog:",
     "oxfmt": "catalog:",
     "oxlint": "catalog:",
