@@ -29,7 +29,7 @@ export default defineConfig({
   outDir: "dist",
   // The codebase uses explicit imports throughout; WXT auto-imports would only
   // add hidden globals.
-  imports: false,
+  imports: { disabled: true, exclude: [/packages\//] },
   manifestVersion: 3,
   targetBrowsers: ["chrome", "firefox"],
   modules: ["@wxt-dev/module-solid"],
