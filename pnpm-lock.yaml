@@ -214,9 +214,6 @@ catalogs:
     '@types/firefox-webext-browser':
       specifier: 143.0.0
       version: 143.0.0
-    dompurify:
-      specifier: ^3.2.4
-      version: 3.4.9
     jsdom:
       specifier: 29.1.1
       version: 29.1.1
@@ -459,7 +456,7 @@ importers:
         version: link:../messaging
       dompurify:
         specifier: 'catalog:'
-        version: 3.4.9
+        version: 3.4.10
       solid-js:
         specifier: 'catalog:'
         version: 1.9.13
@@ -511,7 +508,7 @@ importers:
         version: link:../common
       dompurify:
         specifier: 'catalog:'
-        version: 3.4.9
+        version: 3.4.10
       valibot:
         specifier: 'catalog:'
         version: 1.4.1(typescript@6.0.3)
@@ -2042,8 +2039,8 @@ packages:
     resolution: {integrity: sha512-cgwlv/1iFQiFnU96XXgROh8xTeetsnJiDsTc7TYCLFd9+/WNkIqPTxiM/8pSd8VIrhXGTf1Ny1q1hquVqDJB5w==}
     engines: {node: '>= 4'}
 
-  dompurify@3.4.9:
-    resolution: {integrity: sha512-4dPSRMRDqHvs0V4YDFCsaIZo4if5u0xM+llyxiM2fwuZFdKArUBAF3VtI2+n8NKg9P870WMdYk0UhqQNoWXbfQ==}
+  dompurify@3.4.10:
+    resolution: {integrity: sha512-0xzNv0e7oYC6yyuOGZIABPM4qtg3QxLFniDNPP4ZP90wR8Yq3zgwpRbrNiT4N3IKqDbbYFEJLV+JWEs19aZ//w==}
 
   domutils@3.2.2:
     resolution: {integrity: sha512-6kZKyUajlDuqlHKVX1w7gyslj9MPIXzIFiz/rGu35uC1wMi+kMhQwGhl4lt9unC9Vb9INnY9Z3/ZA3+FhASLaw==}
@@ -4623,7 +4620,7 @@ snapshots:
     dependencies:
       domelementtype: 2.3.0
 
-  dompurify@3.4.9:
+  dompurify@3.4.10:
     optionalDependencies:
       '@types/trusted-types': 2.0.7
 
