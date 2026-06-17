@@ -1,8 +1,6 @@
 packages:
   - "packages/*"
   - "apps/*"
-# Only dependencies shared by two or more workspace packages live here; deps used by a single
-# package are pinned in that package so colocation stays honest.
 catalog:
   "@praha/byethrow": 0.12.0
   "@types/chrome": 0.1.43
