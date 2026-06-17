@@ -214,6 +214,12 @@ catalogs:
     '@types/firefox-webext-browser':
       specifier: 143.0.0
       version: 143.0.0
+    '@types/webextension-polyfill':
+      specifier: 0.12.5
+      version: 0.12.5
+    dompurify:
+      specifier: ^3.2.4
+      version: 3.4.10
     jsdom:
       specifier: 29.1.1
       version: 29.1.1
@@ -235,6 +241,9 @@ catalogs:
     vitest:
       specifier: 4.1.8
       version: 4.1.8
+    webextension-polyfill:
+      specifier: 0.12.0
+      version: 0.12.0
     wxt:
       specifier: 0.20.26
       version: 0.20.26
@@ -341,7 +350,7 @@ importers:
         specifier: workspace:*
         version: link:../core
       webextension-polyfill:
-        specifier: 0.12.0
+        specifier: 'catalog:'
         version: 0.12.0
     devDependencies:
       '@sk/test-support':
@@ -357,7 +366,7 @@ importers:
         specifier: 'catalog:'
         version: 143.0.0
       '@types/webextension-polyfill':
-        specifier: 0.12.5
+        specifier: 'catalog:'
         version: 0.12.5
       jsdom:
         specifier: 'catalog:'
@@ -387,7 +396,7 @@ importers:
         specifier: 'catalog:'
         version: 1.4.1(typescript@6.0.3)
       webextension-polyfill:
-        specifier: 0.12.0
+        specifier: 'catalog:'
         version: 0.12.0
     devDependencies:
       '@sk/test-support':
@@ -403,7 +412,7 @@ importers:
         specifier: 'catalog:'
         version: 143.0.0
       '@types/webextension-polyfill':
-        specifier: 0.12.5
+        specifier: 'catalog:'
         version: 0.12.5
       jsdom:
         specifier: 'catalog:'

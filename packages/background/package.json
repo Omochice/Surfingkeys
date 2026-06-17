@@ -17,14 +17,14 @@
     "@praha/byethrow": "catalog:",
     "@sk/common": "workspace:*",
     "valibot": "catalog:",
-    "webextension-polyfill": "0.12.0"
+    "webextension-polyfill": "catalog:"
   },
   "devDependencies": {
     "@sk/test-support": "workspace:*",
     "@sk/types": "workspace:*",
     "@types/chrome": "catalog:",
     "@types/firefox-webext-browser": "catalog:",
-    "@types/webextension-polyfill": "0.12.5",
+    "@types/webextension-polyfill": "catalog:",
     "jsdom": "catalog:",
     "oxfmt": "catalog:",
     "oxlint": "catalog:",
