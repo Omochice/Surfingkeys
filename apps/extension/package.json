@@ -8,9 +8,12 @@
     "build:dev:firefox": "wxt build --mode development -b firefox",
     "build:prod": "wxt build",
     "build:prod:firefox": "wxt build -b firefox",
+    "check:oxfmt": "oxfmt --check",
+    "check:oxlint": "oxlint",
     "check:type": "tsc --noEmit -p tsconfig.json",
     "dev": "wxt",
     "dev:firefox": "wxt -b firefox",
+    "fmt": "oxfmt",
     "postinstall": "wxt prepare",
     "zip": "wxt zip",
     "zip:firefox": "wxt zip -b firefox"
@@ -27,6 +30,8 @@
     "@types/chrome": "catalog:",
     "@types/firefox-webext-browser": "catalog:",
     "@wxt-dev/module-solid": "1.1.4",
+    "oxfmt": "catalog:",
+    "oxlint": "catalog:",
     "typescript": "catalog:",
     "vite": "8.0.16",
     "wxt": "catalog:"
