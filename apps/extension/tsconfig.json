@@ -1,7 +1,9 @@
 {
   "extends": "../../tsconfig.base.json",
   "compilerOptions": {
-    "types": []
+    "types": ["chrome", "firefox-webext-browser"],
+    "jsx": "preserve",
+    "jsxImportSource": "solid-js"
   },
   "include": ["src", "../../types/dom-augmentations.d.ts"],
   "exclude": ["src/**/*.test.ts", "src/**/*.test.tsx"]

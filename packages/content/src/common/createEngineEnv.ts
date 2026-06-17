@@ -1,7 +1,7 @@
 import browser from "@sk/adapter/browser";
 import { LOG } from "@sk/adapter/log";
 import { isInUIFrame, reportIssue } from "@sk/adapter/platform-utils";
-import type { EngineEnv } from "@sk/core/engineEnv";
+import type { EngineEnv, SurfingkeysHost } from "@sk/core/engineEnv";
 import { tabOpenLink } from "@sk/messaging/messagingActions";
 import { RUNTIME } from "@sk/messaging/runtime";
 
@@ -20,7 +20,10 @@ function createEngineEnv(): EngineEnv {
     getExtensionURL: (path) => browser.runtime.getURL(path),
     log: LOG,
     get surfingkeys() {
-      return chrome.surfingkeys;
+      // chrome.surfingkeys is a non-standard companion API not in @types/chrome; read it through a
+      // local cast to the engine-owned SurfingkeysHost type instead of an ambient chrome.d.ts, so
+      // no `declare namespace chrome` augmentation has to be kept out of @sk/core's boundary.
+      return (chrome as unknown as { surfingkeys?: SurfingkeysHost }).surfingkeys;
     },
   };
 }

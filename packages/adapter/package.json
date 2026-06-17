@@ -6,11 +6,17 @@
   "exports": {
     "./*": "./src/*.ts"
   },
+  "scripts": {
+    "check:type": "tsc --noEmit -p tsconfig.json"
+  },
   "dependencies": {
     "@sk/core": "workspace:*",
     "webextension-polyfill": "0.12.0"
   },
   "devDependencies": {
-    "@types/webextension-polyfill": "0.12.5"
+    "@types/chrome": "catalog:",
+    "@types/firefox-webext-browser": "catalog:",
+    "@types/webextension-polyfill": "0.12.5",
+    "typescript": "catalog:"
   }
 }

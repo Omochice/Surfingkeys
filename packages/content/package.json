@@ -6,6 +6,9 @@
   "exports": {
     "./*": "./src/*.ts"
   },
+  "scripts": {
+    "check:type": "tsc --noEmit -p tsconfig.json"
+  },
   "dependencies": {
     "@praha/byethrow": "catalog:",
     "@sk/adapter": "workspace:*",
@@ -17,6 +20,9 @@
     "valibot": "catalog:"
   },
   "devDependencies": {
-    "@solidjs/testing-library": "0.8.10"
+    "@solidjs/testing-library": "0.8.10",
+    "@types/chrome": "catalog:",
+    "@types/firefox-webext-browser": "catalog:",
+    "typescript": "catalog:"
   }
 }

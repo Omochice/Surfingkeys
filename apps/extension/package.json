@@ -8,6 +8,7 @@
     "build:dev:firefox": "wxt build --mode development -b firefox",
     "build:prod": "wxt build",
     "build:prod:firefox": "wxt build -b firefox",
+    "check:type": "tsc --noEmit -p tsconfig.json",
     "dev": "wxt",
     "dev:firefox": "wxt -b firefox",
     "postinstall": "wxt prepare",
@@ -23,7 +24,10 @@
     "@sk/messaging": "workspace:*"
   },
   "devDependencies": {
+    "@types/chrome": "catalog:",
+    "@types/firefox-webext-browser": "catalog:",
     "@wxt-dev/module-solid": "1.1.4",
+    "typescript": "catalog:",
     "vite": "8.0.16",
     "wxt": "catalog:"
   }
