@@ -25,6 +25,7 @@
   },
   "devDependencies": {
     "@sk/test-support": "workspace:*",
+    "@sk/types": "workspace:*",
     "@solidjs/testing-library": "0.8.10",
     "@types/chrome": "catalog:",
     "@types/firefox-webext-browser": "catalog:",

@@ -19,6 +19,7 @@
   },
   "devDependencies": {
     "@sk/test-support": "workspace:*",
+    "@sk/types": "workspace:*",
     "@types/chrome": "catalog:",
     "@types/firefox-webext-browser": "catalog:",
     "@types/webextension-polyfill": "0.12.5",

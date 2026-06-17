@@ -21,6 +21,7 @@
   },
   "devDependencies": {
     "@sk/test-support": "workspace:*",
+    "@sk/types": "workspace:*",
     "jsdom": "catalog:",
     "oxfmt": "catalog:",
     "oxlint": "catalog:",
