@@ -4,14 +4,19 @@ coverage:
 
 codeToTestRatio:
   code:
-    - "src/**/*.ts"
-    - "src/**/*.tsx"
-    - "!src/**/*.test.ts"
-    - "!src/**/*.test.tsx"
-    - "!src/**/*.d.ts"
+    - "packages/*/src/**/*.ts"
+    - "packages/*/src/**/*.tsx"
+    - "apps/*/src/**/*.ts"
+    - "apps/*/src/**/*.tsx"
+    - "!**/*.test.ts"
+    - "!**/*.test.tsx"
+    - "!**/*.d.ts"
+    - "!packages/test-support/**"
   test:
-    - "src/**/*.test.ts"
-    - "src/**/*.test.tsx"
+    - "packages/*/src/**/*.test.ts"
+    - "packages/*/src/**/*.test.tsx"
+    - "apps/*/src/**/*.test.ts"
+    - "apps/*/src/**/*.test.tsx"
 
 diff:
   datastores:

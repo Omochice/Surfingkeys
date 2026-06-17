@@ -2,7 +2,7 @@
   "$schema": "https://unpkg.com/knip@6/schema.json",
   "workspaces": {
     ".": {
-      "ignoreDependencies": ["wxt"]
+      "ignoreDependencies": ["solid-js", "wxt"]
     },
     "apps/extension": {
       "entry": ["src/pages/popup/popup.ts", "src/user_scripts/index.ts"]

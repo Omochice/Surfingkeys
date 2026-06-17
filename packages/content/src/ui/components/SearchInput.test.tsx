@@ -1,8 +1,8 @@
+import { expectDefined } from "@sk/test-support/helpers";
 import { render } from "@solidjs/testing-library";
 import { createSignal } from "solid-js";
 import { describe, expect, it, vi } from "vitest";
 
-import { expectDefined } from "../../../../../test/helpers";
 import { SearchInput } from "./SearchInput";
 
 const noop = () => {};

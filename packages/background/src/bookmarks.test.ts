@@ -1,6 +1,6 @@
+import { expectDefined } from "@sk/test-support/helpers";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-import { expectDefined } from "../../../test/helpers";
 import { createBookmarkHandlers } from "./bookmarks";
 
 type AnyChrome = { bookmarks?: any };

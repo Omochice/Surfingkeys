@@ -6,11 +6,13 @@ catalog:
   "@types/chrome": 0.1.43
   "@types/firefox-webext-browser": 143.0.0
   dompurify: ^3.2.4
+  jsdom: 29.1.1
   oxfmt: 0.54.0
   oxlint: 1.69.0
   solid-js: 1.9.13
   typescript: 6.0.3
   valibot: 1.4.1
+  vitest: 4.1.8
   wxt: 0.20.26
 allowBuilds:
   esbuild: true

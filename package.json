@@ -13,9 +13,6 @@
   "license": "MIT",
   "author": "brook hong",
   "type": "module",
-  "directories": {
-    "test": "test"
-  },
   "scripts": {
     "build": "npm-run-all2 clean test build:prod",
     "build:dev": "pnpm --filter @sk/extension build:dev",
@@ -25,19 +22,20 @@
     "check": "npm-run-all2 check:*",
     "check:knip": "knip",
     "check:nixfmt": "nixfmt --check flake.nix",
-    "check:oxfmt": "oxfmt --check test vitest.config.ts && pnpm -r run check:oxfmt",
-    "check:oxlint": "oxlint test vitest.config.ts && pnpm -r run check:oxlint",
+    "check:oxfmt": "oxfmt --check types vitest.config.ts && pnpm -r run check:oxfmt",
+    "check:oxlint": "oxlint types vitest.config.ts && pnpm -r run check:oxlint",
     "check:package": "sort-package-json --check",
     "check:type": "pnpm -r run check:type",
     "check:typos": "typos",
     "clean": "rimraf apps/extension/dist",
+    "coverage": "vitest run --coverage",
     "dev": "pnpm --filter @sk/extension dev",
     "dev:firefox": "pnpm --filter @sk/extension dev:firefox",
     "fmt": "npm-run-all2 fmt:*",
     "fmt:nixfmt": "nixfmt flake.nix",
-    "fmt:oxfmt": "oxfmt test vitest.config.ts && pnpm -r run fmt",
+    "fmt:oxfmt": "oxfmt types vitest.config.ts && pnpm -r run fmt",
     "fmt:package": "sort-package-json",
-    "test": "vitest run",
+    "test": "pnpm -r run test",
     "test:watch": "vitest",
     "zip": "pnpm --filter @sk/extension zip",
     "zip:firefox": "pnpm --filter @sk/extension zip:firefox"
@@ -45,7 +43,6 @@
   "devDependencies": {
     "@tsconfig/strictest": "2.0.8",
     "@vitest/coverage-v8": "4.1.8",
-    "jsdom": "29.1.1",
     "knip": "6.16.1",
     "npm-run-all2": "9.0.2",
     "oxfmt": "catalog:",
@@ -53,8 +50,7 @@
     "rimraf": "6.1.3",
     "solid-js": "catalog:",
     "sort-package-json": "4.0.0",
-    "vite-plugin-solid": "2.11.12",
-    "vitest": "4.1.8",
+    "vitest": "catalog:",
     "wxt": "catalog:"
   },
   "devEngines": {

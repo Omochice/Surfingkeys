@@ -1,7 +1,7 @@
 import { Result } from "@praha/byethrow";
+import { expectDefined } from "@sk/test-support/helpers";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-import { expectDefined } from "../../../test/helpers";
 import { request } from "./request";
 
 afterEach(() => {

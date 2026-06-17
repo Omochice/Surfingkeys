@@ -15,6 +15,7 @@
     "dev:firefox": "wxt -b firefox",
     "fmt": "oxfmt",
     "postinstall": "wxt prepare",
+    "test": "vitest run",
     "zip": "wxt zip",
     "zip:firefox": "wxt zip -b firefox"
   },
@@ -27,13 +28,17 @@
     "@sk/messaging": "workspace:*"
   },
   "devDependencies": {
+    "@sk/test-support": "workspace:*",
     "@types/chrome": "catalog:",
     "@types/firefox-webext-browser": "catalog:",
     "@wxt-dev/module-solid": "1.1.4",
+    "jsdom": "catalog:",
     "oxfmt": "catalog:",
     "oxlint": "catalog:",
+    "solid-js": "catalog:",
     "typescript": "catalog:",
     "vite": "8.0.16",
+    "vitest": "catalog:",
     "wxt": "catalog:"
   }
 }

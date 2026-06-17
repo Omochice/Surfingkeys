@@ -10,7 +10,8 @@
     "check:oxfmt": "oxfmt --check",
     "check:oxlint": "oxlint",
     "check:type": "tsc --noEmit -p tsconfig.json",
-    "fmt": "oxfmt"
+    "fmt": "oxfmt",
+    "test": "vitest run"
   },
   "dependencies": {
     "@praha/byethrow": "catalog:",
@@ -19,8 +20,11 @@
     "valibot": "catalog:"
   },
   "devDependencies": {
+    "@sk/test-support": "workspace:*",
+    "jsdom": "catalog:",
     "oxfmt": "catalog:",
     "oxlint": "catalog:",
-    "typescript": "catalog:"
+    "typescript": "catalog:",
+    "vitest": "catalog:"
   }
 }

@@ -1,0 +1,24 @@
+{
+  "name": "@sk/test-support",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    "./helpers": "./src/helpers.ts",
+    "./setup": "./src/setup.ts"
+  },
+  "scripts": {
+    "check:oxfmt": "oxfmt --check",
+    "check:oxlint": "oxlint",
+    "check:type": "tsc --noEmit -p tsconfig.json",
+    "fmt": "oxfmt"
+  },
+  "dependencies": {
+    "vitest": "catalog:"
+  },
+  "devDependencies": {
+    "oxfmt": "catalog:",
+    "oxlint": "catalog:",
+    "typescript": "catalog:"
+  }
+}
