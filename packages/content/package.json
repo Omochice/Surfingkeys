@@ -10,7 +10,8 @@
     "check:oxfmt": "oxfmt --check",
     "check:oxlint": "oxlint",
     "check:type": "tsc --noEmit -p tsconfig.json",
-    "fmt": "oxfmt"
+    "fmt": "oxfmt",
+    "test": "vitest run"
   },
   "dependencies": {
     "@praha/byethrow": "catalog:",
@@ -23,11 +24,15 @@
     "valibot": "catalog:"
   },
   "devDependencies": {
+    "@sk/test-support": "workspace:*",
     "@solidjs/testing-library": "0.8.10",
     "@types/chrome": "catalog:",
     "@types/firefox-webext-browser": "catalog:",
+    "jsdom": "catalog:",
     "oxfmt": "catalog:",
     "oxlint": "catalog:",
-    "typescript": "catalog:"
+    "typescript": "catalog:",
+    "vite-plugin-solid": "2.11.12",
+    "vitest": "catalog:"
   }
 }

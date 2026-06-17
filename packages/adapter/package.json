@@ -10,18 +10,22 @@
     "check:oxfmt": "oxfmt --check",
     "check:oxlint": "oxlint",
     "check:type": "tsc --noEmit -p tsconfig.json",
-    "fmt": "oxfmt"
+    "fmt": "oxfmt",
+    "test": "vitest run"
   },
   "dependencies": {
     "@sk/core": "workspace:*",
     "webextension-polyfill": "0.12.0"
   },
   "devDependencies": {
+    "@sk/test-support": "workspace:*",
     "@types/chrome": "catalog:",
     "@types/firefox-webext-browser": "catalog:",
     "@types/webextension-polyfill": "0.12.5",
+    "jsdom": "catalog:",
     "oxfmt": "catalog:",
     "oxlint": "catalog:",
-    "typescript": "catalog:"
+    "typescript": "catalog:",
+    "vitest": "catalog:"
   }
 }
