@@ -7,7 +7,10 @@
     "./*": "./src/*.ts"
   },
   "scripts": {
-    "check:type": "tsc --noEmit -p tsconfig.json"
+    "check:oxfmt": "oxfmt --check",
+    "check:oxlint": "oxlint",
+    "check:type": "tsc --noEmit -p tsconfig.json",
+    "fmt": "oxfmt"
   },
   "dependencies": {
     "@praha/byethrow": "catalog:",
@@ -17,6 +20,8 @@
   "devDependencies": {
     "@types/chrome": "catalog:",
     "@types/firefox-webext-browser": "catalog:",
+    "oxfmt": "catalog:",
+    "oxlint": "catalog:",
     "typescript": "catalog:"
   }
 }
