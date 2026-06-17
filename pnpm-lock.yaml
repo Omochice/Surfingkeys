@@ -304,6 +304,9 @@ importers:
       '@sk/test-support':
         specifier: workspace:*
         version: link:../../packages/test-support
+      '@sk/types':
+        specifier: workspace:*
+        version: link:../../packages/types
       '@types/chrome':
         specifier: 'catalog:'
         version: 0.1.43
@@ -350,6 +353,9 @@ importers:
       '@sk/test-support':
         specifier: workspace:*
         version: link:../test-support
+      '@sk/types':
+        specifier: workspace:*
+        version: link:../types
       '@types/chrome':
         specifier: 'catalog:'
         version: 0.1.43
@@ -390,6 +396,9 @@ importers:
       '@sk/test-support':
         specifier: workspace:*
         version: link:../test-support
+      '@sk/types':
+        specifier: workspace:*
+        version: link:../types
       '@types/chrome':
         specifier: 'catalog:'
         version: 0.1.43
@@ -418,6 +427,9 @@ importers:
         specifier: 'catalog:'
         version: 0.12.0(typescript@6.0.3)
     devDependencies:
+      '@sk/types':
+        specifier: workspace:*
+        version: link:../types
       oxfmt:
         specifier: 'catalog:'
         version: 0.54.0
@@ -458,6 +470,9 @@ importers:
       '@sk/test-support':
         specifier: workspace:*
         version: link:../test-support
+      '@sk/types':
+        specifier: workspace:*
+        version: link:../types
       '@solidjs/testing-library':
         specifier: 0.8.10
         version: 0.8.10(solid-js@1.9.13)
@@ -504,6 +519,9 @@ importers:
       '@sk/test-support':
         specifier: workspace:*
         version: link:../test-support
+      '@sk/types':
+        specifier: workspace:*
+        version: link:../types
       jsdom:
         specifier: 'catalog:'
         version: 29.1.1
@@ -535,6 +553,9 @@ importers:
       '@sk/test-support':
         specifier: workspace:*
         version: link:../test-support
+      '@sk/types':
+        specifier: workspace:*
+        version: link:../types
       '@types/chrome':
         specifier: 'catalog:'
         version: 0.1.43
@@ -562,6 +583,18 @@ importers:
       vitest:
         specifier: 'catalog:'
         version: 4.1.8(@types/node@25.9.2)(@vitest/coverage-v8@4.1.8)(jsdom@29.1.1)(vite@8.0.16(@types/node@25.9.2)(esbuild@0.27.7)(jiti@2.7.0)(yaml@2.9.0))
+    devDependencies:
+      oxfmt:
+        specifier: 'catalog:'
+        version: 0.54.0
+      oxlint:
+        specifier: 'catalog:'
+        version: 1.69.0
+      typescript:
+        specifier: 'catalog:'
+        version: 6.0.3
+
+  packages/types:
     devDependencies:
       oxfmt:
         specifier: 'catalog:'

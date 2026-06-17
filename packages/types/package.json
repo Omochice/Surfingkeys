@@ -1,23 +1,16 @@
 {
-  "name": "@sk/common",
+  "name": "@sk/types",
   "version": "0.0.0",
   "private": true,
   "type": "module",
-  "exports": {
-    "./result": "./src/result/index.ts",
-    "./utils": "./src/utils.ts"
-  },
+  "types": "./src/dom-augmentations.d.ts",
   "scripts": {
     "check:oxfmt": "oxfmt --check",
     "check:oxlint": "oxlint",
     "check:type": "tsc --noEmit -p tsconfig.json",
     "fmt": "oxfmt"
   },
-  "dependencies": {
-    "@praha/byethrow": "catalog:"
-  },
   "devDependencies": {
-    "@sk/types": "workspace:*",
     "oxfmt": "catalog:",
     "oxlint": "catalog:",
     "typescript": "catalog:"
