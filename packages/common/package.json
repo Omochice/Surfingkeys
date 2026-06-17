@@ -8,18 +8,24 @@
     "./utils": "./src/utils.ts"
   },
   "scripts": {
+    "check": "npm-run-all2 check:*",
     "check:oxfmt": "oxfmt --check",
     "check:oxlint": "oxlint",
+    "check:package": "sort-package-json --check",
     "check:type": "tsc --noEmit -p tsconfig.json",
-    "fmt": "oxfmt"
+    "fmt": "npm-run-all2 fmt:*",
+    "fmt:oxfmt": "oxfmt",
+    "fmt:package": "sort-package-json"
   },
   "dependencies": {
     "@praha/byethrow": "catalog:"
   },
   "devDependencies": {
     "@sk/types": "workspace:*",
+    "npm-run-all2": "catalog:",
     "oxfmt": "catalog:",
     "oxlint": "catalog:",
+    "sort-package-json": "catalog:",
     "typescript": "catalog:"
   }
 }

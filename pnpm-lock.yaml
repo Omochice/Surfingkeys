@@ -223,6 +223,9 @@ catalogs:
     jsdom:
       specifier: 29.1.1
       version: 29.1.1
+    npm-run-all2:
+      specifier: 9.0.2
+      version: 9.0.2
     oxfmt:
       specifier: 0.54.0
       version: 0.54.0
@@ -232,6 +235,9 @@ catalogs:
     solid-js:
       specifier: 1.9.13
       version: 1.9.13
+    sort-package-json:
+      specifier: 4.0.0
+      version: 4.0.0
     typescript:
       specifier: 6.0.3
       version: 6.0.3
@@ -262,7 +268,7 @@ importers:
         specifier: 6.16.1
         version: 6.16.1
       npm-run-all2:
-        specifier: 9.0.2
+        specifier: 'catalog:'
         version: 9.0.2
       oxfmt:
         specifier: 'catalog:'
@@ -274,7 +280,7 @@ importers:
         specifier: 6.1.3
         version: 6.1.3
       sort-package-json:
-        specifier: 4.0.0
+        specifier: 'catalog:'
         version: 4.0.0
       vitest:
         specifier: 'catalog:'
@@ -319,6 +325,9 @@ importers:
       jsdom:
         specifier: 'catalog:'
         version: 29.1.1
+      npm-run-all2:
+        specifier: 'catalog:'
+        version: 9.0.2
       oxfmt:
         specifier: 'catalog:'
         version: 0.54.0
@@ -328,6 +337,9 @@ importers:
       solid-js:
         specifier: 'catalog:'
         version: 1.9.13
+      sort-package-json:
+        specifier: 'catalog:'
+        version: 4.0.0
       typescript:
         specifier: 'catalog:'
         version: 6.0.3
@@ -368,12 +380,18 @@ importers:
       jsdom:
         specifier: 'catalog:'
         version: 29.1.1
+      npm-run-all2:
+        specifier: 'catalog:'
+        version: 9.0.2
       oxfmt:
         specifier: 'catalog:'
         version: 0.54.0
       oxlint:
         specifier: 'catalog:'
         version: 1.69.0
+      sort-package-json:
+        specifier: 'catalog:'
+        version: 4.0.0
       typescript:
         specifier: 'catalog:'
         version: 6.0.3
@@ -414,12 +432,18 @@ importers:
       jsdom:
         specifier: 'catalog:'
         version: 29.1.1
+      npm-run-all2:
+        specifier: 'catalog:'
+        version: 9.0.2
       oxfmt:
         specifier: 'catalog:'
         version: 0.54.0
       oxlint:
         specifier: 'catalog:'
         version: 1.69.0
+      sort-package-json:
+        specifier: 'catalog:'
+        version: 4.0.0
       typescript:
         specifier: 'catalog:'
         version: 6.0.3
@@ -436,12 +460,18 @@ importers:
       '@sk/types':
         specifier: workspace:*
         version: link:../types
+      npm-run-all2:
+        specifier: 'catalog:'
+        version: 9.0.2
       oxfmt:
         specifier: 'catalog:'
         version: 0.54.0
       oxlint:
         specifier: 'catalog:'
         version: 1.69.0
+      sort-package-json:
+        specifier: 'catalog:'
+        version: 4.0.0
       typescript:
         specifier: 'catalog:'
         version: 6.0.3
@@ -491,12 +521,18 @@ importers:
       jsdom:
         specifier: 'catalog:'
         version: 29.1.1
+      npm-run-all2:
+        specifier: 'catalog:'
+        version: 9.0.2
       oxfmt:
         specifier: 'catalog:'
         version: 0.54.0
       oxlint:
         specifier: 'catalog:'
         version: 1.69.0
+      sort-package-json:
+        specifier: 'catalog:'
+        version: 4.0.0
       typescript:
         specifier: 'catalog:'
         version: 6.0.3
@@ -531,12 +567,18 @@ importers:
       jsdom:
         specifier: 'catalog:'
         version: 29.1.1
+      npm-run-all2:
+        specifier: 'catalog:'
+        version: 9.0.2
       oxfmt:
         specifier: 'catalog:'
         version: 0.54.0
       oxlint:
         specifier: 'catalog:'
         version: 1.69.0
+      sort-package-json:
+        specifier: 'catalog:'
+        version: 4.0.0
       typescript:
         specifier: 'catalog:'
         version: 6.0.3
@@ -571,12 +613,18 @@ importers:
       jsdom:
         specifier: 'catalog:'
         version: 29.1.1
+      npm-run-all2:
+        specifier: 'catalog:'
+        version: 9.0.2
       oxfmt:
         specifier: 'catalog:'
         version: 0.54.0
       oxlint:
         specifier: 'catalog:'
         version: 1.69.0
+      sort-package-json:
+        specifier: 'catalog:'
+        version: 4.0.0
       typescript:
         specifier: 'catalog:'
         version: 6.0.3
@@ -590,24 +638,36 @@ importers:
         specifier: 'catalog:'
         version: 4.1.8(@types/node@25.9.2)(@vitest/coverage-v8@4.1.8)(jsdom@29.1.1)(vite@8.0.16(@types/node@25.9.2)(esbuild@0.27.7)(jiti@2.7.0)(yaml@2.9.0))
     devDependencies:
+      npm-run-all2:
+        specifier: 'catalog:'
+        version: 9.0.2
       oxfmt:
         specifier: 'catalog:'
         version: 0.54.0
       oxlint:
         specifier: 'catalog:'
         version: 1.69.0
+      sort-package-json:
+        specifier: 'catalog:'
+        version: 4.0.0
       typescript:
         specifier: 'catalog:'
         version: 6.0.3
 
   packages/types:
     devDependencies:
+      npm-run-all2:
+        specifier: 'catalog:'
+        version: 9.0.2
       oxfmt:
         specifier: 'catalog:'
         version: 0.54.0
       oxlint:
         specifier: 'catalog:'
         version: 1.69.0
+      sort-package-json:
+        specifier: 'catalog:'
+        version: 4.0.0
       typescript:
         specifier: 'catalog:'
         version: 6.0.3
