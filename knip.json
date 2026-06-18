@@ -3,9 +3,6 @@
   "workspaces": {
     "apps/extension": {
       "entry": ["src/pages/popup/popup.ts", "src/user_scripts/index.ts"]
-    },
-    "packages/content": {
-      "entry": ["src/ui/frontend.ts", "src/options/optionsPage.ts", "src/start/startPage.ts"]
     }
   },
   "ignoreBinaries": ["nixfmt", "typos"]
