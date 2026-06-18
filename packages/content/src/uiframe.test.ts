@@ -2,12 +2,8 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 
 import createUiHost from "./uiframe";
 
-// createUiHost reaches the extension URL through the browser polyfill, which is
-// absent under jsdom; stub just the getURL the host needs to build the iframe.
-vi.mock("@sk/adapter/browser", () => ({
-  default: { runtime: { getURL: (path: string) => path } },
-}));
-
+// createUiHost reaches the extension URL through chrome.runtime.getURL; the
+// shared test setup stubs chrome under jsdom and getURL echoes the path back.
 afterEach(() => {
   // Each createUiHost appends a host div to <html>; drop them so the next test
   // boots in isolation and lastElementChild points at its own host.

@@ -18,15 +18,13 @@
     "test": "vitest run"
   },
   "dependencies": {
-    "@sk/core": "workspace:*",
-    "webextension-polyfill": "catalog:"
+    "@sk/core": "workspace:*"
   },
   "devDependencies": {
     "@sk/test-support": "workspace:*",
     "@sk/types": "workspace:*",
     "@types/chrome": "catalog:",
     "@types/firefox-webext-browser": "catalog:",
-    "@types/webextension-polyfill": "catalog:",
     "jsdom": "catalog:",
     "npm-run-all2": "catalog:",
     "oxfmt": "catalog:",

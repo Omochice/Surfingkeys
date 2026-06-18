@@ -214,9 +214,6 @@ catalogs:
     '@types/firefox-webext-browser':
       specifier: 143.0.0
       version: 143.0.0
-    '@types/webextension-polyfill':
-      specifier: 0.12.5
-      version: 0.12.5
     dompurify:
       specifier: 3.4.10
       version: 3.4.10
@@ -247,9 +244,6 @@ catalogs:
     vitest:
       specifier: 4.1.8
       version: 4.1.8
-    webextension-polyfill:
-      specifier: 0.12.0
-      version: 0.12.0
     wxt:
       specifier: 0.20.26
       version: 0.20.26
@@ -358,9 +352,6 @@ importers:
       '@sk/core':
         specifier: workspace:*
         version: link:../core
-      webextension-polyfill:
-        specifier: 'catalog:'
-        version: 0.12.0
     devDependencies:
       '@sk/test-support':
         specifier: workspace:*
@@ -374,9 +365,6 @@ importers:
       '@types/firefox-webext-browser':
         specifier: 'catalog:'
         version: 143.0.0
-      '@types/webextension-polyfill':
-        specifier: 'catalog:'
-        version: 0.12.5
       jsdom:
         specifier: 'catalog:'
         version: 29.1.1
@@ -410,9 +398,6 @@ importers:
       valibot:
         specifier: 'catalog:'
         version: 1.4.1(typescript@6.0.3)
-      webextension-polyfill:
-        specifier: 'catalog:'
-        version: 0.12.0
     devDependencies:
       '@sk/test-support':
         specifier: workspace:*
@@ -426,9 +411,6 @@ importers:
       '@types/firefox-webext-browser':
         specifier: 'catalog:'
         version: 143.0.0
-      '@types/webextension-polyfill':
-        specifier: 'catalog:'
-        version: 0.12.5
       jsdom:
         specifier: 'catalog:'
         version: 29.1.1
@@ -3464,9 +3446,6 @@ packages:
     resolution: {integrity: sha512-rQicL7OwuqWdQWI33JkSXKcp7cuv1mJG8u3jRQwx/8aDsmhbTHs9ZRmNYOL+LX0wX8edIEQX8jj4bB60GoXtKA==}
     engines: {node: '>=18.0.0', npm: '>=8.0.0'}
 
-  webextension-polyfill@0.12.0:
-    resolution: {integrity: sha512-97TBmpoWJEE+3nFBQ4VocyCdLKfw54rFaJ6EVQYLBCXqCIpLSZkwGgASpv4oPt9gdKCJ80RJlcmNzNn008Ag6Q==}
-
   webidl-conversions@8.0.1:
     resolution: {integrity: sha512-BMhLD/Sw+GbJC21C/UgyaZX41nPt8bUTg+jWyDeg7e7YN4xOM05YPSIXceACnXVtqyEw/LMClUQMtMZ+PGGpqQ==}
     engines: {node: '>=20'}
@@ -6045,8 +6024,6 @@ snapshots:
       zip-dir: 2.0.0
     transitivePeerDependencies:
       - supports-color
-
-  webextension-polyfill@0.12.0: {}
 
   webidl-conversions@8.0.1: {}
 

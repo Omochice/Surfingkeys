@@ -1,4 +1,3 @@
-import browser from "@sk/adapter/browser";
 import { LOG } from "@sk/adapter/log";
 import { getDocumentOrigin } from "@sk/core/utils";
 import { runtime } from "@sk/messaging/runtime";
@@ -28,7 +27,7 @@ function createUiHost(adapter: BrowserLike, onload: (uiHost: UiHost) => void): v
   uiHost.style.display = "block";
   uiHost.style.opacity = "1";
   uiHost.style.colorScheme = "light";
-  const frontEndURL = browser.runtime.getURL("frontend.html");
+  const frontEndURL = chrome.runtime.getURL("frontend.html");
   const ifr = document.createElement("iframe");
   ifr.setAttribute("allowtransparency", "true");
   ifr.setAttribute("frameborder", "0");
