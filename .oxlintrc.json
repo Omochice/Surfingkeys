@@ -1,5 +1,5 @@
 {
-  "$schema": "https://raw.githubusercontent.com/oxc-project/oxc/refs/tags/oxlint_v1.69.0/npm/oxlint/configuration_schema.json",
+  "$schema": "https://raw.githubusercontent.com/oxc-project/oxc/refs/tags/oxlint_v1.70.0/npm/oxlint/configuration_schema.json",
   "ignorePatterns": ["src/content_scripts/gist.js", "src/content_scripts/common/debug_utils.js"],
   "plugins": ["typescript", "unicorn", "oxc"],
   "categories": {
