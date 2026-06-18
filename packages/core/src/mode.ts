@@ -33,7 +33,9 @@ const listenedEvents: Record<string, (event: StackEvent) => void> = {
     eventListenerBeats++;
   },
   keydown: (event) => {
-    event.sk_keyName = KeyboardUtils.getKeyChar(event as unknown as { keyCode: number });
+    if (event instanceof KeyboardEvent) {
+      event.sk_keyName = KeyboardUtils.getKeyChar(event);
+    }
     if (modeStack.length === 0 && window !== top) {
       // automatically boots iframe on demand
       dispatchSKEvent("iframeBoot");
