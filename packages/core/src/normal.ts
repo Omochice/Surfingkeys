@@ -108,6 +108,14 @@ type NormalMode = {
   enable(): void;
 };
 
+// document.scrollingElement is usually <html>, but is null for a frameset body and could be a
+// non-HTML root in an XML document. It belongs to this script's own document, so instanceof is
+// realm-safe here.
+function htmlScrollingElement(): HTMLElement | null {
+  const el = document.scrollingElement;
+  return el instanceof HTMLElement ? el : null;
+}
+
 function createDisabled(normal: NormalMode): DisabledMode {
   const mode = new ModeHandle("Disabled");
   // hide status line for Disabled mode
@@ -132,7 +140,10 @@ function createDisabled(normal: NormalMode): DisabledMode {
     const keyName = event.sk_keyName ?? "";
     if (
       self.activatedOnElement &&
-      !document.activeElement!.matches(conf.disabledOnActiveElementPattern as string)
+      !(
+        conf.disabledOnActiveElementPattern &&
+        document.activeElement?.matches(conf.disabledOnActiveElementPattern)
+      )
     ) {
       normal.enable();
       self.activatedOnElement = false;
@@ -320,7 +331,7 @@ function createNormal(insert: InsertLike, env: EngineEnv): NormalMode {
   mode.addEventListener("keydown", (event) => {
     const realTarget = getRealEdit(event);
     const keyName = event.sk_keyName ?? "";
-    const eventKey = (event as KeyboardEvent).key;
+    const eventKey = "key" in event && typeof event.key === "string" ? event.key : undefined;
     if (realTarget && isEditable(realTarget) && event.isTrusted) {
       if (isSpecialKeyOf("<Esc>", keyName)) {
         realTarget.blur();
@@ -425,7 +436,10 @@ function createNormal(insert: InsertLike, env: EngineEnv): NormalMode {
       insert.exit();
     }
 
-    if (document.activeElement!.matches(conf.disabledOnActiveElementPattern as string)) {
+    if (
+      conf.disabledOnActiveElementPattern &&
+      document.activeElement?.matches(conf.disabledOnActiveElementPattern)
+    ) {
       setTimeout(() => {
         self.disable(true);
       }, 100);
@@ -518,7 +532,7 @@ function createNormal(insert: InsertLike, env: EngineEnv): NormalMode {
           dispatchSKEvent("hints", ["scrollStarted"]);
           elm.scrollBy({
             // "instant" is a valid runtime value the lib types omit.
-            behavior: "instant" as ScrollBehavior,
+            behavior: "instant",
             left: x,
             top: y,
           });
@@ -608,8 +622,9 @@ function createNormal(insert: InsertLike, env: EngineEnv): NormalMode {
   }
 
   function scrollableMousedownHandler(e: MouseEvent): void {
-    const n = e.currentTarget as HTMLElement;
-    const target = e.target as HTMLElement;
+    const n = e.currentTarget;
+    const target = e.target;
+    if (!(n instanceof HTMLElement) || !(target instanceof HTMLElement)) return;
     if (!n.contains(target)) return;
     let index = scrollNodes!.lastIndexOf(target);
     for (let i = scrollNodes!.length - 1; i >= 0 && index === -1; i--) {
@@ -705,7 +720,7 @@ function createNormal(insert: InsertLike, env: EngineEnv): NormalMode {
    */
   const scroll = (type: string): void => {
     initScrollIndex();
-    let scrollNode = document.scrollingElement as HTMLElement | null;
+    let scrollNode = htmlScrollingElement();
     if (scrollNodes!.length > 0) {
       scrollNode = scrollNodes![scrollIndex]!;
       if (scrollNode !== document.scrollingElement && scrollNode !== document.body) {
@@ -726,7 +741,7 @@ function createNormal(insert: InsertLike, env: EngineEnv): NormalMode {
       // to set document.body.style.overflow auto will make document.scrollingElement null
       // set visible to bring it back.
       document.body.style.overflow = "visible";
-      scrollNode = document.scrollingElement as HTMLElement | null;
+      scrollNode = htmlScrollingElement();
     }
     if (!scrollNode) {
       // scrollNode could be null on a page with frameset as its body.
@@ -742,10 +757,10 @@ function createNormal(insert: InsertLike, env: EngineEnv): NormalMode {
       const direction = scrollTypeDirections.get(type);
 
       if (direction && !canScrollInDirection(scrollNode, direction)) {
-        scrollNode = document.scrollingElement as HTMLElement | null;
+        scrollNode = htmlScrollingElement();
         if (!scrollNode && document.body) {
           document.body.style.overflow = "visible";
-          scrollNode = document.scrollingElement as HTMLElement | null;
+          scrollNode = htmlScrollingElement();
         }
       }
     }
@@ -848,7 +863,7 @@ function createNormal(insert: InsertLike, env: EngineEnv): NormalMode {
 
   const rotateFrame = (): void => {
     RUNTIME("nextFrame", {
-      frameId: (window as unknown as { frameId: number }).frameId,
+      frameId: window.frameId,
     });
   };
 
@@ -1046,19 +1061,24 @@ function createNormal(insert: InsertLike, env: EngineEnv): NormalMode {
     annotation: "Capture current full page",
     feature_group: 7,
     code: () => {
-      self.captureElement(document.scrollingElement as HTMLElement);
+      const scrollingElement = htmlScrollingElement();
+      if (scrollingElement) {
+        self.captureElement(scrollingElement);
+      }
     },
   });
   mappings.add("yS", {
     annotation: "Capture scrolling element",
     feature_group: 7,
     code: () => {
-      let scrollNode = document.scrollingElement as HTMLElement;
+      let scrollNode = htmlScrollingElement();
       initScrollIndex();
       if (scrollNodes!.length > 0) {
         scrollNode = scrollNodes![scrollIndex]!;
       }
-      self.captureElement(scrollNode);
+      if (scrollNode) {
+        self.captureElement(scrollNode);
+      }
     },
   });
 
@@ -1204,8 +1224,9 @@ function createNormal(insert: InsertLike, env: EngineEnv): NormalMode {
   });
 
   function onMouseUp(event: MouseEvent): void {
-    const target = event.target as Element;
+    const target = event.target;
     if (
+      target instanceof Element &&
       conf.mouseSelectToQuery.includes(window.origin) &&
       !isElementClickable(target) &&
       !target.matches(".cm-matchhighlight")
