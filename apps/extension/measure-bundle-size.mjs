@@ -1,9 +1,6 @@
-// Measure the built extension's bundle size and emit it as octocov custom
-// metrics, so the size is tracked over time and diffed on every pull request
-// (https://github.com/k1LoW/octocov#custom-metrics). Two figures matter: the
-// installable zip (what the store ships and limits) and the uncompressed total
-// (what the browser unpacks). The sources zip that WXT emits for AMO review is
-// not part of the shipped bundle, so it is excluded.
+// Emit the built extension's size (installable zip + uncompressed total, per
+// browser) as octocov custom metrics so it is diffed on every pull request:
+// https://github.com/k1LoW/octocov#custom-metrics
 import { readdir, stat, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -16,7 +13,6 @@ const browsers = [
   { id: "firefox", outDir: "firefox-mv3" },
 ];
 
-/** Sum the byte size of every file under `dir`, recursing into sub-directories. */
 const directorySize = async (dir) => {
   const entries = await readdir(dir, { withFileTypes: true });
   const sizes = await Promise.all(
@@ -40,8 +36,7 @@ const measure = async ({ id, outDir }) => {
   const unpackedDir = path.join(distDir, outDir);
   if (!(await exists(unpackedDir))) return null;
 
-  // The zip carries the version in its name (skextension-<version>-<id>.zip);
-  // match on the browser suffix instead of pinning the version.
+  // Match the browser suffix; the zip file name embeds the version.
   const distEntries = await readdir(distDir);
   const zipName = distEntries.find((name) => name.endsWith(`-${id}.zip`));
   if (zipName === undefined) {
