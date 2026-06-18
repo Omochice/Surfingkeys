@@ -180,15 +180,16 @@ function generateQuickGuid(): string {
 function listElements<T extends Node = Element>(
   root: Node,
   whatToShow: number,
-  filter: (node: T) => boolean,
+  filter: (node: Node) => node is T,
 ): T[] {
   const elms: T[] = [];
   const nodeIterator = document.createNodeIterator(root, whatToShow, null);
 
   let currentNode = nodeIterator.nextNode();
   while (currentNode) {
-    const node = currentNode as T;
-    filter(node) && elms.push(node);
+    if (filter(currentNode)) {
+      elms.push(currentNode);
+    }
 
     const shadowRoot = currentNode instanceof Element ? currentNode.shadowRoot : null;
     if (shadowRoot) {
@@ -260,11 +261,13 @@ function initSKFunctionListener(
   document.addEventListener(
     `surfingkeys:${name}`,
     (evt) => {
-      const ce = evt as CustomEvent<unknown[]>;
-      const args = ce.detail;
+      if (!(evt instanceof CustomEvent)) {
+        return;
+      }
+      const args: unknown[] = evt.detail;
       const fk = args.shift();
       if (capture) {
-        const target = ce.target;
+        const target = evt.target;
         const first = args[0];
         if (args.length > 0 && Array.isArray(first) && first[0] === "__EVENT_TARGET__") {
           // restore args from evt.target, see src/content_scripts/common/hints.js:442
@@ -386,9 +389,8 @@ function isEditable(element: unknown): boolean {
 }
 
 function scrollIntoViewIfNeeded(elm: Element, ignoreSize?: boolean): void {
-  const e = elm as Element & { scrollIntoViewIfNeeded?: () => void };
-  if (e.scrollIntoViewIfNeeded) {
-    e.scrollIntoViewIfNeeded();
+  if (elm.scrollIntoViewIfNeeded) {
+    elm.scrollIntoViewIfNeeded();
   } else if (!isElementPartiallyInViewport(elm, ignoreSize)) {
     elm.scrollIntoView();
   }
@@ -401,7 +403,7 @@ function isElementDrawn(e: Element, rect?: DOMRect): boolean {
     rect.width > min &&
     rect.height > min &&
     (Number.parseFloat(getComputedStyle(e).opacity) > 0.1 ||
-      (e.tagName == "INPUT" && (e as HTMLInputElement).type != "text"))
+      (e instanceof HTMLInputElement && e.type != "text"))
   );
 }
 
@@ -564,7 +566,7 @@ function filterAncestors(elements: Element[]): Element[] {
           continue;
         }
         if (r.contains(e)) {
-          if (r.tagName !== "A" || !(r as HTMLAnchorElement).href) {
+          if (!(r instanceof HTMLAnchorElement) || !r.href) {
             result[j] = e;
           }
           return;
@@ -614,18 +616,22 @@ function filterOverlapElements(elements: Element[]): Element[] {
   // filter out tiny elements
   elements = elements.filter((e) => {
     const be = getRealRect(e);
-    const input = e as HTMLInputElement;
-    if (input.disabled || input.readOnly || !isElementDrawn(e, be)) {
+    const disabled = "disabled" in e && Boolean(e.disabled);
+    const readOnly = "readOnly" in e && Boolean(e.readOnly);
+    if (disabled || readOnly || !isElementDrawn(e, be)) {
       return false;
     } else if (
       e.matches("input, textarea, select, form") ||
-      (e as HTMLElement).contentEditable === "true" ||
+      (e instanceof HTMLElement && e.contentEditable === "true") ||
       isExplicitlyRequested(e)
     ) {
       return true;
     } else {
-      const root = e.getRootNode() as Document | ShadowRoot;
-      const el = root.elementFromPoint(be.left + be.width / 2, be.top + be.height / 2);
+      const root = e.getRootNode();
+      const el =
+        root instanceof Document || root instanceof ShadowRoot
+          ? root.elementFromPoint(be.left + be.width / 2, be.top + be.height / 2)
+          : null;
       return (
         !el ||
         (el.shadowRoot && (el.childElementCount === 0 || el.shadowRoot.contains(e))) ||
@@ -651,16 +657,21 @@ function filterOverlapElements(elements: Element[]): Element[] {
  * @returns {array} Array of clickable elements.
  */
 function getClickableElements(selectorString: string, pattern?: RegExp): Element[] {
-  const nodes = listElements<HTMLElement>(document.body, NodeFilter.SHOW_ELEMENT, (n) => {
-    return !!(
-      n.offsetHeight &&
-      n.offsetWidth &&
-      getComputedStyle(n).cursor === "pointer" &&
-      (n.matches(selectorString) ||
-        (pattern &&
-          (pattern.test(n.textContent ?? "") || pattern.test(n.getAttribute("aria-label") ?? ""))))
-    );
-  });
+  const nodes = listElements(
+    document.body,
+    NodeFilter.SHOW_ELEMENT,
+    (n): n is HTMLElement =>
+      n instanceof HTMLElement &&
+      !!(
+        n.offsetHeight &&
+        n.offsetWidth &&
+        getComputedStyle(n).cursor === "pointer" &&
+        (n.matches(selectorString) ||
+          (pattern &&
+            (pattern.test(n.textContent ?? "") ||
+              pattern.test(n.getAttribute("aria-label") ?? ""))))
+      ),
+  );
   return filterOverlapElements(nodes);
 }
 
@@ -671,14 +682,15 @@ function getTextNodes(root: Node, pattern: RegExp, flag?: number): Node[] | Tree
   const skip_tags = ["script", "style", "noscript", "surfingkeys_mark"];
   const treeWalker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, {
     acceptNode: (node) => {
-      const text = node as Text;
-      const parent = node.parentNode as HTMLElement | null;
+      const parent = node.parentElement;
       if (
-        !text.data.trim() ||
+        !(node instanceof Text) ||
         !parent ||
+        !(parent instanceof HTMLElement) ||
+        !node.data.trim() ||
         !parent.offsetParent ||
         skip_tags.includes(parent.localName.toLowerCase()) ||
-        !pattern.test(text.data)
+        !pattern.test(node.data)
       ) {
         // node changed, reset pattern.lastIndex
         pattern.lastIndex = 0;
@@ -713,12 +725,8 @@ function getTextNodePos(
   length?: number,
 ): { left: number; top: number; width?: number; height?: number } {
   const selection = document.getSelection()!;
-  selection.setBaseAndExtent(
-    node,
-    offset,
-    node,
-    length ? offset + length : (node as Text).data.length,
-  );
+  const nodeLength = node instanceof Text ? node.data.length : 0;
+  selection.setBaseAndExtent(node, offset, node, length ? offset + length : nodeLength);
   const br = selection.rangeCount > 0 ? selection.getRangeAt(0).getClientRects()[0] : null;
   const pos: { left: number; top: number; width?: number; height?: number } = {
     left: -1,
@@ -769,8 +777,8 @@ function locateFocusNode(
   const se = sel.focusNode!.parentElement!;
   scrollIntoViewIfNeeded(se, true);
   let r0 = unwrapOr<DOMRectList | DOMRect[]>(getTextRect(sel.focusNode!, sel.focusOffset), [])[0];
-  if (!r0) {
-    r0 = (sel.focusNode as Element).getBoundingClientRect();
+  if (!r0 && sel.focusNode instanceof Element) {
+    r0 = sel.focusNode.getBoundingClientRect();
   }
   if (r0) {
     const r = {
@@ -919,9 +927,9 @@ function mapInMode(
     nks = KeyboardUtils.encodeKeystroke(nks);
     mode.mappings.remove(nks);
     // meta.word need to be new
-    let meta = Object.assign({}, old_map.meta) as TrieMeta;
+    let meta: Omit<TrieMeta, "word"> = { ...old_map.meta };
     if (new_annotation) {
-      meta = Object.assign(meta, parseAnnotation({ annotation: new_annotation })) as TrieMeta;
+      meta = { ...meta, ...parseAnnotation({ annotation: new_annotation }) };
     }
     mode.mappings.add(nks, meta);
     if (!inUIFrame) {

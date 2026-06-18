@@ -40,9 +40,10 @@ function getScrollableElements(): HTMLElement[] {
   const nodes = listElements(
     document.body,
     NodeFilter.SHOW_ELEMENT,
-    (n: HTMLElement) =>
-      (hasScroll(n, "y", 16) && n.scrollHeight > 200) ||
-      (hasScroll(n, "x", 16) && n.scrollWidth > 200),
+    (n): n is HTMLElement =>
+      n instanceof HTMLElement &&
+      ((hasScroll(n, "y", 16) && n.scrollHeight > 200) ||
+        (hasScroll(n, "x", 16) && n.scrollWidth > 200)),
   ).toSorted((a: HTMLElement, b: HTMLElement) => {
     if (b.contains(a)) return 1;
     else if (a.contains(b)) return -1;
