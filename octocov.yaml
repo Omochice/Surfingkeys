@@ -18,6 +18,10 @@ codeToTestRatio:
     - "apps/*/src/**/*.test.ts"
     - "apps/*/src/**/*.test.tsx"
 
+testExecutionTime:
+  steps:
+    - Run tests with coverage
+
 diff:
   datastores:
     - artifact://${GITHUB_REPOSITORY}
