@@ -22,11 +22,10 @@ function startScrollNodeObserver(normal: {
       const addedNodes: Element[] = [];
       for (const m of mutations) {
         for (const n of m.addedNodes) {
-          if (n.nodeType === Node.ELEMENT_NODE) {
-            const el = n as Element;
-            if (!isSurfingKeysElement(el)) {
-              markNewlyCreated(el);
-              addedNodes.push(el);
+          if (n instanceof Element) {
+            if (!isSurfingKeysElement(n)) {
+              markNewlyCreated(n);
+              addedNodes.push(n);
             }
           }
         }
