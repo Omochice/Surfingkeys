@@ -1,4 +1,3 @@
-import browser from "@sk/adapter/browser";
 import { reportOnFail } from "@sk/common/result";
 import { reportError } from "@sk/core/report";
 import { hide, setSanitizedContent, show } from "@sk/core/utils";
@@ -7,7 +6,7 @@ import { RUNTIME } from "@sk/messaging/runtime";
 reportOnFail(
   RUNTIME("getTopSites", null, (response: { urls: { url: string; title: string }[] }) => {
     const urls = response.urls.map((u: { url: string; title: string }) => {
-      const favUrl = browser.runtime.getURL(`/_favicon/?pageUrl=${encodeURIComponent(u.url)}`);
+      const favUrl = chrome.runtime.getURL(`/_favicon/?pageUrl=${encodeURIComponent(u.url)}`);
       return `<li><a href="${u.url}"><i style="background:url(${favUrl}) no-repeat"></i>${u.title}</a></li>`;
     });
     setSanitizedContent(document.querySelector("#topSites>ul")!, urls.join("\n"));

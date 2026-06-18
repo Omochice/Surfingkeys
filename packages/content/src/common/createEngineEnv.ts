@@ -1,4 +1,3 @@
-import browser from "@sk/adapter/browser";
 import { LOG } from "@sk/adapter/log";
 import { isInUIFrame, reportIssue } from "@sk/adapter/platform-utils";
 import type { EngineEnv, SurfingkeysHost } from "@sk/core/engineEnv";
@@ -17,7 +16,7 @@ function createEngineEnv(): EngineEnv {
     isInUIFrame,
     reportIssue,
     tabOpenLink,
-    getExtensionURL: (path) => browser.runtime.getURL(path),
+    getExtensionURL: (path) => chrome.runtime.getURL(path),
     log: LOG,
     get surfingkeys() {
       // chrome.surfingkeys is a non-standard companion API not in @types/chrome; read it through a

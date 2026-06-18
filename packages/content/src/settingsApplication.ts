@@ -1,5 +1,4 @@
 import { Result } from "@praha/byethrow";
-import browser from "@sk/adapter/browser";
 import { reportOnFail, userCodeError } from "@sk/common/result";
 import type createAPI from "@sk/core/api";
 import type { StoredSettings } from "@sk/core/conf";
@@ -132,7 +131,7 @@ export function applySettings(api: Api, normal: Normal, rs: StoredSettings): voi
   } else if (
     !rs.isMV3 &&
     rs.snippets &&
-    !document.location.href.startsWith(browser.runtime.getURL("/"))
+    !document.location.href.startsWith(chrome.runtime.getURL("/"))
   ) {
     const settings = {};
     const snippets = rs.snippets;
