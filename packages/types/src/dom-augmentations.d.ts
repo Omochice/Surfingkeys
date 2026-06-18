@@ -23,6 +23,14 @@ declare global {
   interface Window {
     frameId?: string;
     getFrameId(): string | undefined;
+    /** Non-standard text search; omitted from the lib DOM types. */
+    find(
+      aString: string,
+      caseSensitive?: boolean,
+      backwards?: boolean,
+      wrapAround?: boolean,
+      wholeWord?: boolean,
+    ): boolean;
   }
 }
 
