@@ -19,6 +19,7 @@
     "fmt:oxfmt": "oxfmt",
     "fmt:package": "sort-package-json",
     "postinstall": "wxt prepare",
+    "measure:bundle-size": "node measure-bundle-size.mjs",
     "test": "vitest run",
     "zip": "wxt zip",
     "zip:firefox": "wxt zip -b firefox"
