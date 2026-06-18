@@ -3,6 +3,7 @@ dist/
 .wxt/
 .pnpm-store/
 coverage/
+custom_metrics_bundle_size.json
 .DS_Store
 .vscode/
 jsconfig.json

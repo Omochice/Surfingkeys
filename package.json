@@ -36,6 +36,7 @@
     "fmt:oxfmt": "oxfmt vitest.config.ts",
     "fmt:package": "sort-package-json",
     "fmt:workspaces": "pnpm -r run fmt",
+    "measure:bundle-size": "pnpm --filter @sk/extension run measure:bundle-size",
     "test": "pnpm -r run test",
     "test:watch": "vitest",
     "zip": "pnpm --filter @sk/extension zip",
