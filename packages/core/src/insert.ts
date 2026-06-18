@@ -147,8 +147,10 @@ function createInsert(env: EngineEnv): InsertMode {
       } else {
         // for contenteditable div
         const selection = document.getSelection()!;
-        const focus = selection.focusNode as Text;
-        focus.data = focus.data.slice(selection.focusOffset);
+        const focus = selection.focusNode;
+        if (focus instanceof Text) {
+          focus.data = focus.data.slice(selection.focusOffset);
+        }
       }
     },
   });
@@ -194,11 +196,13 @@ function createInsert(env: EngineEnv): InsertMode {
         const selection = document.getSelection()!;
         const p0 = selection.focusOffset;
         selection.modify("move", "backward", "word");
-        const focus = selection.focusNode as Text;
-        const v = focus.data;
-        const p1 = selection.focusOffset;
-        focus.data = v.slice(0, p1) + v.slice(p0);
-        selection.setPosition(focus, p1);
+        const focus = selection.focusNode;
+        if (focus instanceof Text) {
+          const v = focus.data;
+          const p1 = selection.focusOffset;
+          focus.data = v.slice(0, p1) + v.slice(p0);
+          selection.setPosition(focus, p1);
+        }
       }
     },
   });
@@ -216,11 +220,13 @@ function createInsert(env: EngineEnv): InsertMode {
         const selection = document.getSelection()!;
         const p0 = selection.focusOffset;
         selection.modify("move", "forward", "word");
-        const focus = selection.focusNode as Text;
-        const v = focus.data;
-        const p1 = selection.focusOffset;
-        focus.data = v.slice(0, p0) + v.slice(p1);
-        selection.setPosition(focus, p0);
+        const focus = selection.focusNode;
+        if (focus instanceof Text) {
+          const v = focus.data;
+          const p1 = selection.focusOffset;
+          focus.data = v.slice(0, p0) + v.slice(p1);
+          selection.setPosition(focus, p0);
+        }
       }
     },
   });
@@ -249,7 +255,10 @@ function createInsert(env: EngineEnv): InsertMode {
       const parsedUnicodeEmoji = String.fromCodePoint(...codepoints.split(",").map(Number));
       return `<div><span>${parsedUnicodeEmoji}</span>${ee[1]}</div>`;
     },
-    (elm: Element) => (elm.firstElementChild as HTMLElement).innerText,
+    (elm: Element) => {
+      const child = elm.firstElementChild;
+      return child instanceof HTMLElement ? child.innerText : "";
+    },
     () =>
       new Promise<string[]>((r) => {
         fetch(emojiURL)
@@ -277,7 +286,7 @@ function createInsert(env: EngineEnv): InsertMode {
   };
 
   mode.addEventListener("keydown", (event) => {
-    const eventKey = (event as KeyboardEvent).key;
+    const eventKey = event instanceof KeyboardEvent ? event.key : undefined;
     if (eventKey && eventKey.charCodeAt(0) > 127) {
       // IME is opened.
       event.sk_suppressed = true;
