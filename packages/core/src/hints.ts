@@ -195,7 +195,7 @@ kbd {
     menuItem.appendChild(
       createElementWithContent("kbd", htmlEncode(KeyboardUtils.decodeKeystroke(b.word))),
     );
-    menuItem.appendChild(createElementWithContent("span", b.annotation as string));
+    menuItem.appendChild(createElementWithContent("span", String(b.annotation ?? "")));
     menu.appendChild(menuItem);
   });
 
@@ -331,7 +331,7 @@ div.hint-scrollable {
 
   mode.addEventListener("keydown", (event) => {
     event.sk_stopPropagation = true;
-    const keyEvent = event as KeyboardEvent;
+    const eventShiftKey = "shiftKey" in event && Boolean(event.shiftKey);
 
     let ai = holder.querySelector<HTMLElement>("[mode=input]>mask.activeInput");
     if (ai !== null) {
@@ -343,8 +343,7 @@ div.hint-scrollable {
       } else if (event.keyCode === KeyboardUtils.keyCodes["tab"]) {
         ai.classList.remove("activeInput");
         lastCreateAttrs.activeInput =
-          (lastCreateAttrs.activeInput! + (keyEvent["shiftKey"] ? -1 : 1) + masks.length) %
-          masks.length;
+          (lastCreateAttrs.activeInput! + (eventShiftKey ? -1 : 1) + masks.length) % masks.length;
         ai = masks[lastCreateAttrs.activeInput]!;
         ai.classList.add("activeInput");
 
@@ -464,7 +463,10 @@ div.hint-scrollable {
           dispatchMouseEvent(element, behaviours.mouseEvents, mouseEventModifiers);
           dispatchSKEvent("observer", ["turnOn"]);
           lastMouseTarget = element;
-          if (document.activeElement!.matches(conf.disabledOnActiveElementPattern as string)) {
+          if (
+            conf.disabledOnActiveElementPattern &&
+            document.activeElement?.matches(conf.disabledOnActiveElementPattern)
+          ) {
             setTimeout(() => {
               normal.disable(true);
             }, 100);
@@ -515,8 +517,10 @@ div.hint-scrollable {
   function getZIndex(node: Node | null): number {
     let z = 0;
     do {
-      const i = Number.parseInt(getComputedStyle(node as Element).getPropertyValue("z-index"));
-      z += Number.isNaN(i) || i < 0 ? 0 : i;
+      if (node instanceof Element) {
+        const i = Number.parseInt(getComputedStyle(node).getPropertyValue("z-index"));
+        z += Number.isNaN(i) || i < 0 ? 0 : i;
+      }
       node = node!.parentNode;
     } while (
       node &&
@@ -924,8 +928,9 @@ div.hint-scrollable {
       elements = filterInvisibleElements(cssSelector as HTMLElement[]);
     } else {
       elements = getVisibleElements((e, v) => {
-        const input = e as HTMLInputElement;
-        if (e.matches(cssSelector) && !input.disabled && !input.readOnly) {
+        const disabled = "disabled" in e && Boolean(e.disabled);
+        const readOnly = "readOnly" in e && Boolean(e.readOnly);
+        if (e.matches(cssSelector) && !disabled && !readOnly) {
           v.push(e);
         }
       });
@@ -1060,15 +1065,12 @@ div.hint-scrollable {
     const cssSelector = getCssSelectorsOfEditable();
 
     let elements = getVisibleElements((e, v) => {
-      const input = e as HTMLInputElement;
       if (
+        e instanceof HTMLInputElement &&
         e.matches(cssSelector) &&
-        !input.disabled &&
-        !input.readOnly &&
-        (input.type === "text" ||
-          input.type === "email" ||
-          input.type === "search" ||
-          input.type === "password")
+        !e.disabled &&
+        !e.readOnly &&
+        (e.type === "text" || e.type === "email" || e.type === "search" || e.type === "password")
       ) {
         v.push(e);
       }
@@ -1077,8 +1079,9 @@ div.hint-scrollable {
     if (elements.length === 0 && document.querySelector(cssSelector) !== null) {
       document.querySelector(cssSelector)!.scrollIntoView();
       elements = getVisibleElements((e, v) => {
-        const input = e as HTMLInputElement;
-        if (e.matches(cssSelector) && !input.disabled && !input.readOnly) {
+        const disabled = "disabled" in e && Boolean(e.disabled);
+        const readOnly = "readOnly" in e && Boolean(e.readOnly);
+        if (e.matches(cssSelector) && !disabled && !readOnly) {
           v.push(e);
         }
       });
