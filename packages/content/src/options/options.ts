@@ -300,7 +300,10 @@ export default function optionsMain(
 
   let basicMappings: BasicMapping[] = [];
   document.addEventListener("surfingkeys:defaultSettingsLoaded", (evt) => {
-    const { normal } = (evt as CustomEvent).detail;
+    if (!(evt instanceof CustomEvent)) {
+      return;
+    }
+    const { normal } = evt.detail;
     basicMappings = basicMappingKeys
       .map((w) => {
         const binding = normal.mappings.find(KeyboardUtils.encodeKeystroke(w));
@@ -407,7 +410,10 @@ export default function optionsMain(
   }
 
   document.addEventListener("surfingkeys:userSettingsLoaded", (evt) => {
-    const { settings, disabledSearchAliases, frontCommand } = (evt as CustomEvent).detail;
+    if (!(evt instanceof CustomEvent)) {
+      return;
+    }
+    const { settings, disabledSearchAliases, frontCommand } = evt.detail;
     mappingsEditor = createMappingEditor("mappings");
     renderSettings(settings);
     if ("error" in settings) {

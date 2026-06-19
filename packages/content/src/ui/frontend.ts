@@ -980,7 +980,7 @@ const Front = (() => {
 
   // for mouseSelectToQuery
   document.onmouseup = (e) => {
-    if (!bubble.contains(e.target as Node)) {
+    if (!(e.target instanceof Node) || !bubble.contains(e.target)) {
       bubble.style.display = "none";
       self.flush();
       self.contentCommand({
