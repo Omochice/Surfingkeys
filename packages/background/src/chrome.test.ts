@@ -41,26 +41,29 @@ describe("chromeSpecifics.loadRawSettings", () => {
     // `void`, so a rejection there becomes an unhandled rejection that can terminate
     // the MV3 service worker. The fix must catch that rejection and log it instead.
     const errorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
-    g.chrome = {
-      storage: {
-        local: {
-          get: vi.fn().mockResolvedValue({ savedAt: 1, theme: "light" }),
-          set: vi.fn().mockRejectedValue(new Error("QUOTA_BYTES_PER_ITEM quota exceeded")),
+    try {
+      g.chrome = {
+        storage: {
+          local: {
+            get: vi.fn().mockResolvedValue({ savedAt: 1, theme: "light" }),
+            set: vi.fn().mockRejectedValue(new Error("QUOTA_BYTES_PER_ITEM quota exceeded")),
+          },
+          sync: {
+            get: vi.fn().mockResolvedValue({ savedAt: 2, theme: "dark" }),
+            set: vi.fn().mockResolvedValue(undefined),
+          },
         },
-        sync: {
-          get: vi.fn().mockResolvedValue({ savedAt: 2, theme: "dark" }),
-          set: vi.fn().mockResolvedValue(undefined),
-        },
-      },
-      runtime: {},
-    };
+        runtime: {},
+      };
 
-    const result = await chromeSpecifics.loadRawSettings(["theme"]);
+      const result = await chromeSpecifics.loadRawSettings(["theme"]);
 
-    // The load must complete successfully with the sync-sourced value.
-    expect(result["theme"]).toBe("dark");
-    // The local write failure must be caught and logged, not left unhandled.
-    await vi.waitFor(() => expect(errorSpy).toHaveBeenCalled());
-    errorSpy.mockRestore();
+      // The load must complete successfully with the sync-sourced value.
+      expect(result["theme"]).toBe("dark");
+      // The local write failure must be caught and logged, not left unhandled.
+      await vi.waitFor(() => expect(errorSpy).toHaveBeenCalled());
+    } finally {
+      errorSpy.mockRestore();
+    }
   });
 });
