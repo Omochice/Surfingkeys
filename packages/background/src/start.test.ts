@@ -1007,4 +1007,51 @@ describe("start — initGist clears cachedComments when token changes", () => {
     expect(mockRequest).toHaveBeenCalledTimes(2);
     expect(afterSwitch.mock.calls.at(-1)?.[0]).toMatchObject({ status: 0, content: "world" });
   });
+
+  it("does not hit the previous gist when readComment interleaves the token-switch await", async () => {
+    const dispatch = bootDispatch();
+    await primeGist(dispatch, "tok-race-A");
+
+    // Switch to token-B but hold the new gist lookup pending, so initGist is
+    // suspended at `await createOrFindGist` with cachedGist already cleared.
+    let resolveGist: (value: unknown) => void = () => {};
+    mockRequest.mockReturnValueOnce(
+      new Promise<unknown>((res) => {
+        resolveGist = res;
+      }),
+    );
+    const switchDone = vi.fn();
+    dispatch(
+      { action: "initGist", token: "tok-race-B", needResponse: true },
+      { tab: { id: 1 } },
+      switchDone,
+    );
+    // Wait until initGist has issued its gist lookup: at that point cachedGist
+    // has been reset to "" and the await window is open.
+    await vi.waitFor(() => expect(mockRequest).toHaveBeenCalledTimes(1));
+
+    // A readComment racing in during that window must fall back to the
+    // "initGist first" guard instead of querying gist A with token B.
+    const racingRead = vi.fn();
+    dispatch(
+      { action: "readComment", index: 0, needResponse: true },
+      { tab: { id: 1 } },
+      racingRead,
+    );
+    await vi.waitFor(() => expect(racingRead).toHaveBeenCalled());
+
+    expect(racingRead.mock.calls.at(-1)?.[0]).toMatchObject({
+      status: 1,
+      content: "Please call initGist first!",
+    });
+    // No extra request was issued: only the still-pending initGist lookup.
+    expect(mockRequest).toHaveBeenCalledTimes(1);
+
+    resolveGist(
+      Result.succeed(
+        JSON.stringify([{ description: "cloudboard", files: { cloudboard: {} }, id: "gist-B" }]),
+      ),
+    );
+    await vi.waitFor(() => expect(switchDone).toHaveBeenCalledWith({ gist: "gist-B" }));
+  });
 });

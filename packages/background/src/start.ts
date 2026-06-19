@@ -176,6 +176,11 @@ const Gist = (() => {
     // prevent them being passed to the wrong gist's API endpoints.
     cachedComments = [];
     cachedToken = token;
+    // Clear cachedGist before awaiting the new gist id: otherwise a readComment/
+    // editComment that interleaves during the await would see the new token paired
+    // with the previous gist and hit the wrong gist. An empty gist makes those
+    // helpers fall back to their "initGist first" guard until the new id resolves.
+    cachedGist = "";
     cachedGist = await createOrFindGist(cachedToken, "cloudboard");
     return cachedGist;
   };
