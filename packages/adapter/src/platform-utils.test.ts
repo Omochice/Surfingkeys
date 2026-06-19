@@ -45,6 +45,23 @@ describe("initL10n", () => {
 
     expect(result).toBe("hello");
   });
+
+  it("invokes cb exactly once when loading the table fails", async () => {
+    conf.language = "ja";
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () => {
+        throw new TypeError("network down");
+      }),
+    );
+
+    const cb = vi.fn();
+    initL10n(cb);
+    await vi.waitFor(() => expect(cb).toHaveBeenCalledTimes(1));
+    // Let any stray trailing rejection settle: the fallback must not fire cb again.
+    await Promise.resolve();
+    expect(cb).toHaveBeenCalledTimes(1);
+  });
 });
 
 // attachFaviconToImgSrc branches on navigator.userAgent, the seam that tells

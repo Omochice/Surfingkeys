@@ -21,15 +21,18 @@ function initL10n(cb: (translate: (str: string) => string) => void): void {
   } else {
     fetch(chrome.runtime.getURL("pages/l10n.json"))
       .then((res) => res.json())
+      // Recover from fetch/JSON failures here, before cb runs, so the fallback
+      // only covers loading the table. Catching after cb would also swallow an
+      // exception thrown by cb itself and then invoke cb a second time.
+      .catch(() => ({}))
       .then((l10n) => {
-        if (typeof l10n[lang] === "object") {
+        if (l10n && typeof l10n[lang] === "object") {
           const table = l10n[lang];
           cb((str) => table[str] || str);
         } else {
           cb((str) => str);
         }
-      })
-      .catch(() => cb((str) => str));
+      });
   }
 }
 
