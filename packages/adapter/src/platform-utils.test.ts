@@ -1,6 +1,51 @@
-import { afterEach, describe, expect, it } from "vitest";
+import { conf } from "@sk/core/conf";
+import { afterEach, describe, expect, it, vi } from "vitest";
 
-import { attachFaviconToImgSrc } from "./platform-utils";
+import { attachFaviconToImgSrc, initL10n } from "./platform-utils";
+
+describe("initL10n", () => {
+  const originalLanguage = conf.language;
+
+  afterEach(() => {
+    conf.language = originalLanguage;
+    vi.unstubAllGlobals();
+  });
+
+  it("calls cb with the identity translator when fetch rejects (network error)", async () => {
+    conf.language = "ja";
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () => {
+        throw new TypeError("network down");
+      }),
+    );
+
+    // Wrap the callback in a Promise so the test can await the async chain settling.
+    const result = await new Promise<string>((resolve) => {
+      initL10n((translate) => resolve(translate("hello")));
+    });
+
+    expect(result).toBe("hello");
+  });
+
+  it("calls cb with the identity translator when the JSON response is malformed", async () => {
+    conf.language = "ja";
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () => ({
+        json: async () => {
+          throw new SyntaxError("bad JSON");
+        },
+      })),
+    );
+
+    const result = await new Promise<string>((resolve) => {
+      initL10n((translate) => resolve(translate("hello")));
+    });
+
+    expect(result).toBe("hello");
+  });
+});
 
 // attachFaviconToImgSrc branches on navigator.userAgent, the seam that tells
 // Chrome from Firefox. Override it per-test and restore after.

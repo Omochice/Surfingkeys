@@ -28,7 +28,8 @@ function initL10n(cb: (translate: (str: string) => string) => void): void {
         } else {
           cb((str) => str);
         }
-      });
+      })
+      .catch(() => cb((str) => str));
   }
 }
 
