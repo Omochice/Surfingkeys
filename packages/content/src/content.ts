@@ -112,7 +112,7 @@ window.getFrameId = function () {
       (Number.parseInt("0" + getComputedStyle(window.frameElement).zIndex) >= 0 &&
         hasLayoutOffsets(window.frameElement) &&
         window.frameElement.offsetWidth > 16 &&
-        window.frameElement.offsetWidth > 16))
+        window.frameElement.offsetHeight > 16))
   ) {
     initContent(initModules());
 
