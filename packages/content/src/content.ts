@@ -13,6 +13,7 @@ import { generateQuickGuid, getRealEdit, showBanner } from "@sk/core/utils";
 import { RUNTIME, runtime } from "@sk/messaging/runtime";
 
 import { createEngineEnv } from "./common/createEngineEnv";
+import { hasLayoutOffsets } from "./common/dom";
 import createFront from "./front";
 import { applySettings } from "./settingsApplication";
 
@@ -109,8 +110,9 @@ window.getFrameId = function () {
     !runtime.conf.ignoredFrameHosts.includes(window.origin) &&
     (!window.frameElement ||
       (Number.parseInt("0" + getComputedStyle(window.frameElement).zIndex) >= 0 &&
-        (window.frameElement as HTMLElement).offsetWidth > 16 &&
-        (window.frameElement as HTMLElement).offsetWidth > 16))
+        hasLayoutOffsets(window.frameElement) &&
+        window.frameElement.offsetWidth > 16 &&
+        window.frameElement.offsetWidth > 16))
   ) {
     initContent(initModules());
 

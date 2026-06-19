@@ -567,8 +567,10 @@ function createOmnibar(front: OmnibarFront, clipboard: { write(text: string): vo
       ref: (el: HTMLInputElement) => {
         inputElement = el;
       },
-    }) as HTMLInputElement;
-    ui.querySelector("#sk_omnibarSearchArea")!.insertBefore(inputEl, resultPageSpan);
+    });
+    if (inputEl instanceof Node) {
+      ui.querySelector("#sk_omnibarSearchArea")!.insertBefore(inputEl, resultPageSpan);
+    }
   });
 
   function onResultSelect(index: number) {

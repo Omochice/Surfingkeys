@@ -19,6 +19,7 @@ import { tabOpenLink } from "@sk/messaging/messagingActions";
 import { RUNTIME, runtime } from "@sk/messaging/runtime";
 import * as v from "valibot";
 
+import { hasLayoutOffsets } from "./common/dom";
 import createUiHost from "./uiframe";
 import type { UiHost } from "./uiframe";
 
@@ -543,9 +544,9 @@ function createFront(
         pos.winHeight = window.innerHeight;
         pos.winX = 0;
         pos.winY = 0;
-        if (window.frameElement) {
-          pos.winX = (window.frameElement as HTMLElement).offsetLeft;
-          pos.winY = (window.frameElement as HTMLElement).offsetTop;
+        if (hasLayoutOffsets(window.frameElement)) {
+          pos.winX = window.frameElement.offsetLeft;
+          pos.winY = window.frameElement.offsetTop;
         }
         self.command({
           action: "showBubble",
@@ -718,6 +719,8 @@ function createFront(
           message.query ?? "",
           message.pos,
           (pos: QueryPos, queryResult: unknown) => {
+            // event.source is the (possibly cross-origin) sender WindowProxy; instanceof Window is
+            // unreliable across origins, so the assertion is kept to reach Window.postMessage.
             (event.source as Window).postMessage(
               {
                 surfingkeys_content_data: {
