@@ -8,10 +8,17 @@ type LayoutOffsetElement = Element & {
   offsetLeft: number;
   offsetTop: number;
   offsetWidth: number;
+  offsetHeight: number;
 };
 
 function hasLayoutOffsets(el: Element | null): el is LayoutOffsetElement {
-  return el !== null && "offsetLeft" in el;
+  return (
+    el !== null &&
+    "offsetLeft" in el &&
+    "offsetTop" in el &&
+    "offsetWidth" in el &&
+    "offsetHeight" in el
+  );
 }
 
 export { hasLayoutOffsets };
