@@ -32,10 +32,10 @@ type RuntimeFn = {
  * @param {object} args The parameters to be passed to the background action.
  * @param {function} callback A function to be executed with the result from the background action.
  */
-const RUNTIME = function (
+const RUNTIME: RuntimeFn = function <R = unknown>(
   action: string,
   args?: Record<string, unknown> | null,
-  callback?: (response: unknown) => void,
+  callback?: (response: R) => void,
 ): Result.Result<void, ChromeRuntimeError> {
   const actionsRepeatBackground = [
     "closeTab",
@@ -65,7 +65,7 @@ const RUNTIME = function (
         // Result.try's synchronous catch never sees. Reading it here routes the
         // failure through reportError and silences Chrome's "Unchecked
         // runtime.lastError" warning.
-        chrome.runtime.sendMessage(a, (response: unknown) => {
+        chrome.runtime.sendMessage(a, (response: R) => {
           if (chrome.runtime.lastError) {
             // Pass message, not the object: formatMessage stringifies the cause,
             // turning { message } into "[object Object]".
@@ -85,7 +85,7 @@ const RUNTIME = function (
     },
     catch: (cause) => chromeRuntimeError(`sendMessage:${action}`, cause),
   });
-} as RuntimeFn;
+};
 
 type MessageHandler = (
   // Dispatch registry: handlers narrow the message themselves; a shared `unknown` parameter would
