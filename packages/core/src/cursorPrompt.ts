@@ -13,10 +13,8 @@ type Renderer = (choice: string) => string;
 type Picker = (selected: Element) => string;
 type Fetcher = () => Promise<string[]>;
 
-// The prompt attaches to either a native input/textarea or a contenteditable
-// node. The probe type detects which (a contenteditable lacks selectionStart).
+// The prompt attaches to either a native input/textarea or a contenteditable node.
 type InputLike = HTMLInputElement | HTMLTextAreaElement;
-type InputProbe = { selectionStart?: number | null; value?: string };
 
 class CursorPrompt {
   element: HTMLElement;
@@ -81,8 +79,13 @@ class CursorPrompt {
     this.insertOffset = insertOffset || 0;
     this.threshold = threshold || 0;
     this.parentElement = parentElement;
-    const probe = parentElement as InputProbe;
-    this.isNativeInput = probe.selectionStart != null && probe.value != null;
+    // A native input/textarea exposes a non-null selectionStart and value; a
+    // contenteditable node lacks them. Detect by probing the properties directly.
+    this.isNativeInput =
+      "selectionStart" in parentElement &&
+      "value" in parentElement &&
+      parentElement.selectionStart != null &&
+      parentElement.value != null;
     let value = "";
     [value, this.matchStart] = this.#getValueAndSelectionStart();
     this.activator = value[this.matchStart - 1];
@@ -126,7 +129,7 @@ class CursorPrompt {
     const newPos = this.matchStart + d.length;
 
     if (this.isNativeInput) {
-      const input = this.parentElement as InputLike;
+      const input = this.#requireNativeInput();
       const val = input.value;
       input.value =
         val.slice(0, this.matchStart + this.insertOffset) +
@@ -136,7 +139,7 @@ class CursorPrompt {
     } else {
       // for contenteditable div
       const selection = document.getSelection()!;
-      const focus = selection.focusNode as Text;
+      const focus = this.#requireTextFocus(selection);
       const val = focus.data;
       focus.data =
         val.slice(0, this.matchStart + this.insertOffset) + d + val.slice(selection.focusOffset);
@@ -149,13 +152,31 @@ class CursorPrompt {
 
   #getValueAndSelectionStart(): [string, number] {
     if (this.isNativeInput) {
-      const input = this.parentElement as InputLike;
+      const input = this.#requireNativeInput();
       return [input.value, input.selectionStart ?? 0];
     }
     // for contenteditable div
     const selection = document.getSelection()!;
-    const focus = selection.focusNode as Text;
+    const focus = this.#requireTextFocus(selection);
     return [focus.data, selection.focusOffset];
+  }
+
+  // `isNativeInput` is set from a duck-typed probe; these helpers re-narrow the
+  // stored HTMLElement to the concrete type that the probe already guaranteed.
+  #requireNativeInput(): InputLike {
+    const el = this.parentElement;
+    if (el instanceof HTMLInputElement || el instanceof HTMLTextAreaElement) {
+      return el;
+    }
+    throw new Error("CursorPrompt: parentElement is not a native input");
+  }
+
+  #requireTextFocus(selection: Selection): Text {
+    const focus = selection.focusNode;
+    if (focus instanceof Text) {
+      return focus;
+    }
+    throw new Error("CursorPrompt: selection focus is not a text node");
   }
 
   onKeyUp(): void {
@@ -178,12 +199,12 @@ class CursorPrompt {
   #render(): void {
     let query = "";
     if (this.isNativeInput) {
-      const input = this.parentElement as InputLike;
+      const input = this.#requireNativeInput();
       query = input.value.slice(this.matchStart, input.selectionStart ?? 0);
     } else {
       // for contenteditable div
       const selection = document.getSelection()!;
-      const focus = selection.focusNode as Text;
+      const focus = this.#requireTextFocus(selection);
       query = focus.data.slice(this.matchStart, selection.focusOffset);
     }
     if (query.length < this.threshold || query[0] === " ") {
@@ -202,7 +223,7 @@ class CursorPrompt {
         this.element.firstElementChild!.classList.add("selected");
         const br = (
           this.isNativeInput
-            ? this.#getCursorPixelPos(this.parentElement as InputLike)
+            ? this.#getCursorPixelPos(this.#requireNativeInput())
             : locateFocusNode(document.getSelection())
         )!;
         let top = br.top + br.height + 4;
@@ -242,8 +263,11 @@ class CursorPrompt {
     if (pos === input.value.length) {
       mask.appendChild(span);
     } else {
-      const fp = (mask.childNodes[0] as Text).splitText(pos);
-      fp.before(span);
+      const firstChild = mask.childNodes[0];
+      if (firstChild instanceof Text) {
+        const fp = firstChild.splitText(pos);
+        fp.before(span);
+      }
     }
     document.body.appendChild(mask);
     scrollIntoViewIfNeeded(span);

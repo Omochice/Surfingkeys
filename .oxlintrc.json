@@ -78,7 +78,8 @@
     {
       "files": ["**/*.test.ts", "**/*.test.tsx"],
       "rules": {
-        "no-restricted-properties": "off"
+        "no-restricted-properties": "off",
+        "typescript/consistent-type-assertions": "off"
       }
     }
   ]

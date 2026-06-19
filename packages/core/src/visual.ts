@@ -69,17 +69,6 @@ type VisualMode = {
   style(element: string, style: string): void;
 };
 
-// window.find is a non-standard method the lib types omit.
-const win = window as unknown as {
-  find(
-    aString: string,
-    caseSensitive?: boolean,
-    backwards?: boolean,
-    wrapAround?: boolean,
-    wholeWord?: boolean,
-  ): boolean;
-};
-
 function createVisual(clipboard: ClipboardLike, hints: HintsLike, env: EngineEnv): VisualMode {
   const { RUNTIME } = env;
   const mode = new ModeHandle("Visual");
@@ -93,7 +82,8 @@ function createVisual(clipboard: ClipboardLike, hints: HintsLike, env: EngineEnv
       event.sk_stopPropagation = true;
       event.sk_suppressed = true;
 
-      if (KeyboardUtils.isWordChar(event as KeyboardEvent)) {
+      const keyCode = event.keyCode;
+      if (typeof keyCode === "number" && KeyboardUtils.isWordChar({ keyCode })) {
         visualSeek(visualf, keyName);
         lastF = [visualf, keyName];
         exitf = true;
@@ -382,14 +372,20 @@ function createVisual(clipboard: ClipboardLike, hints: HintsLike, env: EngineEnv
     annotation: "Click on node under cursor.",
     feature_group: 9,
     code: () => {
-      clickLink(selection.focusNode!.parentNode as Element, false);
+      const parent = selection.focusNode?.parentElement;
+      if (parent) {
+        clickLink(parent, false);
+      }
     },
   });
   mappings.add(KeyboardUtils.encodeKeystroke("<Shift-Enter>"), {
     annotation: "Click on node under cursor.",
     feature_group: 9,
     code: () => {
-      clickLink(selection.focusNode!.parentNode as Element, true);
+      const parent = selection.focusNode?.parentElement;
+      if (parent) {
+        clickLink(parent, true);
+      }
     },
   });
   mappings.add("zt", {
@@ -463,13 +459,13 @@ function createVisual(clipboard: ClipboardLike, hints: HintsLike, env: EngineEnv
     annotation: "Expand selection to parent element",
     feature_group: 9,
     code: () => {
-      let p = selection.focusNode as (Node & { parentElement: HTMLElement | null }) | null;
+      let p: Node | null = selection.focusNode;
       while (p && p !== document.body) {
         p = p.parentElement;
         const textNodes = getTextNodes(p!, /./);
         const firstNode = textNodes[0];
-        const lastNode = textNodes.at(-1) as Text | undefined;
-        if (firstNode == null || lastNode == null) {
+        const lastNode = textNodes.at(-1);
+        if (firstNode == null || !(lastNode instanceof Text)) {
           continue;
         }
         const range = selection.getRangeAt(0);
@@ -601,7 +597,8 @@ function createVisual(clipboard: ClipboardLike, hints: HintsLike, env: EngineEnv
   }
 
   function modifySelection(): void {
-    const sel = (keymap.getCurrentNode().meta!.annotation as string).split(" ");
+    const annotation = keymap.getCurrentNode().meta?.annotation;
+    const sel = (typeof annotation === "string" ? annotation : "").split(" ");
     const alter = state === 2 ? "extend" : "move";
     self.hideCursor();
     const prevPos: [Node | null, number] = [selection.focusNode, selection.focusOffset];
@@ -632,16 +629,18 @@ function createVisual(clipboard: ClipboardLike, hints: HintsLike, env: EngineEnv
     const marks = Array.from(rects)
       .map((r) => {
         if (r.width > 0 && r.height > 0) {
-          const mark = mark_template.cloneNode(false) as HTMLElement;
-          mark.className = className;
-          mark.style.position = "absolute";
-          mark.style.zIndex = "2147483299";
-          mark.style.left = document.scrollingElement!.scrollLeft + r.left + "px";
-          mark.style.top = document.scrollingElement!.scrollTop + r.top + "px";
-          mark.style.width = r.width + "px";
-          mark.style.height = r.height + "px";
-          markHolder.appendChild(mark);
-          return mark;
+          const mark = mark_template.cloneNode(false);
+          if (mark instanceof HTMLElement) {
+            mark.className = className;
+            mark.style.position = "absolute";
+            mark.style.zIndex = "2147483299";
+            mark.style.left = document.scrollingElement!.scrollLeft + r.left + "px";
+            mark.style.top = document.scrollingElement!.scrollTop + r.top + "px";
+            mark.style.width = r.width + "px";
+            mark.style.height = r.height + "px";
+            markHolder.appendChild(mark);
+            return mark;
+          }
         }
         return null;
       })
@@ -836,7 +835,7 @@ function createVisual(clipboard: ClipboardLike, hints: HintsLike, env: EngineEnv
     let found = false;
     // window.find sometimes does not move selection forward
     let firstNode: Node | null = null;
-    while (win.find(query, caseSensitive, backwards)) {
+    while (window.find(query, caseSensitive, backwards)) {
       if (selection.anchorNode instanceof Text) {
         found = true;
         break;
@@ -917,12 +916,12 @@ function createVisual(clipboard: ClipboardLike, hints: HintsLike, env: EngineEnv
 
   const findSentenceOf = (query: string): string => {
     const wr = new RegExp(String.raw`\b` + query + String.raw`\b`);
-    let elements = getVisibleElements((e, v) => {
-      if (wr.test(e.innerText)) {
+    let elements: Element[] = getVisibleElements((e, v) => {
+      if (e instanceof HTMLElement && wr.test(e.innerText)) {
         v.push(e);
       }
     });
-    elements = filterAncestors(elements) as HTMLElement[];
+    elements = filterAncestors(elements);
 
     let sentence = "";
     const firstElement = elements[0];
@@ -931,7 +930,7 @@ function createVisual(clipboard: ClipboardLike, hints: HintsLike, env: EngineEnv
     }
     actionWithSelectionPreserved((sel) => {
       sel!.setPosition(firstElement, 0);
-      if (win.find(query, false, false, true, true)) {
+      if (window.find(query, false, false, true, true)) {
         selectUnit("s");
         sentence = selection.toString();
       }

@@ -22,12 +22,9 @@ function startScrollNodeObserver(normal: {
       const addedNodes: Element[] = [];
       for (const m of mutations) {
         for (const n of m.addedNodes) {
-          if (n.nodeType === Node.ELEMENT_NODE) {
-            const el = n as Element;
-            if (!isSurfingKeysElement(el)) {
-              markNewlyCreated(el);
-              addedNodes.push(el);
-            }
+          if (n instanceof Element && !isSurfingKeysElement(n)) {
+            markNewlyCreated(n);
+            addedNodes.push(n);
           }
         }
       }
@@ -38,7 +35,10 @@ function startScrollNodeObserver(normal: {
           pendingUpdater = undefined;
         }
         pendingUpdater = window.setTimeout(() => {
-          const possibleModalElements = getVisibleElements((e: HTMLElement, v: HTMLElement[]) => {
+          const possibleModalElements = getVisibleElements<HTMLElement>((e, v) => {
+            if (!(e instanceof HTMLElement)) {
+              return;
+            }
             const br = e.getBoundingClientRect();
             if (
               br.width > 300 &&
