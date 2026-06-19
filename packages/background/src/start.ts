@@ -164,13 +164,17 @@ const Gist = (() => {
     return created?.success ? created.output.id : "";
   }
 
-  let cachedToken: string;
+  let cachedToken = "";
   let cachedGist = "";
   let cachedComments: string[] = [];
   const initGist = async (token: string): Promise<string> => {
     if (cachedToken === token && cachedGist !== "") {
       return cachedGist;
     }
+    // Token changed (or first call): the new gist may have a completely different
+    // comment set, so discard any comment IDs cached from the previous gist to
+    // prevent them being passed to the wrong gist's API endpoints.
+    cachedComments = [];
     cachedToken = token;
     cachedGist = await createOrFindGist(cachedToken, "cloudboard");
     return cachedGist;

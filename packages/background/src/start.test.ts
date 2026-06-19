@@ -947,3 +947,64 @@ describe("start — readComment malformed per-comment JSON", () => {
     expect(sendResponse.mock.calls.at(-1)?.[0]).toMatchObject({ status: 1 });
   });
 });
+
+// ---------------------------------------------------------------------------
+// initGist — token switch clears stale cachedComments
+// ---------------------------------------------------------------------------
+
+describe("start — initGist clears cachedComments when token changes", () => {
+  it("does not reuse comment IDs from a previous gist after switching tokens", async () => {
+    const dispatch = bootDispatch();
+
+    // Prime gist A with token-A
+    await primeGist(dispatch, "tok-switch-A");
+
+    // Populate cachedComments for gist A by reading a comment at index 0.
+    // The list returns one comment ("cA1"); the per-comment fetch succeeds.
+    mockRequest
+      .mockResolvedValueOnce(Result.succeed(JSON.stringify([{ id: "cA1" }]))) // listComment gist-A
+      .mockResolvedValueOnce(Result.succeed(JSON.stringify({ body: "hello" }))); // fetchComment cA1
+    const firstRead = vi.fn();
+    dispatch(
+      { action: "readComment", index: 0, needResponse: true },
+      { tab: { id: 1 } },
+      firstRead,
+    );
+    await vi.waitFor(() => expect(firstRead).toHaveBeenCalled());
+    mockRequest.mockReset();
+
+    // Switch to token-B → a completely different gist (gist-B).
+    mockRequest.mockResolvedValueOnce(
+      Result.succeed(
+        JSON.stringify([{ description: "cloudboard", files: { cloudboard: {} }, id: "gist-B" }]),
+      ),
+    );
+    const switchDone = vi.fn();
+    dispatch(
+      { action: "initGist", token: "tok-switch-B", needResponse: true },
+      { tab: { id: 1 } },
+      switchDone,
+    );
+    await vi.waitFor(() => expect(switchDone).toHaveBeenCalledWith({ gist: "gist-B" }));
+    mockRequest.mockReset();
+
+    // Now readComment index 0 must NOT reuse stale "cA1" from gist A's cache.
+    // If cachedComments were not cleared the implementation would skip straight
+    // to fetchComment("cA1"), issuing exactly one request.  With the fix it
+    // must re-list gist B's comments first (two requests: list then fetch).
+    mockRequest
+      .mockResolvedValueOnce(Result.succeed(JSON.stringify([{ id: "cB1" }]))) // listComment gist-B
+      .mockResolvedValueOnce(Result.succeed(JSON.stringify({ body: "world" }))); // fetchComment cB1
+    const afterSwitch = vi.fn();
+    dispatch(
+      { action: "readComment", index: 0, needResponse: true },
+      { tab: { id: 1 } },
+      afterSwitch,
+    );
+    await vi.waitFor(() => expect(afterSwitch).toHaveBeenCalled());
+
+    // Two requests: listComment then fetchComment — the stale cache was cleared.
+    expect(mockRequest).toHaveBeenCalledTimes(2);
+    expect(afterSwitch.mock.calls.at(-1)?.[0]).toMatchObject({ status: 0, content: "world" });
+  });
+});
