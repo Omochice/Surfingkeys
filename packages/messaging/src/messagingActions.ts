@@ -18,7 +18,9 @@ function tabOpenLink(str: string | string[] | NodeList, simultaneousness: number
   if (Array.isArray(str)) {
     urls = str;
   } else if (str instanceof NodeList) {
-    urls = Array.from(str).map((n) => (n as HTMLAnchorElement).href);
+    urls = Array.from(str)
+      .filter((n): n is HTMLAnchorElement => n instanceof HTMLAnchorElement)
+      .map((n) => n.href);
   } else {
     urls = str.trim().split("\n");
   }
