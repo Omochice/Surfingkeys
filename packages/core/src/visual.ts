@@ -917,7 +917,7 @@ function createVisual(clipboard: ClipboardLike, hints: HintsLike, env: EngineEnv
   const findSentenceOf = (query: string): string => {
     const wr = new RegExp(String.raw`\b` + query + String.raw`\b`);
     let elements: Element[] = getVisibleElements((e, v) => {
-      if (wr.test(e.innerText)) {
+      if (e instanceof HTMLElement && wr.test(e.innerText)) {
         v.push(e);
       }
     });

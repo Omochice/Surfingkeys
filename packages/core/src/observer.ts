@@ -37,7 +37,10 @@ function startScrollNodeObserver(normal: {
           pendingUpdater = undefined;
         }
         pendingUpdater = window.setTimeout(() => {
-          const possibleModalElements = getVisibleElements((e: HTMLElement, v: HTMLElement[]) => {
+          const possibleModalElements = getVisibleElements<HTMLElement>((e, v) => {
+            if (!(e instanceof HTMLElement)) {
+              return;
+            }
             const br = e.getBoundingClientRect();
             if (
               br.width > 300 &&

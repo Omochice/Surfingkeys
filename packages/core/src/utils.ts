@@ -429,11 +429,11 @@ function isElementPartiallyInViewport(el: Element, ignoreSize?: boolean): boolea
   );
 }
 
-function getVisibleElements(
-  filter: (e: HTMLElement, visibleElements: HTMLElement[]) => void,
-): HTMLElement[] {
+function getVisibleElements<T extends Element = Element>(
+  filter: (e: Element, visibleElements: T[]) => void,
+): T[] {
   const all = Array.from(document.documentElement.getElementsByTagName("*"));
-  const visibleElements: HTMLElement[] = [];
+  const visibleElements: T[] = [];
   for (let i = 0; i < all.length; i++) {
     const e = all[i];
     if (e == null) {
@@ -458,7 +458,7 @@ function getVisibleElements(
       rect.height > 0 &&
       getComputedStyle(e).visibility !== "hidden"
     ) {
-      filter(e as HTMLElement, visibleElements);
+      filter(e, visibleElements);
     }
   }
   return visibleElements;
@@ -481,7 +481,7 @@ function getVisibleElements(
  *   Default is `0.3`
  * @returns {Element[]} Array of large visible elements
  */
-function getLargeElements(minWidth = 0.3, minHeight = 0.3): HTMLElement[] {
+function getLargeElements(minWidth = 0.3, minHeight = 0.3): Element[] {
   const viewportWidth = window.innerWidth;
   const viewportHeight = window.innerHeight;
   const minWidthPx = viewportWidth * minWidth;
@@ -967,9 +967,10 @@ function constructSearchURL(se: string, word: string): string {
   }
 }
 
-function filterInvisibleElements(nodes: HTMLElement[]): HTMLElement[] {
+function filterInvisibleElements<T extends Element>(nodes: T[]): T[] {
   return nodes.filter((n) => {
     return (
+      n instanceof HTMLElement &&
       n.offsetHeight &&
       n.offsetWidth &&
       !n.getAttribute("disabled") &&

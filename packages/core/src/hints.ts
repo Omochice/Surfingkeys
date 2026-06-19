@@ -34,7 +34,7 @@ import {
 
 // Color index per hinted element, kept off the element so the hint node need
 // not carry it as an expando.
-const skColorIndices = new WeakMap<HTMLElement, number>();
+const skColorIndices = new WeakMap<Element, number>();
 
 // Saved z-index per hinted element (the value before flip() rewrites style),
 // likewise kept off the element.
@@ -796,7 +796,7 @@ div.hint-scrollable {
     holder.style.display = "";
   }
 
-  function createOverlay(e: HTMLElement, i: number, alpha: string): HTMLElement {
+  function createOverlay(e: Element, i: number, alpha: string): HTMLElement {
     skColorIndices.set(e, i);
 
     const be = e.getBoundingClientRect();
@@ -814,7 +814,7 @@ div.hint-scrollable {
     return frame;
   }
 
-  function placeHints(elements: HTMLElement[]): void {
+  function placeHints(elements: Element[]): void {
     initHolder("click");
     const hintLabels = self.genLabels(elements.length);
     const bof = self.coordinate();
@@ -846,7 +846,7 @@ div.hint-scrollable {
         left = window.pageXOffset + window.innerWidth - 32;
       }
       const link = createElementWithContent("div", hintLabels[i] ?? "");
-      if (elm.dataset["hint_scrollable"]) {
+      if (elm instanceof HTMLElement && elm.dataset["hint_scrollable"]) {
         link.classList.add("hint-scrollable");
       }
       let lTop = Math.max(r.top + window.pageYOffset - bof.top, 0);
@@ -899,7 +899,7 @@ div.hint-scrollable {
     const statusLine = attrs["statusLine"];
     mode.statusLine = (typeof statusLine === "string" && statusLine) || "Hints to click";
 
-    const filtered = filterInvisibleElements(elements as HTMLElement[]);
+    const filtered = filterInvisibleElements(elements);
     if (filtered.length > 0) {
       placeHints(filtered);
     }
@@ -916,16 +916,16 @@ div.hint-scrollable {
     for (const attr in attrs) {
       behaviours[attr] = attrs[attr];
     }
-    let elements: HTMLElement[];
+    let elements: Element[];
     if (cssSelector === "") {
       elements = getVisibleElements((e, v) => {
         if (isElementClickable(e)) {
           v.push(e);
         }
       });
-      elements = filterOverlapElements(elements) as HTMLElement[];
+      elements = filterOverlapElements(elements);
     } else if (Array.isArray(cssSelector)) {
-      elements = filterInvisibleElements(cssSelector as HTMLElement[]);
+      elements = filterInvisibleElements(cssSelector);
     } else {
       elements = getVisibleElements((e, v) => {
         const disabled = "disabled" in e && Boolean(e.disabled);
@@ -935,7 +935,7 @@ div.hint-scrollable {
         }
       });
       elements = filterInvisibleElements(elements);
-      elements = filterOverlapElements(elements) as HTMLElement[];
+      elements = filterOverlapElements(elements);
     }
 
     if (elements.length > 0) {
@@ -1064,7 +1064,7 @@ div.hint-scrollable {
     placeHintsHost(hintsHost);
     const cssSelector = getCssSelectorsOfEditable();
 
-    let elements = getVisibleElements((e, v) => {
+    let elements: HTMLElement[] = getVisibleElements((e, v) => {
       if (
         e instanceof HTMLInputElement &&
         e.matches(cssSelector) &&
@@ -1081,7 +1081,7 @@ div.hint-scrollable {
       elements = getVisibleElements((e, v) => {
         const disabled = "disabled" in e && Boolean(e.disabled);
         const readOnly = "readOnly" in e && Boolean(e.readOnly);
-        if (e.matches(cssSelector) && !disabled && !readOnly) {
+        if (e instanceof HTMLElement && e.matches(cssSelector) && !disabled && !readOnly) {
           v.push(e);
         }
       });
