@@ -53,7 +53,10 @@ reportOnFail(
 );
 
 document.addEventListener("surfingkeys:userSettingsLoaded", (evt) => {
-  const { getUsage } = (evt as CustomEvent).detail;
+  if (!(evt instanceof CustomEvent)) {
+    return;
+  }
+  const { getUsage } = evt.detail;
   getUsage((usage: string) => {
     const usageElement = document.getElementById("sk_usage")!;
     setSanitizedContent(usageElement, usage);

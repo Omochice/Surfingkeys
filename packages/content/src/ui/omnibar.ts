@@ -567,8 +567,10 @@ function createOmnibar(front: OmnibarFront, clipboard: { write(text: string): vo
       ref: (el: HTMLInputElement) => {
         inputElement = el;
       },
-    }) as HTMLInputElement;
-    ui.querySelector("#sk_omnibarSearchArea")!.insertBefore(inputEl, resultPageSpan);
+    });
+    if (inputEl instanceof Node) {
+      ui.querySelector("#sk_omnibarSearchArea")!.insertBefore(inputEl, resultPageSpan);
+    }
   });
 
   function onResultSelect(index: number) {
@@ -604,7 +606,7 @@ function createOmnibar(front: OmnibarFront, clipboard: { write(text: string): vo
     if (focusedIndex() < 0) {
       return;
     }
-    const fi = resultsDiv.querySelector("li.focused") as HTMLElement | null;
+    const fi = resultsDiv.querySelector<HTMLElement>("li.focused");
     if (fi) {
       const fiRect = fi.getBoundingClientRect();
       const resultsRect = resultsDiv.getBoundingClientRect();

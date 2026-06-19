@@ -23,7 +23,11 @@ export type UiHost = HTMLDivElement & { tryDetach(): void };
 type ActiveContent = { window: Window; origin: string } | null;
 
 function createUiHost(adapter: BrowserLike, onload: (uiHost: UiHost) => void): void {
-  const uiHost = document.createElement("div") as UiHost;
+  // tryDetach is wired up below (it closes over `ifr`); the stub keeps the value a UiHost from the
+  // start without a cast and is overwritten before anything can call it.
+  const uiHost: UiHost = Object.assign(document.createElement("div"), {
+    tryDetach: (): void => {},
+  });
   uiHost.style.display = "block";
   uiHost.style.opacity = "1";
   uiHost.style.colorScheme = "light";
@@ -78,6 +82,8 @@ function createUiHost(adapter: BrowserLike, onload: (uiHost: UiHost) => void): v
         }
 
         activeContent = {
+          // event.source is a (possibly cross-origin) WindowProxy; instanceof Window is unreliable
+          // across origins, so the assertion is kept.
           window: event.source as Window,
           origin: message.origin,
         };

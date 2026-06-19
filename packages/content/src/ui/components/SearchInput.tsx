@@ -47,7 +47,7 @@ export const SearchInput: Component<SearchInputProps> = (props) => {
         props.onInput(event.currentTarget.value);
       }}
       onCompositionEnd={(event) => {
-        props.onInput((event.currentTarget as HTMLInputElement).value);
+        props.onInput(event.currentTarget.value);
       }}
       onKeyDown={(event) => {
         if (event.isComposing) {
