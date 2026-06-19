@@ -37,9 +37,9 @@ describe("chromeSpecifics.loadRawSettings", () => {
 
   it("does not produce an unhandled rejection when the local write after a sync-wins merge fails", async () => {
     // Sync is newer than local, so the sync data is written back to local storage
-    // (to keep local as a cached copy). The local.set call is fire-and-forget with
-    // `void`, so a rejection there becomes an unhandled rejection that can terminate
-    // the MV3 service worker. The fix must catch that rejection and log it instead.
+    // (to keep local as a cached copy). If that local.set rejects, the write must
+    // not surface as an unhandled rejection that can terminate the MV3 service
+    // worker; loadRawSettings catches it and logs via console.error instead.
     const errorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
     try {
       g.chrome = {
