@@ -34,4 +34,36 @@ describe("chromeSpecifics.loadRawSettings", () => {
     expect(result["theme"]).toBe("dark");
     expect(result["error"]).toMatch(/Settings sync may not work/);
   });
+
+  it("does not produce an unhandled rejection when the local write after a sync-wins merge fails", async () => {
+    // Sync is newer than local, so the sync data is written back to local storage
+    // (to keep local as a cached copy). If that local.set rejects, the write must
+    // not surface as an unhandled rejection that can terminate the MV3 service
+    // worker; loadRawSettings catches it and logs via console.error instead.
+    const errorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+    try {
+      g.chrome = {
+        storage: {
+          local: {
+            get: vi.fn().mockResolvedValue({ savedAt: 1, theme: "light" }),
+            set: vi.fn().mockRejectedValue(new Error("QUOTA_BYTES_PER_ITEM quota exceeded")),
+          },
+          sync: {
+            get: vi.fn().mockResolvedValue({ savedAt: 2, theme: "dark" }),
+            set: vi.fn().mockResolvedValue(undefined),
+          },
+        },
+        runtime: {},
+      };
+
+      const result = await chromeSpecifics.loadRawSettings(["theme"]);
+
+      // The load must complete successfully with the sync-sourced value.
+      expect(result["theme"]).toBe("dark");
+      // The local write failure must be caught and logged, not left unhandled.
+      await vi.waitFor(() => expect(errorSpy).toHaveBeenCalled());
+    } finally {
+      errorSpy.mockRestore();
+    }
+  });
 });

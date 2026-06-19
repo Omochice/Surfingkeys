@@ -30,7 +30,12 @@ async function loadRawSettings(
     // don't sync local path
     delete syncSet["localPath"];
     extendObject(rawSet, syncSet);
-    void save(chrome.storage.local, syncSet);
+    // The local write is fire-and-forget (sync is the source of truth in this
+    // branch), but a rejection (e.g. local quota) must be caught: an unhandled
+    // rejection can terminate the MV3 service worker.
+    save(chrome.storage.local, syncSet).catch((error) => {
+      console.error("Failed to mirror sync settings to local storage:", error);
+    });
     return getSubSettings(rawSet, keys);
   }
   extendObject(rawSet, localSet);
