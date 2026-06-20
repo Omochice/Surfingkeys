@@ -42,6 +42,7 @@
     "npm-run-all2": "catalog:",
     "oxfmt": "catalog:",
     "oxlint": "catalog:",
+    "rollup-plugin-visualizer": "^7.0.1",
     "solid-js": "catalog:",
     "sort-package-json": "catalog:",
     "typescript": "catalog:",
