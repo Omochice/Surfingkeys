@@ -46,15 +46,6 @@ span.tip {
   padding-left: 60px;
   color: #04ad23;
 }
-div.aphost {
-  display: inline-block;
-  width: 200px;
-  color: blue;
-
-  > span.remove {
-    cursor: pointer;
-  }
-}
 
 #searchAliases > div,
 #basicMappings > div {
@@ -127,9 +118,6 @@ div.pressedKey {
 #resetSettings {
   color: blue;
   cursor: pointer;
-}
-span.highlight {
-  background: linear-gradient(#fff785, #ffc542);
 }
 #localPath {
   width: 520px;

@@ -97,8 +97,4 @@ kbd {
   padding: 40px;
   font-size: 24pt;
   text-align: center;
-
-  span.annotation {
-    padding-left: 32px;
-  }
 }

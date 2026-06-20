@@ -17,9 +17,6 @@
     background: #ddd;
     color: #111;
   }
-  .frame {
-    background: rgba(129, 120, 222, 0.62);
-  }
   .omnibar_highlight {
     color: #b90c0c;
   }
@@ -58,14 +55,6 @@
       &.focused {
         border: 2px solid #fff;
       }
-    }
-  }
-  div.table {
-    display: table;
-
-    > * {
-      vertical-align: middle;
-      display: table-cell;
     }
   }
 }
@@ -374,13 +363,6 @@ div.sk_tab_title {
   overflow: hidden;
   padding-left: 5px;
   color: #000;
-}
-div.sk_tab_url {
-  font-size: 10pt;
-  white-space: nowrap;
-  text-overflow: ellipsis;
-  overflow: hidden;
-  color: #333;
 }
 div.sk_tab_hint {
   display: inline-block;
