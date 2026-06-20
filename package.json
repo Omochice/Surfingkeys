@@ -2,16 +2,16 @@
   "name": "Surfingkeys",
   "version": "1.18.0",
   "description": "Map your keys for web surfing, expand your browser with javascript and keyboard.",
-  "homepage": "https://github.com/brookhong/Surfingkeys#readme",
+  "homepage": "https://github.com/Omochice/Surfingkeys#readme",
   "bugs": {
-    "url": "https://github.com/brookhong/Surfingkeys/issues"
+    "url": "https://github.com/Omochice/Surfingkeys/issues"
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/brookhong/Surfingkeys.git"
+    "url": "git+https://github.com/Omochice/Surfingkeys.git"
   },
   "license": "MIT",
-  "author": "brook hong",
+  "author": "Omochice",
   "type": "module",
   "scripts": {
     "build": "npm-run-all2 clean build:prod",
