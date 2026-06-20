@@ -37,9 +37,8 @@ export default defineConfig({
   targetBrowsers: ["chrome", "firefox"],
   modules: ["@wxt-dev/module-solid"],
   vite: () => ({
-    // Lightning CSS lets the stylesheets be authored with nesting and
-    // @custom-media (drafts.customMedia) while compiling them down for the
-    // target browsers, and minifies more aggressively than the esbuild default.
+    // Minifies more aggressively than the esbuild default, and resolves the
+    // nesting / @custom-media used by the stylesheets.
     css: {
       transformer: "lightningcss",
       lightningcss: {
