@@ -11,3 +11,6 @@ src/content_scripts/safari.js
 *~
 .idea
 .direnv/
+# Vitest browser mode failure artifacts
+__screenshots__/
+.vitest-attachments/

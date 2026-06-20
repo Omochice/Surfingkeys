@@ -1,5 +1,5 @@
 import solid from "vite-plugin-solid";
-import { defineConfig } from "vitest/config";
+import { configDefaults, defineConfig } from "vitest/config";
 
 export default defineConfig({
   plugins: [solid()],
@@ -11,5 +11,8 @@ export default defineConfig({
   test: {
     environment: "jsdom",
     setupFiles: ["@sk/test-support/setup"],
+    // *.browser.test.ts runs in real browsers via vitest.browser.config.ts; keep it out of the
+    // jsdom run, whose DOMPurify setHTML shim would mask what those tests verify.
+    exclude: [...configDefaults.exclude, "**/*.browser.test.{ts,tsx}"],
   },
 });
