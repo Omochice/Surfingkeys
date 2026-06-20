@@ -124,13 +124,11 @@ export default defineConfig({
 
     if (browser === "firefox") {
       permissions.push("cookies", "contextualIdentities");
-      // The sanitizing Element.setHTML (used to inject untrusted markup in place
-      // of DOMPurify) ships in Firefox 139, which is the binding floor; it is
-      // already past the Firefox 115 release that first shipped the ES2023 array
-      // methods (e.g. Array.prototype.toSorted) we also use directly, since
-      // esbuild neither polyfills nor down-levels built-in methods. defu
-      // deep-merges this into WXT's base manifest, preserving any gecko fields
-      // WXT adds.
+      // The sanitizing Element.setHTML (used in place of DOMPurify) ships in
+      // Firefox 139, the binding floor — already past the Firefox 115 that first
+      // shipped the ES2023 array methods we also use directly (esbuild neither
+      // polyfills nor down-levels built-in methods). defu deep-merges this into
+      // WXT's base manifest, preserving any gecko fields WXT adds.
       manifest.browser_specific_settings = { gecko: { strict_min_version: "139.0" } };
     } else {
       permissions.push("downloads.shelf", "favicon", "userScripts");
