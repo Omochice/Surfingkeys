@@ -319,6 +319,9 @@ importers:
       jsdom:
         specifier: 'catalog:'
         version: 29.1.1
+      lightningcss:
+        specifier: 1.32.0
+        version: 1.32.0
       npm-run-all2:
         specifier: 'catalog:'
         version: 9.0.2
