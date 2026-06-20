@@ -1,6 +1,7 @@
-import DOMPurify from "dompurify";
 import { Show } from "solid-js";
 import type { Component } from "solid-js";
+
+import { setSafeHtml } from "../setSafeHtml";
 
 export type KeystrokeProps = {
   /** The accumulated decoded keys while a chord is being typed. Rendered as text when not `rich`. */
@@ -19,7 +20,7 @@ export type KeystrokeProps = {
  * accumulation, and the rich-hint delay timer.
  *
  * The plain chord keys are rendered as a text node so they never reach `innerHTML`; only the rich
- * hint layout carries markup and is run through DOMPurify.
+ * hint layout carries markup and is sanitized.
  */
 export const Keystroke: Component<KeystrokeProps> = (props) => {
   return (
@@ -28,7 +29,7 @@ export const Keystroke: Component<KeystrokeProps> = (props) => {
         when={props.rich}
         fallback={props.text}
       >
-        <span innerHTML={DOMPurify.sanitize(props.html)} />
+        <span ref={(el) => setSafeHtml(el, () => props.html)} />
       </Show>
     </div>
   );

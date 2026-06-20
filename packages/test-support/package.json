@@ -18,9 +18,11 @@
     "fmt:package": "sort-package-json"
   },
   "dependencies": {
+    "dompurify": "catalog:",
     "vitest": "catalog:"
   },
   "devDependencies": {
+    "@sk/types": "workspace:*",
     "npm-run-all2": "catalog:",
     "oxfmt": "catalog:",
     "oxlint": "catalog:",

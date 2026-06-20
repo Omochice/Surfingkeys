@@ -6,7 +6,6 @@ import {
   domApiError,
   unwrapOr,
 } from "@sk/common/result";
-import DOMPurify from "dompurify";
 
 import { conf } from "./conf";
 import { dispatchSKEvent } from "./events";
@@ -981,7 +980,7 @@ function filterInvisibleElements<T extends Element>(nodes: T[]): T[] {
 }
 
 function setSanitizedContent(elm: Element, str: string): void {
-  elm.innerHTML = DOMPurify.sanitize(str);
+  elm.setHTML(str);
 }
 
 function createElementWithContent(

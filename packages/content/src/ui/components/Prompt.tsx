@@ -1,6 +1,7 @@
-import DOMPurify from "dompurify";
 import { Show } from "solid-js";
 import type { Component } from "solid-js";
+
+import { setSafeHtml } from "../setSafeHtml";
 
 /** The arrow drawn between the prompt label and the omnibar input. */
 const SEPARATOR = "➤";
@@ -19,7 +20,7 @@ export type PromptProps = {
 /**
  * The omnibar prompt label (#sk_omnibarSearchArea > span.prompt). A text label renders as a text
  * node followed by the styled separator span, keeping the common case out of `innerHTML`; only the
- * search-engine icon HTML still needs DOMPurify.
+ * search-engine icon HTML still needs sanitizing.
  */
 export const Prompt: Component<PromptProps> = (props) => {
   return (
@@ -32,7 +33,7 @@ export const Prompt: Component<PromptProps> = (props) => {
         </>
       }
     >
-      {(value) => <span innerHTML={DOMPurify.sanitize(value().html)} />}
+      {(value) => <span ref={(el) => setSafeHtml(el, () => value().html)} />}
     </Show>
   );
 };

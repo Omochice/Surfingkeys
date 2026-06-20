@@ -10,6 +10,12 @@ declare global {
   interface Element {
     /** Non-standard WebKit/Blink method; absent on Firefox, hence optional. */
     scrollIntoViewIfNeeded?(centerIfNeeded?: boolean): void;
+    /**
+     * Sanitizing HTML Sanitizer API. The bundled lib.dom.d.ts (TypeScript 6.0.3) ships only the
+     * non-sanitizing `setHTMLUnsafe`, so the safe variant we rely on to replace DOMPurify is
+     * declared here until the lib catches up.
+     */
+    setHTML(html: string): void;
   }
   interface Event {
     sk_keyName?: string;

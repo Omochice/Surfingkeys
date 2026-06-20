@@ -1,3 +1,5 @@
+import DOMPurify from "dompurify";
+
 // Minimal WebExtension API stub so content-script modules, which touch
 // `chrome.*` at import time (e.g. runtime.js registers an onMessage listener),
 // can be imported under jsdom. Tests that need specific behaviour should
@@ -25,3 +27,15 @@ const chromeStub = {
 };
 
 (globalThis as unknown as { chrome: typeof chromeStub }).chrome = chromeStub;
+
+// jsdom implements neither Element.setHTML nor the Sanitizer API that backs it,
+// so production code injecting markup through the sanitizing parser would throw
+// under tests. Shim it with DOMPurify (the Element.setHTML type comes from the
+// shared @sk/types augmentation) so the sanitization the helper promises
+// (stripping scripts and event-handler attributes) stays exercised in CI even
+// though the real browser API does that work in production.
+if (typeof Element.prototype.setHTML !== "function") {
+  Element.prototype.setHTML = function setHTML(this: Element, html: string): void {
+    this.innerHTML = DOMPurify.sanitize(html);
+  };
+}
