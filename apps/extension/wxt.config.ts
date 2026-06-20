@@ -124,18 +124,22 @@ export default defineConfig({
 
     if (browser === "firefox") {
       permissions.push("cookies", "contextualIdentities");
-      // ES2023 array methods (e.g. Array.prototype.toSorted) are used directly
-      // and esbuild neither polyfills nor down-levels built-in methods, so
-      // declare the first Firefox release that ships them. defu deep-merges
-      // this into WXT's base manifest, preserving any gecko fields WXT adds.
-      manifest.browser_specific_settings = { gecko: { strict_min_version: "115.0" } };
+      // The sanitizing Element.setHTML (used to inject untrusted markup in place
+      // of DOMPurify) ships in Firefox 139, which is the binding floor; it is
+      // already past the Firefox 115 release that first shipped the ES2023 array
+      // methods (e.g. Array.prototype.toSorted) we also use directly, since
+      // esbuild neither polyfills nor down-levels built-in methods. defu
+      // deep-merges this into WXT's base manifest, preserving any gecko fields
+      // WXT adds.
+      manifest.browser_specific_settings = { gecko: { strict_min_version: "139.0" } };
     } else {
       permissions.push("downloads.shelf", "favicon", "userScripts");
       webResources.push("_favicon/*", "api.js");
       manifest.incognito = "split";
-      // The Chrome counterpart of the Firefox ES2023 floor above: Chrome 110 is
-      // the first release shipping the non-mutating array methods in use.
-      manifest.minimum_chrome_version = "110";
+      // The Chrome counterpart of the Firefox floor above: the sanitizing
+      // Element.setHTML ships in Chrome 133, past the Chrome 110 release that
+      // first shipped the non-mutating array methods also in use.
+      manifest.minimum_chrome_version = "133";
       if (mode === "development") {
         manifest.key = devKey;
       }
