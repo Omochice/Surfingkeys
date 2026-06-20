@@ -1,5 +1,6 @@
 import path from "node:path";
 
+import { visualizer } from "rollup-plugin-visualizer";
 import { build as viteBuild } from "vite";
 import { defineConfig } from "wxt";
 
@@ -33,6 +34,16 @@ export default defineConfig({
   manifestVersion: 3,
   targetBrowsers: ["chrome", "firefox"],
   modules: ["@wxt-dev/module-solid"],
+  vite: () => ({
+    plugins: [
+      visualizer({
+        filename: "dist/bundle-stats.html",
+        template: "treemap",
+        gzipSize: true,
+        brotliSize: true,
+      }),
+    ],
+  }),
   hooks: {
     // content.css ships as a single shared stylesheet (public/content.css,
     // copied to the root), injected by the content script and referenced by
