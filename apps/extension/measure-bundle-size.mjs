@@ -30,7 +30,10 @@ const exists = async (target) =>
     () => false,
   );
 
-const bytes = { unit: " B" };
+// octocov renders the value verbatim with the unit appended, so convert bytes
+// to KiB ourselves; raw byte counts are too large to read at a glance.
+const toKibibytes = (size) => Math.round((size / 1024) * 10) / 10;
+const kibibytes = { unit: " KiB" };
 
 const measure = async ({ id, outDir }) => {
   const unpackedDir = path.join(distDir, outDir);
@@ -52,8 +55,8 @@ const measure = async ({ id, outDir }) => {
     key: `bundle_size_${id}`,
     name: `Bundle size (${id})`,
     metrics: [
-      { key: "zip", name: "Zip", value: zipSize, ...bytes },
-      { key: "raw", name: "Uncompressed", value: rawSize, ...bytes },
+      { key: "zip", name: "Zip", value: toKibibytes(zipSize), ...kibibytes },
+      { key: "raw", name: "Uncompressed", value: toKibibytes(rawSize), ...kibibytes },
     ],
   };
 };
@@ -68,7 +71,7 @@ const outPath = path.join(baseDir, "custom_metrics_bundle_size.json");
 await writeFile(outPath, `${JSON.stringify(metricSets, null, 2)}\n`);
 
 for (const set of metricSets) {
-  const figures = set.metrics.map((m) => `${m.name} ${m.value.toLocaleString()} B`).join(", ");
+  const figures = set.metrics.map((m) => `${m.name} ${m.value.toLocaleString()} KiB`).join(", ");
   console.log(`${set.name}: ${figures}`);
 }
 console.log(`Wrote ${path.relative(baseDir, outPath)}`);
