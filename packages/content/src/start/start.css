@@ -4,7 +4,7 @@
 #topSites,
 #quickIntro {
   display: table-cell;
-  padding: 10 5%;
+  padding: 10px 5%;
   width: 50%;
 }
 #topSites i {
@@ -97,8 +97,4 @@ kbd {
   padding: 40px;
   font-size: 24pt;
   text-align: center;
-
-  span.annotation {
-    padding-left: 32px;
-  }
 }

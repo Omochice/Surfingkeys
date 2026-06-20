@@ -17,9 +17,6 @@
     background: #ddd;
     color: #111;
   }
-  .frame {
-    background: rgba(129, 120, 222, 0.62);
-  }
   .omnibar_highlight {
     color: #b90c0c;
   }
@@ -58,14 +55,6 @@
       &.focused {
         border: 2px solid #fff;
       }
-    }
-  }
-  div.table {
-    display: table;
-
-    > * {
-      vertical-align: middle;
-      display: table-cell;
     }
   }
 }
@@ -348,13 +337,7 @@ div.sk_tab {
   justify-items: center;
   border-radius: 3px;
   margin: 1px;
-  background: -webkit-gradient(
-    linear,
-    left top,
-    left bottom,
-    color-stop(0%, #dae6f5),
-    color-stop(100%, #b0ccef)
-  );
+  background: linear-gradient(#dae6f5, #b0ccef);
   box-shadow: 0px 3px 7px 0px rgba(245, 245, 0, 0.3);
   padding-top: 2px;
   border-top: solid 1px black;
@@ -381,26 +364,13 @@ div.sk_tab_title {
   padding-left: 5px;
   color: #000;
 }
-div.sk_tab_url {
-  font-size: 10pt;
-  white-space: nowrap;
-  text-overflow: ellipsis;
-  overflow: hidden;
-  color: #333;
-}
 div.sk_tab_hint {
   display: inline-block;
   font-size: 10pt;
   font-weight: bold;
   padding: 0px 2px 0px 2px;
   margin: 6px;
-  background: -webkit-gradient(
-    linear,
-    left top,
-    left bottom,
-    color-stop(0%, #fff785),
-    color-stop(100%, #ffc542)
-  );
+  background: linear-gradient(#fff785, #ffc542);
   color: #000;
   border: solid 1px #c38a22;
   border-radius: 3px;
