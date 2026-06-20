@@ -38,6 +38,7 @@
     "fmt:workspaces": "pnpm -r run fmt",
     "measure:bundle-size": "pnpm --filter @sk/extension run measure:bundle-size",
     "test": "pnpm -r run test",
+    "test:browser": "pnpm --filter @sk/content run test:browser",
     "test:watch": "vitest",
     "zip": "pnpm --filter @sk/extension zip",
     "zip:firefox": "pnpm --filter @sk/extension zip:firefox"
