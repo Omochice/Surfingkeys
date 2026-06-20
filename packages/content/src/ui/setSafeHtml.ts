@@ -1,3 +1,4 @@
+import { SAFE_HTML_OPTIONS } from "@sk/core/utils";
 import { createRenderEffect } from "solid-js";
 
 /**
@@ -16,6 +17,6 @@ import { createRenderEffect } from "solid-js";
  */
 export const setSafeHtml = (el: Element, html: () => string): void => {
   createRenderEffect(() => {
-    el.setHTML(html());
+    el.setHTML(html(), SAFE_HTML_OPTIONS);
   });
 };

@@ -979,8 +979,15 @@ function filterInvisibleElements<T extends Element>(nodes: T[]): T[] {
   });
 }
 
+// Element.setHTML's default sanitizer keeps only a minimal safe attribute set and so drops the
+// class/data-* attributes our generated markup relies on for styling and behaviour. Passing an
+// (empty) removeAttributes list switches it to remove-list mode, which preserves every attribute
+// except the listed ones while the safe sink still strips scripts, event handlers, and
+// javascript: URLs — matching the DOMPurify behaviour this replaced.
+const SAFE_HTML_OPTIONS: SetHTMLOptions = { sanitizer: { removeAttributes: [] } };
+
 function setSanitizedContent(elm: Element, str: string): void {
-  elm.setHTML(str);
+  elm.setHTML(str, SAFE_HTML_OPTIONS);
 }
 
 function createElementWithContent(
@@ -1194,6 +1201,7 @@ export {
   tryDecodeURI,
   tryDecodeURIComponent,
   scrollIntoViewIfNeeded,
+  SAFE_HTML_OPTIONS,
   setSanitizedContent,
   show,
   showBanner,

@@ -15,7 +15,14 @@ declare global {
      * non-sanitizing `setHTMLUnsafe`, so the safe variant we rely on to replace DOMPurify is
      * declared here until the lib catches up.
      */
-    setHTML(html: string): void;
+    setHTML(html: string, options?: SetHTMLOptions): void;
+  }
+  /**
+   * Minimal options bag for {@link Element.setHTML}. Only the `sanitizer` config we pass is
+   * declared; the full Sanitizer API surface is omitted until lib.dom.d.ts ships it.
+   */
+  interface SetHTMLOptions {
+    sanitizer?: { removeAttributes?: string[] };
   }
   interface Event {
     sk_keyName?: string;
