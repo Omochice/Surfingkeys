@@ -528,9 +528,6 @@ function start(browser: BrowserAdapter): void {
   if (containerHandler) {
     handlers["getContainerName"] = containerHandler;
   }
-  chrome.runtime.setUninstallURL(
-    "http://brookhong.github.io/2018/01/30/why-did-you-uninstall-surfingkeys.html",
-  );
 }
 
 export { start };

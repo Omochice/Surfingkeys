@@ -387,7 +387,6 @@ function bootWith(namespaces: Record<string, any>): MessageHandler {
             addListener: (fn: MessageHandler) => (dispatch = fn),
             removeListener: () => {},
           },
-          setUninstallURL: () => {},
         };
       }
       if (typeof prop === "string" && prop in namespaces) {
