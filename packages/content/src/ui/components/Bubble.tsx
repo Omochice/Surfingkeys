@@ -1,5 +1,6 @@
-import DOMPurify from "dompurify";
 import type { Component } from "solid-js";
+
+import { setSafeHtml } from "../setSafeHtml";
 
 export type BubbleProps = {
   /** Raw HTML shown in the bubble; sanitized at injection. */
@@ -13,5 +14,5 @@ export type BubbleProps = {
  * controller.
  */
 export const Bubble: Component<BubbleProps> = (props) => {
-  return <div innerHTML={DOMPurify.sanitize(props.html)} />;
+  return <div ref={(el) => setSafeHtml(el, () => props.html)} />;
 };

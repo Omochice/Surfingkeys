@@ -1,5 +1,6 @@
-import DOMPurify from "dompurify";
 import type { Component } from "solid-js";
+
+import { setSafeHtml } from "../setSafeHtml";
 
 export type PopupProps = {
   /** Raw HTML content shown in the popup; sanitized at the injection point. */
@@ -14,5 +15,5 @@ export type PopupProps = {
  * rendered nodes after the synchronous render, exactly as before.
  */
 export const Popup: Component<PopupProps> = (props) => {
-  return <div innerHTML={DOMPurify.sanitize(props.html)} />;
+  return <div ref={(el) => setSafeHtml(el, () => props.html)} />;
 };

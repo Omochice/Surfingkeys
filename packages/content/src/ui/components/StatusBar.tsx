@@ -1,6 +1,7 @@
-import DOMPurify from "dompurify";
 import { Index, Show } from "solid-js";
 import type { Component } from "solid-js";
+
+import { setSafeHtml } from "../setSafeHtml";
 
 /**
  * A single status cell. A plain string is rendered as a text node (the mode name and the search
@@ -29,8 +30,8 @@ const textCell = (cell: StatusCell): string => (typeof cell === "string" ? cell 
  * `showStatus` DOM updates in the legacy frontend.
  *
  * Text cells render as text nodes; only the search cell carries markup (the find `<input>`), so it
- * is the sole cell run through DOMPurify. Keeping plain text out of `innerHTML` removes it from the
- * sanitization path entirely rather than relying on DOMPurify to pass it through unchanged.
+ * is the sole cell that is sanitized. Keeping plain text out of `innerHTML` removes it from the
+ * sanitization path entirely rather than relying on the sanitizer to pass it through unchanged.
  * Non-empty cells get padding and a divider; the divider is dropped on the last non-empty cell so
  * the bar has no trailing separator.
  */
@@ -62,7 +63,7 @@ export const StatusBar: Component<StatusBarProps> = (props) => {
             when={htmlCell(cell())}
             fallback={textCell(cell())}
           >
-            {(html) => <span innerHTML={DOMPurify.sanitize(html().html)} />}
+            {(html) => <span ref={(el) => setSafeHtml(el, () => html().html)} />}
           </Show>
         </span>
       )}

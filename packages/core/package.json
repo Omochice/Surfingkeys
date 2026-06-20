@@ -20,7 +20,6 @@
   "dependencies": {
     "@praha/byethrow": "catalog:",
     "@sk/common": "workspace:*",
-    "dompurify": "catalog:",
     "valibot": "catalog:"
   },
   "devDependencies": {

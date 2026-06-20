@@ -23,7 +23,6 @@
     "@sk/common": "workspace:*",
     "@sk/core": "workspace:*",
     "@sk/messaging": "workspace:*",
-    "dompurify": "catalog:",
     "solid-js": "catalog:",
     "valibot": "catalog:"
   },

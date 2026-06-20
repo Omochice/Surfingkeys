@@ -1,6 +1,7 @@
-import DOMPurify from "dompurify";
 import { For } from "solid-js";
 import type { Component } from "solid-js";
+
+import { setSafeHtml } from "../setSafeHtml";
 
 export type UsageProps = {
   /**
@@ -22,7 +23,7 @@ export type UsageProps = {
 export const Usage: Component<UsageProps> = (props) => {
   return (
     <>
-      <For each={props.groups}>{(group) => <div innerHTML={DOMPurify.sanitize(group)} />}</For>
+      <For each={props.groups}>{(group) => <div ref={(el) => setSafeHtml(el, () => group)} />}</For>
       <p style={{ float: "right", width: "100%", "text-align": "right" }}>
         <a
           href="https://github.com/brookhong/surfingkeys"

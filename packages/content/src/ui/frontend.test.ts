@@ -220,8 +220,8 @@ describe("actions['applyUserSettings']", () => {
   it("applies a theme string to the #sk_theme style element", () => {
     const themeEl = document.getElementById("sk_theme")!;
     Front.actions["applyUserSettings"]({ userSettings: { theme: "body { color: red; }" } });
-    // setSanitizedContent uses DOMPurify; in jsdom the sanitized output is
-    // assigned to innerHTML, so we can observe the element's text content.
+    // setSanitizedContent uses Element.setHTML; the jsdom test shim assigns the
+    // markup to innerHTML, so we can observe the element's text content.
     expect(themeEl.textContent).toContain("color");
   });
 });

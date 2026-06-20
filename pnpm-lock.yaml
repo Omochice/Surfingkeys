@@ -478,9 +478,6 @@ importers:
       '@sk/messaging':
         specifier: workspace:*
         version: link:../messaging
-      dompurify:
-        specifier: 'catalog:'
-        version: 3.4.10
       solid-js:
         specifier: 'catalog:'
         version: 1.9.13
@@ -536,9 +533,6 @@ importers:
       '@sk/common':
         specifier: workspace:*
         version: link:../common
-      dompurify:
-        specifier: 'catalog:'
-        version: 3.4.10
       valibot:
         specifier: 'catalog:'
         version: 1.4.1(typescript@6.0.3)
@@ -619,10 +613,16 @@ importers:
 
   packages/test-support:
     dependencies:
+      dompurify:
+        specifier: 'catalog:'
+        version: 3.4.10
       vitest:
         specifier: 'catalog:'
         version: 4.1.9(@types/node@25.9.3)(@vitest/coverage-v8@4.1.9)(jsdom@29.1.1)(vite@8.0.16(@types/node@25.9.3)(esbuild@0.27.7)(jiti@2.7.0)(yaml@2.9.0))
     devDependencies:
+      '@sk/types':
+        specifier: workspace:*
+        version: link:../types
       npm-run-all2:
         specifier: 'catalog:'
         version: 9.0.2
