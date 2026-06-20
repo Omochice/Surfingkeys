@@ -24,8 +24,6 @@ jobs:
           node-version: 24.17.0
           cache: pnpm
       - run: pnpm ci
-      # The coverage run includes the browser-mode project (vitest.browser.config.ts), so the
-      # Playwright browsers must be installed before it runs.
       - run: pnpm --filter @sk/content exec playwright install --with-deps chromium firefox
       - name: Run tests with coverage
         run: pnpm run coverage
