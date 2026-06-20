@@ -348,13 +348,7 @@ div.sk_tab {
   justify-items: center;
   border-radius: 3px;
   margin: 1px;
-  background: -webkit-gradient(
-    linear,
-    left top,
-    left bottom,
-    color-stop(0%, #dae6f5),
-    color-stop(100%, #b0ccef)
-  );
+  background: linear-gradient(#dae6f5, #b0ccef);
   box-shadow: 0px 3px 7px 0px rgba(245, 245, 0, 0.3);
   padding-top: 2px;
   border-top: solid 1px black;
@@ -394,13 +388,7 @@ div.sk_tab_hint {
   font-weight: bold;
   padding: 0px 2px 0px 2px;
   margin: 6px;
-  background: -webkit-gradient(
-    linear,
-    left top,
-    left bottom,
-    color-stop(0%, #fff785),
-    color-stop(100%, #ffc542)
-  );
+  background: linear-gradient(#fff785, #ffc542);
   color: #000;
   border: solid 1px #c38a22;
   border-radius: 3px;

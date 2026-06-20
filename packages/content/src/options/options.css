@@ -30,13 +30,7 @@ textarea {
   cursor: pointer;
   padding: 0px 2px;
   text-decoration: underline;
-  background: -webkit-gradient(
-    linear,
-    left top,
-    left bottom,
-    color-stop(0%, #fff785),
-    color-stop(100%, #ffc542)
-  );
+  background: linear-gradient(#fff785, #ffc542);
   border: solid 1px #c38a22;
   border-radius: 2px;
 }
@@ -135,13 +129,7 @@ div.pressedKey {
   cursor: pointer;
 }
 span.highlight {
-  background: -webkit-gradient(
-    linear,
-    left top,
-    left bottom,
-    color-stop(0%, #fff785),
-    color-stop(100%, #ffc542)
-  );
+  background: linear-gradient(#fff785, #ffc542);
 }
 #localPath {
   width: 520px;
