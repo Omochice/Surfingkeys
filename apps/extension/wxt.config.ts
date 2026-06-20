@@ -92,10 +92,10 @@ export default defineConfig({
           filename: "content.css",
           code: await readFile(cssPath),
           minify: true,
-          // No targets are passed here, so flatten nesting explicitly to match
-          // the Vite-bundled stylesheets rather than emitting native nesting.
+          // content.css only uses nesting (no @custom-media). No targets are
+          // passed here, so flatten nesting explicitly to match the
+          // Vite-bundled stylesheets rather than emitting native nesting.
           include: Features.Nesting,
-          drafts: { customMedia: true },
         });
         await writeFile(cssPath, code);
       }
