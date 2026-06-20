@@ -30,6 +30,16 @@ describe("Element.setHTML attribute preservation in a real browser", () => {
     expect(el.querySelector("a")?.getAttribute("href")).toBeNull();
   });
 
+  it("keeps style attributes intentionally, matching DOMPurify and the UI that depends on them", () => {
+    // The native sanitizer is stricter than DOMPurify, but DOMPurify (the predecessor) also kept
+    // style by default, and internal markup relies on it (favicon backgrounds, the omnibar search
+    // icon's width, opacity hints). removeAttributes:[] preserves it deliberately; assert on a
+    // substring since the browser normalises the style value.
+    const el = document.createElement("div");
+    el.setHTML('<span style="width: 20px;">x</span>', SAFE_HTML_OPTIONS);
+    expect(el.querySelector("span")?.getAttribute("style")).toContain("20px");
+  });
+
   it("preserves attributes through setSanitizedContent (the shared helper)", () => {
     const el = document.createElement("div");
     setSanitizedContent(el, '<div class="remove"><input type="checkbox" /></div>');
