@@ -1,5 +1,7 @@
+import { readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
 
+import { Features, transform as transformCss } from "lightningcss";
 import { visualizer } from "rollup-plugin-visualizer";
 import { build as viteBuild } from "vite";
 import { defineConfig } from "wxt";
@@ -35,6 +37,17 @@ export default defineConfig({
   targetBrowsers: ["chrome", "firefox"],
   modules: ["@wxt-dev/module-solid"],
   vite: () => ({
+    // Minifies more aggressively than the esbuild default, and resolves the
+    // nesting / @custom-media used by the stylesheets.
+    css: {
+      transformer: "lightningcss",
+      lightningcss: {
+        drafts: { customMedia: true },
+      },
+    },
+    build: {
+      cssMinify: "lightningcss",
+    },
     plugins: [
       visualizer({
         filename: "dist/bundle-stats.html",
@@ -68,11 +81,32 @@ export default defineConfig({
     // Vite (which resolves the codebase's .js specifiers to .ts) into the
     // build root as a single ESM file, after WXT has emitted its output.
     "build:done": async (wxt) => {
+      // content.css is served verbatim from public/ (linked as /content.css by
+      // the HTML pages and injected as the content-script stylesheet), so it
+      // bypasses Vite's CSS pipeline. Run Lightning CSS over the emitted copy in
+      // production builds so it ships minified like the bundled stylesheets.
+      if (wxt.config.mode === "production") {
+        const cssPath = path.resolve(wxt.config.outDir, "content.css");
+        const { code } = transformCss({
+          filename: "content.css",
+          code: await readFile(cssPath),
+          minify: true,
+          // content.css only uses nesting (no @custom-media). No targets are
+          // passed here, so flatten nesting explicitly to match the
+          // Vite-bundled stylesheets rather than emitting native nesting.
+          include: Features.Nesting,
+        });
+        await writeFile(cssPath, code);
+      }
       if (wxt.config.browser !== "chrome") return;
       await viteBuild({
         configFile: false,
         logLevel: "warn",
         mode: wxt.config.mode,
+        // This lib build only emits api.js; without disabling publicDir Vite
+        // re-copies public/ into outDir and clobbers the minified content.css
+        // written above.
+        publicDir: false,
         build: {
           outDir: wxt.config.outDir,
           emptyOutDir: false,

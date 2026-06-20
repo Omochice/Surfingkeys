@@ -1,6 +1,13 @@
+@custom-media --narrow-viewport only screen and (max-width: 767px);
+
 body {
   margin: 5% 10%;
   width: 80%;
+
+  @media (--narrow-viewport) {
+    margin: 0px 8px;
+    width: initial;
+  }
 }
 #mappings_container {
   font-size: 0;
@@ -13,10 +20,11 @@ textarea {
 }
 #save_container {
   float: right;
-}
-#save_container > a {
-  padding-right: 8px;
-  border-right: 1px solid #000;
+
+  > a {
+    padding-right: 8px;
+    border-right: 1px solid #000;
+  }
 }
 .infoPointer {
   cursor: pointer;
@@ -48,9 +56,10 @@ div.aphost {
   display: inline-block;
   width: 200px;
   color: blue;
-}
-div.aphost > span.remove {
-  cursor: pointer;
+
+  > span.remove {
+    cursor: pointer;
+  }
 }
 
 #searchAliases > div,
@@ -59,15 +68,18 @@ div.aphost > span.remove {
   padding: 1px 20px;
   border-left: 1px solid #ccc;
 }
-#searchAliases div.remove {
-  cursor: pointer;
-  display: inline-block;
-  vertical-align: middle;
-  height: 32px;
-  padding-right: 10px;
-}
-#searchAliases span.prompt {
-  font-size: 24px;
+#searchAliases {
+  div.remove {
+    cursor: pointer;
+    display: inline-block;
+    vertical-align: middle;
+    height: 32px;
+    padding-right: 10px;
+  }
+
+  span.prompt {
+    font-size: 24px;
+  }
 }
 
 span.annotation {
@@ -99,10 +111,11 @@ kbd {
 div.pressedKey {
   text-align: center;
   padding: 50px;
-}
-div.pressedKey kbd {
-  font-size: 24pt;
-  padding: 16px;
+
+  kbd {
+    font-size: 24pt;
+    padding: 16px;
+  }
 }
 #keyPicker {
   overflow: auto;
@@ -132,13 +145,8 @@ span.highlight {
 }
 #localPath {
   width: 520px;
-}
-@media only screen and (max-width: 767px) {
-  body {
-    margin: 0px 8px;
-    width: initial;
-  }
-  #localPath {
+
+  @media (--narrow-viewport) {
     width: initial;
   }
 }

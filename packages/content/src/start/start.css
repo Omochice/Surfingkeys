@@ -18,22 +18,37 @@
 #back {
   font-size: 20pt;
 }
-#sk_usage > div {
-  display: inline-block;
-  vertical-align: top;
-}
-#sk_usage .kbd-span {
-  width: 80px;
-  text-align: right;
-  display: inline-block;
-}
-#sk_usage .feature_name {
-  text-align: center;
-  font-weight: bold;
-  padding-bottom: 4px;
-}
-#sk_usage .feature_name > span {
-  border-bottom: 2px solid #888;
+#sk_usage {
+  > div {
+    display: inline-block;
+    vertical-align: top;
+  }
+
+  .kbd-span {
+    width: 80px;
+    text-align: right;
+    display: inline-block;
+  }
+
+  .feature_name {
+    text-align: center;
+    font-weight: bold;
+    padding-bottom: 4px;
+
+    > span {
+      border-bottom: 2px solid #888;
+    }
+  }
+
+  kbd {
+    font:
+      11px Consolas,
+      "Liberation Mono",
+      Menlo,
+      Courier,
+      monospace;
+    line-height: 10px;
+  }
 }
 span.annotation {
   padding-left: 32px;
@@ -48,16 +63,6 @@ kbd {
   border-bottom-color: #bbb;
   border-radius: 3px;
   box-shadow: inset 0 -1px 0 #bbb;
-}
-
-#sk_usage kbd {
-  font:
-    11px Consolas,
-    "Liberation Mono",
-    Menlo,
-    Courier,
-    monospace;
-  line-height: 10px;
 }
 
 @keyframes fadeOut {
@@ -92,8 +97,8 @@ kbd {
   padding: 40px;
   font-size: 24pt;
   text-align: center;
-}
 
-#randomTip span.annotation {
-  padding-left: 32px;
+  span.annotation {
+    padding-left: 32px;
+  }
 }
