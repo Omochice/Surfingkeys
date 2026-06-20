@@ -125,19 +125,20 @@ export default defineConfig({
     if (browser === "firefox") {
       permissions.push("cookies", "contextualIdentities");
       // The sanitizing Element.setHTML (used in place of DOMPurify) ships in
-      // Firefox 139, the binding floor — already past the Firefox 115 that first
+      // Firefox 148, the binding floor — already past the Firefox 115 that first
       // shipped the ES2023 array methods we also use directly (esbuild neither
       // polyfills nor down-levels built-in methods). defu deep-merges this into
       // WXT's base manifest, preserving any gecko fields WXT adds.
-      manifest.browser_specific_settings = { gecko: { strict_min_version: "139.0" } };
+      manifest.browser_specific_settings = { gecko: { strict_min_version: "148.0" } };
     } else {
       permissions.push("downloads.shelf", "favicon", "userScripts");
       webResources.push("_favicon/*", "api.js");
       manifest.incognito = "split";
       // The Chrome counterpart of the Firefox floor above: the sanitizing
-      // Element.setHTML ships in Chrome 133, past the Chrome 110 release that
-      // first shipped the non-mutating array methods also in use.
-      manifest.minimum_chrome_version = "133";
+      // Element.setHTML ships in Chrome 146 (Chrome 105-118 shipped an earlier,
+      // incompatible spec), past the Chrome 110 release that first shipped the
+      // non-mutating array methods also in use.
+      manifest.minimum_chrome_version = "146";
       if (mode === "development") {
         manifest.key = devKey;
       }
