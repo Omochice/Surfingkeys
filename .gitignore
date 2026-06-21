@@ -4,7 +4,6 @@ dist/
 .pnpm-store/
 coverage/
 custom_metrics_bundle_size.json
-# Extension icons are rasterized from sk.svg at build time (see apps/extension/scripts/generate-icons.ts)
 apps/extension/public/icons/*.png
 .DS_Store
 .vscode/
