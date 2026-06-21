@@ -49,9 +49,13 @@ const mtime = (file: string): Promise<number> =>
   );
 
 // Skip regeneration unless the source art or this script is newer than every
-// output, so dev-mode rebuilds don't re-rasterize on every reload.
+// output, so dev-mode rebuilds don't re-rasterize on every reload. The sources
+// are stat'd directly (not via the error-swallowing mtime) so a missing sk.svg
+// fails the build instead of silently keeping stale icons.
 const upToDate = async (targets: string[]): Promise<boolean> => {
-  const newest = Math.max(await mtime(svgPath), await mtime(fileURLToPath(import.meta.url)));
+  const sources = [svgPath, fileURLToPath(import.meta.url)];
+  const sourceTimes = await Promise.all(sources.map((f) => stat(f).then((s) => s.mtimeMs)));
+  const newest = Math.max(...sourceTimes);
   const times = await Promise.all(targets.map(mtime));
   return times.every((t) => t >= newest);
 };
