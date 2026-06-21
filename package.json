@@ -14,7 +14,7 @@
   "author": "Omochice",
   "type": "module",
   "scripts": {
-    "build": "pnpm --filter @sk/extension build:prod",
+    "build": "pnpm build:prod",
     "build:dev": "pnpm --filter @sk/extension build:dev",
     "build:dev:firefox": "pnpm --filter @sk/extension build:dev:firefox",
     "build:prod": "pnpm --filter @sk/extension build:prod",
