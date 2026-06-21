@@ -31,7 +31,7 @@ const reframe = (svg: string): string =>
     return `viewBox="${-padX} ${-padY} ${width * frameScale} ${height * frameScale}"`;
   });
 
-const render = (svg: string, size: number): sharp.Sharp =>
+const render = (svg: string, size: number): ReturnType<typeof sharp> =>
   sharp(Buffer.from(reframe(svg))).resize(size, size, {
     fit: "contain",
     background: { r: 0, g: 0, b: 0, alpha: 0 },
@@ -56,8 +56,10 @@ const upToDate = async (targets: string[]): Promise<boolean> => {
   return times.every((t) => t >= newest);
 };
 
+const normalPath = (size: number): string => path.join(outDir, `${size}.png`);
+
 export const generateIcons = async (): Promise<boolean> => {
-  const normal = normalSizes.map((size) => path.join(outDir, `${size}.png`));
+  const normal = normalSizes.map(normalPath);
   const disabled = path.join(outDir, `${variantSize}-x.png`);
   const lurking = path.join(outDir, `${variantSize}-l.png`);
 
@@ -66,7 +68,7 @@ export const generateIcons = async (): Promise<boolean> => {
   const svg = await readFile(svgPath, "utf8");
   await mkdir(outDir, { recursive: true });
 
-  await Promise.all(normalSizes.map((size, i) => render(svg, size).png().toFile(normal[i])));
+  await Promise.all(normalSizes.map((size) => render(svg, size).png().toFile(normalPath(size))));
 
   await render(svg, variantSize).grayscale().png().toFile(disabled);
 
