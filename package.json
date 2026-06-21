@@ -14,7 +14,7 @@
   "author": "Omochice",
   "type": "module",
   "scripts": {
-    "build": "npm-run-all2 clean build:prod",
+    "build": "pnpm --filter @sk/extension build:prod",
     "build:dev": "pnpm --filter @sk/extension build:dev",
     "build:dev:firefox": "pnpm --filter @sk/extension build:dev:firefox",
     "build:prod": "pnpm --filter @sk/extension build:prod",
@@ -27,7 +27,6 @@
     "check:package": "sort-package-json --check",
     "check:typos": "typos",
     "check:workspaces": "pnpm -r run check",
-    "clean": "rimraf apps/extension/dist",
     "coverage": "vitest run --coverage",
     "dev": "pnpm --filter @sk/extension dev",
     "dev:firefox": "pnpm --filter @sk/extension dev:firefox",
@@ -50,7 +49,6 @@
     "npm-run-all2": "catalog:",
     "oxfmt": "catalog:",
     "oxlint": "catalog:",
-    "rimraf": "6.1.3",
     "sort-package-json": "catalog:",
     "vitest": "catalog:"
   },
