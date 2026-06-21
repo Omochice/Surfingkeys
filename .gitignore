@@ -4,6 +4,7 @@ dist/
 .pnpm-store/
 coverage/
 custom_metrics_bundle_size.json
+apps/extension/public/icons/*.png
 .DS_Store
 .vscode/
 jsconfig.json
