@@ -32,9 +32,12 @@ export default defineConfig({
   // The source tree predates WXT; entrypoints/ and public/ live at the root and
   // re-export the existing src/ modules rather than moving them.
   outDir: "dist",
-  // The codebase uses explicit imports throughout; WXT auto-imports would only
-  // add hidden globals.
-  imports: { disabled: true, exclude: [/packages\//] },
+  // The unimport build plugin WXT forwards `imports` to must not rewrite
+  // workspace-package files, or `wxt/browser` fails to resolve from packages/
+  // (and `imports: false` also drops that generated module). `exclude` is a
+  // valid plugin option that WXT omits from its public WxtUnimportOptions type.
+  // @ts-expect-error -- exclude is honored at runtime but missing from WXT's type
+  imports: { exclude: [/packages\//] },
   manifestVersion: 3,
   targetBrowsers: ["chrome", "firefox"],
   modules: ["@wxt-dev/module-solid"],
@@ -168,18 +171,18 @@ export default defineConfig({
       // shipped the ES2023 array methods we also use directly (esbuild neither
       // polyfills nor down-levels built-in methods). defu deep-merges this into
       // WXT's base manifest, preserving any gecko fields WXT adds.
-      manifest.browser_specific_settings = { gecko: { strict_min_version: "148.0" } };
+      manifest["browser_specific_settings"] = { gecko: { strict_min_version: "148.0" } };
     } else {
       permissions.push("downloads.shelf", "favicon", "userScripts");
       webResources.push("_favicon/*", "api.js");
-      manifest.incognito = "split";
+      manifest["incognito"] = "split";
       // The Chrome counterpart of the Firefox floor above: the sanitizing
       // Element.setHTML ships in Chrome 146 (Chrome 105-118 shipped an earlier,
       // incompatible spec), past the Chrome 110 release that first shipped the
       // non-mutating array methods also in use.
-      manifest.minimum_chrome_version = "146";
+      manifest["minimum_chrome_version"] = "146";
       if (mode === "development") {
-        manifest.key = devKey;
+        manifest["key"] = devKey;
       }
     }
 
