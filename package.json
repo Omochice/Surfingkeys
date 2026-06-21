@@ -14,7 +14,6 @@
   "author": "Omochice",
   "type": "module",
   "scripts": {
-    "all": "npm-run-all2 --parallel --aggregate-output check test",
     "build": "pnpm build:prod",
     "build:dev": "pnpm --filter @sk/extension build:dev",
     "build:dev:firefox": "pnpm --filter @sk/extension build:dev:firefox",
