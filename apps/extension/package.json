@@ -12,7 +12,7 @@
     "check:oxfmt": "oxfmt --check",
     "check:oxlint": "oxlint",
     "check:package": "sort-package-json --check",
-    "check:type": "tsc --noEmit -p tsconfig.json",
+    "check:type": "tsc --noEmit -p tsconfig.browser.json",
     "check:type-node": "tsc --noEmit -p tsconfig.node.json",
     "dev": "wxt",
     "dev:firefox": "wxt -b firefox",
