@@ -60,8 +60,7 @@ export default defineConfig({
     ],
   }),
   hooks: {
-    // The PNG icon set is rasterized from sk.svg on demand rather than checked
-    // in, so generate it before WXT copies public/ into the output.
+    // Rasterize the PNG icons from sk.svg before WXT copies public/ to output.
     "build:before": async () => {
       await generateIcons();
     },

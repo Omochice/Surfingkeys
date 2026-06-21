@@ -1,8 +1,5 @@
-// Rasterize the master sk.svg logo into the extension's PNG icon set at build
-// time, so the binary PNGs are derived from a single committed source instead
-// of being checked in. The toolbar status icons are colour transforms of the
-// same artwork (not separate drawings), so deriving them here keeps sk.svg the
-// only thing to maintain.
+// Rasterize sk.svg into the extension's PNG icons at build time so they stay
+// derived from a single committed source instead of being checked in.
 import { mkdir, readFile, stat } from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -14,21 +11,18 @@ const repoRoot = path.resolve(scriptDir, "../../..");
 const svgPath = path.join(repoRoot, "sk.svg");
 const outDir = path.resolve(scriptDir, "../public/icons");
 
-// Manifest/toolbar sizes for the default icon, plus the 48px size that
-// chrome.action.setIcon swaps in for the status variants.
 const normalSizes = [16, 48, 128];
+// chrome.action.setIcon swaps the status variants at this size.
 const variantSize = 48;
 
-// gradient-1 paints the surfer and gradient-3 the front wave; gradient-0 and
-// gradient-2 paint the receding back swooshes. The lurking state greys the back
-// swooshes while keeping the surfer and front wave coloured, so the whole icon
-// is greyed and just those two foreground shapes are composited back on top.
+// gradient-1 is the surfer and gradient-3 the front wave; gradient-0/2 are the
+// back swooshes. Lurking keeps these two foreground shapes coloured over an
+// otherwise greyed icon.
 const lurkingForeground = ["#gradient-1", "#gradient-3"];
 
-// sk.svg's artwork nearly fills its viewBox, but the toolbar icons leave a
-// margin (~12% per side). Expand the viewBox symmetrically before rasterizing so
-// the rendered logo keeps that established framing. Applied to both the full and
-// foreground SVGs so the lurking overlay stays aligned with its grey base.
+// Expand the viewBox to restore the ~12% margin the previous icons framed with.
+// Applied to both the full and foreground SVGs to keep the lurking overlay
+// aligned with its grey base.
 const frameScale = 1.13;
 const reframe = (svg: string): string =>
   svg.replace(/viewBox="0 0 (\d+(?:\.\d+)?) (\d+(?:\.\d+)?)"/, (_, w: string, h: string) => {
@@ -45,9 +39,6 @@ const render = (svg: string, size: number): sharp.Sharp =>
     background: { r: 0, g: 0, b: 0, alpha: 0 },
   });
 
-// Keep only the shapes painted with the given gradients (preserving their
-// document order, hence their draw order), yielding a transparent overlay of
-// just the foreground; the back swooshes and the stray dot ellipse drop out.
 const keepGradients = (svg: string, gradients: string[]): string =>
   svg.replaceAll(/<(?:path|ellipse)\b[^>]*?\/>/g, (el) =>
     gradients.some((g) => el.includes(g)) ? el : "",
@@ -59,8 +50,8 @@ const mtime = (file: string): Promise<number> =>
     () => -1,
   );
 
-// Skip regeneration when every target is at least as new as both the source art
-// and this script, so dev-mode rebuilds don't re-rasterize on every reload.
+// Skip regeneration unless the source art or this script is newer than every
+// output, so dev-mode rebuilds don't re-rasterize on every reload.
 const upToDate = async (targets: string[]): Promise<boolean> => {
   const newest = Math.max(await mtime(svgPath), await mtime(fileURLToPath(import.meta.url)));
   const times = await Promise.all(targets.map(mtime));
