@@ -5,9 +5,9 @@ import { fileURLToPath } from "node:url";
 import sharp from "sharp";
 
 const scriptDir = path.dirname(fileURLToPath(import.meta.url));
-const repoRoot = path.resolve(scriptDir, "../../..");
+const repoRoot = path.resolve(scriptDir, "../..");
 const svgPath = path.join(repoRoot, "sk.svg");
-const outDir = path.resolve(scriptDir, "../public/icons");
+const outDir = path.resolve(scriptDir, "public/icons");
 
 const normalSizes = [16, 48, 128];
 // chrome.action.setIcon swaps the status variants at this size.

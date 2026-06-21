@@ -6,7 +6,7 @@ import { visualizer } from "rollup-plugin-visualizer";
 import { build as viteBuild } from "vite";
 import { defineConfig } from "wxt";
 
-import { generateIcons } from "./scripts/generate-icons.js";
+import { generateIcons } from "./generate-icons.js";
 
 // Permissions shared by both browsers (the base manifest's `permissions`).
 const basePermissions = [

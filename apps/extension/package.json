@@ -13,7 +13,7 @@
     "check:oxlint": "oxlint",
     "check:package": "sort-package-json --check",
     "check:type": "tsc --noEmit -p tsconfig.json",
-    "check:type-scripts": "tsc --noEmit -p tsconfig.node.json",
+    "check:type-node": "tsc --noEmit -p tsconfig.node.json",
     "dev": "wxt",
     "dev:firefox": "wxt -b firefox",
     "fmt": "npm-run-all2 fmt:*",
