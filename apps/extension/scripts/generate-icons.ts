@@ -1,4 +1,4 @@
-import { mkdir, readFile, stat } from "node:fs/promises";
+import { mkdir, readFile, stat, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -70,9 +70,9 @@ export const generateIcons = async (): Promise<boolean> => {
 
   await Promise.all(normalSizes.map((size) => render(svg, size).png().toFile(normalPath(size))));
 
-  await render(svg, variantSize).grayscale().png().toFile(disabled);
-
   const grey = await render(svg, variantSize).grayscale().png().toBuffer();
+  await writeFile(disabled, grey);
+
   const foreground = await render(keepGradients(svg, lurkingForeground), variantSize)
     .png()
     .toBuffer();
