@@ -6,6 +6,8 @@ import { visualizer } from "rollup-plugin-visualizer";
 import { build as viteBuild } from "vite";
 import { defineConfig } from "wxt";
 
+import { generateIcons } from "./scripts/generate-icons.js";
+
 // Permissions shared by both browsers (the base manifest's `permissions`).
 const basePermissions = [
   "nativeMessaging",
@@ -58,6 +60,11 @@ export default defineConfig({
     ],
   }),
   hooks: {
+    // The PNG icon set is rasterized from sk.svg on demand rather than checked
+    // in, so generate it before WXT copies public/ into the output.
+    "build:before": async () => {
+      await generateIcons();
+    },
     // content.css ships as a single shared stylesheet (public/content.css,
     // copied to the root), injected by the content script and referenced by
     // the frontend iframe — mirror the old webpack manifest's css entry.
