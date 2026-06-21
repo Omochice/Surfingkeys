@@ -7,12 +7,12 @@
     "./*": "./src/*.ts"
   },
   "scripts": {
-    "check": "npm-run-all2 check:*",
+    "check": "npm-run-all2 --parallel --aggregate-output check:*",
     "check:oxfmt": "oxfmt --check",
     "check:oxlint": "oxlint",
     "check:package": "sort-package-json --check",
     "check:type": "tsc --noEmit -p tsconfig.json",
-    "fmt": "npm-run-all2 fmt:*",
+    "fmt": "npm-run-all2 --parallel --aggregate-output fmt:*",
     "fmt:oxfmt": "oxfmt",
     "fmt:package": "sort-package-json",
     "test": "vitest run",
