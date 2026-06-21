@@ -22,14 +22,28 @@ const lurkingForeground = ["#gradient-1", "#gradient-3"];
 // Applied to both the full and foreground SVGs to keep the lurking overlay
 // aligned with its grey base.
 const frameScale = 1.13;
-const reframe = (svg: string): string =>
-  svg.replace(/viewBox="0 0 (\d+(?:\.\d+)?) (\d+(?:\.\d+)?)"/, (_, w: string, h: string) => {
-    const width = Number(w);
-    const height = Number(h);
-    const padX = (width * (frameScale - 1)) / 2;
-    const padY = (height * (frameScale - 1)) / 2;
-    return `viewBox="${-padX} ${-padY} ${width * frameScale} ${height * frameScale}"`;
-  });
+const reframe = (svg: string): string => {
+  let matched = false;
+  const reframed = svg.replace(
+    /viewBox="(-?\d+(?:\.\d+)?) (-?\d+(?:\.\d+)?) (\d+(?:\.\d+)?) (\d+(?:\.\d+)?)"/,
+    (_, x: string, y: string, w: string, h: string) => {
+      matched = true;
+      const minX = Number(x);
+      const minY = Number(y);
+      const width = Number(w);
+      const height = Number(h);
+      const padX = (width * (frameScale - 1)) / 2;
+      const padY = (height * (frameScale - 1)) / 2;
+      return `viewBox="${minX - padX} ${minY - padY} ${width * frameScale} ${height * frameScale}"`;
+    },
+  );
+  // Fail loudly rather than silently shipping unframed icons if sk.svg's
+  // viewBox ever stops matching the expected shape.
+  if (!matched) {
+    throw new Error("sk.svg has no recognizable viewBox; cannot reframe icons.");
+  }
+  return reframed;
+};
 
 const render = (svg: string, size: number): ReturnType<typeof sharp> =>
   sharp(Buffer.from(reframe(svg))).resize(size, size, {
