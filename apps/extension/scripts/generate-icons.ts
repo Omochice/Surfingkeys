@@ -1,5 +1,3 @@
-// Rasterize sk.svg into the extension's PNG icons at build time so they stay
-// derived from a single committed source instead of being checked in.
 import { mkdir, readFile, stat } from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
