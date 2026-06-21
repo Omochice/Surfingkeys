@@ -51,8 +51,11 @@ const render = (svg: string, size: number): ReturnType<typeof sharp> =>
     background: { r: 0, g: 0, b: 0, alpha: 0 },
   });
 
+// Match both self-closing (`<path .../>`) and explicit (`<path ...></path>`)
+// elements so an SVG reformatter (e.g. SVGO) can't silently slip background
+// shapes past the filter and corrupt the lurking icon.
 const keepGradients = (svg: string, gradients: string[]): string =>
-  svg.replaceAll(/<(?:path|ellipse)\b[^>]*?\/>/g, (el) =>
+  svg.replaceAll(/<(path|ellipse)\b[^>]*?(?:\/>|>[\s\S]*?<\/\1>)/g, (el) =>
     gradients.some((g) => el.includes(g)) ? el : "",
   );
 
