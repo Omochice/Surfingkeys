@@ -3,8 +3,10 @@
   "compilerOptions": {
     "types": ["chrome", "firefox-webext-browser", "@sk/types"],
     "jsx": "preserve",
-    "jsxImportSource": "solid-js"
+    "jsxImportSource": "solid-js",
+    "tsBuildInfoFile": "node_modules/.cache/tsc/app.tsbuildinfo"
   },
   "include": ["src"],
-  "exclude": ["src/**/*.test.ts", "src/**/*.test.tsx"]
+  "exclude": ["src/**/*.test.ts", "src/**/*.test.tsx"],
+  "references": [{ "path": "./tsconfig.node.json" }]
 }
