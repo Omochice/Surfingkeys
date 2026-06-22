@@ -63,14 +63,14 @@ const listenedEvents: Record<string, (event: StackEvent) => void> = {
       return;
     }
     if (!settingsReady) {
-      bufferedKeyEvents.push({ name: "keydown", event });
+      bufferKeyEvent("keydown", event);
       return;
     }
     handleStack("keydown", event);
   },
   keyup: (event) => {
     if (!settingsReady) {
-      bufferedKeyEvents.push({ name: "keyup", event });
+      bufferKeyEvent("keyup", event);
       return;
     }
     handleStack("keyup", event, () => {
@@ -115,6 +115,13 @@ function handleStack(eventName: string, event: StackEvent, cb?: (mode: ModeHandl
     }
     cb?.(m);
   }
+}
+
+function bufferKeyEvent(name: string, event: StackEvent): void {
+  // Stop the browser from acting on the key while it is held; it is replayed on release.
+  event.preventDefault();
+  event.stopImmediatePropagation();
+  bufferedKeyEvents.push({ name, event });
 }
 
 /**
