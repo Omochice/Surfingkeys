@@ -403,6 +403,20 @@ describe("key buffering before user settings are applied", () => {
     }
   });
 
+  it("prevents default and stops propagation for buffered keys", () => {
+    initModeHub(makeTestEnv());
+    beginBufferingKeyEvents();
+
+    const event = new Event("keydown", { cancelable: true });
+    const preventDefault = vi.spyOn(event, "preventDefault");
+    const stopImmediatePropagation = vi.spyOn(event, "stopImmediatePropagation");
+
+    window.dispatchEvent(event);
+
+    expect(preventDefault).toHaveBeenCalled();
+    expect(stopImmediatePropagation).toHaveBeenCalled();
+  });
+
   it("buffers multiple iframe keys pressed before boot and delivers them in order", () => {
     const originalTop = window.top;
     Object.defineProperty(window, "top", { value: {}, configurable: true });
