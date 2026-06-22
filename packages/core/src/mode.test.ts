@@ -335,4 +335,19 @@ describe("key buffering before user settings are applied", () => {
     window.dispatchEvent(new Event("keydown"));
     expect(handler).toHaveBeenCalledTimes(1);
   });
+
+  it("buffers keyup until settings are applied, then delivers it", () => {
+    initModeHub(makeTestEnv());
+    beginBufferingKeyEvents();
+    const mode = new ModeHandle("Normal");
+    const handler = vi.fn();
+    mode.addEventListener("keyup", handler);
+    mode.enter(1);
+
+    window.dispatchEvent(new Event("keyup"));
+    expect(handler).not.toHaveBeenCalled();
+
+    document.dispatchEvent(new CustomEvent("surfingkeys:userSettingsLoaded"));
+    expect(handler).toHaveBeenCalledTimes(1);
+  });
 });
