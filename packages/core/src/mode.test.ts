@@ -8,6 +8,7 @@ import {
   checkEventListener,
   getCurrentMode,
   initModeHub,
+  releaseBufferedKeyEvents,
   suppressKeyUp,
 } from "./mode";
 
@@ -348,6 +349,21 @@ describe("key buffering before user settings are applied", () => {
     expect(handler).not.toHaveBeenCalled();
 
     document.dispatchEvent(new CustomEvent("surfingkeys:userSettingsLoaded"));
+    expect(handler).toHaveBeenCalledTimes(1);
+  });
+
+  it("releases the buffer when released directly (e.g. settings fetch failed)", () => {
+    initModeHub(makeTestEnv());
+    beginBufferingKeyEvents();
+    const mode = new ModeHandle("Normal");
+    const handler = vi.fn();
+    mode.addEventListener("keydown", handler);
+    mode.enter(1);
+
+    window.dispatchEvent(new Event("keydown"));
+    expect(handler).not.toHaveBeenCalled();
+
+    releaseBufferedKeyEvents();
     expect(handler).toHaveBeenCalledTimes(1);
   });
 });
