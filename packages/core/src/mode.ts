@@ -36,6 +36,10 @@ const keysNeedKeyupSuppressed: number[] = [];
 let settingsReady = true;
 let bufferedKeyEvents: { name: string; event: StackEvent }[] = [];
 
+// Safety net: release the buffer even if userSettingsLoaded never arrives (e.g. the background
+// never responds), so keys can never be held indefinitely.
+const SETTINGS_BUFFER_TIMEOUT_MS = 3000;
+
 const listenedEvents: Record<string, (event: StackEvent) => void> = {
   sentinel: () => {
     eventListenerBeats++;
@@ -136,6 +140,7 @@ export function beginBufferingKeyEvents(): void {
   document.addEventListener("surfingkeys:userSettingsLoaded", releaseBufferedKeyEvents, {
     once: true,
   });
+  setTimeout(releaseBufferedKeyEvents, SETTINGS_BUFFER_TIMEOUT_MS);
 }
 
 function init(cb?: () => void): void {
