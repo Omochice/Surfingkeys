@@ -366,4 +366,24 @@ describe("key buffering before user settings are applied", () => {
     releaseBufferedKeyEvents();
     expect(handler).toHaveBeenCalledTimes(1);
   });
+
+  it("releases the buffer after a timeout even if settings never load", () => {
+    vi.useFakeTimers();
+    try {
+      initModeHub(makeTestEnv());
+      beginBufferingKeyEvents();
+      const mode = new ModeHandle("Normal");
+      const handler = vi.fn();
+      mode.addEventListener("keydown", handler);
+      mode.enter(1);
+
+      window.dispatchEvent(new Event("keydown"));
+      expect(handler).not.toHaveBeenCalled();
+
+      vi.advanceTimersByTime(5000);
+      expect(handler).toHaveBeenCalledTimes(1);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
 });
