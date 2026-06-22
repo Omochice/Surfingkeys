@@ -112,7 +112,11 @@ function handleStack(eventName: string, event: StackEvent, cb?: (mode: ModeHandl
   }
 }
 
-function releaseBufferedKeyEvents(): void {
+/**
+ * Stop buffering and replay the held key events in press order. Called on userSettingsLoaded, and
+ * also directly by the content script when the settings fetch fails so keys never deadlock.
+ */
+export function releaseBufferedKeyEvents(): void {
   settingsReady = true;
   const buffered = bufferedKeyEvents;
   bufferedKeyEvents = [];
