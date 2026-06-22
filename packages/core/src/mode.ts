@@ -34,7 +34,7 @@ const keysNeedKeyupSuppressed: number[] = [];
 // script enables it; the UI frame, which never loads user settings, leaves it off) and the buffer
 // is released on the userSettingsLoaded event.
 let settingsReady = true;
-let bufferedKeyEvents: { name: string; event: StackEvent }[] = [];
+let bufferedKeyEvents: { name: "keydown" | "keyup"; event: StackEvent }[] = [];
 let bufferReleaseTimer: ReturnType<typeof setTimeout> | undefined;
 
 // Safety net: release the buffer even if userSettingsLoaded never arrives (e.g. the background
@@ -117,7 +117,7 @@ function handleStack(eventName: string, event: StackEvent, cb?: (mode: ModeHandl
   }
 }
 
-function bufferKeyEvent(name: string, event: StackEvent): void {
+function bufferKeyEvent(name: "keydown" | "keyup", event: StackEvent): void {
   // Stop the browser from acting on the key while it is held; it is replayed on release.
   event.preventDefault();
   event.stopImmediatePropagation();
@@ -129,6 +129,9 @@ function bufferKeyEvent(name: string, event: StackEvent): void {
  * also directly by the content script when the settings fetch fails so keys never deadlock.
  */
 export function releaseBufferedKeyEvents(): void {
+  if (settingsReady) {
+    return;
+  }
   if (bufferReleaseTimer !== undefined) {
     clearTimeout(bufferReleaseTimer);
     bufferReleaseTimer = undefined;
