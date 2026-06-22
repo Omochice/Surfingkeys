@@ -66,6 +66,8 @@ vi.mock("./command", () => ({ default: vi.fn() }));
 vi.mock("@sk/core/api", () => ({ default: vi.fn(() => ({})) }));
 vi.mock("@sk/core/default", () => ({
   default: vi.fn(() => ({ nmap: {}, vmap: {}, imap: {} })),
+}));
+vi.mock("@sk/core/applyDefaultMappings", () => ({
   applyDefaultMappings: vi.fn(),
   registerDefaultExtras: vi.fn(),
 }));

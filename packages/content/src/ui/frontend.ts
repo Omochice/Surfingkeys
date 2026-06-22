@@ -1,9 +1,7 @@
 import { attachFaviconToImgSrc, initL10n, isInUIFrame } from "@sk/adapter/platform-utils";
 import createAPI from "@sk/core/api";
-import createDefaultMappings, {
-  applyDefaultMappings,
-  registerDefaultExtras,
-} from "@sk/core/default";
+import { applyDefaultMappings, registerDefaultExtras } from "@sk/core/applyDefaultMappings";
+import createDefaultMappings from "@sk/core/default";
 import KeyboardUtils from "@sk/core/keyboardUtils";
 import { ModeHandle, initModeHub } from "@sk/core/mode";
 import createModeGraph, { type ModeContext } from "@sk/core/modeGraph";

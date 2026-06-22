@@ -1,11 +1,9 @@
 import { isInUIFrame } from "@sk/adapter/platform-utils";
 import { reportOnFail } from "@sk/common/result";
 import createAPI from "@sk/core/api";
+import { applyDefaultMappings, registerDefaultExtras } from "@sk/core/applyDefaultMappings";
 import type { StoredSettings } from "@sk/core/conf";
-import createDefaultMappings, {
-  applyDefaultMappings,
-  registerDefaultExtras,
-} from "@sk/core/default";
+import createDefaultMappings from "@sk/core/default";
 import { dispatchSKEvent } from "@sk/core/events";
 import { checkEventListener, initModeHub } from "@sk/core/mode";
 import createModeGraph, { type ModeContext } from "@sk/core/modeGraph";

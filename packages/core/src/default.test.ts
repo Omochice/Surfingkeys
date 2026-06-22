@@ -46,7 +46,8 @@ vi.mock("./events", () => ({
 
 vi.mock("./utils", () => seam.utils);
 
-import createDefaultMappings, { applyDefaultMappings, registerDefaultExtras } from "./default";
+import { applyDefaultMappings, registerDefaultExtras } from "./applyDefaultMappings";
+import createDefaultMappings from "./default";
 
 // default.ts now reaches RUNTIME / tabOpenLink / chrome.surfingkeys through the injected env; build
 // it from the seam spies. surfingkeys is a live getter so the per-test globalThis.chrome swaps below
