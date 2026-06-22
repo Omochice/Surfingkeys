@@ -35,6 +35,7 @@ const keysNeedKeyupSuppressed: number[] = [];
 // is released on the userSettingsLoaded event.
 let settingsReady = true;
 let bufferedKeyEvents: { name: string; event: StackEvent }[] = [];
+let bufferReleaseTimer: ReturnType<typeof setTimeout> | undefined;
 
 // Safety net: release the buffer even if userSettingsLoaded never arrives (e.g. the background
 // never responds), so keys can never be held indefinitely.
@@ -121,6 +122,10 @@ function handleStack(eventName: string, event: StackEvent, cb?: (mode: ModeHandl
  * also directly by the content script when the settings fetch fails so keys never deadlock.
  */
 export function releaseBufferedKeyEvents(): void {
+  if (bufferReleaseTimer !== undefined) {
+    clearTimeout(bufferReleaseTimer);
+    bufferReleaseTimer = undefined;
+  }
   settingsReady = true;
   const buffered = bufferedKeyEvents;
   bufferedKeyEvents = [];
@@ -140,7 +145,7 @@ export function beginBufferingKeyEvents(): void {
   document.addEventListener("surfingkeys:userSettingsLoaded", releaseBufferedKeyEvents, {
     once: true,
   });
-  setTimeout(releaseBufferedKeyEvents, SETTINGS_BUFFER_TIMEOUT_MS);
+  bufferReleaseTimer = setTimeout(releaseBufferedKeyEvents, SETTINGS_BUFFER_TIMEOUT_MS);
 }
 
 function init(cb?: () => void): void {
