@@ -288,4 +288,51 @@ describe("key buffering before user settings are applied", () => {
 
     expect(handler).not.toHaveBeenCalled();
   });
+
+  it("delivers buffered keydown to handlers once settings are applied", () => {
+    initModeHub(makeTestEnv());
+    beginBufferingKeyEvents();
+    const mode = new ModeHandle("Normal");
+    const handler = vi.fn();
+    mode.addEventListener("keydown", handler);
+    mode.enter(1);
+
+    window.dispatchEvent(new Event("keydown"));
+    expect(handler).not.toHaveBeenCalled();
+
+    document.dispatchEvent(new CustomEvent("surfingkeys:userSettingsLoaded"));
+    expect(handler).toHaveBeenCalledTimes(1);
+  });
+
+  it("processes buffered keys in the order they were pressed", () => {
+    initModeHub(makeTestEnv());
+    beginBufferingKeyEvents();
+    const mode = new ModeHandle("Normal");
+    const seen: Event[] = [];
+    mode.addEventListener("keydown", (e) => {
+      seen.push(e);
+    });
+    mode.enter(1);
+
+    const first = new Event("keydown");
+    const second = new Event("keydown");
+    window.dispatchEvent(first);
+    window.dispatchEvent(second);
+
+    document.dispatchEvent(new CustomEvent("surfingkeys:userSettingsLoaded"));
+    expect(seen).toEqual([first, second]);
+  });
+
+  it("delivers keydown immediately once settings have been applied", () => {
+    initModeHub(makeTestEnv());
+    beginBufferingKeyEvents();
+    document.dispatchEvent(new CustomEvent("surfingkeys:userSettingsLoaded"));
+    const mode = new ModeHandle("Normal");
+    const handler = vi.fn();
+    mode.addEventListener("keydown", handler);
+    mode.enter(1);
+
+    window.dispatchEvent(new Event("keydown"));
+    expect(handler).toHaveBeenCalledTimes(1);
+  });
 });
