@@ -64,6 +64,10 @@ const listenedEvents: Record<string, (event: StackEvent) => void> = {
     handleStack("keydown", event);
   },
   keyup: (event) => {
+    if (!settingsReady) {
+      bufferedKeyEvents.push({ name: "keyup", event });
+      return;
+    }
     handleStack("keyup", event, () => {
       const i = keysNeedKeyupSuppressed.indexOf(event.keyCode ?? -1);
       if (i !== -1) {
