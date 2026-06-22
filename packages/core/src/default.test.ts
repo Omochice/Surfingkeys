@@ -46,7 +46,7 @@ vi.mock("./events", () => ({
 
 vi.mock("./utils", () => seam.utils);
 
-import registerDefaultMappings from "./default";
+import createDefaultMappings, { applyDefaultMappings, registerDefaultExtras } from "./default";
 
 // default.ts now reaches RUNTIME / tabOpenLink / chrome.surfingkeys through the injected env; build
 // it from the seam spies. surfingkeys is a live getter so the per-test globalThis.chrome swaps below
@@ -115,7 +115,8 @@ beforeEach(() => {
     visual: autoMock(),
     front: autoMock(),
   };
-  registerDefaultMappings(api, ctx, makeEnv());
+  applyDefaultMappings(api, createDefaultMappings(ctx, makeEnv(), api.searchSelectedWith));
+  registerDefaultExtras(api);
 });
 
 const fire = (key: string) => registry.get(key)!.cb();
@@ -1355,7 +1356,7 @@ describe("w switches frames when window !== top", () => {
     const originalTop = window.top;
     Object.defineProperty(window, "top", { value: {}, configurable: true });
     vi.clearAllMocks();
-    registerDefaultMappings(api, ctx, makeEnv());
+    applyDefaultMappings(api, createDefaultMappings(ctx, makeEnv(), api.searchSelectedWith));
     fire("w");
     expect(ctx.normal.rotateFrame).toHaveBeenCalled();
     // The ensureFrontEnd dispatch also happens regardless of frame position.
@@ -1697,7 +1698,10 @@ describe("Firefox-only mappings", () => {
       mapkey: (keys: string, annotation: any, cb: any, options: any) =>
         firefoxRegistry.set(keys, { mode: "normal", annotation, cb, options }),
     };
-    registerDefaultMappings(ffApi as any, ctx, makeEnv());
+    applyDefaultMappings(
+      ffApi as any,
+      createDefaultMappings(ctx, makeEnv(), api.searchSelectedWith),
+    );
     firefoxRegistry.get("on")!.cb();
     expect(seam.tabOpenLink).toHaveBeenLastCalledWith("about:blank");
   });
@@ -1710,7 +1714,10 @@ describe("Firefox-only mappings", () => {
       mapkey: (keys: string, annotation: any, cb: any, options: any) =>
         otherRegistry.set(keys, { mode: "normal", annotation, cb, options }),
     };
-    registerDefaultMappings(otherApi as any, ctx, makeEnv());
+    applyDefaultMappings(
+      otherApi as any,
+      createDefaultMappings(ctx, makeEnv(), api.searchSelectedWith),
+    );
     // Neither the Firefox arm nor the Chrome else-if arm runs, so 'on' is absent.
     expect(otherRegistry.has("on")).toBe(false);
   });
@@ -1742,5 +1749,43 @@ describe("yg captures the visible tab", () => {
     expect(seam.utils.showPopup).toHaveBeenLastCalledWith(
       expect.stringContaining("data:image/png;base64,abc"),
     );
+  });
+});
+
+describe("createDefaultMappings returns data keyed by mode then key", () => {
+  it("exposes nmap/vmap/imap buckets with annotation and code per key", () => {
+    const defaults = createDefaultMappings(ctx, makeEnv(), api.searchSelectedWith);
+
+    expect(Object.keys(defaults)).toEqual(["nmap", "vmap", "imap"]);
+    // A representative key from each mode is present with its help text and a callable handler.
+    expect(defaults.nmap["T"]).toMatchObject({ annotation: "#3Choose a tab" });
+    expect(typeof defaults.nmap["T"].code).toBe("function");
+    expect(defaults.vmap["<Ctrl-u>"]).toMatchObject({ annotation: "#9Backward 20 lines" });
+    expect(defaults.imap["<Ctrl-'>"]).toMatchObject({
+      annotation: "#14Toggle quotes in an input element",
+    });
+  });
+
+  it("carries per-mapping options such as repeatIgnore", () => {
+    const defaults = createDefaultMappings(ctx, makeEnv(), api.searchSelectedWith);
+
+    expect(defaults.nmap["f"].options).toEqual({ repeatIgnore: true });
+    expect(defaults.nmap["T"].options).toBeUndefined();
+  });
+
+  it("lets a caller reuse one key's default action for another key (bind f to p's action)", () => {
+    // The data form makes recombination trivial: pull an entry and register it under a new key.
+    // "p" has no default normal binding, so borrow the link-open action from "f" the other way.
+    const defaults = createDefaultMappings(ctx, makeEnv(), api.searchSelectedWith);
+    const source = defaults.nmap["f"];
+
+    api.mapkey("p", source.annotation, source.code, source.options);
+
+    const rebound = registry.get("p");
+    expect(rebound).toBeDefined();
+    expect(rebound!.annotation).toBe(source.annotation);
+    rebound!.cb();
+    // "f" delegates to hints.create; the borrowed handler does the same when fired under "p".
+    expect(ctx.hints.create).toHaveBeenCalled();
   });
 });

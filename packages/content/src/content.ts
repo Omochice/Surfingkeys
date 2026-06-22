@@ -2,7 +2,10 @@ import { isInUIFrame } from "@sk/adapter/platform-utils";
 import { reportOnFail } from "@sk/common/result";
 import createAPI from "@sk/core/api";
 import type { StoredSettings } from "@sk/core/conf";
-import createDefaultMappings from "@sk/core/default";
+import createDefaultMappings, {
+  applyDefaultMappings,
+  registerDefaultExtras,
+} from "@sk/core/default";
 import { dispatchSKEvent } from "@sk/core/events";
 import { checkEventListener, initModeHub } from "@sk/core/mode";
 import createModeGraph, { type ModeContext } from "@sk/core/modeGraph";
@@ -53,7 +56,8 @@ function initModules(): Modes {
 
   const ctx: ModeContext = { clipboard, insert, normal, hints, visual, front };
   const api = createAPI(ctx, engineEnv);
-  createDefaultMappings(api, ctx, engineEnv);
+  applyDefaultMappings(api, createDefaultMappings(ctx, engineEnv, api.searchSelectedWith));
+  registerDefaultExtras(api);
   if (typeof adapter.plugin === "function") {
     adapter.plugin({ front });
   }

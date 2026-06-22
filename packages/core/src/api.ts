@@ -28,7 +28,7 @@ type KeyTarget = {
   annotation?: string | string[];
 };
 type Annotation = { annotation: string | string[]; feature_group?: number };
-type MapOptions = { domain?: RegExp; repeatIgnore?: boolean; codeHasParameter?: boolean };
+export type MapOptions = { domain?: RegExp; repeatIgnore?: boolean; codeHasParameter?: boolean };
 
 function createAPI(ctx: ModeContext, env: EngineEnv) {
   const { clipboard, insert, normal, hints, visual, front } = ctx;
