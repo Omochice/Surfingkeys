@@ -386,4 +386,49 @@ describe("key buffering before user settings are applied", () => {
       vi.useRealTimers();
     }
   });
+
+  it("dispatches iframeBoot on the first keydown in an iframe", () => {
+    const originalTop = window.top;
+    Object.defineProperty(window, "top", { value: {}, configurable: true });
+    try {
+      initModeHub(makeTestEnv());
+      const bootSpy = vi.fn();
+      document.addEventListener("surfingkeys:iframeBoot", bootSpy, { once: true });
+
+      window.dispatchEvent(new Event("keydown"));
+
+      expect(bootSpy).toHaveBeenCalledTimes(1);
+    } finally {
+      Object.defineProperty(window, "top", { value: originalTop, configurable: true });
+    }
+  });
+
+  it("buffers multiple iframe keys pressed before boot and delivers them in order", () => {
+    const originalTop = window.top;
+    Object.defineProperty(window, "top", { value: {}, configurable: true });
+    try {
+      initModeHub(makeTestEnv());
+      beginBufferingKeyEvents();
+      const mode = new ModeHandle("Normal");
+      const seen: Event[] = [];
+      mode.addEventListener("keydown", (e) => {
+        seen.push(e);
+      });
+
+      // Keys arrive while the iframe is still booting (modeStack empty).
+      const first = new Event("keydown");
+      const second = new Event("keydown");
+      window.dispatchEvent(first);
+      window.dispatchEvent(second);
+      expect(seen).toHaveLength(0);
+
+      // The iframe finishes booting: the mode enters and the settings are applied.
+      mode.enter(1);
+      document.dispatchEvent(new CustomEvent("surfingkeys:userSettingsLoaded"));
+
+      expect(seen).toEqual([first, second]);
+    } finally {
+      Object.defineProperty(window, "top", { value: originalTop, configurable: true });
+    }
+  });
 });
