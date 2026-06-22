@@ -28,6 +28,14 @@ let eventListenerBeats = 0;
 let suppressScrollEvent = 0;
 const keysNeedKeyupSuppressed: number[] = [];
 
+// Until the user's settings are applied, key events are buffered rather than handled. Otherwise a
+// key pressed during the async settings fetch fires the built-in default mapping instead of the
+// user's (possibly overridden) one. Buffering is opt-in via beginBufferingKeyEvents (the content
+// script enables it; the UI frame, which never loads user settings, leaves it off) and the buffer
+// is released on the userSettingsLoaded event.
+let settingsReady = true;
+let bufferedKeyEvents: { name: string; event: StackEvent }[] = [];
+
 const listenedEvents: Record<string, (event: StackEvent) => void> = {
   sentinel: () => {
     eventListenerBeats++;
@@ -47,6 +55,10 @@ const listenedEvents: Record<string, (event: StackEvent) => void> = {
         },
         { once: true },
       );
+      return;
+    }
+    if (!settingsReady) {
+      bufferedKeyEvents.push({ name: "keydown", event });
       return;
     }
     handleStack("keydown", event);
@@ -94,6 +106,28 @@ function handleStack(eventName: string, event: StackEvent, cb?: (mode: ModeHandl
     }
     cb?.(m);
   }
+}
+
+function releaseBufferedKeyEvents(): void {
+  settingsReady = true;
+  const buffered = bufferedKeyEvents;
+  bufferedKeyEvents = [];
+  for (const { name, event } of buffered) {
+    handleStack(name, event);
+  }
+}
+
+/**
+ * Start buffering key events until the user's settings are applied. The content script calls this
+ * right after installing the mode hub; the UI frame does not (it never applies user settings). The
+ * buffer is released on the userSettingsLoaded event.
+ */
+export function beginBufferingKeyEvents(): void {
+  settingsReady = false;
+  bufferedKeyEvents = [];
+  document.addEventListener("surfingkeys:userSettingsLoaded", releaseBufferedKeyEvents, {
+    once: true,
+  });
 }
 
 function init(cb?: () => void): void {

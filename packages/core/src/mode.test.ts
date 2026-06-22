@@ -2,7 +2,14 @@ import { Result } from "@praha/byethrow";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import type { EngineEnv } from "./engineEnv";
-import { ModeHandle, checkEventListener, getCurrentMode, initModeHub, suppressKeyUp } from "./mode";
+import {
+  ModeHandle,
+  beginBufferingKeyEvents,
+  checkEventListener,
+  getCurrentMode,
+  initModeHub,
+  suppressKeyUp,
+} from "./mode";
 
 // A complete EngineEnv whose chrome-facing members are inert stubs; mode.ts only exercises
 // isInUIFrame and reportIssue, so tests override just those.
@@ -268,9 +275,10 @@ describe("key buffering before user settings are applied", () => {
   });
 
   it("does not deliver a keydown to mode handlers before settings are applied", () => {
-    // initModeHub installs the listeners and starts in the buffering state until
-    // the user settings have been applied.
+    // The content script opts into buffering after installing the hub; keys are held
+    // until the user settings have been applied.
     initModeHub(makeTestEnv());
+    beginBufferingKeyEvents();
     const mode = new ModeHandle("Normal");
     const handler = vi.fn();
     mode.addEventListener("keydown", handler);
