@@ -1,5 +1,6 @@
 import { attachFaviconToImgSrc, initL10n, isInUIFrame } from "@sk/adapter/platform-utils";
 import createAPI from "@sk/core/api";
+import { applyDefaultMappings, registerDefaultExtras } from "@sk/core/applyDefaultMappings";
 import createDefaultMappings from "@sk/core/default";
 import KeyboardUtils from "@sk/core/keyboardUtils";
 import { ModeHandle, initModeHub } from "@sk/core/mode";
@@ -138,7 +139,8 @@ const Front = (() => {
     front: self as unknown as ModeContext["front"],
   };
   const api = createAPI(ctx, engineEnv);
-  createDefaultMappings(api, ctx, engineEnv);
+  applyDefaultMappings(api, createDefaultMappings(ctx, engineEnv, api.searchSelectedWith));
+  registerDefaultExtras(api);
 
   function addDestroyListener(task: () => void): void {
     destroyListeners.push(task);

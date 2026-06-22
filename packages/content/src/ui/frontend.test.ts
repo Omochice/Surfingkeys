@@ -64,7 +64,13 @@ vi.mock("./command", () => ({ default: vi.fn() }));
 
 // ../common/api + ../common/default: heavy wiring we don't need.
 vi.mock("@sk/core/api", () => ({ default: vi.fn(() => ({})) }));
-vi.mock("@sk/core/default", () => ({ default: vi.fn() }));
+vi.mock("@sk/core/default", () => ({
+  default: vi.fn(() => ({ nmap: {}, vmap: {}, imap: {} })),
+}));
+vi.mock("@sk/core/applyDefaultMappings", () => ({
+  applyDefaultMappings: vi.fn(),
+  registerDefaultExtras: vi.fn(),
+}));
 
 // @sk/messaging/runtime: intercept RUNTIME calls so no chrome.runtime.sendMessage
 // reaches the chrome stub.
