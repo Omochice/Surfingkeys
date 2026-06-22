@@ -257,3 +257,27 @@ describe("handleStack dispatch — suppression, stopPropagation and Disabled bre
     lower.exit();
   });
 });
+
+describe("key buffering before user settings are applied", () => {
+  afterEach(() => {
+    for (let i = 0; i < 5; i++) {
+      getCurrentMode()?.exit();
+    }
+    // Release the buffer so a later test is not left in the buffering state.
+    document.dispatchEvent(new CustomEvent("surfingkeys:userSettingsLoaded"));
+  });
+
+  it("does not deliver a keydown to mode handlers before settings are applied", () => {
+    // initModeHub installs the listeners and starts in the buffering state until
+    // the user settings have been applied.
+    initModeHub(makeTestEnv());
+    const mode = new ModeHandle("Normal");
+    const handler = vi.fn();
+    mode.addEventListener("keydown", handler);
+    mode.enter(1);
+
+    window.dispatchEvent(new Event("keydown"));
+
+    expect(handler).not.toHaveBeenCalled();
+  });
+});
