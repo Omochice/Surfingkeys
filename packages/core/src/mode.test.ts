@@ -353,6 +353,36 @@ describe("key buffering before user settings are applied", () => {
     expect(handler).toHaveBeenCalledTimes(1);
   });
 
+  it("clears the keyup-suppression entry when replaying a buffered keyup", () => {
+    initModeHub(makeTestEnv());
+    beginBufferingKeyEvents();
+    const mode = new ModeHandle("Normal");
+    // Mirror real handling: a handled keydown marks its matching keyup for suppression.
+    mode.addEventListener("keydown", (e) => {
+      suppressKeyUp(e.keyCode ?? -1);
+    });
+    mode.enter(1);
+
+    const keydown = new Event("keydown");
+    const keyup = new Event("keyup");
+    Object.defineProperty(keydown, "keyCode", { value: 65 });
+    Object.defineProperty(keyup, "keyCode", { value: 65 });
+    window.dispatchEvent(keydown);
+    window.dispatchEvent(keyup);
+
+    releaseBufferedKeyEvents();
+
+    // The buffered keyup must consume the suppression entry on replay; otherwise a
+    // later, unrelated live keyup for the same key would be wrongly swallowed.
+    const liveKeyup = new Event("keyup");
+    Object.defineProperty(liveKeyup, "keyCode", { value: 65 });
+    const stopImmediatePropagation = vi.spyOn(liveKeyup, "stopImmediatePropagation");
+    window.dispatchEvent(liveKeyup);
+    expect(stopImmediatePropagation).not.toHaveBeenCalled();
+
+    mode.exit();
+  });
+
   it("releases the buffer when released directly (e.g. settings fetch failed)", () => {
     initModeHub(makeTestEnv());
     beginBufferingKeyEvents();

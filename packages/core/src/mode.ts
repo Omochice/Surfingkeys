@@ -73,13 +73,7 @@ const listenedEvents: Record<string, (event: StackEvent) => void> = {
       bufferKeyEvent("keyup", event);
       return;
     }
-    handleStack("keyup", event, () => {
-      const i = keysNeedKeyupSuppressed.indexOf(event.keyCode ?? -1);
-      if (i !== -1) {
-        event.stopImmediatePropagation();
-        keysNeedKeyupSuppressed.splice(i, 1);
-      }
-    });
+    handleKeyup(event);
   },
   scroll: (event) => {
     handleStack("scroll", event);
@@ -117,6 +111,19 @@ function handleStack(eventName: string, event: StackEvent, cb?: (mode: ModeHandl
   }
 }
 
+// Handle a keyup including the suppression of keyups whose keydown was already swallowed. Shared
+// by the live keyup listener and the buffered-event replay so a replayed keyup is suppressed and
+// cleaned up identically to a live one.
+function handleKeyup(event: StackEvent): void {
+  handleStack("keyup", event, () => {
+    const i = keysNeedKeyupSuppressed.indexOf(event.keyCode ?? -1);
+    if (i !== -1) {
+      event.stopImmediatePropagation();
+      keysNeedKeyupSuppressed.splice(i, 1);
+    }
+  });
+}
+
 function bufferKeyEvent(name: "keydown" | "keyup", event: StackEvent): void {
   // Stop the browser from acting on the key while it is held; it is replayed on release.
   event.preventDefault();
@@ -140,7 +147,11 @@ export function releaseBufferedKeyEvents(): void {
   const buffered = bufferedKeyEvents;
   bufferedKeyEvents = [];
   for (const { name, event } of buffered) {
-    handleStack(name, event);
+    if (name === "keyup") {
+      handleKeyup(event);
+    } else {
+      handleStack(name, event);
+    }
   }
 }
 
