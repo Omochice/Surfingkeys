@@ -28,6 +28,19 @@ let eventListenerBeats = 0;
 let suppressScrollEvent = 0;
 const keysNeedKeyupSuppressed: number[] = [];
 
+// Until the user's settings are applied, key events are buffered rather than handled. Otherwise a
+// key pressed during the async settings fetch fires the built-in default mapping instead of the
+// user's (possibly overridden) one. Buffering is opt-in via beginBufferingKeyEvents (the content
+// script enables it; the UI frame, which never loads user settings, leaves it off) and the buffer
+// is released on the userSettingsLoaded event.
+let settingsReady = true;
+let bufferedKeyEvents: { name: "keydown" | "keyup"; event: StackEvent }[] = [];
+let bufferReleaseTimer: ReturnType<typeof setTimeout> | undefined;
+
+// Safety net: release the buffer even if userSettingsLoaded never arrives (e.g. the background
+// never responds), so keys can never be held indefinitely.
+const SETTINGS_BUFFER_TIMEOUT_MS = 3000;
+
 const listenedEvents: Record<string, (event: StackEvent) => void> = {
   sentinel: () => {
     eventListenerBeats++;
@@ -49,16 +62,18 @@ const listenedEvents: Record<string, (event: StackEvent) => void> = {
       );
       return;
     }
+    if (!settingsReady) {
+      bufferKeyEvent("keydown", event);
+      return;
+    }
     handleStack("keydown", event);
   },
   keyup: (event) => {
-    handleStack("keyup", event, () => {
-      const i = keysNeedKeyupSuppressed.indexOf(event.keyCode ?? -1);
-      if (i !== -1) {
-        event.stopImmediatePropagation();
-        keysNeedKeyupSuppressed.splice(i, 1);
-      }
-    });
+    if (!settingsReady) {
+      bufferKeyEvent("keyup", event);
+      return;
+    }
+    handleKeyup(event);
   },
   scroll: (event) => {
     handleStack("scroll", event);
@@ -94,6 +109,67 @@ function handleStack(eventName: string, event: StackEvent, cb?: (mode: ModeHandl
     }
     cb?.(m);
   }
+}
+
+// Handle a keyup including the suppression of keyups whose keydown was already swallowed. Shared
+// by the live keyup listener and the buffered-event replay so a replayed keyup is suppressed and
+// cleaned up identically to a live one.
+function handleKeyup(event: StackEvent): void {
+  handleStack("keyup", event, () => {
+    const i = keysNeedKeyupSuppressed.indexOf(event.keyCode ?? -1);
+    if (i !== -1) {
+      event.stopImmediatePropagation();
+      keysNeedKeyupSuppressed.splice(i, 1);
+    }
+  });
+}
+
+function bufferKeyEvent(name: "keydown" | "keyup", event: StackEvent): void {
+  // Stop the browser from acting on the key while it is held; it is replayed on release.
+  event.preventDefault();
+  event.stopImmediatePropagation();
+  bufferedKeyEvents.push({ name, event });
+}
+
+/**
+ * Stop buffering and replay the held key events in press order. Called on userSettingsLoaded, and
+ * also directly by the content script when the settings fetch fails so keys never deadlock.
+ */
+export function releaseBufferedKeyEvents(): void {
+  if (settingsReady) {
+    return;
+  }
+  if (bufferReleaseTimer !== undefined) {
+    clearTimeout(bufferReleaseTimer);
+    bufferReleaseTimer = undefined;
+  }
+  // When released via the safety timeout or a direct call, the once-listener never fired and so
+  // is still registered; detach it so no stale listener lingers on document.
+  document.removeEventListener("surfingkeys:userSettingsLoaded", releaseBufferedKeyEvents);
+  settingsReady = true;
+  const buffered = bufferedKeyEvents;
+  bufferedKeyEvents = [];
+  for (const { name, event } of buffered) {
+    if (name === "keyup") {
+      handleKeyup(event);
+    } else {
+      handleStack(name, event);
+    }
+  }
+}
+
+/**
+ * Start buffering key events until the user's settings are applied. The content script calls this
+ * right after installing the mode hub; the UI frame does not (it never applies user settings). The
+ * buffer is released on the userSettingsLoaded event.
+ */
+export function beginBufferingKeyEvents(): void {
+  settingsReady = false;
+  bufferedKeyEvents = [];
+  document.addEventListener("surfingkeys:userSettingsLoaded", releaseBufferedKeyEvents, {
+    once: true,
+  });
+  bufferReleaseTimer = setTimeout(releaseBufferedKeyEvents, SETTINGS_BUFFER_TIMEOUT_MS);
 }
 
 function init(cb?: () => void): void {

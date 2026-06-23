@@ -5,7 +5,12 @@ import { applyDefaultMappings, registerDefaultExtras } from "@sk/core/applyDefau
 import type { StoredSettings } from "@sk/core/conf";
 import createDefaultMappings from "@sk/core/default";
 import { dispatchSKEvent } from "@sk/core/events";
-import { checkEventListener, initModeHub } from "@sk/core/mode";
+import {
+  beginBufferingKeyEvents,
+  checkEventListener,
+  initModeHub,
+  releaseBufferedKeyEvents,
+} from "@sk/core/mode";
 import createModeGraph, { type ModeContext } from "@sk/core/modeGraph";
 import createNormal from "@sk/core/normal";
 import startScrollNodeObserver from "@sk/core/observer";
@@ -75,7 +80,12 @@ function initModules(): Modes {
         frontCommand,
       });
     }),
-    reportError,
+    (error) => {
+      // The settings fetch failed, so userSettingsLoaded will never fire; release the buffered
+      // keys anyway so input is not held forever.
+      releaseBufferedKeyEvents();
+      reportError(error);
+    },
   );
   return {
     normal,
@@ -139,6 +149,9 @@ initModeHub(
         );
       },
 );
+// Hold keys until the user's settings are applied, so a key pressed during the async settings
+// fetch fires the user's (possibly overridden) mapping rather than the built-in default.
+beginBufferingKeyEvents();
 
 function start(injectedAdapter?: BrowserAdapter): void {
   adapter = injectedAdapter || {};

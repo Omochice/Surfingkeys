@@ -1,8 +1,17 @@
 import { Result } from "@praha/byethrow";
+import * as fc from "fast-check";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import type { EngineEnv } from "./engineEnv";
-import { ModeHandle, checkEventListener, getCurrentMode, initModeHub, suppressKeyUp } from "./mode";
+import {
+  ModeHandle,
+  beginBufferingKeyEvents,
+  checkEventListener,
+  getCurrentMode,
+  initModeHub,
+  releaseBufferedKeyEvents,
+  suppressKeyUp,
+} from "./mode";
 
 // A complete EngineEnv whose chrome-facing members are inert stubs; mode.ts only exercises
 // isInUIFrame and reportIssue, so tests override just those.
@@ -255,5 +264,258 @@ describe("handleStack dispatch — suppression, stopPropagation and Disabled bre
 
     disabled.exit();
     lower.exit();
+  });
+});
+
+describe("key buffering before user settings are applied", () => {
+  afterEach(() => {
+    for (let i = 0; i < 5; i++) {
+      getCurrentMode()?.exit();
+    }
+    // Release the buffer so a later test is not left in the buffering state.
+    document.dispatchEvent(new CustomEvent("surfingkeys:userSettingsLoaded"));
+  });
+
+  it("does not deliver a keydown to mode handlers before settings are applied", () => {
+    // The content script opts into buffering after installing the hub; keys are held
+    // until the user settings have been applied.
+    initModeHub(makeTestEnv());
+    beginBufferingKeyEvents();
+    const mode = new ModeHandle("Normal");
+    const handler = vi.fn();
+    mode.addEventListener("keydown", handler);
+    mode.enter(1);
+
+    window.dispatchEvent(new Event("keydown"));
+
+    expect(handler).not.toHaveBeenCalled();
+  });
+
+  it("delivers buffered keydown to handlers once settings are applied", () => {
+    initModeHub(makeTestEnv());
+    beginBufferingKeyEvents();
+    const mode = new ModeHandle("Normal");
+    const handler = vi.fn();
+    mode.addEventListener("keydown", handler);
+    mode.enter(1);
+
+    window.dispatchEvent(new Event("keydown"));
+    expect(handler).not.toHaveBeenCalled();
+
+    document.dispatchEvent(new CustomEvent("surfingkeys:userSettingsLoaded"));
+    expect(handler).toHaveBeenCalledTimes(1);
+  });
+
+  it("processes buffered keys in the order they were pressed", () => {
+    initModeHub(makeTestEnv());
+    beginBufferingKeyEvents();
+    const mode = new ModeHandle("Normal");
+    const seen: Event[] = [];
+    mode.addEventListener("keydown", (e) => {
+      seen.push(e);
+    });
+    mode.enter(1);
+
+    const first = new Event("keydown");
+    const second = new Event("keydown");
+    window.dispatchEvent(first);
+    window.dispatchEvent(second);
+
+    document.dispatchEvent(new CustomEvent("surfingkeys:userSettingsLoaded"));
+    expect(seen).toEqual([first, second]);
+  });
+
+  it("delivers keydown immediately once settings have been applied", () => {
+    initModeHub(makeTestEnv());
+    beginBufferingKeyEvents();
+    document.dispatchEvent(new CustomEvent("surfingkeys:userSettingsLoaded"));
+    const mode = new ModeHandle("Normal");
+    const handler = vi.fn();
+    mode.addEventListener("keydown", handler);
+    mode.enter(1);
+
+    window.dispatchEvent(new Event("keydown"));
+    expect(handler).toHaveBeenCalledTimes(1);
+  });
+
+  it("buffers keyup until settings are applied, then delivers it", () => {
+    initModeHub(makeTestEnv());
+    beginBufferingKeyEvents();
+    const mode = new ModeHandle("Normal");
+    const handler = vi.fn();
+    mode.addEventListener("keyup", handler);
+    mode.enter(1);
+
+    window.dispatchEvent(new Event("keyup"));
+    expect(handler).not.toHaveBeenCalled();
+
+    document.dispatchEvent(new CustomEvent("surfingkeys:userSettingsLoaded"));
+    expect(handler).toHaveBeenCalledTimes(1);
+  });
+
+  it("clears the keyup-suppression entry when replaying a buffered keyup", () => {
+    initModeHub(makeTestEnv());
+    beginBufferingKeyEvents();
+    const mode = new ModeHandle("Normal");
+    // Mirror real handling: a handled keydown marks its matching keyup for suppression.
+    mode.addEventListener("keydown", (e) => {
+      suppressKeyUp(e.keyCode ?? -1);
+    });
+    mode.enter(1);
+
+    const keydown = new Event("keydown");
+    const keyup = new Event("keyup");
+    Object.defineProperty(keydown, "keyCode", { value: 65 });
+    Object.defineProperty(keyup, "keyCode", { value: 65 });
+    window.dispatchEvent(keydown);
+    window.dispatchEvent(keyup);
+
+    releaseBufferedKeyEvents();
+
+    // The buffered keyup must consume the suppression entry on replay; otherwise a
+    // later, unrelated live keyup for the same key would be wrongly swallowed.
+    const liveKeyup = new Event("keyup");
+    Object.defineProperty(liveKeyup, "keyCode", { value: 65 });
+    const stopImmediatePropagation = vi.spyOn(liveKeyup, "stopImmediatePropagation");
+    window.dispatchEvent(liveKeyup);
+    expect(stopImmediatePropagation).not.toHaveBeenCalled();
+
+    mode.exit();
+  });
+
+  it("removes the userSettingsLoaded listener when the buffer is released", () => {
+    initModeHub(makeTestEnv());
+    const removeEventListener = vi.spyOn(document, "removeEventListener");
+    beginBufferingKeyEvents();
+    releaseBufferedKeyEvents();
+    expect(removeEventListener).toHaveBeenCalledWith(
+      "surfingkeys:userSettingsLoaded",
+      releaseBufferedKeyEvents,
+    );
+    removeEventListener.mockRestore();
+  });
+
+  it("releases the buffer when released directly (e.g. settings fetch failed)", () => {
+    initModeHub(makeTestEnv());
+    beginBufferingKeyEvents();
+    const mode = new ModeHandle("Normal");
+    const handler = vi.fn();
+    mode.addEventListener("keydown", handler);
+    mode.enter(1);
+
+    window.dispatchEvent(new Event("keydown"));
+    expect(handler).not.toHaveBeenCalled();
+
+    releaseBufferedKeyEvents();
+    expect(handler).toHaveBeenCalledTimes(1);
+  });
+
+  it("releases the buffer after a timeout even if settings never load", () => {
+    vi.useFakeTimers();
+    try {
+      initModeHub(makeTestEnv());
+      beginBufferingKeyEvents();
+      const mode = new ModeHandle("Normal");
+      const handler = vi.fn();
+      mode.addEventListener("keydown", handler);
+      mode.enter(1);
+
+      window.dispatchEvent(new Event("keydown"));
+      expect(handler).not.toHaveBeenCalled();
+
+      vi.advanceTimersByTime(5000);
+      expect(handler).toHaveBeenCalledTimes(1);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it("dispatches iframeBoot on the first keydown in an iframe", () => {
+    const originalTop = window.top;
+    Object.defineProperty(window, "top", { value: {}, configurable: true });
+    try {
+      initModeHub(makeTestEnv());
+      const bootSpy = vi.fn();
+      document.addEventListener("surfingkeys:iframeBoot", bootSpy, { once: true });
+
+      window.dispatchEvent(new Event("keydown"));
+
+      expect(bootSpy).toHaveBeenCalledTimes(1);
+    } finally {
+      Object.defineProperty(window, "top", { value: originalTop, configurable: true });
+    }
+  });
+
+  it("prevents default and stops propagation for buffered keys", () => {
+    initModeHub(makeTestEnv());
+    beginBufferingKeyEvents();
+
+    const event = new Event("keydown", { cancelable: true });
+    const preventDefault = vi.spyOn(event, "preventDefault");
+    const stopImmediatePropagation = vi.spyOn(event, "stopImmediatePropagation");
+
+    window.dispatchEvent(event);
+
+    expect(preventDefault).toHaveBeenCalled();
+    expect(stopImmediatePropagation).toHaveBeenCalled();
+  });
+
+  it("buffers multiple iframe keys pressed before boot and delivers them in order", () => {
+    const originalTop = window.top;
+    Object.defineProperty(window, "top", { value: {}, configurable: true });
+    try {
+      initModeHub(makeTestEnv());
+      beginBufferingKeyEvents();
+      const mode = new ModeHandle("Normal");
+      const seen: Event[] = [];
+      mode.addEventListener("keydown", (e) => {
+        seen.push(e);
+      });
+
+      // Keys arrive while the iframe is still booting (modeStack empty).
+      const first = new Event("keydown");
+      const second = new Event("keydown");
+      window.dispatchEvent(first);
+      window.dispatchEvent(second);
+      expect(seen).toHaveLength(0);
+
+      // The iframe finishes booting: the mode enters and the settings are applied.
+      mode.enter(1);
+      document.dispatchEvent(new CustomEvent("surfingkeys:userSettingsLoaded"));
+
+      expect(seen).toEqual([first, second]);
+    } finally {
+      Object.defineProperty(window, "top", { value: originalTop, configurable: true });
+    }
+  });
+
+  it("replays an arbitrary keydown/keyup sequence to handlers in dispatch order", () => {
+    fc.assert(
+      fc.property(fc.array(fc.constantFrom("keydown", "keyup"), { maxLength: 30 }), (names) => {
+        initModeHub(makeTestEnv());
+        beginBufferingKeyEvents();
+        const mode = new ModeHandle("Normal");
+        const seen: string[] = [];
+        mode.addEventListener("keydown", () => {
+          seen.push("keydown");
+        });
+        mode.addEventListener("keyup", () => {
+          seen.push("keyup");
+        });
+        mode.enter(1);
+
+        for (const name of names) {
+          window.dispatchEvent(new Event(name));
+        }
+        // While buffering, nothing reaches the mode handlers.
+        expect(seen).toHaveLength(0);
+
+        releaseBufferedKeyEvents();
+        // The whole buffer is replayed exactly once, preserving dispatch order.
+        expect(seen).toStrictEqual(names);
+
+        mode.exit();
+      }),
+    );
   });
 });
