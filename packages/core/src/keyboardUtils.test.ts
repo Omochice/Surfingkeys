@@ -1,3 +1,4 @@
+import * as fc from "fast-check";
 import { describe, expect, it } from "vitest";
 
 import KeyboardUtils from "./keyboardUtils";
@@ -247,5 +248,55 @@ describe("KeyboardUtils.encodeKeystroke / decodeKeystroke — modifier-bit combi
     const encoded = KeyboardUtils.encodeKeystroke("a");
     expect(encoded).toBe("a");
     expect(KeyboardUtils.decodeKeystroke(encoded)).toBe("a");
+  });
+});
+
+describe("KeyboardUtils.encodeKeystroke / decodeKeystroke — properties", () => {
+  // A literal key inside a token excludes '<'/'>' (token boundaries) and '-'
+  // (the modifier separator), so a generated token parses unambiguously.
+  const literalChar = fc.constantFrom(
+    ..."abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!#$%&'()*+,./:;=?@",
+  );
+  const specialKey = fc.constantFrom(...KeyboardUtils.specialKeys);
+  // Modifiers must keep the canonical Ctrl/Alt/Meta/Shift order the parser scans
+  // for; fc.subarray preserves the source order.
+  const modifiers = fc.subarray(["Ctrl-", "Alt-", "Meta-", "Shift-"]);
+  const token = fc
+    .tuple(modifiers, fc.oneof(literalChar, specialKey))
+    .map(([mods, key]) => `<${mods.join("")}${key}>`);
+
+  it("encodes any keystroke token to a single character", () => {
+    fc.assert(
+      fc.property(token, (t) => {
+        expect(KeyboardUtils.encodeKeystroke(t)).toHaveLength(1);
+      }),
+    );
+  });
+
+  it("round-trips encode then decode for any keystroke token", () => {
+    fc.assert(
+      fc.property(token, (t) => {
+        expect(KeyboardUtils.decodeKeystroke(KeyboardUtils.encodeKeystroke(t))).toBe(t);
+      }),
+    );
+  });
+
+  it("leaves plain text without keystroke tokens unchanged", () => {
+    const plain = fc.array(literalChar).map((cs) => cs.join(""));
+    fc.assert(
+      fc.property(plain, (s) => {
+        expect(KeyboardUtils.encodeKeystroke(s)).toBe(s);
+        expect(KeyboardUtils.decodeKeystroke(s)).toBe(s);
+      }),
+    );
+  });
+
+  it("round-trips a sequence mixing plain text and keystroke tokens", () => {
+    const sequence = fc.array(fc.oneof(literalChar, token)).map((segs) => segs.join(""));
+    fc.assert(
+      fc.property(sequence, (s) => {
+        expect(KeyboardUtils.decodeKeystroke(KeyboardUtils.encodeKeystroke(s))).toBe(s);
+      }),
+    );
   });
 });
