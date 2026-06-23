@@ -126,6 +126,9 @@ window.getFrameId = function () {
         window.frameElement.offsetWidth > 16 &&
         window.frameElement.offsetHeight > 16))
   ) {
+    // Focus can boot an iframe before any key arrives; start buffering as the fetch begins so keys
+    // typed before settings load are held rather than firing defaults.
+    beginBufferingKeyEvents();
     initContent(initModules());
 
     // Only used to load user script for iframes in MV3
@@ -149,13 +152,14 @@ initModeHub(
         );
       },
 );
-// Hold keys until the user's settings are applied, so a key pressed during the async settings
-// fetch fires the user's (possibly overridden) mapping rather than the built-in default.
-beginBufferingKeyEvents();
 
 function start(injectedAdapter?: BrowserAdapter): void {
   adapter = injectedAdapter || {};
   if (window === top) {
+    // Hold keys until the user's settings are applied, so a key pressed during the async settings
+    // fetch fires the user's (possibly overridden) mapping rather than the built-in default. Start
+    // buffering as the fetch begins so the safety timeout is measured from that point.
+    beginBufferingKeyEvents();
     new Promise<Modes>((r) => {
       r(initModules());
     }).then((modes) => {
@@ -234,6 +238,9 @@ function start(injectedAdapter?: BrowserAdapter): void {
     document.addEventListener(
       "surfingkeys:iframeBoot",
       () => {
+        // The keydown that dispatched this event relies on buffering starting synchronously here,
+        // before the settings fetch starts, so it is held instead of firing a default.
+        beginBufferingKeyEvents();
         initContent(initModules());
       },
       { once: true },

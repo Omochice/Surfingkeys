@@ -489,6 +489,71 @@ describe("key buffering before user settings are applied", () => {
     }
   });
 
+  it("buffers and preventDefaults the boot key when the boot handler arms buffering", () => {
+    const originalTop = window.top;
+    Object.defineProperty(window, "top", { value: {}, configurable: true });
+    try {
+      // Mirror the content script: arm buffering synchronously when the iframe boots.
+      document.addEventListener(
+        "surfingkeys:iframeBoot",
+        () => {
+          beginBufferingKeyEvents();
+        },
+        { once: true },
+      );
+      initModeHub(makeTestEnv());
+      const mode = new ModeHandle("Normal");
+      const handler = vi.fn();
+      mode.addEventListener("keydown", handler);
+
+      // modeStack is empty, so the key hits the iframe-boot branch and is held, not handled.
+      const event = new Event("keydown", { cancelable: true });
+      const preventDefault = vi.spyOn(event, "preventDefault");
+      window.dispatchEvent(event);
+      expect(handler).not.toHaveBeenCalled();
+      expect(preventDefault).toHaveBeenCalled();
+
+      // Once the mode is up and settings load, the held key is replayed.
+      mode.enter(1);
+      document.dispatchEvent(new CustomEvent("surfingkeys:userSettingsLoaded"));
+      expect(handler).toHaveBeenCalledTimes(1);
+
+      mode.exit();
+    } finally {
+      Object.defineProperty(window, "top", { value: originalTop, configurable: true });
+    }
+  });
+
+  it("replays a buffered iframe boot key when released directly (settings fetch failed)", () => {
+    const originalTop = window.top;
+    Object.defineProperty(window, "top", { value: {}, configurable: true });
+    try {
+      document.addEventListener(
+        "surfingkeys:iframeBoot",
+        () => {
+          beginBufferingKeyEvents();
+        },
+        { once: true },
+      );
+      initModeHub(makeTestEnv());
+      const mode = new ModeHandle("Normal");
+      const handler = vi.fn();
+      mode.addEventListener("keydown", handler);
+
+      window.dispatchEvent(new Event("keydown"));
+      expect(handler).not.toHaveBeenCalled();
+
+      // The settings fetch failed: the content script releases the buffer directly.
+      mode.enter(1);
+      releaseBufferedKeyEvents();
+      expect(handler).toHaveBeenCalledTimes(1);
+
+      mode.exit();
+    } finally {
+      Object.defineProperty(window, "top", { value: originalTop, configurable: true });
+    }
+  });
+
   it("replays an arbitrary keydown/keyup sequence to handlers in dispatch order", () => {
     fc.assert(
       fc.property(fc.array(fc.constantFrom("keydown", "keyup"), { maxLength: 30 }), (names) => {
