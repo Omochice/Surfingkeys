@@ -383,6 +383,18 @@ describe("key buffering before user settings are applied", () => {
     mode.exit();
   });
 
+  it("removes the userSettingsLoaded listener when the buffer is released", () => {
+    initModeHub(makeTestEnv());
+    const removeEventListener = vi.spyOn(document, "removeEventListener");
+    beginBufferingKeyEvents();
+    releaseBufferedKeyEvents();
+    expect(removeEventListener).toHaveBeenCalledWith(
+      "surfingkeys:userSettingsLoaded",
+      releaseBufferedKeyEvents,
+    );
+    removeEventListener.mockRestore();
+  });
+
   it("releases the buffer when released directly (e.g. settings fetch failed)", () => {
     initModeHub(makeTestEnv());
     beginBufferingKeyEvents();

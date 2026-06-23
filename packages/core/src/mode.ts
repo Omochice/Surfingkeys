@@ -143,6 +143,9 @@ export function releaseBufferedKeyEvents(): void {
     clearTimeout(bufferReleaseTimer);
     bufferReleaseTimer = undefined;
   }
+  // When released via the safety timeout or a direct call, the once-listener never fired and so
+  // is still registered; detach it so no stale listener lingers on document.
+  document.removeEventListener("surfingkeys:userSettingsLoaded", releaseBufferedKeyEvents);
   settingsReady = true;
   const buffered = bufferedKeyEvents;
   bufferedKeyEvents = [];
