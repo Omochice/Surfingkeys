@@ -217,6 +217,9 @@ catalogs:
     dompurify:
       specifier: 3.4.11
       version: 3.4.11
+    fast-check:
+      specifier: 4.8.0
+      version: 4.8.0
     jsdom:
       specifier: 29.1.1
       version: 29.1.1
@@ -451,6 +454,9 @@ importers:
       '@sk/types':
         specifier: workspace:*
         version: link:../types
+      fast-check:
+        specifier: 'catalog:'
+        version: 4.8.0
       npm-run-all2:
         specifier: 'catalog:'
         version: 9.0.2
@@ -466,6 +472,9 @@ importers:
       typescript:
         specifier: 'catalog:'
         version: 6.0.3
+      vitest:
+        specifier: 'catalog:'
+        version: 4.1.9(@types/node@25.9.4)(@vitest/browser-playwright@4.1.9)(@vitest/coverage-istanbul@4.1.9)(@vitest/coverage-v8@4.1.9)(jsdom@29.1.1)(vite@8.0.16(@types/node@25.9.4)(esbuild@0.27.7)(jiti@2.7.0)(yaml@2.9.0))
 
   packages/content:
     dependencies:
@@ -555,6 +564,9 @@ importers:
       '@sk/types':
         specifier: workspace:*
         version: link:../types
+      fast-check:
+        specifier: 'catalog:'
+        version: 4.8.0
       jsdom:
         specifier: 'catalog:'
         version: 29.1.1
@@ -2392,6 +2404,10 @@ packages:
   exsolve@1.0.8:
     resolution: {integrity: sha512-LmDxfWXwcTArk8fUEnOfSZpHOJ6zOMUJKOtFLFqJLoKJetuQG874Uc7/Kki7zFLzYybmZhp1M7+98pfMqeX8yA==}
 
+  fast-check@4.8.0:
+    resolution: {integrity: sha512-GOJ158CUMnN6cSahsv4+ExARvIDuzzinFjkp0E9WtiBa5zcVeLozVkWaE4IzFcc+Y48Wp1EDlUZsXRyAztQcSg==}
+    engines: {node: '>=12.17.0'}
+
   fast-redact@3.5.0:
     resolution: {integrity: sha512-dwsoQlS7h9hMeYUq1W++23NDcBLV4KqONnITDV9DjfS3q1SgDGVrBdvvTLUotWtPSD7asWDV9/CmsZPy8Hf70A==}
     engines: {node: '>=6'}
@@ -3138,6 +3154,9 @@ packages:
   pupa@3.3.0:
     resolution: {integrity: sha512-LjgDO2zPtoXP2wJpDjZrGdojii1uqO0cnwKoIoUzkfS98HDmbeiGmYiXo3lXeFlq2xvne1QFQhwYXSUCLKtEuA==}
     engines: {node: '>=12.20'}
+
+  pure-rand@8.4.0:
+    resolution: {integrity: sha512-IoM8YF/jY0hiugFo/wOWqfmarlE6J0wc6fDK1PhftMk7MGhVZl88sZimmqBBFomLOCSmcCCpsfj7wXASCpvK9A==}
 
   quansync@0.2.11:
     resolution: {integrity: sha512-AifT7QEbW9Nri4tAwR5M/uzpBuqfZf+zwaEM/QkzEjj7NBuFD2rBuy0K3dE+8wltbezDV7JMA0WfnCPYRSYbXA==}
@@ -5184,6 +5203,10 @@ snapshots:
 
   exsolve@1.0.8: {}
 
+  fast-check@4.8.0:
+    dependencies:
+      pure-rand: 8.4.0
+
   fast-redact@3.5.0: {}
 
   fd-package-json@2.0.0:
@@ -5951,6 +5974,8 @@ snapshots:
   pupa@3.3.0:
     dependencies:
       escape-goat: 4.0.0
+
+  pure-rand@8.4.0: {}
 
   quansync@0.2.11: {}
 

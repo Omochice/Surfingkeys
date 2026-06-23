@@ -15,17 +15,20 @@
     "check:type": "tsc --noEmit -p tsconfig.json",
     "fmt": "npm-run-all2 --parallel --aggregate-output fmt:*",
     "fmt:oxfmt": "oxfmt",
-    "fmt:package": "sort-package-json"
+    "fmt:package": "sort-package-json",
+    "test": "vitest run"
   },
   "dependencies": {
     "@praha/byethrow": "catalog:"
   },
   "devDependencies": {
     "@sk/types": "workspace:*",
+    "fast-check": "catalog:",
     "npm-run-all2": "catalog:",
     "oxfmt": "catalog:",
     "oxlint": "catalog:",
     "sort-package-json": "catalog:",
-    "typescript": "catalog:"
+    "typescript": "catalog:",
+    "vitest": "catalog:"
   }
 }
