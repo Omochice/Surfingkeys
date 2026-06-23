@@ -1,4 +1,5 @@
 import { Result } from "@praha/byethrow";
+import * as fc from "fast-check";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import type { EngineEnv } from "./engineEnv";
@@ -444,5 +445,35 @@ describe("key buffering before user settings are applied", () => {
     } finally {
       Object.defineProperty(window, "top", { value: originalTop, configurable: true });
     }
+  });
+
+  it("replays an arbitrary keydown/keyup sequence to handlers in dispatch order", () => {
+    fc.assert(
+      fc.property(fc.array(fc.constantFrom("keydown", "keyup"), { maxLength: 30 }), (names) => {
+        initModeHub(makeTestEnv());
+        beginBufferingKeyEvents();
+        const mode = new ModeHandle("Normal");
+        const seen: string[] = [];
+        mode.addEventListener("keydown", () => {
+          seen.push("keydown");
+        });
+        mode.addEventListener("keyup", () => {
+          seen.push("keyup");
+        });
+        mode.enter(1);
+
+        for (const name of names) {
+          window.dispatchEvent(new Event(name));
+        }
+        // While buffering, nothing reaches the mode handlers.
+        expect(seen).toHaveLength(0);
+
+        releaseBufferedKeyEvents();
+        // The whole buffer is replayed exactly once, preserving dispatch order.
+        expect(seen).toStrictEqual(names);
+
+        mode.exit();
+      }),
+    );
   });
 });
