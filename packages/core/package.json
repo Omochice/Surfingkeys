@@ -25,6 +25,7 @@
   "devDependencies": {
     "@sk/test-support": "workspace:*",
     "@sk/types": "workspace:*",
+    "fast-check": "catalog:",
     "jsdom": "catalog:",
     "npm-run-all2": "catalog:",
     "oxfmt": "catalog:",
