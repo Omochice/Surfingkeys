@@ -46,7 +46,6 @@ This fork is not published to any extension store. Build it from source and load
 
 - [Feature list](#feature-list)
 - [Quick start](#quick-start)
-- [Follow links](#follow-links)
 - [Surfingkeys modes](#surfingkeys-modes)
 - [Omnibar](#omnibar)
 - [Search selected with](#search-selected-with)
@@ -533,7 +532,6 @@ settings.theme = `
 
 > The API documentation is currently a work in progress.
 
-- [Markdown](docs/API.md)
 - [HTML](http://brookhong.github.io/Surfingkeys)
 
 ## Other
