@@ -50,17 +50,9 @@ const listenedEvents: Record<string, (event: StackEvent) => void> = {
       event.sk_keyName = KeyboardUtils.getKeyChar(event);
     }
     if (modeStack.length === 0 && window !== top) {
-      // automatically boots iframe on demand
+      // Boot the iframe on demand; its handler starts buffering synchronously, so this key falls
+      // through to the buffer below instead of firing a default.
       dispatchSKEvent("iframeBoot");
-      document.addEventListener(
-        "surfingkeys:userSettingsLoaded",
-        () => {
-          // proceed to handle the key event after userSettingsLoaded.
-          handleStack("keydown", event);
-        },
-        { once: true },
-      );
-      return;
     }
     if (!settingsReady) {
       bufferKeyEvent("keydown", event);
@@ -160,8 +152,8 @@ export function releaseBufferedKeyEvents(): void {
 
 /**
  * Start buffering key events until the user's settings are applied. The content script calls this
- * right after installing the mode hub; the UI frame does not (it never applies user settings). The
- * buffer is released on the userSettingsLoaded event.
+ * once per frame as the settings fetch begins; the UI frame does not (it never applies user
+ * settings). The buffer is released on the userSettingsLoaded event or the safety timeout.
  */
 export function beginBufferingKeyEvents(): void {
   settingsReady = false;
