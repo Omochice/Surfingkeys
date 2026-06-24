@@ -1,0 +1,34 @@
+[MD004]
+style = "dash"
+
+[MD007]
+indent = 4
+style = "fixed"
+
+[MD041]
+enabled = false
+
+[MD049]
+style = "underscore"
+
+[MD050]
+style = "asterisk"
+
+[MD055]
+style = "leading-and-trailing"
+
+[MD060]
+enabled = true
+style = "aligned"
+
+[global]
+line-length = 0
+
+# The repository writes every code block fenced.
+[MD046]
+style = "fenced"
+
+# The README sizes the logo with an <img> width attribute, which Markdown image
+# syntax cannot express.
+[MD033]
+allowed-elements = ["img"]
