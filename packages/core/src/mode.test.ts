@@ -489,11 +489,11 @@ describe("key buffering before user settings are applied", () => {
     }
   });
 
-  it("buffers and preventDefaults the boot key when the boot handler arms buffering", () => {
+  it("buffers and preventDefaults the boot key when the boot handler starts buffering", () => {
     const originalTop = window.top;
     Object.defineProperty(window, "top", { value: {}, configurable: true });
     try {
-      // Mirror the content script: arm buffering synchronously when the iframe boots.
+      // Mirror the content script: start buffering synchronously when the iframe boots.
       document.addEventListener(
         "surfingkeys:iframeBoot",
         () => {
@@ -513,7 +513,6 @@ describe("key buffering before user settings are applied", () => {
       expect(handler).not.toHaveBeenCalled();
       expect(preventDefault).toHaveBeenCalled();
 
-      // Once the mode is up and settings load, the held key is replayed.
       mode.enter(1);
       document.dispatchEvent(new CustomEvent("surfingkeys:userSettingsLoaded"));
       expect(handler).toHaveBeenCalledTimes(1);

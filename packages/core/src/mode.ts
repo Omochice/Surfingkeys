@@ -50,9 +50,8 @@ const listenedEvents: Record<string, (event: StackEvent) => void> = {
       event.sk_keyName = KeyboardUtils.getKeyChar(event);
     }
     if (modeStack.length === 0 && window !== top) {
-      // Boot the iframe on demand. The boot handler starts buffering synchronously (it kicks off
-      // the settings fetch), so this key falls through to be buffered and replayed once settings
-      // load rather than firing built-in defaults.
+      // Boot the iframe on demand; its handler starts buffering synchronously, so this key falls
+      // through to the buffer below instead of firing a default.
       dispatchSKEvent("iframeBoot");
     }
     if (!settingsReady) {
