@@ -5,12 +5,9 @@ It carries no Surfingkeys or WebExtension knowledge, so any layer may depend on 
 
 ## Responsibilities
 
-The package exposes two independent entry points described below.
-
-- `@sk/common/result` — a typed `Result` value plus factories and helpers built on `@praha/byethrow`, used to model fallible operations (for example `ChromeRuntimeError` and `domApiError`) instead of throwing.
-- `@sk/common/utils` — small pure helpers such as query/regex construction and title-or-URL filtering.
+It provides result-handling utilities for modelling fallible operations without throwing, together with small general-purpose helpers.
 
 ## Boundaries
 
 This is the lowest application layer above `@sk/types`.
-It depends only on `@praha/byethrow` and must stay free of browser APIs and feature logic.
+It must stay free of browser APIs and feature logic.

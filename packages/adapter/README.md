@@ -4,12 +4,8 @@ A thin platform adapter that bridges the browser-agnostic `@sk/core` engine to t
 
 ## Responsibilities
 
-The package supplies the small, platform-specific helpers the engine cannot provide itself.
-
-- `log` — level-gated logging that reads the `logLevels` setting from `chrome.storage.local`.
-- `platform-utils` — environment glue: the `isInUIFrame` probe, issue reporting, localization loading (`initL10n`), and favicon resolution that differs between Chrome and Firefox.
+It supplies the small platform-specific helpers the engine cannot provide itself, concentrating browser branching that would otherwise leak into the engine.
 
 ## Boundaries
 
-This package depends on `@sk/core` and touches `chrome.*`/`window`.
-It concentrates the platform branching that would otherwise leak into the engine, keeping `@sk/core` free of browser globals.
+It depends on `@sk/core` and is allowed to touch `chrome.*`/`window`, keeping those platform concerns out of the engine.
