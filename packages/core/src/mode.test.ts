@@ -489,7 +489,7 @@ describe("key buffering before user settings are applied", () => {
     }
   });
 
-  it("buffers and preventDefaults the boot key when the boot handler starts buffering", () => {
+  it("buffers and prevents default on the boot key when the boot handler starts buffering", () => {
     const originalTop = window.top;
     Object.defineProperty(window, "top", { value: {}, configurable: true });
     try {
