@@ -4,19 +4,19 @@ Thank you for willing to contribute on this project.
 
 Please use below template to report issue, or you could click menu item from SurfingKeys icon in browser's tool bar.
 
-    ## Error details
+```text
+## Error details
 
+SurfingKeys: 0.9.22
 
+Browser: Mozilla/5.0 (Macintosh; Intel Mac OS X 10.12; rv:57.0) Gecko/20100101 Firefox/57.0
 
-    SurfingKeys: 0.9.22
+URL: <The_URL_Where_You_Find_The_Issue>
 
-    Browser: Mozilla/5.0 (Macintosh; Intel Mac OS X 10.12; rv:57.0) Gecko/20100101 Firefox/57.0
+## Context
 
-    URL: <The_URL_Where_You_Find_The_Issue>
-
-    ## Context
-
-    **Please replace this with a description of how you were using SurfingKeys.**
+**Please replace this with a description of how you were using SurfingKeys.**
+```
 
 ## Build
 
