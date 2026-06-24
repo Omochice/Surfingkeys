@@ -4,13 +4,13 @@
 mtches = "matches"
 
 [default.extend-words]
+BA = "BA"
 # Allowlisted rather than fixed: intentional test fixtures and the U+00BA hex
 # unit, not misspellings.
 Hhttp = "Hhttp"
 Hhttps = "Hhttps"
 abd = "abd"
 fo = "fo"
-BA = "BA"
 
 [files]
 extend-exclude = ["apps/extension/public/pages/emoji.tsv"]
