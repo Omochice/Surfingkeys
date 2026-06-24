@@ -1,6 +1,3 @@
-[files]
-extend-exclude = ["apps/extension/public/pages/emoji.tsv"]
-
 [default.extend-identifiers]
 # Not left to the built-in dictionary, which misses `mtches`: pin it so a
 # recurrence is caught.
@@ -14,3 +11,6 @@ Hhttps = "Hhttps"
 abd = "abd"
 fo = "fo"
 BA = "BA"
+
+[files]
+extend-exclude = ["apps/extension/public/pages/emoji.tsv"]
