@@ -22,6 +22,7 @@
             pkgs.pnpm
             pkgs.typos
             pkgs.nixfmt
+            pkgs.rumdl
           ];
         };
       }
