@@ -11,4 +11,4 @@ It extends the lib DOM types with the non-standard and newer browser members the
 ## Boundaries
 
 The declarations are pure DOM and contain no `chrome`/WebExtension types.
-This lets `@sk/core` include them while staying free of browser-extension globals.
+This lets `@sk/core` use them while staying free of browser-extension globals.
