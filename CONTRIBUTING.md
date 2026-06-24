@@ -4,7 +4,7 @@ Thank you for willing to contribute on this project.
 
 Please use below template to report issue, or you could click menu item from SurfingKeys icon in browser's tool bar.
 
-```text
+```markdown
 ## Error details
 
 SurfingKeys: 0.9.22
