@@ -235,6 +235,10 @@ function start(injectedAdapter?: BrowserAdapter): void {
     document.addEventListener(
       "surfingkeys:iframeBoot",
       () => {
+        // A focus-triggered getFrameId() may have already booted this frame; don't init twice.
+        if (window.frameId) {
+          return;
+        }
         // Must start synchronously so the keydown that dispatched this event falls through to the buffer.
         beginBufferingKeyEvents();
         initContent(initModules());
