@@ -5,5 +5,5 @@
       "entry": ["src/pages/popup/popup.ts", "src/user_scripts/index.ts"]
     }
   },
-  "ignoreBinaries": ["nixfmt", "rumdl", "typos"]
+  "ignoreBinaries": ["nixfmt", "rumdl", "toml-sort", "typos"]
 }

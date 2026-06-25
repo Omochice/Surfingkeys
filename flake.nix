@@ -23,6 +23,7 @@
             pkgs.typos
             pkgs.nixfmt
             pkgs.rumdl
+            pkgs.toml-sort
           ];
         };
       }
