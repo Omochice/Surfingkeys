@@ -4,9 +4,9 @@
 mtches = "matches"
 
 [default.extend-words]
-BA = "BA"
 # Allowlisted rather than fixed: intentional test fixtures and the U+00BA hex
 # unit, not misspellings.
+BA = "BA"
 Hhttp = "Hhttp"
 Hhttps = "Hhttps"
 abd = "abd"
