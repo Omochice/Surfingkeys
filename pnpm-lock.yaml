@@ -242,8 +242,8 @@ catalogs:
       specifier: 6.0.3
       version: 6.0.3
     valibot:
-      specifier: 1.4.1
-      version: 1.4.1
+      specifier: 1.4.2
+      version: 1.4.2
     vitest:
       specifier: 4.1.9
       version: 4.1.9
@@ -409,7 +409,7 @@ importers:
         version: link:../common
       valibot:
         specifier: 'catalog:'
-        version: 1.4.1(typescript@6.0.3)
+        version: 1.4.2(typescript@6.0.3)
     devDependencies:
       '@sk/test-support':
         specifier: workspace:*
@@ -498,7 +498,7 @@ importers:
         version: 1.9.13
       valibot:
         specifier: 'catalog:'
-        version: 1.4.1(typescript@6.0.3)
+        version: 1.4.2(typescript@6.0.3)
     devDependencies:
       '@sk/test-support':
         specifier: workspace:*
@@ -556,7 +556,7 @@ importers:
         version: link:../common
       valibot:
         specifier: 'catalog:'
-        version: 1.4.1(typescript@6.0.3)
+        version: 1.4.2(typescript@6.0.3)
     devDependencies:
       '@sk/test-support':
         specifier: workspace:*
@@ -3544,8 +3544,8 @@ packages:
     deprecated: uuid@10 and below is no longer supported.  For ESM codebases, update to uuid@latest.  For CommonJS codebases, use uuid@11 (but be aware this version will likely be deprecated in 2028).
     hasBin: true
 
-  valibot@1.4.1:
-    resolution: {integrity: sha512-klCmFTz2jeDluy9RwX+F884TCiogtdBJ/YaxSx1EOBYXa3NXNWj8kR1jjN8rzluwojJVWWaHJ4r1U5LfICnM3g==}
+  valibot@1.4.2:
+    resolution: {integrity: sha512-gjdCvJ6d3RyHAneqxMYMW9QMCwYMb3jpOO0IyHZV1bnRHFBHrX3VkIILt5XYR0WhwHiH7Mty8ovuPZ/O3gamrg==}
     peerDependencies:
       typescript: '>=5'
     peerDependenciesMeta:
@@ -6351,7 +6351,7 @@ snapshots:
 
   uuid@8.3.2: {}
 
-  valibot@1.4.1(typescript@6.0.3):
+  valibot@1.4.2(typescript@6.0.3):
     optionalDependencies:
       typescript: 6.0.3
 

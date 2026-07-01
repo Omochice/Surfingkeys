@@ -14,7 +14,7 @@ catalog:
   solid-js: 1.9.13
   sort-package-json: 4.0.0
   typescript: 6.0.3
-  valibot: 1.4.1
+  valibot: 1.4.2
   vitest: 4.1.9
   wxt: 0.20.26
 allowBuilds:
