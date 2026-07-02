@@ -1244,6 +1244,20 @@ describe("OmniQuery handler — onOpen/onInput/onEnter", () => {
     expect(words.some((h: string) => h.includes("banana"))).toBe(false);
   });
 
+  it("onInput does not throw when typed before the getPageText response arrives", () => {
+    const { omnibar, front, ui } = makeOmnibar();
+
+    // Leave the getPageText callback unfired to reproduce the cross-frame
+    // round-trip still being in flight when the user types.
+    front.contentCommand.mockImplementation(() => {});
+
+    ui.onShow({ type: "OmniQuery" });
+
+    omnibar.input.value = "a";
+    expect(() => omnibar.triggerInput()).not.toThrow();
+    expect(omnibar.results()).toHaveLength(0);
+  });
+
   it("onEnter dispatches contentCommand omnibar_query_entered with current input", () => {
     const { omnibar, front, ui } = makeOmnibar();
 
