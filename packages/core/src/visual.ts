@@ -69,6 +69,10 @@ type VisualMode = {
   style(element: string, style: string): void;
 };
 
+function buildFindRegExp(query: string): RegExp {
+  return new RegExp(query, getCaseSensitive(query) ? "" : "i");
+}
+
 function createVisual(clipboard: ClipboardLike, hints: HintsLike, env: EngineEnv): VisualMode {
   const { RUNTIME } = env;
   const mode = new ModeHandle("Visual");
@@ -791,7 +795,7 @@ function createVisual(clipboard: ClipboardLike, hints: HintsLike, env: EngineEnv
         const pos: [Node | null, number] = [selection.focusNode, selection.focusOffset];
         RUNTIME("updateInputHistory", { find: query });
         self.visualClear();
-        highlight(new RegExp(query, getCaseSensitive(query) ? "" : "i"));
+        highlight(buildFindRegExp(query));
         selection.setPosition(pos[0], pos[1]);
         self.showCursor();
       }
@@ -816,7 +820,7 @@ function createVisual(clipboard: ClipboardLike, hints: HintsLike, env: EngineEnv
         [undefined, undefined, currentOccurrence + 1 + " / " + matches.length],
       ]);
     } else if (conf.lastQuery) {
-      highlight(new RegExp(conf.lastQuery, getCaseSensitive(conf.lastQuery) ? "" : "i"));
+      highlight(buildFindRegExp(conf.lastQuery));
       self.visualEnter(conf.lastQuery);
     }
   };
@@ -898,7 +902,7 @@ function createVisual(clipboard: ClipboardLike, hints: HintsLike, env: EngineEnv
       return;
     }
     self.visualClear();
-    highlight(new RegExp(query, getCaseSensitive(query) ? "" : "i"));
+    highlight(buildFindRegExp(query));
     if (matches.length) {
       self.enter();
       const cur = matches[currentOccurrence];
