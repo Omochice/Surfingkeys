@@ -1357,6 +1357,15 @@ describe("closeAudibleTab", () => {
     await handler({}, {}, vi.fn());
     expect(remove).toHaveBeenCalledWith(55);
   });
+
+  it("no-ops when no tab is audible", async () => {
+    const remove = vi.fn();
+    const { unit } = tabUnitOver([], {}, { remove });
+    const handler = unit.handlers["closeAudibleTab"];
+    expectDefined(handler);
+    await handler({}, {}, vi.fn());
+    expect(remove).not.toHaveBeenCalled();
+  });
 });
 
 // ---------------------------------------------------------------------------
