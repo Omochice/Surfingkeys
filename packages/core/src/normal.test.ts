@@ -950,6 +950,37 @@ describe("createPassThrough auto-exit via timeout", () => {
     expect(pt2.name).toBe("PassThrough");
   });
 
+  it("does not tear down a re-entered session when a prior session's auto-exit timer is still pending", () => {
+    const normal = createNormal(insertStub, env);
+
+    // First ephemeral session arms an auto-exit timer. Identity (not name) is asserted below because
+    // other tests share the module-level mode stack and may leave their own PassThrough handles on it.
+    normal.passThrough(1000);
+    const session = getCurrentMode();
+    if (session?.name !== "PassThrough") {
+      throw new Error("PassThrough did not become the current mode");
+    }
+    vi.advanceTimersByTime(200);
+
+    // Exit early via <Esc> before the auto-exit fires.
+    const escHandler = session.eventListeners["keydown"];
+    if (escHandler == null) throw new Error("PassThrough has no keydown handler");
+    const esc = new Event("keydown") as Event & { sk_keyName?: string };
+    esc.sk_keyName = "<Esc>";
+    escHandler(esc);
+    expect(getCurrentMode()).not.toBe(session);
+
+    // Re-enter (the same handle is pushed onto the stack again).
+    vi.advanceTimersByTime(100);
+    normal.passThrough(1000);
+    expect(getCurrentMode()).toBe(session);
+
+    // Advance past the first session's original deadline; the stale timer must not exit the
+    // re-entered session (which should live until its own, later deadline).
+    vi.advanceTimersByTime(700);
+    expect(getCurrentMode()).toBe(session);
+  });
+
   it("sets statusLine to include the timeout value when timeout > 0", () => {
     const normal = createNormal(insertStub, env);
     const pt = normal.passThrough(1234);

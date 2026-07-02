@@ -216,6 +216,22 @@ function createPassThrough(): PassThroughMode {
   let timeoutMs: number | undefined;
   const mode = new ModeHandle("PassThrough");
 
+  const clearAutoExit = (): void => {
+    if (autoExit) {
+      clearTimeout(autoExit);
+      autoExit = undefined;
+    }
+  };
+
+  const armAutoExit = (): void => {
+    if (timeoutMs && timeoutMs > 0) {
+      clearAutoExit();
+      autoExit = setTimeout(() => {
+        mode.exit();
+      }, timeoutMs);
+    }
+  };
+
   mode
     .addEventListener("keydown", (event) => {
       // prevent this event to be handled by Surfingkeys' other listeners
@@ -223,14 +239,8 @@ function createPassThrough(): PassThroughMode {
       if (isSpecialKeyOf("<Esc>", event.sk_keyName ?? "")) {
         mode.exit();
         event.sk_stopPropagation = true;
-      } else if (timeoutMs && timeoutMs > 0) {
-        if (autoExit) {
-          clearTimeout(autoExit);
-          autoExit = undefined;
-        }
-        autoExit = setTimeout(() => {
-          mode.exit();
-        }, timeoutMs);
+      } else {
+        armAutoExit();
       }
     })
     .addEventListener("mousedown", (event) => {
@@ -241,14 +251,18 @@ function createPassThrough(): PassThroughMode {
   });
 
   mode.onEnter = () => {
+    armAutoExit();
     if (timeoutMs && timeoutMs > 0) {
-      autoExit = setTimeout(() => {
-        mode.exit();
-      }, timeoutMs);
       mode.statusLine = `ephemeral(${timeoutMs}ms) pass through`;
     } else {
       mode.statusLine = "pass through";
     }
+  };
+
+  // A pending auto-exit timer would otherwise outlive an early <Esc> exit and later fire against a
+  // freshly re-entered session, tearing it down mid-use.
+  mode.onExit = () => {
+    clearAutoExit();
   };
 
   return {
