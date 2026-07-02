@@ -673,8 +673,7 @@ describe("window message handler — persistent callback (returns true)", () => 
 });
 
 // ---------------------------------------------------------------------------
-// Find — ArrowUp/ArrowDown history recall (regression: query used to be sent
-// as undefined because it was only assigned on the Enter branch)
+// Find — ArrowUp/ArrowDown history recall
 // ---------------------------------------------------------------------------
 describe("Find — ArrowUp/ArrowDown history recall", () => {
   it("sends the recalled history entry as the visualUpdate query", () => {
