@@ -979,6 +979,11 @@ describe("createPassThrough auto-exit via timeout", () => {
     // re-entered session (which should live until its own, later deadline).
     vi.advanceTimersByTime(700);
     expect(getCurrentMode()).toBe(session);
+
+    // The re-entered session still honors its own deadline, which also leaves the module-level
+    // mode stack clean for later tests.
+    vi.advanceTimersByTime(400);
+    expect(getCurrentMode()).not.toBe(session);
   });
 
   it("does not tear down an indefinite session entered over a pending ephemeral timer", () => {
