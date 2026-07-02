@@ -188,7 +188,7 @@ function defineOpenWordTranslation(ctx: ModeContext): ModalMappingDef {
     def: {
       annotation: "#8Open omnibar for word translation",
       code: () => {
-        ctx.front.openOmniquery({ query: getWordUnderCursor(), style: "opacity: 0.8;" });
+        ctx.front.openOmniquery?.({ query: getWordUnderCursor(), style: "opacity: 0.8;" });
       },
     },
   };
@@ -682,7 +682,7 @@ function defineVisualTranslateWord(ctx: ModeContext): ModalMappingDef {
       code: () => {
         const w = getWordUnderCursor();
         const b = ctx.visual.getCursorPixelPos();
-        ctx.front.performInlineQuery(
+        ctx.front.performInlineQuery?.(
           w ?? "",
           {
             top: b.top,
@@ -709,7 +709,7 @@ function defineQueryWordWithHints(ctx: ModeContext): ModalMappingDef {
         ctx.hints.create(conf.textAnchorPat, (element: TextAnchorMatch) => {
           const word = element[2].trim().replace(/[^A-z].*$/, "");
           const b = getTextNodePos(element[0], element[1], element[2].length);
-          ctx.front.performInlineQuery(
+          ctx.front.performInlineQuery?.(
             word,
             {
               top: b.top,

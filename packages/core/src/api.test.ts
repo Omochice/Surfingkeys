@@ -324,6 +324,23 @@ describe("createAPI map with command-line prefix", () => {
     node!.meta!.code!();
     expect(ctx.front.executeCommand).toHaveBeenCalledWith("echo");
   });
+
+  it("does not throw when the iframe front omits executeCommand", () => {
+    // The iframe front implements only the shared members; a command-line mapping fired there must
+    // fall through instead of throwing on the absent executeCommand.
+    const ctx = makeCtx();
+    ctx.front = {
+      openOmnibar: vi.fn(),
+      chooseTab: vi.fn(),
+      showUsage: vi.fn(),
+      toggleStatus: vi.fn(),
+    };
+    const api = createAPI(ctx as any, env);
+
+    api.map("e", ":echo");
+    const node = ctx.normal.mappings.find(KeyboardUtils.encodeKeystroke("e"));
+    expect(() => node!.meta!.code!()).not.toThrow();
+  });
 });
 
 describe("createAPI addSearchAlias key mappings", () => {

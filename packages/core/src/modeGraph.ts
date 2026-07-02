@@ -48,10 +48,11 @@ type ContentOnlyFront = {
 /**
  * The front surface consumed by {@link createAPI} and createDefaultMappings. The concrete front
  * differs per site — content.ts wires the messaging stub from createFront, the iframe wires its own
- * Front mode — and both are dynamic (`any`) objects, so it is described structurally here as the
- * methods those two consumers call.
+ * Front mode. Only {@link SharedFront} is guaranteed; the {@link ContentOnlyFront} members are
+ * optional because the iframe front omits them, so both consumers guard each call before invoking
+ * it.
  */
-type FrontLike = SharedFront & ContentOnlyFront;
+type FrontLike = SharedFront & Partial<ContentOnlyFront>;
 
 /**
  * The set of modes wired together for one content/frontend context. This is the single object
