@@ -11,9 +11,7 @@ type CommandFn = (
   handler: (args: string[]) => void | boolean,
 ) => void;
 type OmnibarLike = {
-  // Mirror the omnibar's real contract instead of the previous `unknown` pass-through: each
-  // renderer must yield an OmnibarResult for the Solid-driven result store, not a raw <li> as the
-  // pre-Solid list expected.
+  // Each renderer must yield an OmnibarResult for the Solid-driven result store, not a raw <li>.
   listResults<T>(
     items: readonly T[] | null | undefined,
     renderItem: (item: T) => OmnibarResult | null | undefined,
