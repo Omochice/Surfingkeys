@@ -224,8 +224,8 @@ function createPassThrough(): PassThroughMode {
   };
 
   const armAutoExit = (): void => {
+    clearAutoExit();
     if (timeoutMs && timeoutMs > 0) {
-      clearAutoExit();
       autoExit = setTimeout(() => {
         mode.exit();
       }, timeoutMs);

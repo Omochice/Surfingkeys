@@ -981,6 +981,25 @@ describe("createPassThrough auto-exit via timeout", () => {
     expect(getCurrentMode()).toBe(session);
   });
 
+  it("does not tear down an indefinite session entered over a pending ephemeral timer", () => {
+    const normal = createNormal(insertStub, env);
+
+    normal.passThrough(1000);
+    const session = getCurrentMode();
+    if (session?.name !== "PassThrough") {
+      throw new Error("PassThrough did not become the current mode");
+    }
+    vi.advanceTimersByTime(200);
+
+    // Switch to an indefinite session without exiting first; the ephemeral timer is still pending.
+    normal.passThrough();
+    vi.advanceTimersByTime(2000);
+    expect(getCurrentMode()).toBe(session);
+
+    // Leave the stack clean for later tests sharing the module-level mode stack.
+    session.exit();
+  });
+
   it("sets statusLine to include the timeout value when timeout > 0", () => {
     const normal = createNormal(insertStub, env);
     const pt = normal.passThrough(1234);
