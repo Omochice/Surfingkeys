@@ -400,7 +400,6 @@ describe("createVisual — visualEnter() query compilation", () => {
 
     expect(() => visual.visualEnter("c++")).not.toThrow();
 
-    // A literal "c++" occurs once, so the mode is entered and no "not found" is shown.
     expect(enterSpy).toHaveBeenCalled();
     const texts = statusTexts(captured);
     expect(texts.some((t) => typeof t === "string" && t.includes("1 / 1"))).toBe(true);
