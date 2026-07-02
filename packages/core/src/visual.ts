@@ -70,7 +70,16 @@ type VisualMode = {
 };
 
 function buildFindRegExp(query: string): RegExp {
-  return new RegExp(query, getCaseSensitive(query) ? "" : "i");
+  const flags = getCaseSensitive(query) ? "" : "i";
+  try {
+    // Surfingkeys deliberately treats the find query as a regular expression, so it is
+    // compiled verbatim rather than always escaped, which would drop intentional regex search.
+    return new RegExp(query, flags);
+  } catch {
+    // An invalid pattern (e.g. "c++") would otherwise abort the search with a SyntaxError;
+    // fall back to matching the query as a literal string instead.
+    return new RegExp(query.replaceAll(/[|\\{}()[\]^$+*?.]/g, String.raw`\$&`), flags);
+  }
 }
 
 function createVisual(clipboard: ClipboardLike, hints: HintsLike, env: EngineEnv): VisualMode {
