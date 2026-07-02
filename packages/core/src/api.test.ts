@@ -326,8 +326,6 @@ describe("createAPI map with command-line prefix", () => {
   });
 
   it("does not throw when the iframe front omits executeCommand", () => {
-    // The iframe front implements only the shared members; a command-line mapping fired there must
-    // fall through instead of throwing on the absent executeCommand.
     const ctx = makeCtx();
     ctx.front = {
       openOmnibar: vi.fn(),

@@ -127,10 +127,6 @@ const Front = (() => {
     Omnibar: omnibar,
   };
 
-  // The iframe front implements only the SharedFront members; the content-only FrontLike members
-  // (executeCommand, removeSearchAlias, openOmniquery, registerInlineQuery, performInlineQuery) act
-  // on the hosting page and are omitted here. FrontLike marks them optional, so this assignment is
-  // honest and the API/default-mapping call sites guard each one before invoking it.
   const ctx: ModeContext = {
     clipboard,
     insert,

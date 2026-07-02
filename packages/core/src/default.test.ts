@@ -218,9 +218,6 @@ describe("front-delegating keys", () => {
 });
 
 describe("iframe front lacking content-only members", () => {
-  // The iframe front implements only the shared members; a mapping whose action reaches a
-  // content-only member (which acts on the hosting page the iframe cannot touch) must fall through
-  // silently rather than throw a TypeError that would swallow the keystroke.
   const wireIframeLikeMappings = () => {
     const iframeRegistry = new Map<string, Registration>();
     const record = (mode: string) => (keys: string, annotation: any, cb: any, options: any) => {
