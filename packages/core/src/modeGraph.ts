@@ -6,12 +6,22 @@ import createNormal from "./normal";
 import createVisual from "./visual";
 
 /**
- * The front surface consumed by {@link createAPI} and createDefaultMappings. The concrete front
- * differs per site — content.ts wires the messaging stub from createFront, the iframe wires its own
- * Front mode — and both are dynamic (`any`) objects, so it is described structurally here as the
- * union of the methods those two consumers actually call.
+ * Front members implemented by both site-specific fronts: content.ts's messaging stub (createFront)
+ * and the iframe's own Front mode. These act on the overlay UI, which exists in both contexts.
  */
-type FrontLike = {
+type SharedFront = {
+  openOmnibar(args: unknown): void;
+  chooseTab(): void;
+  showUsage(): void;
+  toggleStatus(visible: boolean): void;
+};
+
+/**
+ * Front members that only the content-script front implements. They operate on the hosting web page
+ * (its selection, dictionary bubble, search aliases, commands), which the iframe front — running
+ * inside the extension's own UI page — has no access to, so the iframe front omits them.
+ */
+type ContentOnlyFront = {
   executeCommand(cmd: string): void;
   addSearchAlias?: (
     alias: string,
@@ -22,22 +32,26 @@ type FrontLike = {
     options?: { skipMaps?: boolean; favicon_url?: string },
   ) => void;
   removeSearchAlias(alias: string): void;
-  openOmnibar(args: unknown): void;
   openOmniquery(args: unknown): void;
   // Forwarded verbatim to a dynamic front method and an any-typed action registry; a narrower
   // parameter would break either the assignment from the real front or the forwarding target.
   // eslint-disable-next-line typescript/no-explicit-any
   registerInlineQuery: (...args: any[]) => void;
   setHintsCharacters?: (chars: string) => void;
-  chooseTab(): void;
-  showUsage(): void;
-  toggleStatus(visible: boolean): void;
   performInlineQuery(
     word: string,
     pos: { top: number; left: number; height: number; width: number },
     cb: (pos: unknown, queryResult: unknown) => void,
   ): void;
 };
+
+/**
+ * The front surface consumed by {@link createAPI} and createDefaultMappings. The concrete front
+ * differs per site — content.ts wires the messaging stub from createFront, the iframe wires its own
+ * Front mode — and both are dynamic (`any`) objects, so it is described structurally here as the
+ * methods those two consumers call.
+ */
+type FrontLike = SharedFront & ContentOnlyFront;
 
 /**
  * The set of modes wired together for one content/frontend context. This is the single object
