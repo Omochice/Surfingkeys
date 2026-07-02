@@ -559,7 +559,7 @@ export function createTabs(deps: TabsDeps): TabsUnit {
       if (tab?.id == null) {
         return;
       }
-      chrome.tabs.remove(tab.id);
+      await chrome.tabs.remove(tab.id);
     },
     muteTab: (_message: unknown, sender?: chrome.runtime.MessageSender) => {
       const tab = sender?.tab;
