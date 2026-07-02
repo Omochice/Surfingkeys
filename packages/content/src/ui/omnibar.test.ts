@@ -612,9 +612,6 @@ describe("createOmnibar — Ctrl-m vim-like mark creation", () => {
     );
     expect(omnibar.focusedIndex()).toBe(0);
 
-    // Regression: this path used to call an undefined global `Normal.addVIMark`
-    // and throw ReferenceError inside the frontend iframe, so the mark was never
-    // created. It must now reach the background through the shared RUNTIME channel.
     const ctrlM = getMappingByAnnotation(omnibar, "Create vim-like mark for selected item");
     expect(ctrlM).toBeDefined();
     ctrlM!("q");
