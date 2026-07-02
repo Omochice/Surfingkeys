@@ -1363,7 +1363,7 @@ describe("closeAudibleTab", () => {
     const { unit } = tabUnitOver([], {}, { remove });
     const handler = unit.handlers["closeAudibleTab"];
     expectDefined(handler);
-    await expect(handler({}, {}, vi.fn())).resolves.not.toThrow();
+    await handler({}, {}, vi.fn());
     expect(remove).not.toHaveBeenCalled();
   });
 });
