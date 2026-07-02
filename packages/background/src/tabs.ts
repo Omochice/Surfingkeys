@@ -555,9 +555,11 @@ export function createTabs(deps: TabsDeps): TabsUnit {
     },
     closeAudibleTab: async () => {
       const tabs = await chrome.tabs.query({ audible: true });
-      if (tabs) {
-        chrome.tabs.remove(tabs[0]!.id!);
+      const tab = tabs[0];
+      if (tab?.id == null) {
+        return;
       }
+      chrome.tabs.remove(tab.id);
     },
     muteTab: (_message: unknown, sender?: chrome.runtime.MessageSender) => {
       const tab = sender?.tab;
