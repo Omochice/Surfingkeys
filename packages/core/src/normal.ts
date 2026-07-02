@@ -217,7 +217,7 @@ function createPassThrough(): PassThroughMode {
   const mode = new ModeHandle("PassThrough");
 
   const clearAutoExit = (): void => {
-    if (autoExit !== undefined) {
+    if (autoExit != null) {
       clearTimeout(autoExit);
       autoExit = undefined;
     }
