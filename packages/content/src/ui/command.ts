@@ -1,6 +1,7 @@
 import { createElementWithContent } from "@sk/core/utils";
 import { RUNTIME } from "@sk/messaging/runtime";
 
+import { buildOmnibarResult } from "./omnibarResult";
 import type { OmnibarResult } from "./omnibarResult";
 
 type NormalLike = { feedkeys(keys: string): void };
@@ -42,8 +43,8 @@ const createCommands = (normal: NormalLike, command: CommandFn, omnibar: Omnibar
         key: "sessions",
       },
       (response: { settings: { sessions: Record<string, unknown> } }) => {
-        omnibar.listResults(Object.keys(response.settings.sessions), (s) => {
-          return createElementWithContent("li", String(s));
+        omnibar.listResults(Object.keys(response.settings.sessions), (name) => {
+          return buildOmnibarResult(createElementWithContent("li", name), {});
         });
       },
     );
@@ -66,8 +67,8 @@ const createCommands = (normal: NormalLike, command: CommandFn, omnibar: Omnibar
   });
   command("listQueueURLs", "list URLs in queue waiting for open", () => {
     RUNTIME("getQueueURLs", null, (response: { queueURLs: string[] }) => {
-      omnibar.listResults(response.queueURLs, (s) => {
-        return createElementWithContent("li", String(s));
+      omnibar.listResults(response.queueURLs, (url) => {
+        return buildOmnibarResult(createElementWithContent("li", url), {});
       });
     });
   });
