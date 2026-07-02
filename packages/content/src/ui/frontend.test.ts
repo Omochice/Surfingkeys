@@ -15,7 +15,7 @@
  */
 
 import { specialKeys } from "@sk/core/specialKeys";
-import { runtime } from "@sk/messaging/runtime";
+import { RUNTIME, runtime } from "@sk/messaging/runtime";
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 
 // ---------------------------------------------------------------------------
@@ -669,5 +669,53 @@ describe("window message handler — persistent callback (returns true)", () => 
 
     expect(seen).toEqual(["one", "two"]);
     spy.mockRestore();
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Find — ArrowUp/ArrowDown history recall (regression: query used to be sent
+// as undefined because it was only assigned on the Enter branch)
+// ---------------------------------------------------------------------------
+describe("Find — ArrowUp/ArrowDown history recall", () => {
+  it("sends the recalled history entry as the visualUpdate query", () => {
+    // StatusBarView is a Solid component and `render` is stubbed as a no-op (see the solid-js/web
+    // mock above), so Find.open()'s StatusBar.show() never actually mounts the `<input id="sk_find">`
+    // it asks for. Seed it manually to match what the real render would produce, so Find.open() can
+    // find it the same way it does in the browser (Front.statusBar.querySelector("input")).
+    const findInput = document.createElement("input");
+    findInput.id = "sk_find";
+    Front.statusBar.appendChild(findInput);
+
+    vi.mocked(RUNTIME).mockImplementationOnce((action, _args, callback) => {
+      if (action === "getSettings" && callback) {
+        callback({ settings: { findHistory: ["recalled query"] } });
+      }
+      return { tag: "success", value: undefined };
+    });
+
+    Front.actions["openFinder"]();
+
+    Front.topOrigin = "https://find-history-test.example.com";
+    const posted: any[] = [];
+    const spy = vi.spyOn(window.top!, "postMessage").mockImplementation((data: any) => {
+      posted.push(data);
+    });
+
+    // keyCode is a legacy KeyboardEvent field still read by the handler; the standard
+    // KeyboardEventInit type omits it, so this needs the same cast omnibar.test.ts uses for the
+    // same reason.
+    const upArrowEvent = new KeyboardEvent("keydown", {
+      bubbles: true,
+      keyCode: 38,
+    } as KeyboardEventInit);
+    findInput.dispatchEvent(upArrowEvent);
+
+    const updateMsg = posted.find((m) => m?.surfingkeys_uihost_data?.action === "visualUpdate");
+    expect(updateMsg).toBeDefined();
+    expect(updateMsg.surfingkeys_uihost_data.query).toBe("recalled query");
+    expect(findInput.value).toBe("recalled query");
+
+    spy.mockRestore();
+    Front.statusBar.removeChild(findInput);
   });
 });

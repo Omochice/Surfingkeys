@@ -1179,7 +1179,7 @@ const Find = (() => {
           historyInc = nextInc;
           Front.visualCommand({
             action: "visualUpdate",
-            query: undefined,
+            query: inputEl.value,
           });
           event.preventDefault();
         }
