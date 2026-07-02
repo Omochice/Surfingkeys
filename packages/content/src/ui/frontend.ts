@@ -1142,14 +1142,15 @@ const Find = (() => {
       },
     );
     inputEl.onkeydown = (event) => {
-      let query: string | undefined;
       if (isSpecialKeyOf("<Esc>", event.sk_keyName ?? "")) {
         reset();
         Front.visualCommand({
           action: "visualClear",
         });
       } else if (event.keyCode === KeyboardUtils.keyCodes["enter"]) {
-        query = inputEl.value;
+        // Scoped to this branch (rather than a shared outer `let`) so a future branch can't
+        // accidentally reference a `query` that was never assigned for it.
+        let query = inputEl.value;
         if (query.length && query !== ".") {
           if (event.ctrlKey) {
             query = String.raw`\b` + query + String.raw`\b`;
@@ -1178,7 +1179,7 @@ const Find = (() => {
           historyInc = nextInc;
           Front.visualCommand({
             action: "visualUpdate",
-            query: query,
+            query: undefined,
           });
           event.preventDefault();
         }
