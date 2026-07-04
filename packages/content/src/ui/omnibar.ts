@@ -2076,6 +2076,8 @@ function OmniQuery(omnibar: Omnibar, front: OmnibarFront): OmnibarHandler {
   // onInput can fire before the getPageText round-trip assigns the real page words.
   let words: string[] = [];
   self.onOpen = (arg?: string) => {
+    // The handler is reused across omnibar sessions; drop the previous page's words.
+    words = [];
     if (arg && document.dictEnabled == null) {
       omnibar.setQuery(arg);
       front.contentCommand({

@@ -1255,6 +1255,29 @@ describe("OmniQuery handler — onOpen/onInput/onEnter", () => {
     expect(omnibar.results()).toHaveLength(0);
   });
 
+  it("does not serve the previous session's words when reopened before the new response", () => {
+    const { omnibar, front, ui } = makeOmnibar();
+
+    front.contentCommand.mockImplementation((msg: any, cb?: any) => {
+      if (msg.action === "getPageText" && cb) {
+        cb({ data: "apple apricot" });
+      }
+    });
+    ui.onShow({ type: "OmniQuery" });
+    omnibar.input.value = "ap";
+    omnibar.triggerInput();
+    expect(omnibar.results()).not.toHaveLength(0);
+
+    // Reopen on a page whose getPageText response has not arrived yet.
+    ui.onHide();
+    front.contentCommand.mockImplementation(() => {});
+    ui.onShow({ type: "OmniQuery" });
+    omnibar.input.value = "ap";
+    omnibar.triggerInput();
+    const htmls = omnibar.results().map((r: any) => r.html);
+    expect(htmls.some((h: string) => h.includes("apple"))).toBe(false);
+  });
+
   it("onEnter dispatches contentCommand omnibar_query_entered with current input", () => {
     const { omnibar, front, ui } = makeOmnibar();
 
