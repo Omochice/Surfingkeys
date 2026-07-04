@@ -243,7 +243,10 @@ type OmnibarMode = Omnibar & {
  * scroll position is captured.
  */
 function addVIMark(mark: string, url: string): void {
-  RUNTIME("addVIMark", { mark: { [mark]: { url, scrollLeft: 0, scrollTop: 0 } } });
+  reportOnFail(
+    RUNTIME("addVIMark", { mark: { [mark]: { url, scrollLeft: 0, scrollTop: 0 } } }),
+    reportError,
+  );
 }
 
 function createOmnibar(front: OmnibarFront, clipboard: { write(text: string): void }): OmnibarMode {
