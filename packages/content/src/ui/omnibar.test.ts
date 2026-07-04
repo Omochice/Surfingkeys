@@ -1293,7 +1293,10 @@ describe("OmniQuery handler — onOpen/onInput/onEnter", () => {
     omnibar.triggerInput();
     expect(omnibar.results()).toHaveLength(0);
 
-    deliver?.({ data: "error handling code" });
+    if (deliver == null) {
+      throw new Error("OmniQuery did not register a getPageText callback");
+    }
+    deliver({ data: "error handling code" });
 
     const htmls = omnibar.results().map((r: any) => r.html);
     expect(htmls.some((h: string) => h.includes("error"))).toBe(true);
@@ -1312,7 +1315,10 @@ describe("OmniQuery handler — onOpen/onInput/onEnter", () => {
     omnibar.input.value = "err";
     ui.onHide();
 
-    deliver?.({ data: "error handling code" });
+    if (deliver == null) {
+      throw new Error("OmniQuery did not register a getPageText callback");
+    }
+    deliver({ data: "error handling code" });
 
     expect(omnibar.results()).toHaveLength(0);
   });
