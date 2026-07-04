@@ -1326,6 +1326,36 @@ describe("OmniQuery handler — onOpen/onInput/onEnter", () => {
     expect(omnibar.results()).toHaveLength(0);
   });
 
+  it("does not overwrite the active handler when the page text arrives after an alias switch", () => {
+    const { omnibar, front, ui } = makeOmnibar();
+
+    front.actions["addSearchAlias"]({
+      alias: "g",
+      prompt: "Google",
+      url: "https://www.google.com/search?q={0}",
+      suggestionURL: undefined,
+    });
+
+    let deliver: ((message: { data: string }) => void) | undefined;
+    front.contentCommand.mockImplementation((msg: any, cb?: any) => {
+      if (msg.action === "getPageText") {
+        deliver = cb;
+      }
+    });
+
+    ui.onShow({ type: "OmniQuery" });
+    // Switch to the search engine within the same open, before the page text arrives.
+    omnibar.expandAlias("g", "cat");
+
+    if (deliver == null) {
+      throw new Error("OmniQuery did not register a getPageText callback");
+    }
+    deliver({ data: "cat category catalog" });
+
+    const htmls = omnibar.results().map((r: any) => r.html);
+    expect(htmls.some((h: string) => h.includes("category"))).toBe(false);
+  });
+
   it("onEnter dispatches contentCommand omnibar_query_entered with current input", () => {
     const { omnibar, front, ui } = makeOmnibar();
 

@@ -2099,9 +2099,10 @@ function OmniQuery(omnibar: Omnibar, front: OmnibarFront): OmnibarHandler {
         }
         const splitRegex = /[^a-zA-Z]+/;
         words = message.data.toLowerCase().split(splitRegex).filter(onlyUnique);
-        // Show candidates for a query typed while the response was in flight.
+        // Refresh through the omnibar so an alias switch that swapped the active
+        // handler mid-session is not overwritten with OmniQuery candidates.
         if (omnibar.input.value) {
-          self.onInput?.();
+          omnibar.triggerInput();
         }
       },
     );
