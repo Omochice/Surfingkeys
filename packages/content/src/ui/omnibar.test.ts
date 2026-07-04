@@ -1258,24 +1258,27 @@ describe("OmniQuery handler — onOpen/onInput/onEnter", () => {
   it("does not serve the previous session's words when reopened before the new response", () => {
     const { omnibar, front, ui } = makeOmnibar();
 
+    const deliveries: ((message: { data: string }) => void)[] = [];
     front.contentCommand.mockImplementation((msg: any, cb?: any) => {
       if (msg.action === "getPageText" && cb) {
-        cb({ data: "apple apricot" });
+        deliveries.push(cb);
       }
     });
-    ui.onShow({ type: "OmniQuery" });
-    omnibar.input.value = "ap";
-    omnibar.triggerInput();
-    expect(omnibar.results()).not.toHaveLength(0);
 
-    // Reopen on a page whose getPageText response has not arrived yet.
+    ui.onShow({ type: "OmniQuery" });
     ui.onHide();
-    front.contentCommand.mockImplementation(() => {});
     ui.onShow({ type: "OmniQuery" });
     omnibar.input.value = "ap";
-    omnibar.triggerInput();
+
+    const stale = deliveries[0];
+    if (stale == null) {
+      throw new Error("OmniQuery did not register a getPageText callback");
+    }
+    stale({ data: "apple apricot" });
+
     const htmls = omnibar.results().map((r: any) => r.html);
     expect(htmls.some((h: string) => h.includes("apple"))).toBe(false);
+    expect(omnibar.results()).toHaveLength(0);
   });
 
   it("lists candidates for a query typed before the getPageText response once it arrives", () => {
