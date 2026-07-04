@@ -2073,8 +2073,7 @@ function OmniQuery(omnibar: Omnibar, front: OmnibarFront): OmnibarHandler {
   function onlyUnique(value: string, index: number, arr: string[]) {
     return arr.indexOf(value) === index;
   }
-  // getPageText is a cross-frame round-trip; onInput can fire before it resolves,
-  // so words starts empty rather than undefined to avoid a TypeError on early keystrokes.
+  // onInput can fire before the getPageText round-trip assigns the real page words.
   let words: string[] = [];
   self.onOpen = (arg?: string) => {
     if (arg && document.dictEnabled == null) {

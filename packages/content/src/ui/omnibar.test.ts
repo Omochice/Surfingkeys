@@ -1247,8 +1247,6 @@ describe("OmniQuery handler — onOpen/onInput/onEnter", () => {
   it("onInput does not throw when typed before the getPageText response arrives", () => {
     const { omnibar, front, ui } = makeOmnibar();
 
-    // Leave the getPageText callback unfired to reproduce the cross-frame
-    // round-trip still being in flight when the user types.
     front.contentCommand.mockImplementation(() => {});
 
     ui.onShow({ type: "OmniQuery" });
