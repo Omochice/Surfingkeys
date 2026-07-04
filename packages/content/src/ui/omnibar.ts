@@ -2075,7 +2075,11 @@ function OmniQuery(omnibar: Omnibar, front: OmnibarFront): OmnibarHandler {
   }
   // onInput can fire before the getPageText round-trip assigns the real page words.
   let words: string[] = [];
+  // Ties each in-flight getPageText response to the open it was issued for.
+  let session = 0;
   self.onOpen = (arg?: string) => {
+    session += 1;
+    const opened = session;
     // The handler is reused across omnibar sessions; drop the previous page's words.
     words = [];
     if (arg && document.dictEnabled == null) {
@@ -2090,10 +2094,21 @@ function OmniQuery(omnibar: Omnibar, front: OmnibarFront): OmnibarHandler {
         action: "getPageText",
       },
       (message: { data: string }) => {
+        if (opened !== session) {
+          return;
+        }
         const splitRegex = /[^a-zA-Z]+/;
         words = message.data.toLowerCase().split(splitRegex).filter(onlyUnique);
+        // Show candidates for a query typed while the response was in flight.
+        if (omnibar.input.value) {
+          self.onInput?.();
+        }
       },
     );
+  };
+
+  self.onClose = () => {
+    session += 1;
   };
 
   self.onInput = () => {

@@ -1278,6 +1278,45 @@ describe("OmniQuery handler — onOpen/onInput/onEnter", () => {
     expect(htmls.some((h: string) => h.includes("apple"))).toBe(false);
   });
 
+  it("lists candidates for a query typed before the getPageText response once it arrives", () => {
+    const { omnibar, front, ui } = makeOmnibar();
+
+    let deliver: ((message: { data: string }) => void) | undefined;
+    front.contentCommand.mockImplementation((msg: any, cb?: any) => {
+      if (msg.action === "getPageText") {
+        deliver = cb;
+      }
+    });
+    ui.onShow({ type: "OmniQuery" });
+
+    omnibar.input.value = "err";
+    omnibar.triggerInput();
+    expect(omnibar.results()).toHaveLength(0);
+
+    deliver?.({ data: "error handling code" });
+
+    const htmls = omnibar.results().map((r: any) => r.html);
+    expect(htmls.some((h: string) => h.includes("error"))).toBe(true);
+  });
+
+  it("ignores a getPageText response that arrives after the session closed", () => {
+    const { omnibar, front, ui } = makeOmnibar();
+
+    let deliver: ((message: { data: string }) => void) | undefined;
+    front.contentCommand.mockImplementation((msg: any, cb?: any) => {
+      if (msg.action === "getPageText") {
+        deliver = cb;
+      }
+    });
+    ui.onShow({ type: "OmniQuery" });
+    omnibar.input.value = "err";
+    ui.onHide();
+
+    deliver?.({ data: "error handling code" });
+
+    expect(omnibar.results()).toHaveLength(0);
+  });
+
   it("onEnter dispatches contentCommand omnibar_query_entered with current input", () => {
     const { omnibar, front, ui } = makeOmnibar();
 
