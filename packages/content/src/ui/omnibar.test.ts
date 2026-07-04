@@ -1244,6 +1244,118 @@ describe("OmniQuery handler — onOpen/onInput/onEnter", () => {
     expect(words.some((h: string) => h.includes("banana"))).toBe(false);
   });
 
+  it("onInput does not throw when typed before the getPageText response arrives", () => {
+    // The fixture's contentCommand never fires its callback, so the round-trip stays in flight.
+    const { omnibar, ui } = makeOmnibar();
+
+    ui.onShow({ type: "OmniQuery" });
+
+    omnibar.input.value = "a";
+    expect(() => omnibar.triggerInput()).not.toThrow();
+    expect(omnibar.results()).toHaveLength(0);
+  });
+
+  it("does not serve the previous session's words when reopened before the new response", () => {
+    const { omnibar, front, ui } = makeOmnibar();
+
+    const deliveries: ((message: { data: string }) => void)[] = [];
+    front.contentCommand.mockImplementation((msg: any, cb?: any) => {
+      if (msg.action === "getPageText" && cb) {
+        deliveries.push(cb);
+      }
+    });
+
+    ui.onShow({ type: "OmniQuery" });
+    ui.onHide();
+    ui.onShow({ type: "OmniQuery" });
+    omnibar.input.value = "ap";
+
+    const stale = deliveries[0];
+    if (stale == null) {
+      throw new Error("OmniQuery did not register a getPageText callback");
+    }
+    stale({ data: "apple apricot" });
+
+    const htmls = omnibar.results().map((r: any) => r.html);
+    expect(htmls.some((h: string) => h.includes("apple"))).toBe(false);
+    expect(omnibar.results()).toHaveLength(0);
+  });
+
+  it("lists candidates for a query typed before the getPageText response once it arrives", () => {
+    const { omnibar, front, ui } = makeOmnibar();
+
+    let deliver: ((message: { data: string }) => void) | undefined;
+    front.contentCommand.mockImplementation((msg: any, cb?: any) => {
+      if (msg.action === "getPageText") {
+        deliver = cb;
+      }
+    });
+    ui.onShow({ type: "OmniQuery" });
+
+    omnibar.input.value = "err";
+    omnibar.triggerInput();
+    expect(omnibar.results()).toHaveLength(0);
+
+    if (deliver == null) {
+      throw new Error("OmniQuery did not register a getPageText callback");
+    }
+    deliver({ data: "error handling code" });
+
+    const htmls = omnibar.results().map((r: any) => r.html);
+    expect(htmls.some((h: string) => h.includes("error"))).toBe(true);
+  });
+
+  it("ignores a getPageText response that arrives after the session closed", () => {
+    const { omnibar, front, ui } = makeOmnibar();
+
+    let deliver: ((message: { data: string }) => void) | undefined;
+    front.contentCommand.mockImplementation((msg: any, cb?: any) => {
+      if (msg.action === "getPageText") {
+        deliver = cb;
+      }
+    });
+    ui.onShow({ type: "OmniQuery" });
+    omnibar.input.value = "err";
+    ui.onHide();
+
+    if (deliver == null) {
+      throw new Error("OmniQuery did not register a getPageText callback");
+    }
+    deliver({ data: "error handling code" });
+
+    expect(omnibar.results()).toHaveLength(0);
+  });
+
+  it("does not overwrite the active handler when the page text arrives after an alias switch", () => {
+    const { omnibar, front, ui } = makeOmnibar();
+
+    front.actions["addSearchAlias"]({
+      alias: "g",
+      prompt: "Google",
+      url: "https://www.google.com/search?q={0}",
+      suggestionURL: undefined,
+    });
+
+    let deliver: ((message: { data: string }) => void) | undefined;
+    front.contentCommand.mockImplementation((msg: any, cb?: any) => {
+      if (msg.action === "getPageText") {
+        deliver = cb;
+      }
+    });
+
+    ui.onShow({ type: "OmniQuery" });
+    // Switch to the search engine within the same open, before the page text arrives.
+    omnibar.expandAlias("g", "cat");
+
+    if (deliver == null) {
+      throw new Error("OmniQuery did not register a getPageText callback");
+    }
+    deliver({ data: "cat category catalog" });
+
+    const htmls = omnibar.results().map((r: any) => r.html);
+    expect(htmls.some((h: string) => h.includes("category"))).toBe(false);
+  });
+
   it("onEnter dispatches contentCommand omnibar_query_entered with current input", () => {
     const { omnibar, front, ui } = makeOmnibar();
 
