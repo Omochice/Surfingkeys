@@ -321,6 +321,134 @@ describe("createVisual — next()", () => {
   });
 });
 
+// ─── self.visualEnter / next — query compilation ──────────────────────────────
+
+// jsdom has no layout engine, so highlight()'s match pipeline finds nothing by
+// default: getTextNodes rejects nodes without an offsetParent or a sized bounding
+// rect, and createMark keeps only rects with a positive width/height. Stub the
+// minimum layout needed for a text node to be accepted and a match mark created.
+function stubHighlightLayout(): () => void {
+  const rect = {
+    top: 10,
+    left: 10,
+    right: 110,
+    bottom: 30,
+    width: 100,
+    height: 20,
+    x: 10,
+    y: 10,
+    toJSON: () => ({}),
+  } as DOMRect;
+  const origOffsetParent = Object.getOwnPropertyDescriptor(HTMLElement.prototype, "offsetParent");
+  const origGetBCR = Element.prototype.getBoundingClientRect;
+  const origGetClientRects = Range.prototype.getClientRects;
+  Object.defineProperty(HTMLElement.prototype, "offsetParent", {
+    configurable: true,
+    get() {
+      return document.body;
+    },
+  });
+  Element.prototype.getBoundingClientRect = () => rect;
+  Range.prototype.getClientRects = () => [rect] as unknown as DOMRectList;
+  // createMark reads document.scrollingElement, which jsdom leaves unset.
+  Object.defineProperty(document, "scrollingElement", {
+    configurable: true,
+    get() {
+      return document.documentElement;
+    },
+  });
+  return () => {
+    if (origOffsetParent) {
+      Object.defineProperty(HTMLElement.prototype, "offsetParent", origOffsetParent);
+    }
+    Element.prototype.getBoundingClientRect = origGetBCR;
+    Range.prototype.getClientRects = origGetClientRects;
+    Reflect.deleteProperty(document, "scrollingElement");
+  };
+}
+
+function statusTexts(captured: { detail: unknown }[]): unknown[] {
+  return captured
+    .filter((e) => {
+      const d = e.detail as unknown[];
+      return Array.isArray(d) && d[0] === "showStatus";
+    })
+    .map((e) => {
+      const args = (e.detail as unknown[])[1] as unknown[];
+      return args[2];
+    });
+}
+
+describe("createVisual — visualEnter() query compilation", () => {
+  let restoreLayout: () => void;
+
+  beforeEach(() => {
+    document.body.replaceChildren();
+    restoreLayout = stubHighlightLayout();
+  });
+
+  afterEach(() => {
+    restoreLayout();
+    document.body.replaceChildren();
+  });
+
+  it("matches an invalid regex query as a literal string instead of throwing", () => {
+    document.body.textContent = "look for c++ in here";
+    const visual = createVisual(makeClipboard(), makeHints(), makeEnv());
+    const enterSpy = vi.spyOn(visual, "enter");
+    const captured = captureEvents(document);
+
+    expect(() => visual.visualEnter("c++")).not.toThrow();
+
+    expect(enterSpy).toHaveBeenCalled();
+    const texts = statusTexts(captured);
+    expect(texts.some((t) => typeof t === "string" && t.includes("1 / 1"))).toBe(true);
+    expect(texts.some((t) => typeof t === "string" && t.includes("Pattern not found"))).toBe(false);
+  });
+
+  it("keeps regex semantics for a valid pattern", () => {
+    document.body.textContent = "cat cot cut";
+    const visual = createVisual(makeClipboard(), makeHints(), makeEnv());
+    const captured = captureEvents(document);
+
+    // "c.t" is a regex matching all three words; a literal search would match none.
+    visual.visualEnter("c.t");
+
+    const texts = statusTexts(captured);
+    expect(texts.some((t) => typeof t === "string" && t.includes("/ 3"))).toBe(true);
+  });
+});
+
+describe("createVisual — next() repeats an invalid regex query", () => {
+  let savedLastQuery: string;
+  let restoreLayout: () => void;
+
+  beforeEach(() => {
+    savedLastQuery = conf.lastQuery;
+    document.body.replaceChildren();
+    restoreLayout = stubHighlightLayout();
+  });
+
+  afterEach(() => {
+    conf.lastQuery = savedLastQuery;
+    restoreLayout();
+    document.body.replaceChildren();
+  });
+
+  it("finds the literal text without throwing when lastQuery is an invalid pattern", () => {
+    conf.lastQuery = "c++";
+    document.body.textContent = "the c++ language";
+    const visual = createVisual(makeClipboard(), makeHints(), makeEnv());
+    const captured = captureEvents(document);
+
+    expect(() => visual.next()).not.toThrow();
+
+    const texts = statusTexts(captured);
+    expect(texts.some((t) => typeof t === "string" && t.includes("1 / 1"))).toBe(true);
+    expect(texts.some((t) => typeof t === "string" && t.includes("Pattern not found"))).toBe(false);
+  });
+});
+
 // ─── self.findSentenceOf ──────────────────────────────────────────────────────
 
 describe("createVisual — findSentenceOf()", () => {
