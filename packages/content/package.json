@@ -33,7 +33,7 @@
     "@solidjs/testing-library": "0.8.10",
     "@types/chrome": "catalog:",
     "@types/firefox-webext-browser": "catalog:",
-    "@vitest/browser-playwright": "4.1.9",
+    "@vitest/browser-playwright": "4.1.10",
     "jsdom": "catalog:",
     "npm-run-all2": "catalog:",
     "oxfmt": "catalog:",
