@@ -48,7 +48,7 @@
   },
   "devDependencies": {
     "@tsconfig/strictest": "2.0.8",
-    "@vitest/coverage-istanbul": "4.1.9",
+    "@vitest/coverage-istanbul": "4.1.10",
     "knip": "6.24.0",
     "npm-run-all2": "catalog:",
     "oxfmt": "catalog:",
