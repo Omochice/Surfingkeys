@@ -218,8 +218,8 @@ catalogs:
       specifier: 3.4.11
       version: 3.4.11
     fast-check:
-      specifier: 4.8.0
-      version: 4.8.0
+      specifier: 4.9.0
+      version: 4.9.0
     jsdom:
       specifier: 29.1.1
       version: 29.1.1
@@ -456,7 +456,7 @@ importers:
         version: link:../types
       fast-check:
         specifier: 'catalog:'
-        version: 4.8.0
+        version: 4.9.0
       npm-run-all2:
         specifier: 'catalog:'
         version: 9.0.2
@@ -566,7 +566,7 @@ importers:
         version: link:../types
       fast-check:
         specifier: 'catalog:'
-        version: 4.8.0
+        version: 4.9.0
       jsdom:
         specifier: 'catalog:'
         version: 29.1.1
@@ -2388,8 +2388,8 @@ packages:
   exsolve@1.1.0:
     resolution: {integrity: sha512-D+42+T12DdIlJM3uepa55qGiL3sYdLBOxIl2ifQCzCHz4c7eiolaHsi3BIqEr7JxBzxv2pYZQX9kw16ziMcEmw==}
 
-  fast-check@4.8.0:
-    resolution: {integrity: sha512-GOJ158CUMnN6cSahsv4+ExARvIDuzzinFjkp0E9WtiBa5zcVeLozVkWaE4IzFcc+Y48Wp1EDlUZsXRyAztQcSg==}
+  fast-check@4.9.0:
+    resolution: {integrity: sha512-7ms6T7SybUev/PQITciI0yLM2pOSFy5zpG8Ty7tQofcVaQUvrMXp6CBwqF6fThLCLOrfBtuHAtwq6Yu4XPCllg==}
     engines: {node: '>=12.17.0'}
 
   fast-redact@3.5.0:
@@ -5168,7 +5168,7 @@ snapshots:
 
   exsolve@1.1.0: {}
 
-  fast-check@4.8.0:
+  fast-check@4.9.0:
     dependencies:
       pure-rand: 8.4.0
 
