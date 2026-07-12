@@ -592,6 +592,57 @@ describe("createOmnibar — Ctrl-c clipboard copy paths", () => {
   });
 });
 
+describe("createOmnibar — Ctrl-m vim-like mark creation", () => {
+  beforeEach(() => {
+    mockRUNTIME.mockReset();
+    mockRUNTIME.mockImplementation(() => Result.succeed(undefined));
+    localStorage.clear();
+  });
+
+  it("routes the focused result's url to the addVIMark RUNTIME channel under the pressed key", () => {
+    buildOmnibarDOM();
+    const omnibar = createOmnibar(makeFront(), makeClipboard());
+    omnibar.input = stubInput("");
+    runtime.conf.omnibarMaxResults = 10;
+    runtime.conf.focusFirstCandidate = true;
+    runtime.conf.omnibarPosition = "middle";
+
+    omnibar.listResults([{ url: "https://mark.example.com" }], (b: any) =>
+      omnibar.createItemFromRawHtml({ html: b.url, props: { url: b.url } }),
+    );
+    expect(omnibar.focusedIndex()).toBe(0);
+
+    const ctrlM = getMappingByAnnotation(omnibar, "Create vim-like mark for selected item");
+    expect(ctrlM).toBeDefined();
+    ctrlM!("q");
+
+    const call = mockRUNTIME.mock.calls.find((c) => c[0] === "addVIMark");
+    expect(call).toBeDefined();
+    expect(call?.[1]).toEqual({
+      mark: { q: { url: "https://mark.example.com", scrollLeft: 0, scrollTop: 0 } },
+    });
+  });
+
+  it("does not send addVIMark when no result is focused", () => {
+    buildOmnibarDOM();
+    const omnibar = createOmnibar(makeFront(), makeClipboard());
+    omnibar.input = stubInput("");
+    runtime.conf.omnibarMaxResults = 10;
+    runtime.conf.focusFirstCandidate = false;
+    runtime.conf.omnibarPosition = "middle";
+
+    omnibar.listResults([{ url: "https://mark.example.com" }], (b: any) =>
+      omnibar.createItemFromRawHtml({ html: b.url, props: { url: b.url } }),
+    );
+    expect(omnibar.focusedIndex()).toBe(-1);
+
+    const ctrlM = getMappingByAnnotation(omnibar, "Create vim-like mark for selected item");
+    ctrlM!("q");
+
+    expect(mockRUNTIME.mock.calls.find((c) => c[0] === "addVIMark")).toBeUndefined();
+  });
+});
+
 // NOTE: the former "CloseTabs URL normalisation" and "CloseTabs onEnter tab-id
 // extraction" blocks were deleted here. They re-implemented the handler logic
 // (manual `new URL()` / manual uid parse) instead of driving the handler, and

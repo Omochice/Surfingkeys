@@ -234,6 +234,18 @@ type OmnibarMode = Omnibar & {
   addHandler(name: string, hdl: OmnibarHandler): void;
 };
 
+/**
+ * Persist a vim-like mark for a URL selected in the omnibar.
+ *
+ * The omnibar lives in the frontend UI iframe, which has no `Normal` mode instance to call; the
+ * mark is instead written through the same `addVIMark` runtime channel that `Normal.addVIMark` uses
+ * from the content script. The target is a bookmark/history URL rather than a live page, so no
+ * scroll position is captured.
+ */
+function addVIMark(mark: string, url: string): void {
+  RUNTIME("addVIMark", { mark: { [mark]: { url, scrollLeft: 0, scrollTop: 0 } } });
+}
+
 function createOmnibar(front: OmnibarFront, clipboard: { write(text: string): void }): OmnibarMode {
   const mode = new ModeHandle("Omnibar");
 
@@ -432,8 +444,8 @@ function createOmnibar(front: OmnibarFront, clipboard: { write(text: string): vo
     feature_group: 8,
     code: function (mark: string) {
       const fi = focusedResult();
-      if (fi) {
-        Normal.addVIMark(mark, fi.data.url);
+      if (fi && fi.data.url) {
+        addVIMark(mark, fi.data.url);
       }
     },
   });
@@ -1339,9 +1351,9 @@ function OpenBookmarks(omnibar: Omnibar): OpenBookmarksHandler {
       eaten = true;
     } else if (event.ctrlKey && event.shiftKey && KeyboardUtils.isWordChar(event)) {
       const fi = omnibar.focusedResult();
-      if (fi) {
+      if (fi && fi.data.url) {
         const mark_char = String.fromCharCode(event.keyCode);
-        Normal.addVIMark(mark_char, fi.data.url);
+        addVIMark(mark_char, fi.data.url);
         eaten = true;
       }
     }
