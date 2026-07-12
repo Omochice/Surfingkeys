@@ -6,7 +6,7 @@ catalog:
   "@types/chrome": 0.1.43
   "@types/firefox-webext-browser": 143.0.0
   dompurify: 3.4.11
-  fast-check: 4.8.0
+  fast-check: 4.9.0
   jsdom: 29.1.1
   npm-run-all2: 9.0.2
   oxfmt: 0.55.0
