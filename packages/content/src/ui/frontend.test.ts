@@ -676,6 +676,13 @@ describe("window message handler — persistent callback (returns true)", () => 
 // Find — ArrowUp/ArrowDown history recall
 // ---------------------------------------------------------------------------
 describe("Find — ArrowUp/ArrowDown history recall", () => {
+  // Cleanup lives in afterEach (not at the end of the test) so a failing assertion cannot leak
+  // the postMessage spy or the seeded input into later tests.
+  afterEach(() => {
+    vi.restoreAllMocks();
+    Front.statusBar.querySelector("#sk_find")?.remove();
+  });
+
   it("sends the recalled history entry as the visualUpdate query", () => {
     // StatusBarView is a Solid component and `render` is stubbed as a no-op (see the solid-js/web
     // mock above), so Find.open()'s StatusBar.show() never actually mounts the `<input id="sk_find">`
@@ -696,7 +703,7 @@ describe("Find — ArrowUp/ArrowDown history recall", () => {
 
     Front.topOrigin = "https://find-history-test.example.com";
     const posted: any[] = [];
-    const spy = vi.spyOn(window.top!, "postMessage").mockImplementation((data: any) => {
+    vi.spyOn(window.top!, "postMessage").mockImplementation((data: any) => {
       posted.push(data);
     });
 
@@ -713,8 +720,5 @@ describe("Find — ArrowUp/ArrowDown history recall", () => {
     expect(updateMsg).toBeDefined();
     expect(updateMsg.surfingkeys_uihost_data.query).toBe("recalled query");
     expect(findInput.value).toBe("recalled query");
-
-    spy.mockRestore();
-    Front.statusBar.removeChild(findInput);
   });
 });
