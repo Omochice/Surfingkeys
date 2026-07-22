@@ -13,10 +13,6 @@ beforeEach(() => {
   });
 });
 
-// ---------------------------------------------------------------------------
-// Helpers to capture CustomEvents dispatched on document
-// ---------------------------------------------------------------------------
-
 function captureEvents(type: string, fn: () => void): CustomEvent[] {
   const captured: CustomEvent[] = [];
   const handler = (e: Event) => captured.push(e as CustomEvent);
@@ -25,10 +21,6 @@ function captureEvents(type: string, fn: () => void): CustomEvent[] {
   document.removeEventListener(type, handler);
   return captured;
 }
-
-// ---------------------------------------------------------------------------
-// cmap — dispatches surfingkeys:front with ["addMapkey", "Omnibar", ...]
-// ---------------------------------------------------------------------------
 
 describe("cmap (via api returned by factory)", () => {
   it("dispatches a surfingkeys:front event with addMapkey / Omnibar args", () => {
@@ -59,10 +51,6 @@ describe("cmap (via api returned by factory)", () => {
   });
 });
 
-// ---------------------------------------------------------------------------
-// mapkey — stores user function + dispatches surfingkeys:api
-// ---------------------------------------------------------------------------
-
 describe("mapkey (via api returned by factory)", () => {
   it("dispatches a surfingkeys:api event with ['mapkey', keys, annotation, opts]", () => {
     const jscode = vi.fn();
@@ -91,10 +79,6 @@ describe("mapkey (via api returned by factory)", () => {
     expect(mapkeyEvents).toHaveLength(0);
   });
 });
-
-// ---------------------------------------------------------------------------
-// imapkey — stores user function + dispatches surfingkeys:api
-// ---------------------------------------------------------------------------
 
 describe("imapkey (via api returned by factory)", () => {
   it("dispatches a surfingkeys:api event with ['imapkey', keys, annotation, opts]", () => {
@@ -127,10 +111,6 @@ describe("imapkey (via api returned by factory)", () => {
   });
 });
 
-// ---------------------------------------------------------------------------
-// vmapkey — stores user function + dispatches surfingkeys:api
-// ---------------------------------------------------------------------------
-
 describe("vmapkey (via api returned by factory)", () => {
   it("dispatches a surfingkeys:api event with ['vmapkey', keys, annotation, opts]", () => {
     const events = captureEvents("surfingkeys:api", () => {
@@ -148,10 +128,6 @@ describe("vmapkey (via api returned by factory)", () => {
   });
 });
 
-// ---------------------------------------------------------------------------
-// addCommand — stores command + dispatches surfingkeys:front
-// ---------------------------------------------------------------------------
-
 describe("addCommand (via api returned by factory)", () => {
   it("dispatches a surfingkeys:front event with ['addCommand', name, description]", () => {
     const events = captureEvents("surfingkeys:front", () => {
@@ -168,10 +144,6 @@ describe("addCommand (via api returned by factory)", () => {
     expect(evt).not.toBeUndefined();
   });
 });
-
-// ---------------------------------------------------------------------------
-// map / imap / lmap / vmap — dispatch surfingkeys:api
-// ---------------------------------------------------------------------------
 
 describe("map (via api returned by factory)", () => {
   it("dispatches a surfingkeys:api event with ['map', new_keystroke, old_keystroke, domain, annotation]", () => {
@@ -235,10 +207,6 @@ describe("vmap (via api returned by factory)", () => {
   });
 });
 
-// ---------------------------------------------------------------------------
-// addSearchAlias — ASCII validation + surfingkeys:api dispatch
-// ---------------------------------------------------------------------------
-
 describe("addSearchAlias (via api returned by factory)", () => {
   it("dispatches a surfingkeys:api event containing the alias and search_url", () => {
     const events = captureEvents("surfingkeys:api", () => {
@@ -288,10 +256,6 @@ describe("addSearchAlias (via api returned by factory)", () => {
     expect((evt as CustomEvent).detail[5]).toBe("https://bing.com/suggest?q=");
   });
 });
-
-// ---------------------------------------------------------------------------
-// unmap / iunmap / vunmap / unmapAllExcept — surfingkeys:api dispatches
-// ---------------------------------------------------------------------------
 
 describe("unmap (via api returned by factory)", () => {
   it("dispatches a surfingkeys:api event with ['unmap', keystroke, domain]", () => {
@@ -348,10 +312,6 @@ describe("unmapAllExcept (via api returned by factory)", () => {
   });
 });
 
-// ---------------------------------------------------------------------------
-// removeSearchAlias — dispatches surfingkeys:api
-// ---------------------------------------------------------------------------
-
 describe("removeSearchAlias (via api returned by factory)", () => {
   it("dispatches a surfingkeys:api event with ['removeSearchAlias', alias, ...]", () => {
     const events = captureEvents("surfingkeys:api", () => {
@@ -366,10 +326,6 @@ describe("removeSearchAlias (via api returned by factory)", () => {
     expect((evt as CustomEvent).detail[3]).toBe("o");
   });
 });
-
-// ---------------------------------------------------------------------------
-// Clipboard.write / Clipboard.read — dispatch surfingkeys:api
-// ---------------------------------------------------------------------------
 
 describe("Clipboard.write (via api returned by factory)", () => {
   it("dispatches a surfingkeys:api event with ['clipboard:write', text]", () => {
@@ -397,10 +353,6 @@ describe("Clipboard.read (via api returned by factory)", () => {
     expect(evt).not.toBeUndefined();
   });
 });
-
-// ---------------------------------------------------------------------------
-// Hints.click — createCssSelectorForElements integration
-// ---------------------------------------------------------------------------
 
 describe("Hints.click (via api returned by factory)", () => {
   it("does nothing when no valid HTMLElement is in the links argument", () => {
@@ -444,10 +396,6 @@ describe("Hints.click (via api returned by factory)", () => {
   });
 });
 
-// ---------------------------------------------------------------------------
-// Hints.create — createCssSelectorForElements integration
-// ---------------------------------------------------------------------------
-
 describe("Hints.create (via api returned by factory)", () => {
   it("returns false when no valid HTMLElement is in the cssSelector argument", () => {
     const result = capturedApi.Hints.create([], vi.fn());
@@ -465,10 +413,6 @@ describe("Hints.create (via api returned by factory)", () => {
     expect(evt).not.toBeUndefined();
   });
 });
-
-// ---------------------------------------------------------------------------
-// Normal / Visual / Front — dispatch surfingkeys:api
-// ---------------------------------------------------------------------------
 
 describe("Normal.feedkeys (via api returned by factory)", () => {
   it("dispatches a surfingkeys:api event with ['normal:feedkeys', keys]", () => {
@@ -514,10 +458,6 @@ describe("Front.openOmnibar (via api returned by factory)", () => {
   });
 });
 
-// ---------------------------------------------------------------------------
-// Default export factory
-// ---------------------------------------------------------------------------
-
 describe("default export factory", () => {
   // jsdom's document.location.href is "about:blank", which does not start with
   // any chrome-extension:// URL, so isInUIFrame() always returns false in jsdom.
@@ -543,11 +483,9 @@ describe("default export factory", () => {
   });
 });
 
-// ---------------------------------------------------------------------------
 // surfingkeys:user listener — the capture-phase interface registered at module
 // load. initSKFunctionListener shifts the action name off detail and, because
 // capture is true, appends evt.target as the final arg.
-// ---------------------------------------------------------------------------
 
 function fireUser(detail: unknown[], target: EventTarget = document): void {
   target.dispatchEvent(new CustomEvent("surfingkeys:user", { detail, bubbles: true }));

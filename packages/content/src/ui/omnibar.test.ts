@@ -4,11 +4,9 @@ import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from "vites
 
 import createOmnibar from "./omnibar";
 
-// ---------------------------------------------------------------------------
 // RUNTIME mock — intercept all background-service calls so handler code that
 // calls RUNTIME(...) does not reach chrome.runtime.sendMessage.
 // The return value must be a real @praha/byethrow Result so reportOnFail works.
-// ---------------------------------------------------------------------------
 vi.mock("@sk/messaging/runtime", async (importOriginal) => {
   const orig = await importOriginal<typeof import("@sk/messaging/runtime")>();
   return {
@@ -19,9 +17,6 @@ vi.mock("@sk/messaging/runtime", async (importOriginal) => {
 
 const mockRUNTIME = vi.mocked(RUNTIME);
 
-// ---------------------------------------------------------------------------
-// DOM scaffold required by createOmnibar
-// ---------------------------------------------------------------------------
 function buildOmnibarDOM() {
   document.body.innerHTML = `
     <div id="sk_omnibar">
@@ -34,9 +29,6 @@ function buildOmnibarDOM() {
   `;
 }
 
-// ---------------------------------------------------------------------------
-// Minimal front / clipboard fakes
-// ---------------------------------------------------------------------------
 function makeFront() {
   return {
     actions: {} as Record<string, any>,
@@ -61,10 +53,6 @@ function makeClipboard() {
 function stubInput(value: string): HTMLInputElement {
   return { value } as unknown as HTMLInputElement;
 }
-
-// ---------------------------------------------------------------------------
-// Full omnibar — each describe block calls createOmnibar once.
-// ---------------------------------------------------------------------------
 
 describe("createOmnibar — highlight", () => {
   let omnibar: any;
@@ -749,11 +737,6 @@ describe("createOmnibar — OpenURLs onReset sort order toggling", () => {
   });
 });
 
-// ---------------------------------------------------------------------------
-// Helper — creates a fresh omnibar + DOM scaffold so each describe block is
-// isolated.  Returns both the omnibar and the raw #sk_omnibar DOM node (which
-// carries the `onShow` / `onHide` hooks that wire the active handler).
-// ---------------------------------------------------------------------------
 function makeOmnibar() {
   buildOmnibarDOM();
   const front = makeFront();
@@ -782,9 +765,6 @@ function fireEnter(omnibar: any) {
   omnibar.input.dispatchEvent(enterEvent);
 }
 
-// ---------------------------------------------------------------------------
-// OpenTabs — onOpen + onInput
-// ---------------------------------------------------------------------------
 describe("OpenTabs handler — onOpen/onInput lists filtered tabs via RUNTIME('getTabs')", () => {
   beforeEach(() => {
     mockRUNTIME.mockReset();
@@ -868,9 +848,6 @@ describe("OpenTabs handler — onOpen/onInput lists filtered tabs via RUNTIME('g
   });
 });
 
-// ---------------------------------------------------------------------------
-// CloseTabs handler — onOpen / onInput normalises URLs / onEnter closes tabs
-// ---------------------------------------------------------------------------
 describe("CloseTabs handler — onOpen fires RUNTIME getTabs and resolves cachedPromise", () => {
   beforeEach(() => {
     mockRUNTIME.mockReset();
@@ -975,9 +952,6 @@ describe("CloseTabs handler — onOpen fires RUNTIME getTabs and resolves cached
   });
 });
 
-// ---------------------------------------------------------------------------
-// OpenWindows handler — onInput lists windows; onEnter sends moveToWindow
-// ---------------------------------------------------------------------------
 describe("OpenWindows handler — onInput builds window results", () => {
   beforeEach(() => {
     mockRUNTIME.mockReset();
@@ -1105,9 +1079,6 @@ describe("OpenWindows handler — onInput builds window results", () => {
   });
 });
 
-// ---------------------------------------------------------------------------
-// OpenVIMarks handler — onOpen reads marks from RUNTIME getSettings
-// ---------------------------------------------------------------------------
 describe("OpenVIMarks handler — onOpen lists marks from settings", () => {
   beforeEach(() => {
     mockRUNTIME.mockReset();
@@ -1180,9 +1151,6 @@ describe("OpenVIMarks handler — onOpen lists marks from settings", () => {
   });
 });
 
-// ---------------------------------------------------------------------------
-// Commands handler — onInput filters by prefix; onEnter executes the command
-// ---------------------------------------------------------------------------
 describe("Commands handler — onInput lists matching commands", () => {
   beforeEach(() => {
     mockRUNTIME.mockReset();
@@ -1260,10 +1228,6 @@ describe("Commands handler — onInput lists matching commands", () => {
   });
 });
 
-// ---------------------------------------------------------------------------
-// OmniQuery handler — onOpen populates words via contentCommand callback;
-// onInput filters those words; onEnter dispatches contentCommand
-// ---------------------------------------------------------------------------
 describe("OmniQuery handler — onOpen/onInput/onEnter", () => {
   beforeEach(() => {
     mockRUNTIME.mockReset();
@@ -1430,10 +1394,6 @@ describe("OmniQuery handler — onOpen/onInput/onEnter", () => {
   });
 });
 
-// ---------------------------------------------------------------------------
-// OpenBookmarks handler — onInput queries RUNTIME getBookmarks; onResponse
-// populates results via listURLs
-// ---------------------------------------------------------------------------
 describe("OpenBookmarks handler — onInput + onResponse", () => {
   beforeEach(() => {
     mockRUNTIME.mockReset();
@@ -1535,11 +1495,6 @@ describe("OpenURLs handler — Enter opens a typed URL in the current tab", () =
   });
 });
 
-// ---------------------------------------------------------------------------
-// SearchEngine handler — onInput without suggestionURL lists empty suggestions
-// (no RUNTIME 'request' call); onInput with suggestionURL issues RUNTIME
-// 'request' and feeds the response back into listSuggestions
-// ---------------------------------------------------------------------------
 describe("SearchEngine handler — onInput without suggestionURL clears results", () => {
   beforeEach(() => {
     mockRUNTIME.mockReset();
@@ -1604,10 +1559,6 @@ describe("SearchEngine handler — onInput without suggestionURL clears results"
   });
 });
 
-// ---------------------------------------------------------------------------
-// AddBookmark handler — onEnter (focused result path) calls RUNTIME
-// createBookmark with the selected folder id
-// ---------------------------------------------------------------------------
 describe("AddBookmark handler — onEnter creates bookmark in focused folder", () => {
   beforeEach(() => {
     mockRUNTIME.mockReset();
@@ -1655,9 +1606,6 @@ describe("AddBookmark handler — onEnter creates bookmark in focused folder", (
   });
 });
 
-// ---------------------------------------------------------------------------
-// OpenUserURLs handler — onOpen stores items and filters on onInput
-// ---------------------------------------------------------------------------
 describe("OpenUserURLs handler — onOpen/onInput", () => {
   beforeEach(() => {
     mockRUNTIME.mockReset();
@@ -1698,10 +1646,6 @@ describe("OpenUserURLs handler — onOpen/onInput", () => {
   });
 });
 
-// ---------------------------------------------------------------------------
-// OpenURLs (History / RecentlyClosed / TabURLs) handler — onOpen triggers
-// queryFn which calls RUNTIME, then lists results
-// ---------------------------------------------------------------------------
 describe("OpenURLs (History) handler — onOpen calls RUNTIME getHistory and lists results", () => {
   beforeEach(() => {
     mockRUNTIME.mockReset();
@@ -1767,12 +1711,6 @@ describe("OpenURLs (History) handler — onOpen calls RUNTIME getHistory and lis
   });
 });
 
-// ---------------------------------------------------------------------------
-// Helper — retrieve a mapping's code function from the Trie by its annotation.
-// The Trie class (src/content_scripts/common/trie.ts) stores all bound sequences
-// in nodes whose `.meta` field carries annotation + code.  getMetas() walks the
-// whole trie and returns matching entries.
-// ---------------------------------------------------------------------------
 function getMappingByAnnotation(
   omnibar: any,
   annotation: string,
@@ -1781,9 +1719,6 @@ function getMappingByAnnotation(
   return metas[0]?.code;
 }
 
-// ---------------------------------------------------------------------------
-// detectAndInsertURLItem — urlPat1 fallback (bare http:// URL with no TLD dot)
-// ---------------------------------------------------------------------------
 describe("createOmnibar — detectAndInsertURLItem urlPat1 fallback", () => {
   it("inserts a bare http:// URL that passes urlPat1 but not urlPat", () => {
     buildOmnibarDOM();
@@ -1797,9 +1732,6 @@ describe("createOmnibar — detectAndInsertURLItem urlPat1 fallback", () => {
   });
 });
 
-// ---------------------------------------------------------------------------
-// Ctrl-c mapping — data.copy field and pageItems fallback
-// ---------------------------------------------------------------------------
 describe("createOmnibar — Ctrl-c copy paths", () => {
   beforeEach(() => {
     mockRUNTIME.mockReset();
@@ -1867,9 +1799,6 @@ describe("createOmnibar — Ctrl-c copy paths", () => {
   });
 });
 
-// ---------------------------------------------------------------------------
-// Ctrl-r mapping — exercises handler.onReset (OpenURLs.onReset)
-// ---------------------------------------------------------------------------
 describe("createOmnibar — Ctrl-r triggers handler.onReset", () => {
   beforeEach(() => {
     mockRUNTIME.mockReset();
@@ -1909,9 +1838,6 @@ describe("createOmnibar — Ctrl-r triggers handler.onReset", () => {
   });
 });
 
-// ---------------------------------------------------------------------------
-// Ctrl-j toggle position mapping
-// ---------------------------------------------------------------------------
 describe("createOmnibar — Ctrl-j toggles omnibarPosition between middle and bottom", () => {
   beforeEach(() => {
     mockRUNTIME.mockReset();
@@ -1952,9 +1878,6 @@ describe("createOmnibar — Ctrl-j toggles omnibarPosition between middle and bo
   });
 });
 
-// ---------------------------------------------------------------------------
-// onHide — exercises handler.onClose callback
-// ---------------------------------------------------------------------------
 describe("createOmnibar — onHide calls handler.onClose", () => {
   beforeEach(() => {
     mockRUNTIME.mockReset();
@@ -1991,9 +1914,6 @@ describe("createOmnibar — onHide calls handler.onClose", () => {
   });
 });
 
-// ---------------------------------------------------------------------------
-// rotateResult — Tab / Shift-Tab cycling through results
-// ---------------------------------------------------------------------------
 describe("createOmnibar — Tab/Shift-Tab cycle through results", () => {
   beforeEach(() => {
     mockRUNTIME.mockReset();
@@ -2057,9 +1977,6 @@ describe("createOmnibar — Tab/Shift-Tab cycle through results", () => {
   });
 });
 
-// ---------------------------------------------------------------------------
-// Ctrl-n / Ctrl-p — handler.rotateInput path
-// ---------------------------------------------------------------------------
 describe("createOmnibar — Ctrl-n/Ctrl-p with handler.rotateInput", () => {
   beforeEach(() => {
     mockRUNTIME.mockReset();
@@ -2126,9 +2043,6 @@ describe("createOmnibar — Ctrl-n/Ctrl-p with handler.rotateInput", () => {
   });
 });
 
-// ---------------------------------------------------------------------------
-// Ctrl-d — delete focused bookmark/history item via RUNTIME('removeURL')
-// ---------------------------------------------------------------------------
 describe("createOmnibar — Ctrl-d deletes the focused item", () => {
   beforeEach(() => {
     mockRUNTIME.mockReset();
@@ -2197,9 +2111,6 @@ describe("createOmnibar — Ctrl-d deletes the focused item", () => {
   });
 });
 
-// ---------------------------------------------------------------------------
-// SearchEngine.onOpen with site: prefix in query
-// ---------------------------------------------------------------------------
 describe("SearchEngine handler — onOpen with site: prefix sets selection range", () => {
   beforeEach(() => {
     mockRUNTIME.mockReset();
@@ -2234,9 +2145,6 @@ describe("SearchEngine handler — onOpen with site: prefix sets selection range
   });
 });
 
-// ---------------------------------------------------------------------------
-// SearchEngine.listSuggestions — items with html or url fields
-// ---------------------------------------------------------------------------
 describe("SearchEngine handler — listSuggestions with html/url-keyed items", () => {
   beforeEach(() => {
     mockRUNTIME.mockReset();
@@ -2325,9 +2233,6 @@ describe("SearchEngine handler — listSuggestions with html/url-keyed items", (
   });
 });
 
-// ---------------------------------------------------------------------------
-// addSearchAlias — localStorage icon path and non-http topOrigin branch
-// ---------------------------------------------------------------------------
 describe("SearchEngine — addSearchAlias icon loading paths", () => {
   beforeEach(() => {
     mockRUNTIME.mockReset();
@@ -2410,9 +2315,6 @@ describe("SearchEngine — addSearchAlias icon loading paths", () => {
   });
 });
 
-// ---------------------------------------------------------------------------
-// Commands handler — onInput with no matching candidates (empty branch)
-// ---------------------------------------------------------------------------
 describe("Commands handler — onInput with no matching candidates", () => {
   beforeEach(() => {
     mockRUNTIME.mockReset();
@@ -2454,9 +2356,6 @@ describe("Commands handler — onInput with no matching candidates", () => {
   });
 });
 
-// ---------------------------------------------------------------------------
-// OmniQuery.onOpen — with arg and dictEnabled set (skip the contentCommand call)
-// ---------------------------------------------------------------------------
 describe("OmniQuery handler — onOpen with arg when dictEnabled is set", () => {
   beforeEach(() => {
     mockRUNTIME.mockReset();
@@ -2490,9 +2389,6 @@ describe("OmniQuery handler — onOpen with arg when dictEnabled is set", () => 
   });
 });
 
-// ---------------------------------------------------------------------------
-// OpenWindows — onInput with non-empty query filters windows by tab title/URL
-// ---------------------------------------------------------------------------
 describe("OpenWindows handler — onInput filters windows by query", () => {
   beforeEach(() => {
     mockRUNTIME.mockReset();
@@ -2532,9 +2428,6 @@ describe("OpenWindows handler — onInput filters windows by query", () => {
   });
 });
 
-// ---------------------------------------------------------------------------
-// OpenTabs handler — onOpen with filter arg
-// ---------------------------------------------------------------------------
 describe("OpenTabs handler — onOpen with filter arg", () => {
   beforeEach(() => {
     mockRUNTIME.mockReset();
@@ -2561,9 +2454,6 @@ describe("OpenTabs handler — onOpen with filter arg", () => {
   });
 });
 
-// ---------------------------------------------------------------------------
-// listResults — handler.focusFirstCandidate path
-// ---------------------------------------------------------------------------
 describe("createOmnibar — listResults respects handler.focusFirstCandidate", () => {
   beforeEach(() => {
     mockRUNTIME.mockReset();
@@ -2594,9 +2484,6 @@ describe("createOmnibar — listResults respects handler.focusFirstCandidate", (
   });
 });
 
-// ---------------------------------------------------------------------------
-// Ctrl-. and Ctrl-,  — pagination mappings (next/prev page)
-// ---------------------------------------------------------------------------
 describe("createOmnibar — pagination mappings Ctrl-. and Ctrl-,", () => {
   beforeEach(() => {
     mockRUNTIME.mockReset();
@@ -2706,9 +2593,6 @@ describe("createOmnibar — pagination mappings Ctrl-. and Ctrl-,", () => {
   });
 });
 
-// ---------------------------------------------------------------------------
-// listResultPage — omnibarHistoryCacheSize boundary (+) and showFolder path
-// ---------------------------------------------------------------------------
 describe("createOmnibar — listResultPage total display", () => {
   it("appends a + to the total when item count equals omnibarHistoryCacheSize", () => {
     buildOmnibarDOM();
@@ -2734,9 +2618,6 @@ describe("createOmnibar — listResultPage total display", () => {
   });
 });
 
-// ---------------------------------------------------------------------------
-// listResultPage — showFolder branch (item without url or html, showFolder=true)
-// ---------------------------------------------------------------------------
 describe("createOmnibar — listResultPage showFolder branch", () => {
   it("renders folder items when showFolder is true and item has no url/html", () => {
     buildOmnibarDOM();
@@ -2758,9 +2639,6 @@ describe("createOmnibar — listResultPage showFolder branch", () => {
   });
 });
 
-// ---------------------------------------------------------------------------
-// openFocused — type=T (focusTab) vs URL path
-// ---------------------------------------------------------------------------
 describe("createOmnibar — openFocused", () => {
   beforeEach(() => {
     mockRUNTIME.mockReset();

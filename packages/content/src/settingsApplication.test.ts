@@ -9,11 +9,9 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { applyBasicMappings, applySettings, ensureRegex } from "./settingsApplication";
 
-// ---------------------------------------------------------------------------
 // Minimal fake Api / Normal that only expose what the helpers actually call.
 // Typed as `any` so the structural surplus of the real Api/Normal types does
 // not require a full implementation.
-// ---------------------------------------------------------------------------
 
 type FakeApi = any;
 type FakeNormal = any;
@@ -33,10 +31,6 @@ function makeFakeNormal(trie = new Trie()): FakeNormal {
     startLurk: vi.fn(() => "lurking"),
   };
 }
-
-// ---------------------------------------------------------------------------
-// ensureRegex
-// ---------------------------------------------------------------------------
 
 describe("ensureRegex", () => {
   let savedNextLinkRegex: RegExp;
@@ -84,10 +78,6 @@ describe("ensureRegex", () => {
     expect((runtime.conf as Record<string, unknown>)["prevLinkRegex"]).toBeUndefined();
   });
 });
-
-// ---------------------------------------------------------------------------
-// applyBasicMappings
-// ---------------------------------------------------------------------------
 
 describe("applyBasicMappings", () => {
   it("calls api.map for a straightforward key remap", () => {
@@ -160,10 +150,6 @@ describe("applyBasicMappings", () => {
     expect(api.map).toHaveBeenCalledWith("d", "c");
   });
 });
-
-// ---------------------------------------------------------------------------
-// applySettings
-// ---------------------------------------------------------------------------
 
 describe("applySettings", () => {
   let savedSmartCase: boolean;

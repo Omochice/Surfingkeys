@@ -503,10 +503,6 @@ describe("generateQuickGuid", () => {
   });
 });
 
-// ---------------------------------------------------------------------------
-// Additional branch coverage
-// ---------------------------------------------------------------------------
-
 describe("format — additional branches", () => {
   it("returns the template unchanged when no arguments are supplied", () => {
     expect(format("no placeholders here")).toBe("no placeholders here");

@@ -18,10 +18,6 @@ import { specialKeys } from "@sk/core/specialKeys";
 import { runtime } from "@sk/messaging/runtime";
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 
-// ---------------------------------------------------------------------------
-// Module mocks — hoisted before any import executes.
-// ---------------------------------------------------------------------------
-
 // solid-js: override createSignal with a plain [getter, setter] pair so the
 // IIFE can call the setters without triggering Solid's reactive runtime.
 // importOriginal preserves all other exports (DEV, etc.) that Solid's own
@@ -82,9 +78,7 @@ vi.mock("@sk/messaging/runtime", async (importOriginal) => {
   };
 });
 
-// ---------------------------------------------------------------------------
 // DOM scaffold — must exist before the IIFE runs at import time.
-// ---------------------------------------------------------------------------
 document.body.innerHTML = `
   <style id="sk_theme"></style>
   <div id="sk_omnibar" style="display:none">
@@ -111,9 +105,7 @@ document.body.innerHTML = `
   <div id="sk_keystroke" style="display:none"></div>
 `;
 
-// ---------------------------------------------------------------------------
 // Lazy import — executed after the DOM and mocks are ready.
-// ---------------------------------------------------------------------------
 let Front: any;
 
 beforeAll(async () => {
@@ -121,9 +113,6 @@ beforeAll(async () => {
   Front = mod.default;
 });
 
-// ---------------------------------------------------------------------------
-// Helpers
-// ---------------------------------------------------------------------------
 function dispatchFrontendMessage(data: Record<string, unknown>): void {
   window.dispatchEvent(
     new MessageEvent("message", {
@@ -132,9 +121,6 @@ function dispatchFrontendMessage(data: Record<string, unknown>): void {
   );
 }
 
-// ---------------------------------------------------------------------------
-// actions["initFrontend"]
-// ---------------------------------------------------------------------------
 describe("actions['initFrontend']", () => {
   it("stores topOrigin from the message", () => {
     Front.actions["initFrontend"]({ origin: "https://test.example.com", winSize: [1280, 800] });
@@ -159,9 +145,6 @@ describe("actions['initFrontend']", () => {
   });
 });
 
-// ---------------------------------------------------------------------------
-// actions["destroyFrontend"]
-// ---------------------------------------------------------------------------
 describe("actions['destroyFrontend']", () => {
   it("returns true when no popup display is visible", () => {
     // No display is open, so destroyFrontend should return true.
@@ -184,9 +167,6 @@ describe("actions['destroyFrontend']", () => {
   });
 });
 
-// ---------------------------------------------------------------------------
-// actions["toggleStatus"]
-// ---------------------------------------------------------------------------
 describe("actions['toggleStatus']", () => {
   it("hides the status bar when visible is false", () => {
     Front.statusBar.style.display = "";
@@ -201,9 +181,6 @@ describe("actions['toggleStatus']", () => {
   });
 });
 
-// ---------------------------------------------------------------------------
-// actions["applyUserSettings"]
-// ---------------------------------------------------------------------------
 describe("actions['applyUserSettings']", () => {
   it("merges a known runtime.conf key from userSettings", () => {
     const original = runtime.conf.tabsThreshold;
@@ -232,9 +209,6 @@ describe("actions['applyUserSettings']", () => {
   });
 });
 
-// ---------------------------------------------------------------------------
-// actions["addMapkey"] — specialKeys path
-// ---------------------------------------------------------------------------
 describe("actions['addMapkey'] — specialKeys path", () => {
   beforeEach(() => {
     // Restore the static specialKeys to known defaults before each test.
@@ -262,9 +236,6 @@ describe("actions['addMapkey'] — specialKeys path", () => {
   });
 });
 
-// ---------------------------------------------------------------------------
-// Window message handler — surfingkeys_frontend_data routing
-// ---------------------------------------------------------------------------
 describe("window message handler", () => {
   it("ignores messages without surfingkeys_frontend_data", () => {
     const before = Front.topOrigin;
@@ -337,9 +308,6 @@ describe("window message handler", () => {
   });
 });
 
-// ---------------------------------------------------------------------------
-// StatusBar (via actions["showStatus"])
-// ---------------------------------------------------------------------------
 describe("actions['showStatus'] — StatusBar.show", () => {
   beforeEach(() => {
     // Reset statusBar display before each test.
@@ -370,9 +338,6 @@ describe("actions['showStatus'] — StatusBar.show", () => {
   });
 });
 
-// ---------------------------------------------------------------------------
-// actions["hideKeystroke"]
-// ---------------------------------------------------------------------------
 describe("actions['hideKeystroke']", () => {
   it("hides the keystroke element when it is currently visible", () => {
     const keystroke = document.getElementById("sk_keystroke")!;
@@ -382,9 +347,6 @@ describe("actions['hideKeystroke']", () => {
   });
 });
 
-// ---------------------------------------------------------------------------
-// Front.contentCommand — generates a unique guid per call
-// ---------------------------------------------------------------------------
 describe("Front.contentCommand", () => {
   it("posts a message with a unique id for each call", () => {
     // Intercept top.postMessage to capture the posted data.
@@ -418,9 +380,6 @@ describe("Front.contentCommand", () => {
   });
 });
 
-// ---------------------------------------------------------------------------
-// actions["addCommand"]
-// ---------------------------------------------------------------------------
 describe("actions['addCommand']", () => {
   it("registers the command name and description with the omnibar mock", async () => {
     // The omnibar mock's `command` method is a vi.fn(). After addCommand the
@@ -469,9 +428,6 @@ describe("actions['addCommand']", () => {
   });
 });
 
-// ---------------------------------------------------------------------------
-// actions["showPopup"]
-// ---------------------------------------------------------------------------
 describe("actions['showPopup']", () => {
   it("makes the popup element visible", () => {
     const popup = document.getElementById("sk_popup")!;
@@ -481,9 +437,6 @@ describe("actions['showPopup']", () => {
   });
 });
 
-// ---------------------------------------------------------------------------
-// actions["showBanner"] and auto-hide
-// ---------------------------------------------------------------------------
 describe("actions['showBanner']", () => {
   afterEach(() => {
     vi.useRealTimers();
@@ -519,9 +472,6 @@ describe("actions['showBanner']", () => {
   });
 });
 
-// ---------------------------------------------------------------------------
-// actions["hideBubble"]
-// ---------------------------------------------------------------------------
 describe("actions['hideBubble']", () => {
   it("sets bubble display to none", () => {
     const bubble = document.getElementById("sk_bubble")!;
@@ -531,9 +481,6 @@ describe("actions['hideBubble']", () => {
   });
 });
 
-// ---------------------------------------------------------------------------
-// actions["showKeystroke"] — first keystroke makes element visible
-// ---------------------------------------------------------------------------
 describe("actions['showKeystroke']", () => {
   beforeEach(() => {
     // Start with keystroke hidden to test the show path.
@@ -570,9 +517,6 @@ describe("actions['showKeystroke']", () => {
   });
 });
 
-// ---------------------------------------------------------------------------
-// actions["hideKeystroke"] — richHintsForKeystroke path (clearPendingHint)
-// ---------------------------------------------------------------------------
 describe("actions['hideKeystroke'] — richHintsForKeystroke branch", () => {
   afterEach(() => {
     vi.useRealTimers();
@@ -594,9 +538,6 @@ describe("actions['hideKeystroke'] — richHintsForKeystroke branch", () => {
   });
 });
 
-// ---------------------------------------------------------------------------
-// actions["destroyFrontend"] returns false when a display is visible
-// ---------------------------------------------------------------------------
 describe("actions['destroyFrontend'] — returns false when display visible", () => {
   it("returns false when the popup is currently shown", () => {
     // Open the popup to set display.
@@ -611,9 +552,6 @@ describe("actions['destroyFrontend'] — returns false when display visible", ()
   });
 });
 
-// ---------------------------------------------------------------------------
-// StatusBar.show — duration path (auto-clear timer)
-// ---------------------------------------------------------------------------
 describe("actions['showStatus'] — StatusBar duration auto-clear", () => {
   afterEach(() => {
     vi.useRealTimers();
@@ -644,9 +582,6 @@ describe("actions['showStatus'] — StatusBar duration auto-clear", () => {
   });
 });
 
-// ---------------------------------------------------------------------------
-// Window message handler — callback that returns true is retained
-// ---------------------------------------------------------------------------
 describe("window message handler — persistent callback (returns true)", () => {
   it("keeps a callback registered when it returns true and fires it for each response", () => {
     Front.topOrigin = "https://stay-test.example.com";

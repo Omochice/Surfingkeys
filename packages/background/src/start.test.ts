@@ -545,10 +545,6 @@ describe("start — tab/window/download handlers delegate to chrome", () => {
   });
 });
 
-// ---------------------------------------------------------------------------
-// handleMessage dispatch branches
-// ---------------------------------------------------------------------------
-
 describe("start — handleMessage dispatch", () => {
   it("logs a message for an unrecognized action", () => {
     const consoleSpy = vi.spyOn(console, "log").mockImplementation(() => {});
@@ -573,10 +569,6 @@ describe("start — handleMessage dispatch", () => {
     expect(ret).toBeUndefined();
   });
 });
-
-// ---------------------------------------------------------------------------
-// removeURL — string uid vs array uid, and each type prefix
-// ---------------------------------------------------------------------------
 
 describe("start — removeURL", () => {
   it("handles a single string uid (wraps it into an array) and responds after removal", async () => {
@@ -618,10 +610,6 @@ describe("start — removeURL", () => {
   });
 });
 
-// ---------------------------------------------------------------------------
-// localData — object vs string/array paths
-// ---------------------------------------------------------------------------
-
 describe("start — localData", () => {
   it("sets local storage and broadcasts when data is an Object", () => {
     const localSet = vi.fn();
@@ -642,19 +630,10 @@ describe("start — localData", () => {
   });
 });
 
-// ---------------------------------------------------------------------------
-// readComment — no gist set (returns early with error message)
-// Note: the Gist singleton is shared across all dispatchers within the same
-// module import. These tests therefore run before any primeGist call so that
-// cachedGist is still "".  They are placed immediately after the initGist describe
-// blocks (which prime cachedGist) and before any further primeGist calls.
-// Instead we verify the behaviour via the initGist failure path: after a
-// failed initGist the cachedGist stays "". We also re-check the first bootDispatch
-// call (before any primeGist) via the very first test run in this file.
-// The safest observable is: when gist listing fails, readComment/editComment
-// still settle. Those are already covered by the "still settles" tests above.
-// We cover the cachedGist=="" guard arm separately in the next describe block.
-// ---------------------------------------------------------------------------
+// The Gist singleton is shared across all dispatchers within the same module
+// import, so the no-gist tests must run before any primeGist call (while
+// cachedGist is still "") — they sit between the initGist describe blocks and
+// any further primeGist calls.
 
 // Covered by the initGist failure tests above (they boot fresh dispatchers and
 // readComment/editComment are not called until after primeGist in those suites).
@@ -710,10 +689,6 @@ describe("start — readComment / editComment when gist initialisation failed", 
   });
 });
 
-// ---------------------------------------------------------------------------
-// editComment — existing comments list: write path (nr < cmts.length)
-// ---------------------------------------------------------------------------
-
 describe("start — editComment writes to an existing comment", () => {
   it("writes to the known comment when the index is within the already-listed range", async () => {
     const dispatch = bootDispatch();
@@ -735,10 +710,6 @@ describe("start — editComment writes to an existing comment", () => {
     expect(sendResponse.mock.calls.at(-1)?.[0]).toHaveProperty("gistResp");
   });
 });
-
-// ---------------------------------------------------------------------------
-// editComment — beyond existing comments: creates placeholders then writes
-// ---------------------------------------------------------------------------
 
 describe("start — editComment creates placeholder comments when index exceeds list", () => {
   it("creates a placeholder comment then writes to the final slot", async () => {
@@ -763,10 +734,6 @@ describe("start — editComment creates placeholder comments when index exceeds 
     expect(mockRequest).toHaveBeenCalledTimes(3);
   });
 });
-
-// ---------------------------------------------------------------------------
-// readComment — comment already in cached list (nr < cachedComments.length)
-// ---------------------------------------------------------------------------
 
 describe("start — readComment reads from cached comment list", () => {
   it("reads directly from the cached list when the index is within range", async () => {
@@ -802,10 +769,6 @@ describe("start — readComment reads from cached comment list", () => {
   });
 });
 
-// ---------------------------------------------------------------------------
-// readComment — comment list has fewer items than nr (register not exists)
-// ---------------------------------------------------------------------------
-
 describe("start — readComment when register does not exist", () => {
   it("settles with 'Register not exists!' when index is beyond the full list", async () => {
     const dispatch = bootDispatch();
@@ -828,10 +791,6 @@ describe("start — readComment when register does not exist", () => {
   });
 });
 
-// ---------------------------------------------------------------------------
-// initGist — token already set returns cached gist synchronously
-// ---------------------------------------------------------------------------
-
 describe("start — initGist returns cached gist when token matches", () => {
   it("returns the gist id directly when called again with the same token", async () => {
     const dispatch = bootDispatch();
@@ -852,10 +811,6 @@ describe("start — initGist returns cached gist when token matches", () => {
     expect(mockRequest).not.toHaveBeenCalled();
   });
 });
-
-// ---------------------------------------------------------------------------
-// readComment — malformed per-comment response (comment == null)
-// ---------------------------------------------------------------------------
 
 describe("start — readComment malformed per-comment JSON", () => {
   it("settles with status 1 when the fetched comment body is malformed JSON", async () => {
@@ -946,10 +901,6 @@ describe("start — readComment malformed per-comment JSON", () => {
     expect(sendResponse.mock.calls.at(-1)?.[0]).toMatchObject({ status: 1 });
   });
 });
-
-// ---------------------------------------------------------------------------
-// initGist — token switch clears stale cachedComments
-// ---------------------------------------------------------------------------
 
 describe("start — initGist clears cachedComments when token changes", () => {
   it("does not reuse comment IDs from a previous gist after switching tokens", async () => {
