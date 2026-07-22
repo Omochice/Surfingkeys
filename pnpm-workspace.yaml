@@ -9,7 +9,7 @@ catalog:
   fast-check: 4.9.0
   jsdom: 29.1.1
   npm-run-all2: 9.0.2
-  oxfmt: 0.55.0
+  oxfmt: 0.59.0
   oxlint: 1.74.0
   solid-js: 1.9.14
   sort-package-json: 4.0.0
