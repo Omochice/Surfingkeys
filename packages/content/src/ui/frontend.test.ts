@@ -679,10 +679,8 @@ describe("Find — ArrowUp/ArrowDown history recall", () => {
   });
 
   it("sends the recalled history entry as the visualUpdate query", () => {
-    // StatusBarView is a Solid component and `render` is stubbed as a no-op (see the solid-js/web
-    // mock above), so Find.open()'s StatusBar.show() never actually mounts the `<input id="sk_find">`
-    // it asks for. Seed it manually to match what the real render would produce, so Find.open() can
-    // find it the same way it does in the browser (Front.statusBar.querySelector("input")).
+    // The solid-js/web mock stubs `render`, so StatusBar.show() mounts nothing; seed the input
+    // that Find.open() queries.
     const findInput = document.createElement("input");
     findInput.id = "sk_find";
     Front.statusBar.appendChild(findInput);
@@ -702,9 +700,6 @@ describe("Find — ArrowUp/ArrowDown history recall", () => {
       posted.push(data);
     });
 
-    // keyCode is a legacy KeyboardEvent field still read by the handler; the standard
-    // KeyboardEventInit type omits it, so this needs the same cast omnibar.test.ts uses for the
-    // same reason.
     const upArrowEvent = new KeyboardEvent("keydown", {
       bubbles: true,
       keyCode: 38,
