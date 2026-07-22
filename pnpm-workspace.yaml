@@ -13,7 +13,7 @@ catalog:
   oxlint: 1.74.0
   solid-js: 1.9.14
   sort-package-json: 4.0.0
-  typescript: 6.0.3
+  typescript: 7.0.2
   valibot: 1.4.2
   vitest: 4.1.10
   wxt: 0.20.26
