@@ -676,8 +676,6 @@ describe("window message handler — persistent callback (returns true)", () => 
 // Find — ArrowUp/ArrowDown history recall
 // ---------------------------------------------------------------------------
 describe("Find — ArrowUp/ArrowDown history recall", () => {
-  // Cleanup lives in afterEach (not at the end of the test) so a failing assertion cannot leak
-  // the postMessage spy or the seeded input into later tests.
   afterEach(() => {
     vi.restoreAllMocks();
     Front.statusBar.querySelector("#sk_find")?.remove();
