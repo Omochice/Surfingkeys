@@ -672,9 +672,6 @@ describe("window message handler — persistent callback (returns true)", () => 
   });
 });
 
-// ---------------------------------------------------------------------------
-// Find — ArrowUp/ArrowDown history recall
-// ---------------------------------------------------------------------------
 describe("Find — ArrowUp/ArrowDown history recall", () => {
   afterEach(() => {
     vi.restoreAllMocks();
