@@ -1148,8 +1148,6 @@ const Find = (() => {
           action: "visualClear",
         });
       } else if (event.keyCode === KeyboardUtils.keyCodes["enter"]) {
-        // Scoped to this branch (rather than a shared outer `let`) so a future branch can't
-        // accidentally reference a `query` that was never assigned for it.
         let query = inputEl.value;
         if (query.length && query !== ".") {
           if (event.ctrlKey) {
