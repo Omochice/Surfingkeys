@@ -1142,14 +1142,13 @@ const Find = (() => {
       },
     );
     inputEl.onkeydown = (event) => {
-      let query: string | undefined;
       if (isSpecialKeyOf("<Esc>", event.sk_keyName ?? "")) {
         reset();
         Front.visualCommand({
           action: "visualClear",
         });
       } else if (event.keyCode === KeyboardUtils.keyCodes["enter"]) {
-        query = inputEl.value;
+        let query = inputEl.value;
         if (query.length && query !== ".") {
           if (event.ctrlKey) {
             query = String.raw`\b` + query + String.raw`\b`;
@@ -1178,7 +1177,7 @@ const Find = (() => {
           historyInc = nextInc;
           Front.visualCommand({
             action: "visualUpdate",
-            query: query,
+            query: inputEl.value,
           });
           event.preventDefault();
         }

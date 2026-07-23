@@ -15,7 +15,7 @@
  */
 
 import { specialKeys } from "@sk/core/specialKeys";
-import { runtime } from "@sk/messaging/runtime";
+import { RUNTIME, runtime } from "@sk/messaging/runtime";
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 
 // solid-js: override createSignal with a plain [getter, setter] pair so the
@@ -604,5 +604,46 @@ describe("window message handler — persistent callback (returns true)", () => 
 
     expect(seen).toEqual(["one", "two"]);
     spy.mockRestore();
+  });
+});
+
+describe("Find — ArrowUp/ArrowDown history recall", () => {
+  afterEach(() => {
+    vi.restoreAllMocks();
+    Front.statusBar.querySelector("#sk_find")?.remove();
+  });
+
+  it("sends the recalled history entry as the visualUpdate query", () => {
+    // The solid-js/web mock stubs `render`, so StatusBar.show() mounts nothing; seed the input
+    // that Find.open() queries.
+    const findInput = document.createElement("input");
+    findInput.id = "sk_find";
+    Front.statusBar.appendChild(findInput);
+
+    vi.mocked(RUNTIME).mockImplementationOnce((action, _args, callback) => {
+      if (action === "getSettings" && callback) {
+        callback({ settings: { findHistory: ["recalled query"] } });
+      }
+      return { tag: "success", value: undefined };
+    });
+
+    Front.actions["openFinder"]();
+
+    Front.topOrigin = "https://find-history-test.example.com";
+    const posted: any[] = [];
+    vi.spyOn(window.top!, "postMessage").mockImplementation((data: any) => {
+      posted.push(data);
+    });
+
+    const upArrowEvent = new KeyboardEvent("keydown", {
+      bubbles: true,
+      keyCode: 38,
+    } as KeyboardEventInit);
+    findInput.dispatchEvent(upArrowEvent);
+
+    const updateMsg = posted.find((m) => m?.surfingkeys_uihost_data?.action === "visualUpdate");
+    expect(updateMsg).toBeDefined();
+    expect(updateMsg.surfingkeys_uihost_data.query).toBe("recalled query");
+    expect(findInput.value).toBe("recalled query");
   });
 });
