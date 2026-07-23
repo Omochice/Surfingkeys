@@ -48,10 +48,6 @@ describe("roundBase", () => {
   });
 });
 
-// ---------------------------------------------------------------------------
-// Shared chrome stub factory
-// ---------------------------------------------------------------------------
-
 type TabsStub = {
   onRemoved: any;
   onUpdated: any;
@@ -118,10 +114,6 @@ function tabUnitOver(tabs: any[], conf: Record<string, any> = {}, extra: Partial
   return { unit, update, query, handlers };
 }
 
-// ---------------------------------------------------------------------------
-// createTabs — tab navigation index math
-// ---------------------------------------------------------------------------
-
 describe("createTabs — tab navigation index math", () => {
   it("previousTab from the first tab wraps to the last", async () => {
     const { unit, update } = tabUnitOver([{ id: 1 }, { id: 2 }, { id: 3 }]);
@@ -157,10 +149,6 @@ describe("createTabs — tab navigation index math", () => {
   });
 });
 
-// ---------------------------------------------------------------------------
-// filterByTitleOrUrl
-// ---------------------------------------------------------------------------
-
 describe("createTabs — filterByTitleOrUrl", () => {
   it("strips tabs without a URL before filtering", () => {
     const { unit } = tabUnitOver([]);
@@ -193,10 +181,6 @@ describe("createTabs — filterByTitleOrUrl", () => {
   });
 });
 
-// ---------------------------------------------------------------------------
-// getTabs — MRU ordering
-// ---------------------------------------------------------------------------
-
 describe("createTabs — getTabs", () => {
   it("orders tabs by recent access and leaves the queried array unmodified", async () => {
     const tabs = [
@@ -218,10 +202,6 @@ describe("createTabs — getTabs", () => {
     expect(tabs.map((t) => t.id)).toEqual([1, 2, 3]);
   });
 });
-
-// ---------------------------------------------------------------------------
-// focusTabByIndex
-// ---------------------------------------------------------------------------
 
 describe("focusTabByIndex", () => {
   it("activates the tab at repeats-1 index when repeats is in range", async () => {
@@ -252,10 +232,6 @@ describe("focusTabByIndex", () => {
   });
 });
 
-// ---------------------------------------------------------------------------
-// focusTab
-// ---------------------------------------------------------------------------
-
 describe("focusTab handler", () => {
   it("calls windows.update + tabs.update when windowId differs from sender", async () => {
     const tabs = [{ id: 99 }];
@@ -283,10 +259,6 @@ describe("focusTab handler", () => {
   });
 });
 
-// ---------------------------------------------------------------------------
-// togglePinTab
-// ---------------------------------------------------------------------------
-
 describe("togglePinTab", () => {
   it("toggles the pinned state of the active tab from unpinned to pinned", async () => {
     const tabs = [{ id: 42, pinned: false }];
@@ -306,10 +278,6 @@ describe("togglePinTab", () => {
     expect(update).toHaveBeenCalledWith(42, { pinned: false });
   });
 });
-
-// ---------------------------------------------------------------------------
-// muteTab
-// ---------------------------------------------------------------------------
 
 describe("muteTab", () => {
   it("mutes an unmuted tab", () => {
@@ -331,10 +299,6 @@ describe("muteTab", () => {
   });
 });
 
-// ---------------------------------------------------------------------------
-// closeTabByIds
-// ---------------------------------------------------------------------------
-
 describe("closeTabByIds", () => {
   it("calls tabs.remove with the provided tab IDs", () => {
     const remove = vi.fn();
@@ -345,10 +309,6 @@ describe("closeTabByIds", () => {
     expect(remove).toHaveBeenCalledWith([1, 2, 3]);
   });
 });
-
-// ---------------------------------------------------------------------------
-// tabOnly
-// ---------------------------------------------------------------------------
 
 describe("tabOnly", () => {
   it("removes all non-pinned tabs except the sender tab", async () => {
@@ -367,10 +327,6 @@ describe("tabOnly", () => {
     expect(remove).toHaveBeenCalledWith([1, 4]);
   });
 });
-
-// ---------------------------------------------------------------------------
-// getTabURLs / tabURLAccessed / getTopURL
-// ---------------------------------------------------------------------------
 
 describe("tabURLAccessed and getTabURLs", () => {
   it("records URL accesses and returns them via getTabURLs", () => {
@@ -445,10 +401,6 @@ describe("getTopURL", () => {
   });
 });
 
-// ---------------------------------------------------------------------------
-// queueURLs / getQueueURLs / clearQueueURLs
-// ---------------------------------------------------------------------------
-
 describe("URL queue management", () => {
   it("accumulates URLs across multiple queueURLs calls", () => {
     const { unit } = tabUnitOver([]);
@@ -480,10 +432,6 @@ describe("URL queue management", () => {
   });
 });
 
-// ---------------------------------------------------------------------------
-// duplicateTab
-// ---------------------------------------------------------------------------
-
 describe("duplicateTab", () => {
   it("calls tabs.duplicate with the sender tab id", async () => {
     const duplicate = vi.fn().mockResolvedValue(undefined);
@@ -503,10 +451,6 @@ describe("duplicateTab", () => {
     expect(update).toHaveBeenCalledWith(17, { active: true });
   });
 });
-
-// ---------------------------------------------------------------------------
-// moveTab
-// ---------------------------------------------------------------------------
 
 describe("moveTab", () => {
   it("moves the tab forward by step * repeats positions", async () => {
@@ -531,10 +475,6 @@ describe("moveTab", () => {
     expect(move).toHaveBeenCalledWith(3, { index: 3 });
   });
 });
-
-// ---------------------------------------------------------------------------
-// getWindows
-// ---------------------------------------------------------------------------
 
 describe("getWindows", () => {
   it("groups tabs by windowId and marks the previous choice", async () => {
@@ -581,10 +521,6 @@ describe("getWindows", () => {
   });
 });
 
-// ---------------------------------------------------------------------------
-// moveToWindow
-// ---------------------------------------------------------------------------
-
 describe("moveToWindow", () => {
   it("creates a new window when windowId is -1", async () => {
     const { unit } = tabUnitOver([]);
@@ -610,10 +546,6 @@ describe("moveToWindow", () => {
   });
 });
 
-// ---------------------------------------------------------------------------
-// gatherWindows
-// ---------------------------------------------------------------------------
-
 describe("gatherWindows", () => {
   it("moves all non-current-window tabs into the sender window", async () => {
     const move = vi.fn();
@@ -630,10 +562,6 @@ describe("gatherWindows", () => {
   });
 });
 
-// ---------------------------------------------------------------------------
-// gatherTabs
-// ---------------------------------------------------------------------------
-
 describe("gatherTabs", () => {
   it("moves the provided tabs into the sender window", () => {
     const move = vi.fn();
@@ -646,10 +574,6 @@ describe("gatherTabs", () => {
     expect(move).toHaveBeenCalledWith(51, { windowId: 2, index: -1 });
   });
 });
-
-// ---------------------------------------------------------------------------
-// getTabs (MRU ordering)
-// ---------------------------------------------------------------------------
 
 describe("getTabs", () => {
   it("returns all tabs filtered by title/url", async () => {
@@ -728,10 +652,6 @@ describe("getTabs", () => {
   });
 });
 
-// ---------------------------------------------------------------------------
-// goToLastTab
-// ---------------------------------------------------------------------------
-
 describe("goToLastTab", () => {
   it("activates the previously visited tab from tabHistory", () => {
     const noopListener = makeNoopListener();
@@ -777,10 +697,6 @@ describe("goToLastTab", () => {
     expect(update).toHaveBeenCalledWith(5, { active: true });
   });
 });
-
-// ---------------------------------------------------------------------------
-// openLink — normalizeURL branches
-// ---------------------------------------------------------------------------
 
 describe("openLink — URL normalization and tabbed behavior", () => {
   it("blocks JavaScript URLs and sends a banner message", async () => {
@@ -855,10 +771,6 @@ describe("openLink — URL normalization and tabbed behavior", () => {
   });
 });
 
-// ---------------------------------------------------------------------------
-// openUrlInNewTab — newTabPosition config branches
-// ---------------------------------------------------------------------------
-
 describe("openUrlInNewTab — newTabPosition config", () => {
   function makeOpenLinkSender(tabIndex: number) {
     return {
@@ -922,10 +834,6 @@ describe("openUrlInNewTab — newTabPosition config", () => {
   });
 });
 
-// ---------------------------------------------------------------------------
-// viewSource
-// ---------------------------------------------------------------------------
-
 describe("viewSource", () => {
   it("prepends view-source: to the sender tab URL and delegates to openLink", async () => {
     const create = vi.fn();
@@ -946,10 +854,6 @@ describe("viewSource", () => {
     );
   });
 });
-
-// ---------------------------------------------------------------------------
-// reloadTab
-// ---------------------------------------------------------------------------
 
 describe("reloadTab", () => {
   it("reloads the specified number of tabs starting from the current", async () => {
@@ -982,10 +886,6 @@ describe("reloadTab", () => {
   });
 });
 
-// ---------------------------------------------------------------------------
-// closeTabsToRight / closeTabsToLeft
-// ---------------------------------------------------------------------------
-
 describe("closeTabsToRight", () => {
   it("removes all tabs to the right of the sender tab", async () => {
     const remove = vi.fn();
@@ -1012,10 +912,6 @@ describe("closeTabsToLeft", () => {
   });
 });
 
-// ---------------------------------------------------------------------------
-// closeTab with focusAfterClosed
-// ---------------------------------------------------------------------------
-
 describe("closeTab — focusAfterClosed", () => {
   it("navigates left after closing when focusAfterClosed is 'left'", async () => {
     const remove = vi.fn();
@@ -1030,20 +926,12 @@ describe("closeTab — focusAfterClosed", () => {
   });
 });
 
-// ---------------------------------------------------------------------------
-// newTabUrl is propagated
-// ---------------------------------------------------------------------------
-
 describe("newTabUrl", () => {
   it("is set to the value returned by browser.setNewTabUrl()", () => {
     const { unit } = tabUnitOver([]);
     expect(unit.newTabUrl).toBe("about:newtab");
   });
 });
-
-// ---------------------------------------------------------------------------
-// sendTabMessage — frameId === -1 uses undefined opts
-// ---------------------------------------------------------------------------
 
 describe("sendTabMessage — opts argument", () => {
   it("passes undefined opts when frameId is -1", () => {
@@ -1071,10 +959,6 @@ describe("sendTabMessage — opts argument", () => {
     expect(sendMessage).toHaveBeenCalledWith(5, { subject: "tabActivated" }, { frameId: 0 });
   });
 });
-
-// ---------------------------------------------------------------------------
-// tabActivated — same-tab no-op and null lastActiveTabId arms
-// ---------------------------------------------------------------------------
 
 describe("tabActivated — branch arms", () => {
   /**
@@ -1144,10 +1028,6 @@ describe("tabActivated — branch arms", () => {
   });
 });
 
-// ---------------------------------------------------------------------------
-// onUpdated listener branches
-// ---------------------------------------------------------------------------
-
 describe("onUpdated listener — branch arms", () => {
   function buildWithOnUpdated(detectTabTitleChange: boolean, conf: Record<string, any> = {}) {
     let onUpdatedCb: ((tabId: number, changeInfo: any, tab: any) => void) | null = null;
@@ -1216,10 +1096,6 @@ describe("onUpdated listener — branch arms", () => {
   });
 });
 
-// ---------------------------------------------------------------------------
-// getActiveTab — empty tabs array arm
-// ---------------------------------------------------------------------------
-
 describe("getActiveTab — no active tab", () => {
   it("does not call the callback when query returns an empty array", async () => {
     // togglePinTab calls getActiveTab; with empty tabs, update should not be called.
@@ -1231,10 +1107,6 @@ describe("getActiveTab — no active tab", () => {
     expect(update).not.toHaveBeenCalled();
   });
 });
-
-// ---------------------------------------------------------------------------
-// onCommand listener — restartext and closeTab commands
-// ---------------------------------------------------------------------------
 
 describe("onCommand listener", () => {
   function buildWithOnCommand(tabs: any[]) {
@@ -1299,10 +1171,6 @@ describe("onCommand listener", () => {
   });
 });
 
-// ---------------------------------------------------------------------------
-// removeTab — drains the URL queue when a tab is removed
-// ---------------------------------------------------------------------------
-
 describe("removeTab — URL queue drain", () => {
   it("creates a new tab from the queue when a tab is removed and the queue is non-empty", () => {
     let onRemovedCb: ((tabId: number) => void) | null = null;
@@ -1344,10 +1212,6 @@ describe("removeTab — URL queue drain", () => {
   });
 });
 
-// ---------------------------------------------------------------------------
-// closeAudibleTab — empty tabs guard
-// ---------------------------------------------------------------------------
-
 describe("closeAudibleTab", () => {
   it("removes the first audible tab when one exists", async () => {
     const remove = vi.fn();
@@ -1368,10 +1232,6 @@ describe("closeAudibleTab", () => {
   });
 });
 
-// ---------------------------------------------------------------------------
-// goToLastTab — no history (null previousTab)
-// ---------------------------------------------------------------------------
-
 describe("goToLastTab — no history", () => {
   it("does not call tabs.update when tabHistory has no previous tab", () => {
     const { unit, update } = tabUnitOver([]);
@@ -1382,10 +1242,6 @@ describe("goToLastTab — no history", () => {
     expect(update).not.toHaveBeenCalled();
   });
 });
-
-// ---------------------------------------------------------------------------
-// closeTab — focusAfterClosed === "last" paths
-// ---------------------------------------------------------------------------
 
 describe("closeTab — focusAfterClosed === 'last'", () => {
   it("calls the historyTab handler when focusAfterClosed is 'last'", async () => {
@@ -1428,10 +1284,6 @@ describe("closeTab — focusAfterClosed === 'last'", () => {
     expect(update).not.toHaveBeenCalled();
   });
 });
-
-// ---------------------------------------------------------------------------
-// getTabs — MRU sort with tabActivated fallback (no lastAccessed on some tabs)
-// ---------------------------------------------------------------------------
 
 describe("getTabs — MRU sort tabActivated fallback", () => {
   it("pushes tabs with no lastAccessed and no tabActivated entry to the end", async () => {
@@ -1527,10 +1379,6 @@ describe("getTabs — MRU sort tabActivated fallback", () => {
   });
 });
 
-// ---------------------------------------------------------------------------
-// setZoom — zero and non-zero zoomFactor branches
-// ---------------------------------------------------------------------------
-
 describe("setZoom", () => {
   it("resets zoom to defaultZoomFactor when zoomFactor is 0", async () => {
     const setZoom = vi.fn();
@@ -1565,10 +1413,6 @@ describe("setZoom", () => {
   });
 });
 
-// ---------------------------------------------------------------------------
-// setScrollPos / tabMessages — already-present entry path
-// ---------------------------------------------------------------------------
-
 describe("setScrollPos — tabMessages branch", () => {
   it("sends setScrollPos and removes entry when the tab has a stored message", () => {
     const sendMessage = vi.fn().mockReturnValue(undefined);
@@ -1592,10 +1436,6 @@ describe("setScrollPos — tabMessages branch", () => {
     expect(sendMessage).not.toHaveBeenCalled();
   });
 });
-
-// ---------------------------------------------------------------------------
-// openLink — tabbed via omnibar (frameId !== 0 from frontend.html)
-// ---------------------------------------------------------------------------
 
 describe("openLink — tabbed from omnibar sender", () => {
   it("fetches the active tab via getActiveTab when sender is the omnibar frame", async () => {
@@ -1639,10 +1479,6 @@ describe("openLink — tabbed from omnibar sender", () => {
   });
 });
 
-// ---------------------------------------------------------------------------
-// openUrlInNewTab — scrollLeft/scrollTop stored in tabMessages
-// ---------------------------------------------------------------------------
-
 describe("openUrlInNewTab — scroll position stored", () => {
   it("stores scrollLeft/scrollTop in tabMessages when they are set on the message", async () => {
     const create = vi.fn().mockResolvedValue({ id: 999 });
@@ -1676,10 +1512,6 @@ describe("openUrlInNewTab — scroll position stored", () => {
   });
 });
 
-// ---------------------------------------------------------------------------
-// openLink — non-tabbed with scrollLeft/scrollTop
-// ---------------------------------------------------------------------------
-
 describe("openLink — non-tabbed scroll storage", () => {
   it("stores scroll position for the current tab when not tabbed", async () => {
     const update = vi.fn().mockResolvedValue({ id: 77 });
@@ -1700,10 +1532,6 @@ describe("openLink — non-tabbed scroll storage", () => {
   });
 });
 
-// ---------------------------------------------------------------------------
-// viewSource — openLink handler absent (no-op)
-// ---------------------------------------------------------------------------
-
 describe("viewSource — openLink handler absent", () => {
   it("opens no link when the openLink handler is absent", async () => {
     const create = vi.fn();
@@ -1723,10 +1551,6 @@ describe("viewSource — openLink handler absent", () => {
     handlers["openLink"] = saved;
   });
 });
-
-// ---------------------------------------------------------------------------
-// nextFrame handler
-// ---------------------------------------------------------------------------
 
 describe("nextFrame", () => {
   function buildWithExecuteScript(results: any[]) {

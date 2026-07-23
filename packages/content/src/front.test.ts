@@ -13,9 +13,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import createFront from "./front";
 
-// ---------------------------------------------------------------------------
 // Mock the uiframe module so createUiHost never touches the real DOM or iframe.
-// ---------------------------------------------------------------------------
 
 vi.mock("./uiframe", () => ({
   default: vi.fn(),
@@ -23,9 +21,6 @@ vi.mock("./uiframe", () => ({
 
 import Trie from "@sk/core/trie";
 
-// ---------------------------------------------------------------------------
-// Helpers to build minimal mode stubs.
-// ---------------------------------------------------------------------------
 import createUiHost from "./uiframe";
 
 function makeTrie(): Trie {
@@ -66,11 +61,9 @@ function makeBrowser() {
   return {};
 }
 
-// ---------------------------------------------------------------------------
 // Capture the window "message" handler that createFront registers.
 // front.ts registers its listener with `true` as the third argument (the
 // capture flag), so we spy on addEventListener to intercept exactly that call.
-// ---------------------------------------------------------------------------
 
 type MessageHandlerFn = (event: MessageEvent) => void;
 
@@ -98,12 +91,10 @@ function captureMessageHandler(): {
   };
 }
 
-// ---------------------------------------------------------------------------
 // Capture the document "surfingkeys:front" listener that createFront registers
 // via initSKFunctionListener. The detail array is mutated by args.shift()
 // inside the listener, so dispatching to all stacked listeners would corrupt
 // later ones. Capturing it lets us call it directly, in isolation.
-// ---------------------------------------------------------------------------
 
 type SKFrontHandlerFn = (event: CustomEvent) => void;
 
@@ -144,10 +135,6 @@ function makeContentEvent(
   });
 }
 
-// ---------------------------------------------------------------------------
-// Capture CustomEvents emitted on `document` for surfingkeys:* channels.
-// ---------------------------------------------------------------------------
-
 function listenForSKEvent(type: string): {
   detail: unknown[];
   cleanup: () => void;
@@ -162,10 +149,6 @@ function listenForSKEvent(type: string): {
     cleanup: () => document.removeEventListener(`surfingkeys:${type}`, handler),
   };
 }
-
-// ---------------------------------------------------------------------------
-// Suite: window message handler — action dispatch when frontActive is true
-// ---------------------------------------------------------------------------
 
 describe("createFront window message handler — action dispatch", () => {
   it("dispatches surfingkeys:user CustomEvent for executeUserCommand action", () => {
@@ -284,10 +267,6 @@ describe("createFront window message handler — action dispatch", () => {
   });
 });
 
-// ---------------------------------------------------------------------------
-// Suite: addSearchAlias / getSearchSuggestions
-// ---------------------------------------------------------------------------
-
 describe("createFront addSearchAlias — getSearchSuggestions with function listSuggestion", () => {
   it("calls the listSuggestion function with the right arguments", () => {
     const { handler, restore } = captureMessageHandler();
@@ -320,10 +299,6 @@ describe("createFront addSearchAlias — getSearchSuggestions with function list
     });
   });
 });
-
-// ---------------------------------------------------------------------------
-// Suite: getSearchSuggestions with non-function listSuggestion dispatches user event
-// ---------------------------------------------------------------------------
 
 describe("createFront getSearchSuggestions — non-function listSuggestion dispatches SKEvent", () => {
   it("dispatches surfingkeys:user getSearchSuggestions when listSuggestion is not a function", () => {
@@ -362,10 +337,6 @@ describe("createFront getSearchSuggestions — non-function listSuggestion dispa
     cleanup();
   });
 });
-
-// ---------------------------------------------------------------------------
-// Suite: dialogResponse action
-// ---------------------------------------------------------------------------
 
 describe("createFront actions[dialogResponse] — triggers onDialogResponseOk callback", () => {
   it("calls onDialogResponseOk when result is Ok", () => {
@@ -406,10 +377,6 @@ describe("createFront actions[dialogResponse] — triggers onDialogResponseOk ca
   });
 });
 
-// ---------------------------------------------------------------------------
-// Suite: registerInlineQuery
-// ---------------------------------------------------------------------------
-
 describe("createFront registerInlineQuery — performInlineQuery dispatches user event", () => {
   let savedSendMessage: unknown;
 
@@ -439,10 +406,6 @@ describe("createFront registerInlineQuery — performInlineQuery dispatches user
     cleanup();
   });
 });
-
-// ---------------------------------------------------------------------------
-// Suite: chooseTab delegates to RUNTIME when normal.repeats is non-empty
-// ---------------------------------------------------------------------------
 
 describe("createFront chooseTab — RUNTIME delegation", () => {
   let savedSendMessage: unknown;
@@ -475,10 +438,6 @@ describe("createFront chooseTab — RUNTIME delegation", () => {
   });
 });
 
-// ---------------------------------------------------------------------------
-// Suite: openOmniquery delegates correctly to openOmnibar
-// ---------------------------------------------------------------------------
-
 describe("createFront openOmniquery — shapes the call to openOmnibar", () => {
   it("calls createUiHost (triggers newFrontEnd) because openOmnibar is not hideKeystroke", () => {
     const mockCreateUiHost = createUiHost as ReturnType<typeof vi.fn>;
@@ -494,14 +453,6 @@ describe("createFront openOmniquery — shapes the call to openOmnibar", () => {
     expect(mockCreateUiHost).toHaveBeenCalledOnce();
   });
 });
-
-// ---------------------------------------------------------------------------
-// Suite: removeSearchAlias
-// ---------------------------------------------------------------------------
-
-// ---------------------------------------------------------------------------
-// Suite: getAllAnnotations includes lurk mode mappings
-// ---------------------------------------------------------------------------
 
 describe("createFront showUsage / getAllAnnotations — includes lurk mode trie", () => {
   it("consults getLurkMode when building annotations for showUsage", () => {
@@ -519,10 +470,6 @@ describe("createFront showUsage / getAllAnnotations — includes lurk mode trie"
     expect(mockCreateUiHost).toHaveBeenCalled();
   });
 });
-
-// ---------------------------------------------------------------------------
-// Suite: initSKFunctionListener "front" callbacks — hideKeystroke / showKeystroke
-// ---------------------------------------------------------------------------
 
 describe("createFront SKEvent front channel — hideKeystroke / showKeystroke", () => {
   it("showKeystroke triggers newFrontEnd (createUiHost) on the first keystroke", () => {
@@ -549,10 +496,6 @@ describe("createFront SKEvent front channel — hideKeystroke / showKeystroke", 
   });
 });
 
-// ---------------------------------------------------------------------------
-// Suite: applySettingsFromSnippets — merges into runtime.conf and calls insert
-// ---------------------------------------------------------------------------
-
 describe("createFront applySettingsFromSnippets — enableEmojiInsertion propagates to insert", () => {
   let savedEmoji: boolean;
 
@@ -577,10 +520,6 @@ describe("createFront applySettingsFromSnippets — enableEmojiInsertion propaga
     expect(insert.enableEmojiInsertion).toHaveBeenCalledOnce();
   });
 });
-
-// ---------------------------------------------------------------------------
-// Suite: runtime.on("focusFrame") handler
-// ---------------------------------------------------------------------------
 
 describe("createFront runtime.on focusFrame — highlights when frameId matches", () => {
   afterEach(() => {
@@ -616,10 +555,6 @@ describe("createFront runtime.on focusFrame — highlights when frameId matches"
   });
 });
 
-// ---------------------------------------------------------------------------
-// Suite: window message handler — DictoriumViewReady activates when inactive
-// ---------------------------------------------------------------------------
-
 describe("createFront window message handler — DictoriumViewReady activates when inactive", () => {
   it("sets frontActive=true on DictoriumViewReady, enabling subsequent actions", () => {
     const visual = makeVisual();
@@ -646,10 +581,6 @@ describe("createFront window message handler — DictoriumViewReady activates wh
   });
 });
 
-// ---------------------------------------------------------------------------
-// Suite: window message handler — activated while inactive (content_data path)
-// ---------------------------------------------------------------------------
-
 describe("createFront window message handler — activated message while inactive", () => {
   it("routes the activated message through the inactive path and re-activates", () => {
     const visual = makeVisual();
@@ -665,10 +596,6 @@ describe("createFront window message handler — activated message while inactiv
     expect(visual.visualClear).toHaveBeenCalledOnce();
   });
 });
-
-// ---------------------------------------------------------------------------
-// Suite: stopImmediatePropagation — not called for dictorium_data messages
-// ---------------------------------------------------------------------------
 
 describe("createFront window message handler — stopImmediatePropagation behavior", () => {
   it("does not stop propagation for dictorium_data messages", () => {
@@ -712,10 +639,6 @@ describe("createFront window message handler — stopImmediatePropagation behavi
   });
 });
 
-// ---------------------------------------------------------------------------
-// Suite: removeSearchAlias pushes applyUICommand
-// ---------------------------------------------------------------------------
-
 describe("createFront removeSearchAlias — queues applyUICommand for removeSearchAlias", () => {
   it("queues a removeSearchAlias command in uiUserSettings", () => {
     const mockCreateUiHost = createUiHost as ReturnType<typeof vi.fn>;
@@ -738,10 +661,6 @@ describe("createFront removeSearchAlias — queues applyUICommand for removeSear
   });
 });
 
-// ---------------------------------------------------------------------------
-// Suite: setHintsCharacters queues applyUICommand
-// ---------------------------------------------------------------------------
-
 describe("createFront setHintsCharacters — queues applyUICommand", () => {
   it("does not throw and does not create the frontend iframe", () => {
     const mockCreateUiHost = createUiHost as ReturnType<typeof vi.fn>;
@@ -757,10 +676,6 @@ describe("createFront setHintsCharacters — queues applyUICommand", () => {
   });
 });
 
-// ---------------------------------------------------------------------------
-// Suite: executeCommand sends executeCommand action via self.command
-// ---------------------------------------------------------------------------
-
 describe("createFront executeCommand — triggers newFrontEnd", () => {
   it("calls createUiHost (creates frontend iframe) to deliver the executeCommand action", () => {
     const mockCreateUiHost = createUiHost as ReturnType<typeof vi.fn>;
@@ -775,10 +690,6 @@ describe("createFront executeCommand — triggers newFrontEnd", () => {
   });
 });
 
-// ---------------------------------------------------------------------------
-// Suite: getUsage builds annotations and triggers newFrontEnd
-// ---------------------------------------------------------------------------
-
 describe("createFront getUsage — builds annotations and delivers via newFrontEnd", () => {
   it("calls createUiHost and invokes the callback via successById callback", () => {
     const mockCreateUiHost = createUiHost as ReturnType<typeof vi.fn>;
@@ -792,10 +703,6 @@ describe("createFront getUsage — builds annotations and delivers via newFrontE
     expect(mockCreateUiHost).toHaveBeenCalledOnce();
   });
 });
-
-// ---------------------------------------------------------------------------
-// Suite: actions["getPageText"] — ack path posts body innerText via postTopMessage
-// ---------------------------------------------------------------------------
 
 describe("createFront actions[getPageText] — ack path posts body text", () => {
   it("posts body.innerText back via runtime.postTopMessage after Promise resolves", async () => {
@@ -828,10 +735,6 @@ describe("createFront actions[getPageText] — ack path posts body text", () => 
   });
 });
 
-// ---------------------------------------------------------------------------
-// Suite: actions["getBackFocus"] — calls window.focus
-// ---------------------------------------------------------------------------
-
 describe("createFront actions[getBackFocus] — calls window.focus", () => {
   it("calls window.focus when the action is dispatched", () => {
     const { handler, restore } = captureMessageHandler();
@@ -848,10 +751,6 @@ describe("createFront actions[getBackFocus] — calls window.focus", () => {
     focusSpy.mockRestore();
   });
 });
-
-// ---------------------------------------------------------------------------
-// Suite: addSearchAlias without suggestionURL — skips listSuggestions
-// ---------------------------------------------------------------------------
 
 describe("createFront addSearchAlias — without suggestionURL skips listSuggestions", () => {
   it("queues addSearchAlias command but does not register a suggestion handler", () => {
@@ -889,10 +788,6 @@ describe("createFront addSearchAlias — without suggestionURL skips listSuggest
   });
 });
 
-// ---------------------------------------------------------------------------
-// Suite: frontendDestroyed message resets frontendPromise
-// ---------------------------------------------------------------------------
-
 describe("createFront window message — frontendDestroyed resets frontend", () => {
   it("allows newFrontEnd to be created again after frontendDestroyed", () => {
     const mockCreateUiHost = createUiHost as ReturnType<typeof vi.fn>;
@@ -926,10 +821,6 @@ describe("createFront window message — frontendDestroyed resets frontend", () 
   });
 });
 
-// ---------------------------------------------------------------------------
-// Suite: self.attach — calls showModeStatus and creates frontend if needed
-// ---------------------------------------------------------------------------
-
 describe("createFront self.attach — calls showModeStatus", () => {
   it("does not throw and creates the frontend iframe", () => {
     const mockCreateUiHost = createUiHost as ReturnType<typeof vi.fn>;
@@ -959,10 +850,6 @@ describe("createFront self.attach — calls showModeStatus", () => {
   });
 });
 
-// ---------------------------------------------------------------------------
-// Suite: self.detach — schedules tryDetach after 3000 ms
-// ---------------------------------------------------------------------------
-
 describe("createFront self.detach — schedules tryDetach on the uiHost", () => {
   afterEach(() => {
     vi.useRealTimers();
@@ -990,10 +877,6 @@ describe("createFront self.detach — schedules tryDetach on the uiHost", () => 
     mockCreateUiHost.mockReset();
   });
 });
-
-// ---------------------------------------------------------------------------
-// Suite: self.attach cancels a pending uiHostDetaching timer
-// ---------------------------------------------------------------------------
 
 describe("createFront self.attach — cancels pending detach timer", () => {
   afterEach(() => {
@@ -1026,13 +909,6 @@ describe("createFront self.attach — cancels pending detach timer", () => {
     mockCreateUiHost.mockReset();
   });
 });
-
-// ---------------------------------------------------------------------------
-// Suite: actions["getSearchSuggestions"] — non-function dispatches skCallback id
-// The message handler returns void; the observable contract is that a
-// surfingkeys:user "getSearchSuggestions" event is dispatched carrying a
-// callbackId string, which is what the non-function path does.
-// ---------------------------------------------------------------------------
 
 describe("createFront actions[getSearchSuggestions] — non-function dispatches user event with callbackId", () => {
   it("dispatches surfingkeys:user with a string callbackId as the last argument", () => {

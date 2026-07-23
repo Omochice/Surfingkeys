@@ -26,10 +26,6 @@ const env: EngineEnv = {
   surfingkeys: undefined,
 };
 
-// ---------------------------------------------------------------------------
-// Minimal ModeContext factory
-// ---------------------------------------------------------------------------
-
 function makeTrie(): Trie {
   const t = new Trie();
   return t;
@@ -96,10 +92,6 @@ function makeCtx() {
   return { clipboard, insert, normal, hints, visual, front };
 }
 
-// ---------------------------------------------------------------------------
-// mapkey — normal mode registration
-// ---------------------------------------------------------------------------
-
 describe("createAPI mapkey", () => {
   it("adds the encoded key to normal.mappings with the supplied annotation", () => {
     const ctx = makeCtx();
@@ -160,10 +152,6 @@ describe("createAPI mapkey", () => {
   });
 });
 
-// ---------------------------------------------------------------------------
-// vmapkey — visual mode registration
-// ---------------------------------------------------------------------------
-
 describe("createAPI vmapkey", () => {
   it("adds the key to visual.mappings, not normal.mappings", () => {
     const ctx = makeCtx();
@@ -189,10 +177,6 @@ describe("createAPI vmapkey", () => {
   });
 });
 
-// ---------------------------------------------------------------------------
-// imapkey — insert mode registration
-// ---------------------------------------------------------------------------
-
 describe("createAPI imapkey", () => {
   it("adds the key to insert.mappings", () => {
     const ctx = makeCtx();
@@ -205,10 +189,6 @@ describe("createAPI imapkey", () => {
     expect(ctx.normal.mappings.find(encoded)).toBeUndefined();
   });
 });
-
-// ---------------------------------------------------------------------------
-// unmap — removes from normal mode
-// ---------------------------------------------------------------------------
 
 describe("createAPI unmap", () => {
   it("removes a previously mapped key from normal.mappings", () => {
@@ -237,10 +217,6 @@ describe("createAPI unmap", () => {
   });
 });
 
-// ---------------------------------------------------------------------------
-// vunmap — removes from visual mode
-// ---------------------------------------------------------------------------
-
 describe("createAPI vunmap", () => {
   it("removes a previously mapped key from visual.mappings", () => {
     const ctx = makeCtx();
@@ -255,10 +231,6 @@ describe("createAPI vunmap", () => {
   });
 });
 
-// ---------------------------------------------------------------------------
-// iunmap — removes from insert mode
-// ---------------------------------------------------------------------------
-
 describe("createAPI iunmap", () => {
   it("removes a previously mapped key from insert.mappings", () => {
     const ctx = makeCtx();
@@ -272,10 +244,6 @@ describe("createAPI iunmap", () => {
     expect(ctx.insert.mappings.find(encoded)).toBeUndefined();
   });
 });
-
-// ---------------------------------------------------------------------------
-// unmapAllExcept — clears both normal and insert, keeping listed keys
-// ---------------------------------------------------------------------------
 
 describe("createAPI unmapAllExcept", () => {
   it("clears normal mappings except the ones listed", () => {
@@ -313,10 +281,6 @@ describe("createAPI unmapAllExcept", () => {
   });
 });
 
-// ---------------------------------------------------------------------------
-// cmap — dispatches addMapkey event to front (Omnibar)
-// ---------------------------------------------------------------------------
-
 describe("createAPI cmap", () => {
   it("dispatches a surfingkeys:front event with Omnibar addMapkey args", () => {
     const ctx = makeCtx();
@@ -345,10 +309,6 @@ describe("createAPI cmap", () => {
   });
 });
 
-// ---------------------------------------------------------------------------
-// map with ':' prefix — executes an omnibar command
-// ---------------------------------------------------------------------------
-
 describe("createAPI map with command-line prefix", () => {
   it("adds a normal mapping that calls front.executeCommand with the command", () => {
     const ctx = makeCtx();
@@ -365,10 +325,6 @@ describe("createAPI map with command-line prefix", () => {
     expect(ctx.front.executeCommand).toHaveBeenCalledWith("echo");
   });
 });
-
-// ---------------------------------------------------------------------------
-// addSearchAlias — key mapping registrations
-// ---------------------------------------------------------------------------
 
 describe("createAPI addSearchAlias key mappings", () => {
   beforeEach(() => {
@@ -533,10 +489,6 @@ describe("createAPI addSearchAlias key mappings", () => {
   });
 });
 
-// ---------------------------------------------------------------------------
-// removeSearchAlias — unmaps registered keys
-// ---------------------------------------------------------------------------
-
 describe("createAPI removeSearchAlias", () => {
   it("removes normal mode mappings that addSearchAlias created", () => {
     const ctx = makeCtx();
@@ -566,10 +518,6 @@ describe("createAPI removeSearchAlias", () => {
     expect(ctx.front.removeSearchAlias).toHaveBeenCalledWith("p");
   });
 });
-
-// ---------------------------------------------------------------------------
-// searchSelectedWith — builds and opens the search URL
-// ---------------------------------------------------------------------------
 
 describe("createAPI searchSelectedWith", () => {
   it("passes the constructed URL to tabOpenLink", () => {
@@ -683,10 +631,6 @@ describe("createAPI searchSelectedWith", () => {
   });
 });
 
-// ---------------------------------------------------------------------------
-// lmap — delegates to normal.addLurkMap
-// ---------------------------------------------------------------------------
-
 describe("createAPI lmap", () => {
   it("calls normal.addLurkMap with the two keystroke arguments", () => {
     const ctx = makeCtx();
@@ -706,10 +650,6 @@ describe("createAPI lmap", () => {
     expect(ctx.normal.addLurkMap).not.toHaveBeenCalled();
   });
 });
-
-// ---------------------------------------------------------------------------
-// Hints.setCharacters — delegates to hints and front
-// ---------------------------------------------------------------------------
 
 describe("createAPI Hints.setCharacters", () => {
   it("calls hints.setCharacters and front.setHintsCharacters with the provided string", () => {
@@ -732,10 +672,6 @@ describe("createAPI Hints.setCharacters", () => {
     expect(ctx.hints.setCharacters).toHaveBeenCalledWith("qwerty");
   });
 });
-
-// ---------------------------------------------------------------------------
-// mapkey override + prefix-precedence guard arms
-// ---------------------------------------------------------------------------
 
 describe("createAPI mapkey override and precedence", () => {
   it("rebinds a key to the newest code when the same key is mapped twice", () => {
@@ -784,10 +720,6 @@ describe("createAPI mapkey override and precedence", () => {
     expect(node?.meta?.code).toBe(aLeaf);
   });
 });
-
-// ---------------------------------------------------------------------------
-// map — special-key and not-found arms
-// ---------------------------------------------------------------------------
 
 describe("createAPI map special-key and not-found arms", () => {
   it("registers a new alias for an <Esc> special key and notifies front", () => {
@@ -850,10 +782,6 @@ describe("createAPI map special-key and not-found arms", () => {
   });
 });
 
-// ---------------------------------------------------------------------------
-// unmap — special-key removal arm
-// ---------------------------------------------------------------------------
-
 describe("createAPI unmap special-key arm", () => {
   it("removes a previously mapped special-key alias from the special-key list", () => {
     const ctx = makeCtx();
@@ -875,10 +803,6 @@ describe("createAPI unmap special-key arm", () => {
     expect(addCount).toBe(1);
   });
 });
-
-// ---------------------------------------------------------------------------
-// imap / vmap / iunmap / cmap / vunmap — registration + domain-guard arms
-// ---------------------------------------------------------------------------
 
 describe("createAPI imap / vmap", () => {
   it("imap maps a source insert mapping onto a new insert keystroke", () => {
@@ -963,10 +887,6 @@ describe("createAPI unmap-family domain guard (no-op when domain mismatches)", (
     expect(omnibarAdds).toHaveLength(0);
   });
 });
-
-// ---------------------------------------------------------------------------
-// addSearchAlias / removeSearchAlias — defensive front + uppercase-alias arms
-// ---------------------------------------------------------------------------
 
 describe("createAPI search-alias defensive arms", () => {
   beforeEach(() => {

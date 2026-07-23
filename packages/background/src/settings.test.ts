@@ -873,10 +873,6 @@ describe("createSettings — deleteSession", () => {
   });
 });
 
-// ---------------------------------------------------------------------------
-// getState — url-is-null path
-// ---------------------------------------------------------------------------
-
 describe("createSettings — getState with no sender tab", () => {
   it("returns undefined when there is no sender tab (url branch skipped)", async () => {
     const { unit } = makeUnit({
@@ -889,10 +885,6 @@ describe("createSettings — getState with no sender tab", () => {
     expect(result).toBeUndefined();
   });
 });
-
-// ---------------------------------------------------------------------------
-// getSenderUrl — frame with blank URL uses tab URL
-// ---------------------------------------------------------------------------
 
 describe("createSettings — getSenderUrl via toggleBlocklist", () => {
   it("uses the tab URL when the sender frame URL is about:blank", async () => {
@@ -922,10 +914,6 @@ describe("createSettings — getSenderUrl via toggleBlocklist", () => {
     expect(result).toEqual(expect.objectContaining({ blocklist: { "https://example.com": 1 } }));
   });
 });
-
-// ---------------------------------------------------------------------------
-// appendNonce — non-http URL left unchanged; URL with existing query gets &nonce
-// ---------------------------------------------------------------------------
 
 describe("createSettings — appendNonce via loadSettingsFromUrl", () => {
   it("appends ?nonce to an http URL with no existing query string", async () => {
@@ -957,10 +945,6 @@ describe("createSettings — appendNonce via loadSettingsFromUrl", () => {
   });
 });
 
-// ---------------------------------------------------------------------------
-// getSettings with key === null — calls onFullSettingsRequested
-// ---------------------------------------------------------------------------
-
 describe("createSettings — getSettings with null key", () => {
   it("returns the full settings when key is null", async () => {
     const { unit } = makeUnit({
@@ -976,10 +960,6 @@ describe("createSettings — getSettings with null key", () => {
     );
   });
 });
-
-// ---------------------------------------------------------------------------
-// openSession — session not found (no-op) and multi-window path
-// ---------------------------------------------------------------------------
 
 describe("createSettings — openSession", () => {
   it("does nothing when the named session does not exist", async () => {
@@ -1043,10 +1023,6 @@ describe("createSettings — openSession", () => {
   });
 });
 
-// ---------------------------------------------------------------------------
-// createSession — tab whose URL equals newTabUrl is excluded
-// ---------------------------------------------------------------------------
-
 describe("createSettings — createSession excludes newTab URLs", () => {
   it("omits tabs whose URL matches newTabUrl from the saved session", async () => {
     const localSet = vi.fn();
@@ -1075,10 +1051,6 @@ describe("createSettings — createSession excludes newTab URLs", () => {
     );
   });
 });
-
-// ---------------------------------------------------------------------------
-// registerUserScript — existing script with same code skips re-register
-// ---------------------------------------------------------------------------
 
 describe("createSettings — registerUserScript branch: existing script same code", () => {
   it("does not re-register when the stored script code is identical", async () => {
@@ -1113,10 +1085,6 @@ describe("createSettings — registerUserScript branch: existing script same cod
   });
 });
 
-// ---------------------------------------------------------------------------
-// toggleMouseQuery — sender tab URL starts with chrome.runtime.getURL (skipped)
-// ---------------------------------------------------------------------------
-
 describe("createSettings — toggleMouseQuery skips extension pages", () => {
   it("does not update mouseSelectToQuery when the sender tab URL is the extension itself", async () => {
     const localSet = vi.fn();
@@ -1140,10 +1108,6 @@ describe("createSettings — toggleMouseQuery skips extension pages", () => {
     expect(localSet).not.toHaveBeenCalled();
   });
 });
-
-// ---------------------------------------------------------------------------
-// jumpVIMark — scrollLeft/scrollTop stored in tabMessages when tab differs
-// ---------------------------------------------------------------------------
 
 describe("createSettings — jumpVIMark stores scroll position for other tab", () => {
   it("stores scroll position in tabMessages when the mark tab differs from the sender", async () => {
@@ -1170,10 +1134,6 @@ describe("createSettings — jumpVIMark stores scroll position for other tab", (
     expect(tabsUpdate).toHaveBeenCalledWith(7, { active: true });
   });
 });
-
-// ---------------------------------------------------------------------------
-// updateSettings — non-showAdvanced path updates settings without userScripts
-// ---------------------------------------------------------------------------
 
 describe("createSettings — updateSettings non-showAdvanced path", () => {
   it("broadcasts and persists settings when showAdvanced is false", async () => {
