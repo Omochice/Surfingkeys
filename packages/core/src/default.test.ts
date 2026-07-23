@@ -221,7 +221,7 @@ describe("iframe front lacking content-only members", () => {
   const wireIframeLikeMappings = () => {
     const iframeRegistry = new Map<string, Registration>();
     const record = (mode: string) => (keys: string, annotation: any, cb: any, options: any) => {
-      iframeRegistry.set(keys, { mode, annotation, cb, options });
+      iframeRegistry.set(`${mode}:${keys}`, { mode, annotation, cb, options });
     };
     const iframeApi: any = {
       mapkey: record("normal"),
@@ -253,12 +253,12 @@ describe("iframe front lacking content-only members", () => {
 
   it("Q (openOmniquery) does not throw", () => {
     const iframeRegistry = wireIframeLikeMappings();
-    expect(() => iframeRegistry.get("Q")!.cb()).not.toThrow();
+    expect(() => iframeRegistry.get("normal:Q")!.cb()).not.toThrow();
   });
 
   it("q (performInlineQuery) does not throw", () => {
     const iframeRegistry = wireIframeLikeMappings();
-    expect(() => iframeRegistry.get("q")!.cb()).not.toThrow();
+    expect(() => iframeRegistry.get("visual:q")!.cb()).not.toThrow();
   });
 });
 
