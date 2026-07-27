@@ -99,7 +99,7 @@ jobs:
         with:
           pattern: bundle-size-*
           path: bundle-size
-      - uses: k1LoW/octocov-action@b3b6ee60482a667950f87553abf1df63217235d9 # v1.5.1
+      - uses: k1LoW/octocov-action@a167dc0dee441b7ffc45e1b862ab55ec0d87f278 # v1.5.2
         env:
           OCTOCOV_CUSTOM_METRICS_BUNDLE_SIZE_CHROME: bundle-size/bundle-size-chrome/custom_metrics_bundle_size.json
           OCTOCOV_CUSTOM_METRICS_BUNDLE_SIZE_FIREFOX: bundle-size/bundle-size-firefox/custom_metrics_bundle_size.json
