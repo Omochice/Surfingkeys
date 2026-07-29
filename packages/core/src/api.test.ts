@@ -325,7 +325,7 @@ describe("createAPI map with command-line prefix", () => {
     expect(ctx.front.executeCommand).toHaveBeenCalledWith("echo");
   });
 
-  it("does not throw when the iframe front omits executeCommand", () => {
+  it("warns instead of throwing when the iframe front omits executeCommand", () => {
     const ctx = makeCtx();
     ctx.front = {
       openOmnibar: vi.fn(),
@@ -333,11 +333,13 @@ describe("createAPI map with command-line prefix", () => {
       showUsage: vi.fn(),
       toggleStatus: vi.fn(),
     };
-    const api = createAPI(ctx as any, env);
+    const log = vi.fn();
+    const api = createAPI(ctx as any, { ...env, log });
 
     api.map("e", ":echo");
     const node = ctx.normal.mappings.find(KeyboardUtils.encodeKeystroke("e"));
     expect(() => node!.meta!.code!()).not.toThrow();
+    expect(log).toHaveBeenCalledWith("warn", ":echo is not available in this frame.");
   });
 });
 
