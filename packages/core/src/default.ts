@@ -188,7 +188,13 @@ function defineOpenWordTranslation(ctx: ModeContext): ModalMappingDef {
     def: {
       annotation: "#8Open omnibar for word translation",
       code: () => {
-        ctx.front.openOmniquery?.({ query: getWordUnderCursor(), style: "opacity: 0.8;" });
+        // Same shape the content front's openOmniquery produces; calling the shared openOmnibar
+        // directly keeps the mapping working in the UI iframe, whose front has no openOmniquery.
+        ctx.front.openOmnibar({
+          type: "OmniQuery",
+          extra: getWordUnderCursor(),
+          style: "opacity: 0.8;",
+        });
       },
     },
   };
