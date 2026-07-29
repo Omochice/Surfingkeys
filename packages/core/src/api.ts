@@ -33,6 +33,10 @@ export type MapOptions = { domain?: RegExp; repeatIgnore?: boolean; codeHasParam
 function createAPI(ctx: ModeContext, env: EngineEnv) {
   const { clipboard, insert, normal, hints, visual, front } = ctx;
   const { RUNTIME, isInUIFrame, tabOpenLink, log: LOG } = env;
+  // registerInlineQuery is exposed as a callable API entry, so it needs a function value rather than
+  // a guarded call. The iframe front omits it (inline queries act on the hosting page, which the
+  // iframe lacks), so it falls back to a no-op there instead of registering an undefined handler.
+  const registerInlineQuery = front.registerInlineQuery ?? (() => {});
   function createKeyTarget(
     // User keypress handler of arbitrary signature (see mapkey's jscode).
     // eslint-disable-next-line typescript/no-explicit-any
@@ -218,7 +222,7 @@ function createAPI(ctx: ModeContext, env: EngineEnv) {
         const cmdline = old_keystroke.slice(1);
         const keybound = createKeyTarget(
           () => {
-            front.executeCommand(cmdline);
+            front.executeCommand?.(cmdline);
           },
           new_annotation ? parseAnnotation({ annotation: new_annotation }) : null,
           false,
@@ -537,7 +541,7 @@ function createAPI(ctx: ModeContext, env: EngineEnv) {
     only_this_site_key?: string,
   ): void {
     if (!isInUIFrame()) {
-      front.removeSearchAlias(alias);
+      front.removeSearchAlias?.(alias);
     }
     unmap((search_leader_key || "s") + alias);
     unmap("o" + alias);
@@ -611,7 +615,7 @@ function createAPI(ctx: ModeContext, env: EngineEnv) {
     "hints:setCharacters": hints.setCharacters,
     "hints:setNumeric": hints.setNumeric,
     "hints:style": hints.style,
-    "front:registerInlineQuery": front.registerInlineQuery,
+    "front:registerInlineQuery": registerInlineQuery,
     "front:openOmnibar": front.openOmnibar,
     "normal:feedkeys": normal.feedkeys,
     "normal:jumpVIMark": normal.jumpVIMark,
@@ -706,7 +710,7 @@ function createAPI(ctx: ModeContext, env: EngineEnv) {
     },
     Front: {
       openOmnibar: front.openOmnibar,
-      registerInlineQuery: front.registerInlineQuery,
+      registerInlineQuery,
       showBanner,
       showPopup,
     },

@@ -217,6 +217,51 @@ describe("front-delegating keys", () => {
   });
 });
 
+describe("iframe front lacking content-only members", () => {
+  const wireIframeLikeMappings = () => {
+    const iframeRegistry = new Map<string, Registration>();
+    const record = (mode: string) => (keys: string, annotation: any, cb: any, options: any) => {
+      iframeRegistry.set(`${mode}:${keys}`, { mode, annotation, cb, options });
+    };
+    const iframeApi: any = {
+      mapkey: record("normal"),
+      imapkey: record("insert"),
+      vmapkey: record("visual"),
+      cmap: vi.fn(),
+      map: vi.fn(),
+      addSearchAlias: vi.fn(),
+      searchSelectedWith: vi.fn(),
+    };
+    const iframeCtx: any = {
+      clipboard: autoMock(),
+      normal: autoMock(),
+      hints: autoMock(),
+      visual: autoMock(),
+      front: {
+        openOmnibar: vi.fn(),
+        chooseTab: vi.fn(),
+        showUsage: vi.fn(),
+        toggleStatus: vi.fn(),
+      },
+    };
+    applyDefaultMappings(
+      iframeApi,
+      createDefaultMappings(iframeCtx, makeEnv(), iframeApi.searchSelectedWith),
+    );
+    return iframeRegistry;
+  };
+
+  it("Q (openOmniquery) does not throw", () => {
+    const iframeRegistry = wireIframeLikeMappings();
+    expect(() => iframeRegistry.get("normal:Q")!.cb()).not.toThrow();
+  });
+
+  it("q (performInlineQuery) does not throw", () => {
+    const iframeRegistry = wireIframeLikeMappings();
+    expect(() => iframeRegistry.get("visual:q")!.cb()).not.toThrow();
+  });
+});
+
 describe("visual-delegating keys", () => {
   it("V restores visual mode", () => {
     fire("V");

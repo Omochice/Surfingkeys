@@ -127,16 +127,13 @@ const Front = (() => {
     Omnibar: omnibar,
   };
 
-  // The iframe front has never implemented the content-only FrontLike members (executeCommand,
-  // removeSearchAlias, openOmniquery, registerInlineQuery, performInlineQuery); the previous `any`
-  // typing hid that gap, and the assertion keeps it visible without widening the whole front.
   const ctx: ModeContext = {
     clipboard,
     insert,
     normal,
     hints,
     visual,
-    front: self as unknown as ModeContext["front"],
+    front: self,
   };
   const api = createAPI(ctx, engineEnv);
   applyDefaultMappings(api, createDefaultMappings(ctx, engineEnv, api.searchSelectedWith));
