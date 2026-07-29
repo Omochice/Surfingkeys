@@ -263,6 +263,12 @@ describe("iframe front lacking content-only members", () => {
     const { iframeRegistry } = wireIframeLikeMappings();
     expect(() => iframeRegistry.get("visual:q")!.cb()).not.toThrow();
   });
+
+  it("cq does not create hints that could never resolve", () => {
+    const { iframeRegistry, iframeCtx } = wireIframeLikeMappings();
+    iframeRegistry.get("normal:cq")!.cb();
+    expect(iframeCtx.hints.create).not.toHaveBeenCalled();
+  });
 });
 
 describe("visual-delegating keys", () => {
