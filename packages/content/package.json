@@ -41,7 +41,7 @@
     "playwright": "1.62.0",
     "sort-package-json": "catalog:",
     "typescript": "catalog:",
-    "vite-plugin-solid": "2.11.13",
+    "vite-plugin-solid": "2.11.14",
     "vitest": "catalog:"
   }
 }
