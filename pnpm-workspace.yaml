@@ -21,4 +21,4 @@ allowBuilds:
   esbuild: true
   spawn-sync: false
 executionEnv:
-  nodeVersion: 24.18.1
+  nodeVersion: 24.19.0
