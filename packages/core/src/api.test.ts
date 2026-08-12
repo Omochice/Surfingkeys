@@ -80,7 +80,6 @@ function makeCtx() {
     addSearchAlias: vi.fn(),
     removeSearchAlias: vi.fn(),
     openOmnibar: vi.fn(),
-    openOmniquery: vi.fn(),
     registerInlineQuery: vi.fn(),
     setHintsCharacters: vi.fn(),
     chooseTab: vi.fn(),

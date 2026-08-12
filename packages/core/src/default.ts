@@ -188,8 +188,8 @@ function defineOpenWordTranslation(ctx: ModeContext): ModalMappingDef {
     def: {
       annotation: "#8Open omnibar for word translation",
       code: () => {
-        // Same shape the content front's openOmniquery produces; calling the shared openOmnibar
-        // directly keeps the mapping working in the UI iframe, whose front has no openOmniquery.
+        // Built here rather than behind a front helper, because openOmnibar is the only member
+        // both the content front and the UI iframe front implement.
         ctx.front.openOmnibar({
           type: "OmniQuery",
           extra: getWordUnderCursor(),

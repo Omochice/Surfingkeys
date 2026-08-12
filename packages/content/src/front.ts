@@ -404,9 +404,6 @@ function createFront(
   self.registerInlineQuery = () => {
     inlineQuery = true;
   };
-  self.openOmniquery = (args: { query?: string; style?: string }) => {
-    self.openOmnibar({ type: "OmniQuery", extra: args.query, style: args.style });
-  };
 
   const keyHints: {
     accumulated: string;
