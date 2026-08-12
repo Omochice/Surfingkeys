@@ -254,9 +254,11 @@ describe("iframe front lacking content-only members", () => {
   it("Q opens the omnibar in OmniQuery mode via the shared surface", () => {
     const { iframeRegistry, iframeCtx } = wireIframeLikeMappings();
     iframeRegistry.get("normal:Q")!.cb();
-    expect(iframeCtx.front.openOmnibar).toHaveBeenCalledWith(
-      expect.objectContaining({ type: "OmniQuery" }),
-    );
+    expect(iframeCtx.front.openOmnibar).toHaveBeenCalledWith({
+      type: "OmniQuery",
+      extra: "word",
+      style: "opacity: 0.8;",
+    });
   });
 
   it("q (performInlineQuery) does not throw", () => {
@@ -390,9 +392,11 @@ describe("directly-wired keys reference the mode method", () => {
 describe("more mode delegations", () => {
   it("Q opens the omnibar in OmniQuery mode for the word under the cursor", () => {
     fire("Q");
-    expect(ctx.front.openOmnibar).toHaveBeenCalledWith(
-      expect.objectContaining({ type: "OmniQuery" }),
-    );
+    expect(ctx.front.openOmnibar).toHaveBeenCalledWith({
+      type: "OmniQuery",
+      extra: "word",
+      style: "opacity: 0.8;",
+    });
   });
 
   it("gi opens the input hint layer", () => {
