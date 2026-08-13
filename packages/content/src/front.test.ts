@@ -438,16 +438,16 @@ describe("createFront chooseTab — RUNTIME delegation", () => {
   });
 });
 
-describe("createFront openOmniquery — shapes the call to openOmnibar", () => {
+describe("createFront openOmnibar", () => {
   it("calls createUiHost (triggers newFrontEnd) because openOmnibar is not hideKeystroke", () => {
     const mockCreateUiHost = createUiHost as ReturnType<typeof vi.fn>;
     mockCreateUiHost.mockClear();
 
     const front = createFront(makeInsert(), makeNormal(), null, makeVisual(), makeBrowser());
 
-    front.openOmniquery({ query: "search term", style: "" });
+    front.openOmnibar({ type: "OmniQuery", extra: "search term", style: "" });
 
-    // openOmniquery -> openOmnibar -> self.command({action:"openOmnibar",...})
+    // openOmnibar -> self.command({action:"openOmnibar",...})
     // self.command sees frontendPromise==undefined, action!="hideKeystroke",
     // body!=null, so it calls newFrontEnd() which calls createUiHost.
     expect(mockCreateUiHost).toHaveBeenCalledOnce();

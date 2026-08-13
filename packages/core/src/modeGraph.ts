@@ -32,7 +32,6 @@ type ContentOnlyFront = {
     options?: { skipMaps?: boolean; favicon_url?: string },
   ) => void;
   removeSearchAlias(alias: string): void;
-  openOmniquery(args: unknown): void;
   // Forwarded verbatim to a dynamic front method and an any-typed action registry; a narrower
   // parameter would break either the assignment from the real front or the forwarding target.
   // eslint-disable-next-line typescript/no-explicit-any

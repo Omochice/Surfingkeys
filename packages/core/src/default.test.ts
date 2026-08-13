@@ -248,17 +248,28 @@ describe("iframe front lacking content-only members", () => {
       iframeApi,
       createDefaultMappings(iframeCtx, makeEnv(), iframeApi.searchSelectedWith),
     );
-    return iframeRegistry;
+    return { iframeRegistry, iframeCtx };
   };
 
-  it("Q (openOmniquery) does not throw", () => {
-    const iframeRegistry = wireIframeLikeMappings();
-    expect(() => iframeRegistry.get("normal:Q")!.cb()).not.toThrow();
+  it("Q opens the omnibar in OmniQuery mode via the shared surface", () => {
+    const { iframeRegistry, iframeCtx } = wireIframeLikeMappings();
+    iframeRegistry.get("normal:Q")!.cb();
+    expect(iframeCtx.front.openOmnibar).toHaveBeenCalledWith({
+      type: "OmniQuery",
+      extra: "word",
+      style: "opacity: 0.8;",
+    });
   });
 
   it("q (performInlineQuery) does not throw", () => {
-    const iframeRegistry = wireIframeLikeMappings();
+    const { iframeRegistry } = wireIframeLikeMappings();
     expect(() => iframeRegistry.get("visual:q")!.cb()).not.toThrow();
+  });
+
+  it("cq does not create hints that could never resolve", () => {
+    const { iframeRegistry, iframeCtx } = wireIframeLikeMappings();
+    iframeRegistry.get("normal:cq")!.cb();
+    expect(iframeCtx.hints.create).not.toHaveBeenCalled();
   });
 });
 
@@ -379,9 +390,13 @@ describe("directly-wired keys reference the mode method", () => {
 });
 
 describe("more mode delegations", () => {
-  it("Q opens the omniquery for the word under the cursor", () => {
+  it("Q opens the omnibar in OmniQuery mode for the word under the cursor", () => {
     fire("Q");
-    expect(ctx.front.openOmniquery).toHaveBeenCalled();
+    expect(ctx.front.openOmnibar).toHaveBeenCalledWith({
+      type: "OmniQuery",
+      extra: "word",
+      style: "opacity: 0.8;",
+    });
   });
 
   it("gi opens the input hint layer", () => {

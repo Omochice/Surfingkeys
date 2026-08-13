@@ -222,7 +222,11 @@ function createAPI(ctx: ModeContext, env: EngineEnv) {
         const cmdline = old_keystroke.slice(1);
         const keybound = createKeyTarget(
           () => {
-            front.executeCommand?.(cmdline);
+            if (front.executeCommand == null) {
+              LOG("warn", `:${cmdline} is not available in this frame.`);
+              return;
+            }
+            front.executeCommand(cmdline);
           },
           new_annotation ? parseAnnotation({ annotation: new_annotation }) : null,
           false,
