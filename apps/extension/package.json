@@ -45,7 +45,7 @@
     "npm-run-all2": "catalog:",
     "oxfmt": "catalog:",
     "oxlint": "catalog:",
-    "rollup-plugin-visualizer": "7.0.1",
+    "rollup-plugin-visualizer": "7.1.1",
     "sharp": "0.35.3",
     "solid-js": "catalog:",
     "sort-package-json": "catalog:",
