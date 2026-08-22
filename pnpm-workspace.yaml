@@ -15,7 +15,7 @@ catalog:
   sort-package-json: 4.0.0
   typescript: 7.0.2
   valibot: 1.4.2
-  vitest: 4.1.10
+  vitest: 4.1.11
   wxt: 0.21.3
 allowBuilds:
   esbuild: true
