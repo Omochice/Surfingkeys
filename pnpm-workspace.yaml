@@ -10,7 +10,7 @@ catalog:
   jsdom: 30.0.1
   npm-run-all2: 9.0.3
   oxfmt: 0.62.0
-  oxlint: 1.80.0
+  oxlint: 1.81.0
   solid-js: 1.9.15
   sort-package-json: 4.0.0
   typescript: 7.0.2
