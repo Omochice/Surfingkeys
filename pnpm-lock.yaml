@@ -248,8 +248,8 @@ catalogs:
       specifier: 4.1.11
       version: 4.1.11
     wxt:
-      specifier: 0.21.3
-      version: 0.21.3
+      specifier: 0.21.4
+      version: 0.21.4
 
 importers:
 
@@ -318,7 +318,7 @@ importers:
         version: 25.9.5
       '@wxt-dev/module-solid':
         specifier: 1.1.4
-        version: 1.1.4(solid-js@1.9.15)(supports-color@7.2.0)(vite@8.2.2(@types/node@25.9.5)(jiti@2.7.0)(yaml@2.9.0))(wxt@0.21.3(oxc-parser@0.147.0)(rolldown@1.2.7)(typescript@7.0.2)(vite@8.2.2(@types/node@25.9.5)(jiti@2.7.0)(yaml@2.9.0)))
+        version: 1.1.4(solid-js@1.9.15)(supports-color@7.2.0)(vite@8.2.2(@types/node@25.9.5)(jiti@2.7.0)(yaml@2.9.0))(wxt@0.21.4(oxc-parser@0.147.0)(rolldown@1.2.7)(typescript@7.0.2)(vite@8.2.2(@types/node@25.9.5)(jiti@2.7.0)(yaml@2.9.0)))
       jsdom:
         specifier: 'catalog:'
         version: 30.0.1
@@ -357,7 +357,7 @@ importers:
         version: 4.1.11(@types/node@25.9.5)(@vitest/browser-playwright@4.1.11)(@vitest/coverage-istanbul@4.1.11)(jsdom@30.0.1)(vite@8.2.2(@types/node@25.9.5)(jiti@2.7.0)(yaml@2.9.0))
       wxt:
         specifier: 'catalog:'
-        version: 0.21.3(oxc-parser@0.147.0)(rolldown@1.2.7)(typescript@7.0.2)(vite@8.2.2(@types/node@25.9.5)(jiti@2.7.0)(yaml@2.9.0))
+        version: 0.21.4(oxc-parser@0.147.0)(rolldown@1.2.7)(typescript@7.0.2)(vite@8.2.2(@types/node@25.9.5)(jiti@2.7.0)(yaml@2.9.0))
 
   packages/adapter:
     dependencies:
@@ -2224,9 +2224,6 @@ packages:
     resolution: {integrity: sha512-QRbvDIbx6YklUe6RxeTeleMR0yv3cYH6PsPZHcnVn7xv7zO1BHN8r0XETu8n6Ye3Q+ahtSarc3WgtNWmehIBfA==}
     engines: {node: '>=18'}
 
-  get-port-please@3.2.0:
-    resolution: {integrity: sha512-I9QVvBw5U/hw3RmWpYKRumUeaDgxTPd401x364rLmWBJcOQ753eov1eTgzDqRG9bqFIfDc7gfzcQEWrUri3o1A==}
-
   get-tsconfig@4.14.3:
     resolution: {integrity: sha512-++QEw4DIY7WGoukz+/+A/8dGYPT9l9yIadnmSgZ8Rjr3YVSVDipQSO9CdnJo9ePqFqUUqh+wk9uIaoiAwsiPkA==}
 
@@ -2498,25 +2495,14 @@ packages:
   ms@2.1.3:
     resolution: {integrity: sha512-6FlzubTLZG3J2a/NVCAleEhjzq5oxgHyaCU9yYXvcLsvoVaHJq/s5xXI6/XXP6tz7R9xAOtHnSO/tXtF3WRTlA==}
 
-  nano-spawn@2.1.0:
-    resolution: {integrity: sha512-yTW+2okrElHiH4fsiz/+/zc0EDo9BDDoC3iKk8dpv1GeRc9nUWzUZHx6TofMWErchhUQR8hY9/Eu1Uja9x1nqA==}
-    engines: {node: '>=20.17'}
-
   nanoid@3.3.18:
     resolution: {integrity: sha512-DTg4MJbGMWkfi6VZFdNt2/caMbQy4Ou+Op/hJQvGEWcnVfoA1QA+xzRKAzw9jD6+GVOOeYr/mIcuDSdug6F6+w==}
     engines: {node: ^10 || ^12 || ^13.7 || ^14 || >=15.0.1}
     hasBin: true
 
-  nanospinner@1.2.2:
-    resolution: {integrity: sha512-Zt/AmG6qRU3e+WnzGGLuMCEAO/dAu45stNbHY223tUxldaDAeE+FxSPsd9Q+j+paejmm0ZbrNVs5Sraqy3dRxA==}
-
   node-releases@2.0.54:
     resolution: {integrity: sha512-YHs7BmmcsdAI5Ozuf8JZo6PT0mv2GIWC9vMfvUC3dp65M8hn7Ux8CPL+2oBI7juNuj9d0ndhTcznq2ODBps9cQ==}
     engines: {node: '>=18'}
-
-  normalize-path@3.0.0:
-    resolution: {integrity: sha512-6eZs5Ls3WtCisHWp9S2GUy8dqkpGi4BVSz3GaqiE6ezub0512ESztXUwUB6C6IKbQkY2Pnb/mD4WYojCRwcwLA==}
-    engines: {node: '>=0.10.0'}
 
   npm-normalize-package-bin@6.0.0:
     resolution: {integrity: sha512-tdt4aFn9QamlhdN3HV2D2ccpBwO5/fyjjbXUxYA6uBjyekMZcZvDq0aSj9t5Jo+tih6AYFnt/cuIRn9013e0Uw==}
@@ -3147,8 +3133,8 @@ packages:
     resolution: {integrity: sha512-Hl0ZOAs672vg+06kfujwRhoS6/jehvULrlFkuF2dRu6pHgA8U06h3xqNIqNNU1LTXPcedxByAR4GS6pwQK0mgA==}
     engines: {node: '>=20'}
 
-  wxt@0.21.3:
-    resolution: {integrity: sha512-UXvzDmgYVdoZiqZyWuoJ5zpjaxCsBRz1fr3q9gVFfge4AeJr0SOA/ijzVRY3ot0L/INZviP4p1by5dCnnwt6bw==}
+  wxt@0.21.4:
+    resolution: {integrity: sha512-iyVMTXb37BQAbsPHCuPzrK3ZxnO9pZmvbKl7VJWIHe3RG40On2NyP2FOjArtOITO96plEYnh3o+iUlRp9qE90w==}
     engines: {bun: '>=1.2.0', node: '>=22'}
     hasBin: true
     peerDependencies:
@@ -4067,10 +4053,10 @@ snapshots:
       '@types/filesystem': 0.0.36
       '@types/har-format': 1.2.16
 
-  '@wxt-dev/module-solid@1.1.4(solid-js@1.9.15)(supports-color@7.2.0)(vite@8.2.2(@types/node@25.9.5)(jiti@2.7.0)(yaml@2.9.0))(wxt@0.21.3(oxc-parser@0.147.0)(rolldown@1.2.7)(typescript@7.0.2)(vite@8.2.2(@types/node@25.9.5)(jiti@2.7.0)(yaml@2.9.0)))':
+  '@wxt-dev/module-solid@1.1.4(solid-js@1.9.15)(supports-color@7.2.0)(vite@8.2.2(@types/node@25.9.5)(jiti@2.7.0)(yaml@2.9.0))(wxt@0.21.4(oxc-parser@0.147.0)(rolldown@1.2.7)(typescript@7.0.2)(vite@8.2.2(@types/node@25.9.5)(jiti@2.7.0)(yaml@2.9.0)))':
     dependencies:
       vite-plugin-solid: 2.11.14(solid-js@1.9.15)(supports-color@7.2.0)(vite@8.2.2(@types/node@25.9.5)(jiti@2.7.0)(yaml@2.9.0))
-      wxt: 0.21.3(oxc-parser@0.147.0)(rolldown@1.2.7)(typescript@7.0.2)(vite@8.2.2(@types/node@25.9.5)(jiti@2.7.0)(yaml@2.9.0))
+      wxt: 0.21.4(oxc-parser@0.147.0)(rolldown@1.2.7)(typescript@7.0.2)(vite@8.2.2(@types/node@25.9.5)(jiti@2.7.0)(yaml@2.9.0))
     transitivePeerDependencies:
       - '@testing-library/jest-dom'
       - solid-js
@@ -4367,8 +4353,6 @@ snapshots:
 
   get-east-asian-width@1.6.0: {}
 
-  get-port-please@3.2.0: {}
-
   get-tsconfig@4.14.3:
     dependencies:
       resolve-pkg-maps: 1.0.0
@@ -4609,17 +4593,9 @@ snapshots:
 
   ms@2.1.3: {}
 
-  nano-spawn@2.1.0: {}
-
   nanoid@3.3.18: {}
 
-  nanospinner@1.2.2:
-    dependencies:
-      picocolors: 1.1.1
-
   node-releases@2.0.54: {}
-
-  normalize-path@3.0.0: {}
 
   npm-normalize-package-bin@6.0.0: {}
 
@@ -5266,7 +5242,7 @@ snapshots:
       is-wsl: 3.1.1
       powershell-utils: 0.1.0
 
-  wxt@0.21.3(oxc-parser@0.147.0)(rolldown@1.2.7)(typescript@7.0.2)(vite@8.2.2(@types/node@25.9.5)(jiti@2.7.0)(yaml@2.9.0)):
+  wxt@0.21.4(oxc-parser@0.147.0)(rolldown@1.2.7)(typescript@7.0.2)(vite@8.2.2(@types/node@25.9.5)(jiti@2.7.0)(yaml@2.9.0)):
     dependencies:
       '@1natsu/wait-element': 4.2.0
       '@aklinker1/rollup-plugin-visualizer': 5.12.0
@@ -5284,23 +5260,17 @@ snapshots:
       defu: 6.1.7
       dotenv-expand: 13.0.0
       filesize: 11.0.23
-      get-port-please: 3.2.0
       giget: 3.3.1
       hookable: 6.1.1
-      is-wsl: 3.1.1
       json5: 2.2.3
       linkedom: 0.18.13
       magicast: 0.5.4
-      nano-spawn: 2.1.0
-      nanospinner: 1.2.2
-      normalize-path: 3.0.0
       nypm: 0.6.9
-      ohash: 2.0.12
       picomatch: 4.0.7
       publish-browser-extension: 6.1.1
-      scule: 1.3.0
       superlock: 1.3.5
       tiny-open: 1.3.0
+      tinyexec: 1.3.1
       tinyglobby: 0.2.17
       unimport: 6.4.0(oxc-parser@0.147.0)(rolldown@1.2.7)(vite@8.2.2(@types/node@25.9.5)(jiti@2.7.0)(yaml@2.9.0))
       vite: 8.2.2(@types/node@25.9.5)(jiti@2.7.0)(yaml@2.9.0)
