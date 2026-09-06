@@ -209,8 +209,8 @@ catalogs:
       specifier: 0.12.0
       version: 0.12.0
     '@types/chrome':
-      specifier: 0.2.5
-      version: 0.2.5
+      specifier: 0.2.8
+      version: 0.2.8
     '@types/firefox-webext-browser':
       specifier: 143.0.0
       version: 143.0.0
@@ -309,7 +309,7 @@ importers:
         version: link:../../packages/types
       '@types/chrome':
         specifier: 'catalog:'
-        version: 0.2.5
+        version: 0.2.8
       '@types/firefox-webext-browser':
         specifier: 'catalog:'
         version: 143.0.0
@@ -373,7 +373,7 @@ importers:
         version: link:../types
       '@types/chrome':
         specifier: 'catalog:'
-        version: 0.2.5
+        version: 0.2.8
       '@types/firefox-webext-browser':
         specifier: 'catalog:'
         version: 143.0.0
@@ -419,7 +419,7 @@ importers:
         version: link:../types
       '@types/chrome':
         specifier: 'catalog:'
-        version: 0.2.5
+        version: 0.2.8
       '@types/firefox-webext-browser':
         specifier: 'catalog:'
         version: 143.0.0
@@ -511,7 +511,7 @@ importers:
         version: 0.8.10(solid-js@1.9.15)
       '@types/chrome':
         specifier: 'catalog:'
-        version: 0.2.5
+        version: 0.2.8
       '@types/firefox-webext-browser':
         specifier: 'catalog:'
         version: 143.0.0
@@ -609,7 +609,7 @@ importers:
         version: link:../types
       '@types/chrome':
         specifier: 'catalog:'
-        version: 0.2.5
+        version: 0.2.8
       '@types/firefox-webext-browser':
         specifier: 'catalog:'
         version: 143.0.0
@@ -1672,8 +1672,8 @@ packages:
   '@types/chai@5.2.3':
     resolution: {integrity: sha512-Mw558oeA9fFbv65/y4mHtXDs9bPnFMZAL/jxdPFUpOHHIXX91mcgEHbS5Lahr+pwZFR8A7GQleRWeI6cGFC2UA==}
 
-  '@types/chrome@0.2.5':
-    resolution: {integrity: sha512-DwLFgwj3D0zjxRBhQ3610RBso2g+yI1cakq/JdIGopZ9Bc5UhQluyfcLGZwivFE4t2h4b2QZYZhPV7KylExSbA==}
+  '@types/chrome@0.2.8':
+    resolution: {integrity: sha512-dznDYMiJUyuc7b+78PxnWhaGOonmbX/OmcWu7NE42sg/yTLJMYnJ7Uah40SLPNFiCh8reqcthk7vOva2+MSvzw==}
 
   '@types/deep-eql@4.0.2':
     resolution: {integrity: sha512-c9h9dVVMigMPc4bwTvC5dxqtqJZwQPePsWjPlpSOnojbor6pGqdk541lfA7AqFQr5pB1BRdq0juY9db81BwyFw==}
@@ -3878,7 +3878,7 @@ snapshots:
       '@types/deep-eql': 4.0.2
       assertion-error: 2.0.1
 
-  '@types/chrome@0.2.5':
+  '@types/chrome@0.2.8':
     dependencies:
       '@types/filesystem': 0.0.36
       '@types/har-format': 1.2.16
