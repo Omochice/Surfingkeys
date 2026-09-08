@@ -41,6 +41,10 @@ export default defineConfig({
   manifestVersion: 3,
   targetBrowsers: ["chrome", "firefox"],
   modules: ["@wxt-dev/module-solid"],
+  // Fixed zip basename so the release workflow can predict the artifact names
+  // (surfingkeys-<version>-<browser>.zip); the default derives from the
+  // package name "@sk/extension".
+  zip: { name: "surfingkeys" },
   vite: () => ({
     // Minifies more aggressively than the esbuild default, and resolves the
     // nesting / @custom-media used by the stylesheets.
@@ -171,7 +175,21 @@ export default defineConfig({
       // shipped the ES2023 array methods we also use directly (esbuild neither
       // polyfills nor down-levels built-in methods). defu deep-merges this into
       // WXT's base manifest, preserving any gecko fields WXT adds.
-      manifest["browser_specific_settings"] = { gecko: { strict_min_version: "148.0" } };
+      manifest["browser_specific_settings"] = {
+        gecko: {
+          // A fixed id is required to self-distribute (AMO unlisted signing) and
+          // is the key clients match in the update_url manifest below.
+          id: "surfingkeys@omochice.github.io",
+          strict_min_version: "148.0",
+          // Self-hosted auto-update: the extension polls this manifest on
+          // GitHub Pages, whose entries point at the signed .xpi in GitHub
+          // release assets. Ignored for temporary/unpacked dev loads.
+          update_url: "https://omochice.github.io/Surfingkeys/updates.json",
+          // AMO requires new extensions (from 2025-11-03) to declare data
+          // collection; this extension collects none.
+          data_collection_permissions: { required: ["none"] },
+        },
+      };
     } else {
       permissions.push("downloads.shelf", "favicon", "userScripts");
       webResources.push("_favicon/*", "api.js");
@@ -184,6 +202,13 @@ export default defineConfig({
       if (mode === "development") {
         manifest["key"] = devKey;
       }
+    }
+
+    // The release workflow injects the git tag (e.g. "1.18.0") so the manifest
+    // and zip filename track the tag; local builds fall back to the
+    // package.json version WXT resolves by default.
+    if (process.env["EXT_VERSION"]) {
+      manifest["version"] = process.env["EXT_VERSION"];
     }
 
     return manifest;
