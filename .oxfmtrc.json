@@ -1,5 +1,5 @@
 {
-  "$schema": "https://raw.githubusercontent.com/oxc-project/oxc/refs/tags/oxfmt_v0.62.0/npm/oxfmt/configuration_schema.json",
+  "$schema": "https://raw.githubusercontent.com/oxc-project/oxc/refs/tags/oxfmt_v0.66.0/npm/oxfmt/configuration_schema.json",
   "tabWidth": 2,
   "singleAttributePerLine": true,
   "sortPackageJson": false,
