@@ -45,11 +45,13 @@ vi.mock("solid-js/web", async (importOriginal) => {
   return { ...actual, render: vi.fn() };
 });
 
+const { omnibarCommandSpy } = vi.hoisted(() => ({ omnibarCommandSpy: vi.fn() }));
+
 // ./omnibar: the real createOmnibar wires up Solid rendering and its own DOM
 // queries; we don't need any of that for these tests.
 vi.mock("./omnibar", () => ({
   default: vi.fn(() => ({
-    command: vi.fn(),
+    command: omnibarCommandSpy,
     mappings: { getWords: () => [] },
     onShow: vi.fn(),
   })),
@@ -381,33 +383,20 @@ describe("Front.contentCommand", () => {
 });
 
 describe("actions['addCommand']", () => {
-  it("registers the command name and description with the omnibar mock", async () => {
-    // The omnibar mock's `command` method is a vi.fn(). After addCommand the
-    // mock must have been called with the supplied name and description.
-    const { default: createOmnibar } = await import("./omnibar");
-    const mockOmnibar = (createOmnibar as ReturnType<typeof vi.fn>).mock.results[0]?.value;
-    const commandSpy = mockOmnibar?.command as ReturnType<typeof vi.fn>;
-    // Fail loudly if the omnibar mock's command spy is not wired, instead of
-    // silently passing on a broken setup.
-    expect(commandSpy).toBeDefined();
+  beforeEach(() => {
+    omnibarCommandSpy.mockClear();
+  });
 
-    commandSpy.mockClear();
-
+  it("registers the command name and description with the omnibar mock", () => {
     Front.actions["addCommand"]({ name: "myCmd", description: "Does my thing" });
 
-    expect(commandSpy).toHaveBeenCalledOnce();
-    const [name, description] = commandSpy.mock.calls[0] as [string, string, unknown];
+    expect(omnibarCommandSpy).toHaveBeenCalledOnce();
+    const [name, description] = omnibarCommandSpy.mock.calls[0] as [string, string, unknown];
     expect(name).toBe("myCmd");
     expect(description).toBe("Does my thing");
   });
 
-  it("proxy action dispatches executeUserCommand via contentCommand", async () => {
-    const { default: createOmnibar } = await import("./omnibar");
-    const mockOmnibar = (createOmnibar as ReturnType<typeof vi.fn>).mock.results[0]?.value;
-    const commandSpy = mockOmnibar?.command as ReturnType<typeof vi.fn>;
-    expect(commandSpy).toBeDefined();
-
-    commandSpy.mockClear();
+  it("proxy action dispatches executeUserCommand via contentCommand", () => {
     Front.topOrigin = "https://proxy-cmd-test.example.com";
     const posted: any[] = [];
     vi.spyOn(window.top!, "postMessage").mockImplementation((data: any) => {
@@ -417,7 +406,7 @@ describe("actions['addCommand']", () => {
     Front.actions["addCommand"]({ name: "proxied", description: "" });
 
     // The third argument to omnibar.command is the proxy function.
-    const proxyFn = commandSpy.mock.calls.at(-1)?.[2] as (...args: any[]) => void;
+    const proxyFn = omnibarCommandSpy.mock.calls.at(-1)?.[2] as (...args: any[]) => void;
     proxyFn("arg1", "arg2");
 
     const msg = posted.find((m) => m?.action === "executeUserCommand");
