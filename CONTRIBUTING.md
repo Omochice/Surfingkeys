@@ -28,11 +28,12 @@ pnpm install
 pnpm build:prod                  # production build for Chromium based browsers
 pnpm build:prod:firefox          # production build for Firefox
 
-pnpm build:dev                   # development build for Chromium based browsers
-pnpm build:dev:firefox           # development build for Firefox
+pnpm build:debug                 # development build for Chromium based browsers
+pnpm build:debug:firefox         # development build for Firefox
 ```
 
 Builds are emitted to `apps/extension/dist/<browser>-<manifest>`, for example `apps/extension/dist/chrome-mv3` or `apps/extension/dist/firefox-mv3`.
+Debug builds add a `-debug` suffix, for example `apps/extension/dist/chrome-mv3-debug`, and show up in the browser as "Surfingkeys (debug)".
 
 To produce a distributable archive instead of an unpacked build, use `pnpm zip` or `pnpm zip:firefox`.
 
@@ -44,6 +45,9 @@ For an iterative workflow, run WXT in dev mode. It builds the extension, launche
 pnpm dev                         # Chromium based browsers
 pnpm dev:firefox                 # Firefox
 ```
+
+A debug build also reports its errors to a local collector.
+Start it with `docker compose up -d`, then browse the records in Grafana at `http://localhost:3000` or follow `.otel/otel.jsonl`, where the collector appends one JSON object per record.
 
 ## Test and check
 

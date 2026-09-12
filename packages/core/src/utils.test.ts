@@ -1,5 +1,5 @@
 import { Result } from "@praha/byethrow";
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { conf } from "./conf";
 import KeyboardUtils from "./keyboardUtils";
@@ -805,14 +805,14 @@ describe("toggleQuote — trailing-quote-only arm", () => {
 describe("applyUserSettings", () => {
   it("dispatches applySettingsFromSnippets when the settings object is non-empty", () => {
     const details = captureFrontEvents(() => {
-      applyUserSettings({ error: "", settings: { foo: 1 } });
+      applyUserSettings({ error: "", settings: { foo: 1 } }, vi.fn());
     });
     expect(details).toContainEqual(["applySettingsFromSnippets", { foo: 1 }]);
   });
 
   it("does not dispatch when the settings object is empty", () => {
     const details = captureFrontEvents(() => {
-      applyUserSettings({ error: "", settings: {} });
+      applyUserSettings({ error: "", settings: {} }, vi.fn());
     });
     // The `!isEmptyObject` guard is false, so no applySettingsFromSnippets event.
     expect(details.some((d) => Array.isArray(d) && d[0] === "applySettingsFromSnippets")).toBe(
@@ -824,7 +824,7 @@ describe("applyUserSettings", () => {
     // jsdom runs as the top frame, so a non-empty error takes the showPopup arm;
     // showPopup dispatches a ["showPopup", msg] surfingkeys:front event.
     const details = captureFrontEvents(() => {
-      applyUserSettings({ error: "bad config", settings: {} });
+      applyUserSettings({ error: "bad config", settings: {} }, vi.fn());
     });
     expect(details).toContainEqual([
       "showPopup",

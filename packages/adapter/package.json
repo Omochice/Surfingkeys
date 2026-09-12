@@ -18,7 +18,8 @@
     "test": "vitest run"
   },
   "dependencies": {
-    "@sk/core": "workspace:*"
+    "@sk/core": "workspace:*",
+    "@sk/log": "workspace:*"
   },
   "devDependencies": {
     "@sk/test-support": "workspace:*",

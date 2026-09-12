@@ -164,6 +164,8 @@ initSKFunctionListener(
         if (Result.isSuccess(r)) {
           dispatchSKEvent("front", [callbackId, r.value]);
         } else {
+          // This bundle runs in the page's MAIN world, where no extension API is reachable, so the
+          // storage-gated logger cannot be used here.
           console.error("Search suggestion callback error:", r.error.cause);
           dispatchSKEvent("front", [callbackId, []]);
         }
@@ -394,10 +396,17 @@ const initUserScripts = (
       },
       catch: (cause) => userCodeError("snippet", cause),
     });
-    applyUserSettings({
-      settings,
-      error: Result.isFailure(r) ? String(r.error.cause) : "",
-    });
+    applyUserSettings(
+      {
+        settings,
+        error: Result.isFailure(r) ? String(r.error.cause) : "",
+      },
+      // Same MAIN-world constraint as above. applyUserSettings only emits errors, hence the fixed
+      // console method.
+      (_level, ...args) => {
+        console.error(...args);
+      },
+    );
   };
   if (window === top) {
     userScriptTask();

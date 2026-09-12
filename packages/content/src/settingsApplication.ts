@@ -1,4 +1,5 @@
 import { Result } from "@praha/byethrow";
+import { LOG } from "@sk/adapter/log";
 import { reportOnFail, userCodeError } from "@sk/common/result";
 import type createAPI from "@sk/core/api";
 import type { StoredSettings } from "@sk/core/conf";
@@ -141,10 +142,13 @@ export function applySettings(api: Api, normal: Normal, rs: StoredSettings): voi
       },
       catch: (cause) => userCodeError("snippet", cause),
     });
-    applyUserSettings({
-      settings,
-      error: Result.isFailure(r) ? String(r.error.cause) : "",
-    });
+    applyUserSettings(
+      {
+        settings,
+        error: Result.isFailure(r) ? String(r.error.cause) : "",
+      },
+      LOG,
+    );
   }
 
   applyRuntimeConf(normal);

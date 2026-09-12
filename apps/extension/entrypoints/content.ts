@@ -16,5 +16,13 @@ export default defineContentScript({
     } else {
       start({});
     }
+
+    // The module is reached only through this dynamic import, so a production build drops it
+    // entirely.
+    if (import.meta.env.DEV) {
+      void import("@sk/adapter/devLogging").then(({ enableDevLogging }) => {
+        enableDevLogging("content");
+      });
+    }
   },
 });

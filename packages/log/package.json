@@ -1,10 +1,13 @@
 {
-  "name": "@sk/background",
+  "name": "@sk/log",
   "version": "0.0.0",
   "private": true,
   "type": "module",
   "exports": {
-    "./*": "./src/*.ts"
+    ".": "./src/index.ts",
+    "./otlp": "./src/otlp.ts",
+    "./relay": "./src/relay.ts",
+    "./uncaught": "./src/uncaught.ts"
   },
   "scripts": {
     "check": "npm-run-all2 --parallel --aggregate-output check:*",
@@ -17,18 +20,8 @@
     "fmt:package": "sort-package-json",
     "test": "vitest run"
   },
-  "dependencies": {
-    "@praha/byethrow": "catalog:",
-    "@sk/common": "workspace:*",
-    "@sk/log": "workspace:*",
-    "valibot": "catalog:"
-  },
   "devDependencies": {
-    "@sk/test-support": "workspace:*",
     "@sk/types": "workspace:*",
-    "@types/chrome": "catalog:",
-    "@types/firefox-webext-browser": "catalog:",
-    "jsdom": "catalog:",
     "npm-run-all2": "catalog:",
     "oxfmt": "catalog:",
     "oxlint": "catalog:",

@@ -1,3 +1,4 @@
+import { storageGetStub } from "@sk/test-support/helpers";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { chromeSpecifics } from "./chrome";
@@ -36,16 +37,14 @@ describe("chromeSpecifics.loadRawSettings", () => {
   });
 
   it("does not produce an unhandled rejection when the local write after a sync-wins merge fails", async () => {
-    // Sync is newer than local, so the sync data is written back to local storage
-    // (to keep local as a cached copy). If that local.set rejects, the write must
-    // not surface as an unhandled rejection that can terminate the MV3 service
-    // worker; loadRawSettings catches it and logs via console.error instead.
+    // Sync is newer than local, so the sync data is written back to local storage to keep local as
+    // a cached copy; that write is the one rejecting here.
     const errorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
     try {
       g.chrome = {
         storage: {
           local: {
-            get: vi.fn().mockResolvedValue({ savedAt: 1, theme: "light" }),
+            get: storageGetStub({ savedAt: 1, theme: "light" }),
             set: vi.fn().mockRejectedValue(new Error("QUOTA_BYTES_PER_ITEM quota exceeded")),
           },
           sync: {

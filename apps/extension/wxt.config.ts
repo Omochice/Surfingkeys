@@ -81,6 +81,14 @@ export default defineConfig({
       if (manifest.options_ui) {
         manifest.options_ui.open_in_tab = wxt.config.browser === "chrome";
       }
+      // `version` only admits dotted integers, so the debug marker goes into
+      // the name and, on Chrome, into version_name.
+      if (wxt.config.mode === "debug") {
+        manifest.name = `${manifest.name} (debug)`;
+        if (wxt.config.browser === "chrome") {
+          manifest.version_name = `${manifest.version}+debug`;
+        }
+      }
     },
     // The chrome-only user-scripts api (src/user_scripts/index.ts) is loaded
     // by injected user-script code via `import('./api.js')` expecting a
@@ -181,7 +189,7 @@ export default defineConfig({
       // incompatible spec), past the Chrome 110 release that first shipped the
       // non-mutating array methods also in use.
       manifest["minimum_chrome_version"] = "146";
-      if (mode === "development") {
+      if (mode === "debug") {
         manifest["key"] = devKey;
       }
     }

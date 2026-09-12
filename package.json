@@ -15,8 +15,8 @@
   "type": "module",
   "scripts": {
     "build": "pnpm build:prod",
-    "build:dev": "pnpm --filter @sk/extension build:dev",
-    "build:dev:firefox": "pnpm --filter @sk/extension build:dev:firefox",
+    "build:debug": "pnpm --filter @sk/extension build:debug",
+    "build:debug:firefox": "pnpm --filter @sk/extension build:debug:firefox",
     "build:prod": "pnpm --filter @sk/extension build:prod",
     "build:prod:firefox": "pnpm --filter @sk/extension build:prod:firefox",
     "check": "npm-run-all2 --parallel --aggregate-output check:*",

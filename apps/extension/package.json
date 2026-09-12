@@ -4,8 +4,8 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "build:dev": "wxt build --mode development",
-    "build:dev:firefox": "wxt build --mode development -b firefox",
+    "build:debug": "NODE_ENV=development wxt build --mode debug",
+    "build:debug:firefox": "NODE_ENV=development wxt build --mode debug -b firefox",
     "build:prod": "wxt build",
     "build:prod:firefox": "wxt build -b firefox",
     "check": "npm-run-all2 --parallel --aggregate-output check:*",
@@ -14,8 +14,8 @@
     "check:package": "sort-package-json --check",
     "check:type": "tsc --noEmit -p tsconfig.browser.json",
     "check:type-node": "tsc --noEmit -p tsconfig.node.json",
-    "dev": "wxt",
-    "dev:firefox": "wxt -b firefox",
+    "dev": "NODE_ENV=development wxt --mode debug",
+    "dev:firefox": "NODE_ENV=development wxt --mode debug -b firefox",
     "fmt": "npm-run-all2 --parallel --aggregate-output fmt:*",
     "fmt:oxfmt": "oxfmt",
     "fmt:package": "sort-package-json",
@@ -27,10 +27,12 @@
   },
   "dependencies": {
     "@praha/byethrow": "catalog:",
+    "@sk/adapter": "workspace:*",
     "@sk/background": "workspace:*",
     "@sk/common": "workspace:*",
     "@sk/content": "workspace:*",
     "@sk/core": "workspace:*",
+    "@sk/log": "workspace:*",
     "@sk/messaging": "workspace:*"
   },
   "devDependencies": {
