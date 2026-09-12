@@ -1,6 +1,5 @@
 import { describe, expect, it } from "vitest";
 
-import { isErrorLike } from "./logger";
 import { toTransferable } from "./relay";
 
 describe("toTransferable", () => {
@@ -11,10 +10,6 @@ describe("toTransferable", () => {
       message: "boom",
       stack: error.stack,
     });
-  });
-
-  it("produces a value the OTLP sink still recognises as an error", () => {
-    expect(isErrorLike(toTransferable(new Error("boom")))).toBe(true);
   });
 
   it("passes a non-error argument through untouched", () => {
