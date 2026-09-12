@@ -6,12 +6,20 @@ import { enableDevLogging } from "./devLogging";
 type StorageGet = (keys: string[], cb: (items: any) => void) => void;
 const g = globalThis as unknown as {
   chrome: {
-    runtime: { sendMessage: (message: unknown, cb?: () => void) => void };
+    runtime: {
+      sendMessage: (message: unknown, cb?: () => void) => void;
+      getURL: (path: string) => string;
+    };
     storage: { local: { get: StorageGet } };
   };
 };
 const defaultGet = g.chrome.storage.local.get;
 const defaultSendMessage = g.chrome.runtime.sendMessage;
+const defaultGetURL = g.chrome.runtime.getURL;
+
+// The shared stub resolves getURL to the path it is given, so getURL("") would be "" and every
+// filename would match its prefix. A realistic extension origin keeps the filter under test.
+const EXTENSION_ORIGIN = "chrome-extension://test-extension/";
 
 // The level gate is decided behind an asynchronous storage read, so assertions must let pending
 // continuations run before inspecting what was sent.
@@ -25,6 +33,7 @@ beforeEach(() => {
   );
   sendMessage = vi.fn();
   g.chrome.runtime.sendMessage = sendMessage;
+  g.chrome.runtime.getURL = (path: string) => `${EXTENSION_ORIGIN}${path}`;
   // The console sink stays attached alongside the relay; silence it to keep the test output clean.
   vi.spyOn(console, "log").mockImplementation(() => {});
   vi.spyOn(console, "warn").mockImplementation(() => {});
@@ -34,6 +43,7 @@ beforeEach(() => {
 afterEach(() => {
   g.chrome.storage.local.get = defaultGet;
   g.chrome.runtime.sendMessage = defaultSendMessage;
+  g.chrome.runtime.getURL = defaultGetURL;
   vi.restoreAllMocks();
 });
 
@@ -75,16 +85,30 @@ describe("enableDevLogging", () => {
     dispose();
   });
 
-  it("relays an uncaught window error", async () => {
+  it("relays an uncaught error raised by the extension's own script", async () => {
     const dispose = enableDevLogging("content");
+    const cause = new Error("boom");
+    cause.stack = `Error: boom\n    at ${EXTENSION_ORIGIN}content-scripts/content.js:1:1`;
 
-    window.dispatchEvent(Object.assign(new Event("error"), { error: new Error("boom") }));
+    window.dispatchEvent(Object.assign(new Event("error"), { error: cause }));
     await flush();
 
     expect(relayed().args[0]).toBe("Uncaught error:");
     expect(relayed().args[1]).toStrictEqual(
       expect.objectContaining({ name: "Error", message: "boom" }),
     );
+    dispose();
+  });
+
+  it("ignores a rejection raised by the visited page, whose events the isolated world also sees", async () => {
+    const dispose = enableDevLogging("content");
+    const pageError = new Error("their bug");
+    pageError.stack = "Error: their bug\n    at https://example.com/app.js:1:1";
+
+    window.dispatchEvent(Object.assign(new Event("unhandledrejection"), { reason: pageError }));
+    await flush();
+
+    expect(sendMessage).not.toHaveBeenCalled();
     dispose();
   });
 
