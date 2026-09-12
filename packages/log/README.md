@@ -5,7 +5,7 @@ The level gate and the destinations are both injected, so any layer can host a l
 
 ## Responsibilities
 
-It defines the log levels, the sink signature and a logger factory that consults the injected gate on every call and forwards enabled records to every sink.
+It defines the log levels, the sink signature, a logger factory that consults the injected gate on every call and forwards enabled records to every sink, and a host factory pairing such a logger with the list of sinks it writes to.
 Behind subpath exports it also ships an OTLP/HTTP sink, a helper turning uncaught errors and rejections into records, and the envelope one context uses to relay records to another.
 
 ## Boundaries
