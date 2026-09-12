@@ -19,6 +19,29 @@ services:
     ports:
       - "3000:3000"
 
+  mcp-grafana:
+    image: grafana/mcp-grafana:1.4.1@sha256:cfcf06863c23b2db64c41b0379d1efe95703aca4ba5434d90674f72ec0b7d810
+    # Read-only: the agent reads records; nothing here should let it change the stack.
+    # The Host allowlist defaults to the bind address, which is not what a
+    # client on the host sends.
+    command:
+      [
+        "-t",
+        "streamable-http",
+        "--address",
+        "0.0.0.0:8000",
+        "--allowed-hosts",
+        "localhost:8000,127.0.0.1:8000",
+        "--disable-write",
+      ]
+    environment:
+      GRAFANA_URL: http://lgtm:3000
+    ports:
+      # Loopback only: the server has no caller authentication.
+      - "127.0.0.1:8000:8000"
+    depends_on:
+      - lgtm
+
 configs:
   otel-collector:
     content: |
