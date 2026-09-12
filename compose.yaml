@@ -1,0 +1,60 @@
+# Local telemetry sink for development builds.
+#
+# A development build of the extension posts error-level log records to the
+# collector over OTLP/HTTP (see the dev-only wiring in the entrypoints). The
+# collector forwards them to the Aspire dashboard for browsing and appends them
+# to a JSON-lines file under .momomo/ai/ so they can be read outside the browser.
+#
+#   docker compose up -d
+#   open http://localhost:18888
+#   tail -f .momomo/ai/otel.jsonl
+services:
+  otel-collector:
+    # The contrib distribution is required: the file exporter is not part of
+    # the core collector image.
+    image: otel/opentelemetry-collector-contrib:0.160.0
+    command: ["--config=/etc/otelcol/config.yaml"]
+    configs:
+      - source: otel-collector
+        target: /etc/otelcol/config.yaml
+    volumes:
+      - ./.momomo/ai:/out
+    ports:
+      - "4318:4318"
+    depends_on:
+      - aspire-dashboard
+
+  aspire-dashboard:
+    image: mcr.microsoft.com/dotnet/aspire-dashboard:13.5.2
+    environment:
+      # The dashboard is only reachable from this machine, so the login token
+      # would add a step without protecting anything.
+      DOTNET_DASHBOARD_UNSECURED_ALLOW_ANONYMOUS: "true"
+    ports:
+      - "18888:18888"
+
+configs:
+  # Kept inline rather than as a file of its own: nothing but this compose file
+  # consumes it.
+  otel-collector:
+    content: |
+      receivers:
+        otlp:
+          protocols:
+            http:
+              endpoint: 0.0.0.0:4318
+
+      exporters:
+        otlp_grpc/aspire:
+          endpoint: aspire-dashboard:18889
+          tls:
+            insecure: true
+        file:
+          path: /out/otel.jsonl
+          format: json
+
+      service:
+        pipelines:
+          logs:
+            receivers: [otlp]
+            exporters: [otlp_grpc/aspire, file]
