@@ -85,7 +85,9 @@ export async function save(
     if (Object.keys(toSave).length > 1) {
       await storage.set(toSave);
     }
-  } else if (typeof toSave["localPath"] === "string") {
+  } else if (typeof toSave["localPath"] === "string" && toSave["localPath"] !== "") {
+    // An empty path is "no remote settings", not a URL: fetched from the service worker it would
+    // resolve to background.js itself and get installed as the user's snippets.
     const localPath = toSave["localPath"];
     delete toSave["snippets"];
     // try to fetch snippets from localPath and cache it in local storage.
@@ -169,7 +171,8 @@ export function createSettings(deps: SettingsDeps): SettingsUnit {
 
     const set: Record<string, unknown> = await browser.loadRawSettings(keys, tmpSet);
     const localPath = set["localPath"];
-    if (typeof localPath === "string") {
+    // Same empty-path guard as save(): "" would fetch background.js as the snippets.
+    if (typeof localPath === "string" && localPath !== "") {
       const r = await request(appendNonce(localPath));
       if (Result.isSuccess(r)) {
         set["snippets"] = r.value;
