@@ -83,7 +83,7 @@ export default defineConfig({
       }
       // `version` only admits dotted integers, so the debug marker goes into
       // the name and, on Chrome, into version_name.
-      if (wxt.config.mode === "development") {
+      if (wxt.config.mode === "debug") {
         manifest.name = `${manifest.name} (debug)`;
         if (wxt.config.browser === "chrome") {
           manifest.version_name = `${manifest.version}+debug`;
@@ -189,7 +189,7 @@ export default defineConfig({
       // incompatible spec), past the Chrome 110 release that first shipped the
       // non-mutating array methods also in use.
       manifest["minimum_chrome_version"] = "146";
-      if (mode === "development") {
+      if (mode === "debug") {
         manifest["key"] = devKey;
       }
     }

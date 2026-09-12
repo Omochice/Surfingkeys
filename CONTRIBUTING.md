@@ -33,6 +33,7 @@ pnpm build:debug:firefox         # development build for Firefox
 ```
 
 Builds are emitted to `apps/extension/dist/<browser>-<manifest>`, for example `apps/extension/dist/chrome-mv3` or `apps/extension/dist/firefox-mv3`.
+Debug builds add a `-debug` suffix, for example `apps/extension/dist/chrome-mv3-debug`, and show up in the browser as "Surfingkeys (debug)".
 
 To produce a distributable archive instead of an unpacked build, use `pnpm zip` or `pnpm zip:firefox`.
 
