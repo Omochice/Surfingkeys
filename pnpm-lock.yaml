@@ -364,6 +364,9 @@ importers:
       '@sk/core':
         specifier: workspace:*
         version: link:../core
+      '@sk/log':
+        specifier: workspace:*
+        version: link:../log
     devDependencies:
       '@sk/test-support':
         specifier: workspace:*
@@ -570,6 +573,30 @@ importers:
       jsdom:
         specifier: 'catalog:'
         version: 30.0.1
+      npm-run-all2:
+        specifier: 'catalog:'
+        version: 9.0.3
+      oxfmt:
+        specifier: 'catalog:'
+        version: 0.67.0
+      oxlint:
+        specifier: 'catalog:'
+        version: 1.82.0
+      sort-package-json:
+        specifier: 'catalog:'
+        version: 4.0.0
+      typescript:
+        specifier: 'catalog:'
+        version: 7.0.2
+      vitest:
+        specifier: 'catalog:'
+        version: 5.0.0(@types/node@25.9.5)(@vitest/browser-playwright@5.0.0)(@vitest/coverage-istanbul@5.0.0)(@vitest/ui@5.0.0)(jsdom@30.0.1)(vite@8.2.2(@types/node@25.9.5)(jiti@2.7.0)(yaml@2.9.0))
+
+  packages/log:
+    devDependencies:
+      '@sk/types':
+        specifier: workspace:*
+        version: link:../types
       npm-run-all2:
         specifier: 'catalog:'
         version: 9.0.3
