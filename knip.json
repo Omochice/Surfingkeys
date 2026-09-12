@@ -2,7 +2,11 @@
   "$schema": "https://unpkg.com/knip@6/schema.json",
   "workspaces": {
     "apps/extension": {
-      "entry": ["src/pages/popup/popup.ts", "src/user_scripts/index.ts"]
+      "entry": [
+        "src/pages/popup/popup.ts",
+        "src/user_scripts/index.ts",
+        "src/dev/frontendLogging.ts"
+      ]
     }
   },
   "ignoreBinaries": ["nixfmt", "rumdl", "toml-sort", "typos"]

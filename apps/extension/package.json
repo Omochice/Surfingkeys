@@ -27,6 +27,7 @@
   },
   "dependencies": {
     "@praha/byethrow": "catalog:",
+    "@sk/adapter": "workspace:*",
     "@sk/background": "workspace:*",
     "@sk/common": "workspace:*",
     "@sk/content": "workspace:*",
