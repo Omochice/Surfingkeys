@@ -562,7 +562,10 @@ describe("start — handleMessage dispatch", () => {
     });
     dispatch({ action: "unknownAction42" }, {}, vi.fn());
     await vi.waitFor(() =>
-      expect(consoleSpy).toHaveBeenCalledWith(expect.stringContaining("unknownAction42")),
+      expect(consoleSpy).toHaveBeenCalledWith(
+        "[unexpected runtime message]",
+        expect.objectContaining({ action: "unknownAction42" }),
+      ),
     );
     consoleSpy.mockRestore();
   });
@@ -603,11 +606,17 @@ describe("start — handleMessage dispatch", () => {
     // surfaced had it been rejected.
     dispatch({ action: "unknownAction42" }, {}, vi.fn());
     await vi.waitFor(() =>
-      expect(consoleSpy).toHaveBeenCalledWith(expect.stringContaining("unknownAction42")),
+      expect(consoleSpy).toHaveBeenCalledWith(
+        "[unexpected runtime message]",
+        expect.objectContaining({ action: "unknownAction42" }),
+      ),
     );
 
     expect(extra).toHaveBeenCalledWith(message, expect.anything(), expect.anything());
-    expect(consoleSpy).not.toHaveBeenCalledWith(expect.stringContaining("relayedThing"));
+    expect(consoleSpy).not.toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({ action: "relayedThing" }),
+    );
     consoleSpy.mockRestore();
   });
 

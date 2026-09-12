@@ -325,7 +325,7 @@ function start(browser: BrowserAdapter, extraHandlers?: Record<string, MessageHa
         ? handlers[envelope.output.action]
         : undefined;
     if (!handler || !envelope.success) {
-      LOG("log", "[unexpected runtime message] " + JSON.stringify(rawMessage));
+      LOG("log", "[unexpected runtime message]", rawMessage);
       return undefined;
     }
     const result = handler(rawMessage, sender, sendResponse);
