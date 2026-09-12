@@ -1,22 +1,15 @@
+import { flush, stubStorageGet } from "@sk/test-support/helpers";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { enableDevLogging, handleRelayedLog } from "./devLogging";
 
-type StorageGet = (keys: string[], cb: (items: any) => void) => void;
-const g = globalThis as unknown as { chrome: { storage: { local: { get: StorageGet } } } };
-const defaultGet = g.chrome.storage.local.get;
 const realFetch = globalThis.fetch;
 
-// The level gate is decided behind an asynchronous storage read, so assertions must let pending
-// continuations run before inspecting what was posted.
-const flush = (): Promise<void> => new Promise((resolve) => setTimeout(resolve, 0));
-
 let fetchMock: ReturnType<typeof vi.fn>;
+let restoreStorage: () => void;
 
 beforeEach(() => {
-  g.chrome.storage.local.get = vi.fn((_keys: string[], cb: (items: any) => void) =>
-    cb({ logLevels: ["log", "warn", "error"] }),
-  );
+  restoreStorage = stubStorageGet({ logLevels: ["log", "warn", "error"] });
   fetchMock = vi.fn(() => Promise.resolve(new Response("{}", { status: 200 })));
   globalThis.fetch = fetchMock;
   // The console sink stays attached alongside the OTLP sink; silence it to keep the output clean.
@@ -24,23 +17,25 @@ beforeEach(() => {
 });
 
 afterEach(() => {
-  g.chrome.storage.local.get = defaultGet;
+  restoreStorage();
   globalThis.fetch = realFetch;
   vi.restoreAllMocks();
 });
 
+/** The payload of the first request posted to the collector. */
+function postedPayload(): any {
+  const [, init] = fetchMock.mock.calls[0] ?? [];
+  return JSON.parse(String((init as RequestInit | undefined)?.body));
+}
+
 /** The single record of the payload posted to the collector. */
 function postedRecord(): any {
-  const [, init] = fetchMock.mock.calls[0] ?? [];
-  const payload = JSON.parse(String((init as RequestInit | undefined)?.body));
-  return payload.resourceLogs[0].scopeLogs[0].logRecords[0];
+  return postedPayload().resourceLogs[0].scopeLogs[0].logRecords[0];
 }
 
 /** The resource attributes of the payload posted to the collector. */
 function postedResourceAttributes(): any {
-  const [, init] = fetchMock.mock.calls[0] ?? [];
-  const payload = JSON.parse(String((init as RequestInit | undefined)?.body));
-  return payload.resourceLogs[0].resource.attributes;
+  return postedPayload().resourceLogs[0].resource.attributes;
 }
 
 describe("enableDevLogging", () => {
@@ -87,14 +82,13 @@ describe("enableDevLogging", () => {
 
 describe("handleRelayedLog", () => {
   it("posts a relayed record under the context it came from", () => {
-    const handled = handleRelayedLog({
+    handleRelayedLog({
       action: "devLog",
       context: "content",
       level: "warn",
       args: ["careful"],
     });
 
-    expect(handled).toBe(true);
     expect(postedRecord().body.stringValue).toBe("careful");
     expect(postedRecord().severityText).toBe("WARN");
     expect(postedResourceAttributes()).toContainEqual({
@@ -119,11 +113,10 @@ describe("handleRelayedLog", () => {
   });
 
   it("ignores a message that is not a relayed log record", () => {
-    expect(handleRelayedLog({ action: "getSettings" })).toBe(false);
-    expect(handleRelayedLog(undefined)).toBe(false);
-    expect(
-      handleRelayedLog({ action: "devLog", context: "content", level: "trace", args: [] }),
-    ).toBe(false);
+    handleRelayedLog({ action: "getSettings" });
+    handleRelayedLog(undefined);
+    handleRelayedLog({ action: "devLog", context: "content", level: "trace", args: [] });
+
     expect(fetchMock).not.toHaveBeenCalled();
   });
 

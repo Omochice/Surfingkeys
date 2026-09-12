@@ -1,6 +1,6 @@
 import { Result } from "@praha/byethrow";
 import { httpError } from "@sk/common/result";
-import { expectDefined } from "@sk/test-support/helpers";
+import { expectDefined, storageGetStub } from "@sk/test-support/helpers";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { start, type MessageHandler } from "./start";
@@ -556,7 +556,7 @@ describe("start — handleMessage dispatch", () => {
     const dispatch = bootWith({
       storage: {
         local: {
-          get: (_keys: unknown, cb: (items: unknown) => void) => cb({ logLevels: ["log"] }),
+          get: storageGetStub({ logLevels: ["log"] }),
         },
       },
     });
@@ -589,7 +589,7 @@ describe("start — handleMessage dispatch", () => {
       {
         storage: {
           local: {
-            get: (_keys: unknown, cb: (items: unknown) => void) => cb({ logLevels: ["log"] }),
+            get: storageGetStub({ logLevels: ["log"] }),
           },
         },
       },

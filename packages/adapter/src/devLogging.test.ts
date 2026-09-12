@@ -1,19 +1,17 @@
 import { DEV_LOG_ACTION } from "@sk/log/relay";
+import { flush, stubStorageGet } from "@sk/test-support/helpers";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { enableDevLogging } from "./devLogging";
 
-type StorageGet = (keys: string[], cb: (items: any) => void) => void;
 const g = globalThis as unknown as {
   chrome: {
     runtime: {
       sendMessage: (message: unknown, cb?: () => void) => void;
       getURL: (path: string) => string;
     };
-    storage: { local: { get: StorageGet } };
   };
 };
-const defaultGet = g.chrome.storage.local.get;
 const defaultSendMessage = g.chrome.runtime.sendMessage;
 const defaultGetURL = g.chrome.runtime.getURL;
 
@@ -21,16 +19,11 @@ const defaultGetURL = g.chrome.runtime.getURL;
 // filename would match its prefix. A realistic extension origin keeps the filter under test.
 const EXTENSION_ORIGIN = "chrome-extension://test-extension/";
 
-// The level gate is decided behind an asynchronous storage read, so assertions must let pending
-// continuations run before inspecting what was sent.
-const flush = (): Promise<void> => new Promise((resolve) => setTimeout(resolve, 0));
-
 let sendMessage: ReturnType<typeof vi.fn>;
+let restoreStorage: () => void;
 
 beforeEach(() => {
-  g.chrome.storage.local.get = vi.fn((_keys: string[], cb: (items: any) => void) =>
-    cb({ logLevels: ["log", "warn", "error"] }),
-  );
+  restoreStorage = stubStorageGet({ logLevels: ["log", "warn", "error"] });
   sendMessage = vi.fn();
   g.chrome.runtime.sendMessage = sendMessage;
   g.chrome.runtime.getURL = (path: string) => `${EXTENSION_ORIGIN}${path}`;
@@ -41,7 +34,7 @@ beforeEach(() => {
 });
 
 afterEach(() => {
-  g.chrome.storage.local.get = defaultGet;
+  restoreStorage();
   g.chrome.runtime.sendMessage = defaultSendMessage;
   g.chrome.runtime.getURL = defaultGetURL;
   vi.restoreAllMocks();

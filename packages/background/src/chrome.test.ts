@@ -1,3 +1,4 @@
+import { storageGetStub } from "@sk/test-support/helpers";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { chromeSpecifics } from "./chrome";
@@ -8,15 +9,6 @@ const realChrome = g.chrome;
 afterEach(() => {
   g.chrome = realChrome;
 });
-
-// The logger reads its enabled levels through the callback form of storage.get, while
-// loadRawSettings uses the promise form; a stub answering both keeps the logged output observable.
-function stubGet(items: Record<string, unknown>) {
-  return vi.fn((_keys?: unknown, cb?: (items: Record<string, unknown>) => void) => {
-    cb?.(items);
-    return Promise.resolve(items);
-  });
-}
 
 describe("chromeSpecifics.loadRawSettings", () => {
   it("degrades gracefully when the sync write fails instead of rejecting", async () => {
@@ -54,7 +46,7 @@ describe("chromeSpecifics.loadRawSettings", () => {
       g.chrome = {
         storage: {
           local: {
-            get: stubGet({ savedAt: 1, theme: "light" }),
+            get: storageGetStub({ savedAt: 1, theme: "light" }),
             set: vi.fn().mockRejectedValue(new Error("QUOTA_BYTES_PER_ITEM quota exceeded")),
           },
           sync: {
