@@ -12,7 +12,7 @@ services:
   otel-collector:
     # The contrib distribution is required: the file exporter is not part of
     # the core collector image.
-    image: otel/opentelemetry-collector-contrib:0.160.0
+    image: otel/opentelemetry-collector-contrib:0.160.0@sha256:799dc6cf12c96192af37b5bdba804da8c10b3bc563b43cb90c3f3c58d9572ad6
     command: ["--config=/etc/otelcol/config.yaml"]
     configs:
       - source: otel-collector
@@ -25,7 +25,7 @@ services:
       - aspire-dashboard
 
   aspire-dashboard:
-    image: mcr.microsoft.com/dotnet/aspire-dashboard:13.5.2
+    image: mcr.microsoft.com/dotnet/aspire-dashboard:13.5.2@sha256:0ef531119b8073aed12b0db2b4e4ab02866c6c69b7a52264269abd00cfb48a34
     environment:
       # The dashboard is only reachable from this machine, so the login token
       # would add a step without protecting anything.
