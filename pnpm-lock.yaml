@@ -300,6 +300,9 @@ importers:
       '@sk/core':
         specifier: workspace:*
         version: link:../../packages/core
+      '@sk/log':
+        specifier: workspace:*
+        version: link:../../packages/log
       '@sk/messaging':
         specifier: workspace:*
         version: link:../../packages/messaging

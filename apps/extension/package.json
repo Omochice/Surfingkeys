@@ -32,6 +32,7 @@
     "@sk/common": "workspace:*",
     "@sk/content": "workspace:*",
     "@sk/core": "workspace:*",
+    "@sk/log": "workspace:*",
     "@sk/messaging": "workspace:*"
   },
   "devDependencies": {
