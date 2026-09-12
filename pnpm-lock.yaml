@@ -262,8 +262,8 @@ importers:
         specifier: 5.0.0
         version: 5.0.0(vitest@5.0.0)
       knip:
-        specifier: 6.35.0
-        version: 6.35.0
+        specifier: 6.35.1
+        version: 6.35.1
       npm-run-all2:
         specifier: 'catalog:'
         version: 9.0.3
@@ -2416,8 +2416,8 @@ packages:
     engines: {node: '>=6'}
     hasBin: true
 
-  knip@6.35.0:
-    resolution: {integrity: sha512-eER1hSyi47lJTO9MTnEoJspEscPaVuFtFkHsGbuCmhjDlphzvg2xxcweNg1NCeylo9ERSkb/NzAo7sAcT9gLmA==}
+  knip@6.35.1:
+    resolution: {integrity: sha512-22wnEnv4do2fvoeJsxpFCG/MBxReNxoCVBccaCl7suUJsG+F0UvxI9ycxZ9YgtLHSSjrZl5tOas0JZ/R1vJ93g==}
     engines: {node: ^20.19.0 || >=22.12.0}
     hasBin: true
 
@@ -4660,7 +4660,7 @@ snapshots:
 
   json5@2.2.3: {}
 
-  knip@6.35.0:
+  knip@6.35.1:
     dependencies:
       fdir: 6.5.0(picomatch@4.0.7)
       formatly: 0.7.0
