@@ -126,7 +126,10 @@ export function createKeymap(getRoot: () => Trie, opts?: KeymapOptions): Keymap 
       } else if (currentNode.meta) {
         const meta = currentNode.meta;
         const code = meta.code;
-        if (code && code.length) {
+        if (code == null) {
+          // Nothing to run: the key is treated as unmapped rather than left half-pressed.
+          actionDone = finish();
+        } else if (code.length) {
           // bound function needs arguments
           pendingMap = code;
           isTrustedEvent && dispatchSKEvent("front", ["showKeystroke", key, keymap]);
@@ -141,14 +144,14 @@ export function createKeymap(getRoot: () => Trie, opts?: KeymapOptions): Keymap 
               `Do you really want to repeat this action (${meta.annotation}) ${repeatCount.value} times?`,
               () => {
                 while (repeatCount.value > 0) {
-                  code!();
+                  code();
                   repeatCount.value--;
                 }
               },
             ]);
           } else {
             while (repeatCount.value > 0) {
-              code!();
+              code();
               repeatCount.value--;
             }
           }

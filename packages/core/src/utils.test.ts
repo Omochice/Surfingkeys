@@ -471,6 +471,14 @@ describe("mapInMode", () => {
     const mode = { name: "normal", mappings: new Trie() };
     expect(mapInMode(mode, "x", "nonexistent", false)).toBeUndefined();
   });
+
+  it("does not create a mapping from a keystroke that is only a prefix of longer ones", () => {
+    const mode = { name: "normal", mappings: new Trie() };
+    mode.mappings.add(KeyboardUtils.encodeKeystroke("jk"), { annotation: "down", code: () => {} });
+
+    expect(mapInMode(mode, "x", "j", false)).toBeUndefined();
+    expect(mode.mappings.find(KeyboardUtils.encodeKeystroke("x"))).toBeUndefined();
+  });
 });
 
 describe("listElements", () => {
