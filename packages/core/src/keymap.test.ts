@@ -56,6 +56,15 @@ describe("Keymap.handleKey", () => {
     expect(keymap.getCurrentNode()).toBe(mappings);
   });
 
+  it("treats a mapping without code as no action instead of throwing", () => {
+    mappings.add(KeyboardUtils.encodeKeystroke("a"), { annotation: "orphaned" });
+
+    const event = press(keymap, "a");
+
+    expect(event.sk_stopPropagation).toBeFalsy();
+    expect(keymap.getCurrentNode()).toBe(mappings);
+  });
+
   it("runs a mapping only after the full multi-key sequence", () => {
     let runs = 0;
     mappings.add(KeyboardUtils.encodeKeystroke("ab"), {

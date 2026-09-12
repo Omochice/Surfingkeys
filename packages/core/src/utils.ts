@@ -922,18 +922,18 @@ function mapInMode(
 ): Trie | undefined {
   oks = KeyboardUtils.encodeKeystroke(oks);
   const old_map = mode.mappings.find(oks);
-  if (old_map) {
-    nks = KeyboardUtils.encodeKeystroke(nks);
-    mode.mappings.remove(nks);
-    // meta.word need to be new
-    let meta: Omit<TrieMeta, "word"> = { ...old_map.meta };
-    if (new_annotation) {
-      meta = { ...meta, ...parseAnnotation({ annotation: new_annotation }) };
-    }
-    mode.mappings.add(nks, meta);
-    if (!inUIFrame) {
-      dispatchSKEvent("front", ["addMapkey", mode.name, nks, oks]);
-    }
+  // A node without meta is only a prefix of longer mappings; copying it would bind a key to nothing.
+  if (old_map?.meta == null) return undefined;
+  nks = KeyboardUtils.encodeKeystroke(nks);
+  mode.mappings.remove(nks);
+  // meta.word need to be new
+  let meta: Omit<TrieMeta, "word"> = { ...old_map.meta };
+  if (new_annotation) {
+    meta = { ...meta, ...parseAnnotation({ annotation: new_annotation }) };
+  }
+  mode.mappings.add(nks, meta);
+  if (!inUIFrame) {
+    dispatchSKEvent("front", ["addMapkey", mode.name, nks, oks]);
   }
   return old_map;
 }
