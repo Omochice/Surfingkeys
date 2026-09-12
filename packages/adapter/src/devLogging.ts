@@ -40,7 +40,9 @@ function relaySink(context: string): LogSink {
  */
 function enableDevLogging(context: string): () => void {
   const removeSink = addLogSink(relaySink(context));
-  const stopCapture = captureUncaught(window, LOG);
+  // The isolated world receives the page's error events too, so only errors attributable to a
+  // script served from the extension itself are reported.
+  const stopCapture = captureUncaught(window, LOG, { origin: chrome.runtime.getURL("") });
   return () => {
     removeSink();
     stopCapture();
