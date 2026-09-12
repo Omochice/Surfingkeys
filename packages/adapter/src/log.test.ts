@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-import { LOG } from "./log";
+import { addLogSink, LOG } from "./log";
 
 type StorageGet = (keys: string[], cb: (items: any) => void) => void;
 const g = globalThis as unknown as { chrome: { storage: { local: { get: StorageGet } } } };
@@ -125,5 +125,30 @@ describe("LOG", () => {
 
     await vi.waitFor(() => expect(log).toHaveBeenCalledWith("after"));
     expect(get).toHaveBeenCalledTimes(2);
+  });
+});
+
+describe("addLogSink", () => {
+  it("delivers enabled records to a sink attached after the logger was built", async () => {
+    stubStorage({ logLevels: ["error"] });
+    const sink = vi.fn();
+    const remove = addLogSink(sink);
+
+    LOG("error", "boom");
+
+    await vi.waitFor(() => expect(sink).toHaveBeenCalledExactlyOnceWith("error", "boom"));
+    remove();
+  });
+
+  it("stops delivering once the returned disposer has run", async () => {
+    stubStorage({ logLevels: ["error"] });
+    const sink = vi.fn();
+    const remove = addLogSink(sink);
+
+    remove();
+    LOG("error", "boom");
+    await flush();
+
+    expect(sink).not.toHaveBeenCalled();
   });
 });

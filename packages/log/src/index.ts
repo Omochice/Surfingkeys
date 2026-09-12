@@ -11,6 +11,10 @@ const consoleSink: LogSink = (level, ...args) => {
 
 /** Configuration of a logger: where records go, and which levels are currently enabled. */
 type LoggerOptions = {
+  /**
+   * Destinations of every enabled record. Read on each call, not copied, so a caller owning a
+   * mutable array can attach a sink after construction.
+   */
   sinks: readonly LogSink[];
   /**
    * Decides whether a level is enabled. Consulted on every call rather than once at construction,
