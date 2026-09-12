@@ -12,7 +12,7 @@ function relaySink(context: string): LogSink {
       action: DEV_LOG_ACTION,
       context,
       level,
-      args: args.map((arg) => toTransferable(arg)),
+      args: args.map(toTransferable),
     };
     // chrome.runtime is used raw rather than through @sk/messaging's RUNTIME: RUNTIME reports a
     // failed send through reportError, which logs, which would re-enter this sink in a loop.

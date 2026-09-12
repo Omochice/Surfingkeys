@@ -1,5 +1,5 @@
-import type { LogLevel } from "./index";
-import { isErrorLike } from "./otlp";
+import type { LogLevel } from "./logger";
+import { isErrorLike } from "./logger";
 
 /** Action a record relayed from one extension context to another travels under. */
 const DEV_LOG_ACTION = "devLog";

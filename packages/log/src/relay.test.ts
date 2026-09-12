@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { isErrorLike } from "./otlp";
+import { isErrorLike } from "./logger";
 import { toTransferable } from "./relay";
 
 describe("toTransferable", () => {

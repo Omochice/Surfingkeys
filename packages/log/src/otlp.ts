@@ -1,4 +1,5 @@
-import type { LogLevel, LogSink } from "./index";
+import type { LogLevel, LogSink } from "./logger";
+import { isErrorLike } from "./logger";
 
 /** Configuration of an OTLP sink: the collector to reach and what identifies this process. */
 type OtlpSinkOptions = {
@@ -23,30 +24,6 @@ const SERVICE_NAME = "surfingkeys";
 
 /** Record attribute repeated from the resource so one record identifies its extension context. */
 const CONTEXT_KEY = "sk.context";
-
-/** The shape an argument must have to be reported as an exception. */
-type ErrorLike = { name: string; message: string; stack?: string };
-
-/**
- * Whether a log argument is reported as an exception.
- *
- * Duck-typed on purpose: `instanceof Error` is unusable here, because a record can carry an Error
- * built in another realm (a page's window reaching a content script, or a structured-clone round
- * trip), whose prototype chain does not lead to this realm's Error.
- *
- * @param value - One argument of a log record.
- * @returns Whether the value carries the name and message of an error.
- */
-function isErrorLike(value: unknown): value is ErrorLike {
-  return (
-    typeof value === "object" &&
-    value != null &&
-    "message" in value &&
-    typeof value.message === "string" &&
-    "name" in value &&
-    typeof value.name === "string"
-  );
-}
 
 /** Renders one argument the way the console would display it. */
 function renderArg(arg: unknown): string {
@@ -91,11 +68,11 @@ function otlpSink(options: OtlpSinkOptions): LogSink {
 
   return (level, ...args) => {
     const severity = SEVERITY[level];
-    const cause = args.find((arg) => isErrorLike(arg));
+    const cause = args.find(isErrorLike);
     const recordAttributes: Record<string, string> = {};
     const context = resourceAttributes[CONTEXT_KEY];
     if (context != null) recordAttributes[CONTEXT_KEY] = context;
-    if (isErrorLike(cause)) {
+    if (cause != null) {
       recordAttributes["exception.type"] = cause.name;
       recordAttributes["exception.message"] = cause.message;
       recordAttributes["exception.stacktrace"] = cause.stack ?? "";
@@ -115,7 +92,7 @@ function otlpSink(options: OtlpSinkOptions): LogSink {
                   timeUnixNano: `${Date.now()}000000`,
                   severityNumber: severity.number,
                   severityText: severity.text,
-                  body: { stringValue: args.map((arg) => renderArg(arg)).join(" ") },
+                  body: { stringValue: args.map(renderArg).join(" ") },
                   attributes: toAttributes(recordAttributes),
                 },
               ],
@@ -140,5 +117,5 @@ function otlpSink(options: OtlpSinkOptions): LogSink {
   };
 }
 
-export { isErrorLike, otlpSink };
-export type { ErrorLike, OtlpSinkOptions };
+export { otlpSink };
+export type { OtlpSinkOptions };

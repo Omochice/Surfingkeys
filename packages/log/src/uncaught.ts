@@ -1,4 +1,4 @@
-import type { LogLevel } from "./index";
+import type { Logger } from "./logger";
 
 /**
  * The part of an event target this module needs. Declared structurally rather than as `Window` so
@@ -9,9 +9,6 @@ type UncaughtEventTarget = {
   removeEventListener(type: string, listener: (event: Event) => void): void;
 };
 
-/** The logger call signature, repeated here to keep this module independent of a logger instance. */
-type LogFn = (level: LogLevel, ...args: unknown[]) => void;
-
 /** Options narrowing which uncaught errors are reported. */
 type CaptureOptions = {
   /** Report only errors attributable to this URL prefix, e.g. `chrome-extension://<id>/`. */
@@ -19,13 +16,13 @@ type CaptureOptions = {
 };
 
 /** Reads a stack off a value without narrowing on Error, which fails across realms. */
-function stackOf(value: unknown): string | undefined {
+function getStack(value: unknown): string | undefined {
   if (typeof value !== "object" || value == null || !("stack" in value)) return undefined;
   return typeof value.stack === "string" ? value.stack : undefined;
 }
 
 /** Reads the event's filename; Chrome leaves it empty for a script it refuses to attribute. */
-function filenameOf(event: Event): string | undefined {
+function getFilename(event: Event): string | undefined {
   const filename: unknown = "filename" in event ? event.filename : undefined;
   return typeof filename === "string" && filename !== "" ? filename : undefined;
 }
@@ -44,14 +41,14 @@ function filenameOf(event: Event): string | undefined {
  */
 function captureUncaught(
   target: UncaughtEventTarget,
-  log: LogFn,
+  log: Logger,
   options: CaptureOptions = {},
 ): () => void {
   const { origin } = options;
   // A content script's isolated world receives the page's own error events too, so without an
   // origin every site's broken script would be reported as ours. An error that carries neither a
   // filename nor a stack cannot be told apart from a page's, so it is dropped rather than guessed.
-  const isOurs = (filename: string | undefined, stack: string | undefined): boolean => {
+  const matchesOrigin = (filename: string | undefined, stack: string | undefined): boolean => {
     if (origin == null) return true;
     if (filename != null) return filename.startsWith(origin);
     return stack?.includes(origin) ?? false;
@@ -60,12 +57,12 @@ function captureUncaught(
   const onError = (event: Event): void => {
     const error = "error" in event ? event.error : undefined;
     const message = "message" in event ? event.message : undefined;
-    if (!isOurs(filenameOf(event), stackOf(error))) return;
+    if (!matchesOrigin(getFilename(event), getStack(error))) return;
     log("error", "Uncaught error:", error ?? message);
   };
   const onRejection = (event: Event): void => {
     const reason = "reason" in event ? event.reason : undefined;
-    if (!isOurs(undefined, stackOf(reason))) return;
+    if (!matchesOrigin(undefined, getStack(reason))) return;
     log("error", "Unhandled rejection:", reason);
   };
 
@@ -79,4 +76,4 @@ function captureUncaught(
 }
 
 export { captureUncaught };
-export type { CaptureOptions, LogFn, UncaughtEventTarget };
+export type { CaptureOptions, UncaughtEventTarget };

@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 
-import type { LogLevel, LogSink } from "./index";
-import { consoleSink, createLogger, storedLevelGate } from "./index";
+import type { LogLevel, LogSink } from "./logger";
+import { consoleSink, createHostLogger, createLogger, storedLevelGate } from "./logger";
 
 const flush = (): Promise<void> => new Promise((resolve) => setTimeout(resolve, 0));
 
@@ -145,6 +145,67 @@ describe("createLogger", () => {
       ["warn", "warn"],
       ["error", "error"],
     ]);
+  });
+});
+
+describe("createHostLogger", () => {
+  it("writes to the console for a level the stored list enables", async () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    const { log } = createHostLogger(async () => ["warn"]);
+
+    log("warn", "caution");
+    await flush();
+
+    expect(warn).toHaveBeenCalledExactlyOnceWith("caution");
+    warn.mockRestore();
+  });
+
+  it("drops a record whose level the stored list omits", async () => {
+    const consoleLog = vi.spyOn(console, "log").mockImplementation(() => {});
+    const { log } = createHostLogger(async () => ["error"]);
+
+    log("log", "chatter");
+    await flush();
+
+    expect(consoleLog).not.toHaveBeenCalled();
+    consoleLog.mockRestore();
+  });
+
+  it("re-reads the stored levels on every record", async () => {
+    const error = vi.spyOn(console, "error").mockImplementation(() => {});
+    const read = vi.fn(async () => ["error"]);
+    const { log } = createHostLogger(read);
+
+    log("error", "boom");
+    log("error", "again");
+    await flush();
+
+    expect(read).toHaveBeenCalledTimes(2);
+    error.mockRestore();
+  });
+
+  it("delivers enabled records to a sink attached after construction", async () => {
+    const error = vi.spyOn(console, "error").mockImplementation(() => {});
+    const { log, addLogSink } = createHostLogger(async () => ["error"]);
+    const sink = vi.fn();
+
+    addLogSink(sink);
+    log("error", "boom");
+    await flush();
+
+    expect(sink).toHaveBeenCalledExactlyOnceWith("error", "boom");
+    error.mockRestore();
+  });
+
+  it("stops delivering to a sink once its disposer has run", async () => {
+    const { log, addLogSink } = createHostLogger(async () => ["error"]);
+    const sink = vi.fn();
+
+    addLogSink(sink)();
+    log("error", "boom");
+    await flush();
+
+    expect(sink).not.toHaveBeenCalled();
   });
 });
 
