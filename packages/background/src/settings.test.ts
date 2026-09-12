@@ -105,6 +105,17 @@ describe("save", () => {
     expect(set).toHaveBeenCalledWith({ localPath: "/snips.js", snippets: "FETCHED" });
   });
 
+  it("does not fetch snippets when localPath is an empty string", async () => {
+    const set = vi.fn();
+    const local = { set };
+    g.chrome.storage = { local, sync: {} };
+
+    await save(local, { localPath: "", snippets: "throw new Error('x')" });
+
+    expect(mockRequest).not.toHaveBeenCalled();
+    expect(set).toHaveBeenCalledWith({ localPath: "", snippets: "throw new Error('x')" });
+  });
+
   it("does not mutate the caller's data when caching snippets to local storage", async () => {
     mockRequest.mockResolvedValue(Result.succeed("FETCHED"));
     const set = vi.fn();
@@ -357,6 +368,22 @@ describe("createSettings — loadSettings (via getSettings handler)", () => {
     const result = await getSettings({ key: "localPath" }, {}, vi.fn());
 
     expect(result.settings.error).toMatch(/Failed to read snippets/);
+  });
+
+  it("keeps the stored snippets and fetches nothing when localPath is an empty string", async () => {
+    const { unit } = makeUnit({
+      browser: {
+        loadRawSettings: vi.fn().mockResolvedValue({ localPath: "", snippets: "STORED" }),
+      },
+    });
+
+    const getSettings = unit.handlers["getSettings"];
+    expectDefined(getSettings);
+    const result = await getSettings({ key: "localPath" }, {}, vi.fn());
+
+    expect(mockRequest).not.toHaveBeenCalled();
+    expect(result.settings.snippets).toBe("STORED");
+    expect(result.settings.error).toBeUndefined();
   });
 
   it("bypasses loadSettings and uses browser.loadRawSettings directly for key=RAW", async () => {
