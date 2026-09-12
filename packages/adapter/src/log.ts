@@ -8,7 +8,7 @@ const readLogLevels = (): Promise<unknown> =>
  * Content-side logger and its sink registry.
  *
  * {@link LOG} writes to the console for the levels enabled in local storage; {@link addLogSink}
- * attaches a further destination, which the development-only relay sink uses.
+ * attaches a further destination and returns a disposer detaching it.
  */
 const { log: LOG, addLogSink } = createHostLogger(readLogLevels);
 

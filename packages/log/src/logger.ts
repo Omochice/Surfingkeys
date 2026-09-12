@@ -18,8 +18,8 @@ const consoleSink: LogSink = (level, ...args) => {
 /** Configuration of a logger: where records go, and which levels are currently enabled. */
 type LoggerOptions = {
   /**
-   * Destinations of every enabled record. Read on each call, not copied, so a caller owning a
-   * mutable array can attach a sink after construction.
+   * Destinations of every enabled record. Read on each call rather than copied, so a mutation of
+   * the list takes effect on the next record.
    */
   sinks: readonly LogSink[];
   /**
@@ -85,10 +85,10 @@ type HostLogger = {
 };
 
 /**
- * Build the single logger an extension context shares, writing to the console by default.
+ * Build a console-writing logger together with the registry of its sinks.
  *
- * The sink list is owned here and mutated rather than passed at construction, so a destination that
- * only exists in some builds can join a logger every call site already imports.
+ * The sink list is owned here and mutated rather than passed at construction, so destinations can
+ * be attached after the logger has been handed out.
  *
  * @param read - Returns the raw stored list of enabled levels; the storage API stays with the host.
  * @returns The logger and the function attaching further destinations to it.

@@ -8,20 +8,17 @@ afterEach(() => {
   globalThis.fetch = realFetch;
 });
 
-/** Replaces fetch with a spy resolving to a successful response. */
 function stubFetch() {
   const fetchMock = vi.fn(() => Promise.resolve(new Response("{}", { status: 200 })));
   globalThis.fetch = fetchMock;
   return fetchMock;
 }
 
-/** Reads back the payload of the single POST the sink made. */
 function sentPayload(fetchMock: ReturnType<typeof stubFetch>): any {
   const [, init] = fetchMock.mock.calls[0] ?? [];
   return JSON.parse(String((init as RequestInit | undefined)?.body));
 }
 
-/** The single log record of the payload the sink sent. */
 function sentRecord(fetchMock: ReturnType<typeof stubFetch>): any {
   return sentPayload(fetchMock).resourceLogs[0].scopeLogs[0].logRecords[0];
 }

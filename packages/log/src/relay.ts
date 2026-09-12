@@ -14,8 +14,8 @@ type RelayedLogRecord = {
 /**
  * Make a log argument survive the extension message boundary.
  *
- * An Error arrives on the other side as an empty object, so it travels as the plain fields the OTLP
- * sink recognises as an error.
+ * An Error arrives on the other side as an empty object, so it travels as its plain name, message
+ * and stack fields instead.
  *
  * @param arg - One argument of a log record.
  * @returns The argument itself, or the plain fields of an error.

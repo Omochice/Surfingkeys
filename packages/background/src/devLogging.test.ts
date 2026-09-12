@@ -22,18 +22,15 @@ afterEach(() => {
   vi.restoreAllMocks();
 });
 
-/** The payload of the first request posted to the collector. */
 function postedPayload(): any {
   const [, init] = fetchMock.mock.calls[0] ?? [];
   return JSON.parse(String((init as RequestInit | undefined)?.body));
 }
 
-/** The single record of the payload posted to the collector. */
 function postedRecord(): any {
   return postedPayload().resourceLogs[0].scopeLogs[0].logRecords[0];
 }
 
-/** The resource attributes of the payload posted to the collector. */
 function postedResourceAttributes(): any {
   return postedPayload().resourceLogs[0].resource.attributes;
 }

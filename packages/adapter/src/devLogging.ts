@@ -5,7 +5,7 @@ import { captureUncaught } from "@sk/log/uncaught";
 
 import { addLogSink, LOG } from "./log";
 
-/** Sink forwarding a record to the background, which owns the collector connection. */
+/** Sink forwarding each record to the background under {@link DEV_LOG_ACTION}. */
 function relaySink(context: string): LogSink {
   return (level, ...args) => {
     const record: RelayedLogRecord = {

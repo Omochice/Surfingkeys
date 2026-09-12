@@ -132,8 +132,8 @@ function isEmptyObject(obj: object): boolean {
  * Apply the settings a user snippet produced, surfacing any error it reported.
  *
  * @param delta The snippet's error message (empty when it ran cleanly) and the settings it set.
- * @param log Logger receiving the error outside the top frame, which is the only frame that can
- *   show it as a popup.
+ * @param log Logger receiving the error in a frame that is not the top one, where the popup cannot
+ *   be shown.
  */
 function applyUserSettings(
   delta: { error: string; settings: Record<string, unknown> },
