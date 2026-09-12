@@ -16,13 +16,13 @@ type CaptureOptions = {
 };
 
 /** Reads a stack off a value without narrowing on Error, which fails across realms. */
-function getStack(value: unknown): string | undefined {
+function extractStack(value: unknown): string | undefined {
   if (typeof value !== "object" || value == null || !("stack" in value)) return undefined;
   return typeof value.stack === "string" ? value.stack : undefined;
 }
 
 /** Reads the event's filename; Chrome leaves it empty for a script it refuses to attribute. */
-function getFilename(event: Event): string | undefined {
+function extractFilename(event: Event): string | undefined {
   const filename: unknown = "filename" in event ? event.filename : undefined;
   return typeof filename === "string" && filename !== "" ? filename : undefined;
 }
@@ -57,12 +57,12 @@ function captureUncaught(
   const onError = (event: Event): void => {
     const error = "error" in event ? event.error : undefined;
     const message = "message" in event ? event.message : undefined;
-    if (!matchesOrigin(getFilename(event), getStack(error))) return;
+    if (!matchesOrigin(extractFilename(event), extractStack(error))) return;
     log("error", "Uncaught error:", error ?? message);
   };
   const onRejection = (event: Event): void => {
     const reason = "reason" in event ? event.reason : undefined;
-    if (!matchesOrigin(undefined, getStack(reason))) return;
+    if (!matchesOrigin(undefined, extractStack(reason))) return;
     log("error", "Unhandled rejection:", reason);
   };
 
