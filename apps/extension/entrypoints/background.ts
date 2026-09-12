@@ -12,7 +12,9 @@ export default defineBackground(() => {
   // entirely.
   const extraHandlers: Record<string, MessageHandler> = {};
   if (import.meta.env.DEV) {
-    const dev = import("@sk/background/devLogging");
+    const dev = import("@sk/background/devLogging").then(({ createDevLogging }) =>
+      createDevLogging("http://localhost:4318"),
+    );
     // Registered before the module resolves: a message that wakes a sleeping service worker is
     // dropped unless a listener is already in place.
     extraHandlers[DEV_LOG_ACTION] = (message: unknown) => {

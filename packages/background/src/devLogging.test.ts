@@ -1,7 +1,9 @@
 import { flush, stubStorageGet } from "@sk/test-support/helpers";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-import { enableDevLogging, handleRelayedLog } from "./devLogging";
+import { createDevLogging } from "./devLogging";
+
+const { enableDevLogging, handleRelayedLog } = createDevLogging("http://collector.test");
 
 const realFetch = globalThis.fetch;
 
@@ -43,7 +45,7 @@ describe("enableDevLogging", () => {
     LOG("error", "boom");
     await flush();
 
-    expect(fetchMock.mock.calls[0]?.[0]).toBe("http://localhost:4318/v1/logs");
+    expect(fetchMock.mock.calls[0]?.[0]).toBe("http://collector.test/v1/logs");
     expect(postedRecord().body.stringValue).toBe("boom");
     expect(postedResourceAttributes()).toContainEqual({
       key: "sk.context",
