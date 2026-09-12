@@ -11,7 +11,6 @@ function errorEvent(fields: { error?: unknown; message?: string; filename?: stri
   return Object.assign(new Event("error"), fields);
 }
 
-/** The rejection counterpart of {@link errorEvent}. */
 function rejectionEvent(reason: unknown): Event {
   return Object.assign(new Event("unhandledrejection"), { reason });
 }

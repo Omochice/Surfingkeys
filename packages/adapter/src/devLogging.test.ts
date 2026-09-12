@@ -40,7 +40,6 @@ afterEach(() => {
   vi.restoreAllMocks();
 });
 
-/** The single relayed envelope sent to the background. */
 function relayed(): any {
   return sendMessage.mock.calls[0]?.[0];
 }

@@ -6,8 +6,8 @@ type ErrorLike = { name: string; message: string; stack?: string };
 /**
  * Whether a log argument is reported as an exception.
  *
- * Checked by shape rather than with Error.isError: a record relayed from another extension context
- * carries its error as the plain fields toTransferable produced, not as an Error.
+ * Checked by shape rather than with Error.isError: an error that crossed a serialisation boundary
+ * arrives as plain fields, not as an Error.
  *
  * @param value - One argument of a log record.
  * @returns Whether the value carries the name and message of an error.
@@ -44,7 +44,7 @@ const SEVERITY: Record<LogLevel, { number: number; text: string }> = {
 /** Attribute naming this codebase as the emitting service, per OTLP semantic conventions. */
 const SERVICE_NAME = "surfingkeys";
 
-/** Record attribute repeated from the resource so one record identifies its extension context. */
+/** Record attribute repeated from the resource so a record identifies its emitting context. */
 const CONTEXT_KEY = "sk.context";
 
 /** Renders one argument the way the console would display it. */
@@ -71,8 +71,8 @@ function toAttributes(entries: Record<string, string>): OtlpAttribute[] {
 /**
  * Build a sink posting each record to an OTLP/HTTP collector as JSON.
  *
- * The payload is hand-built rather than produced by the OpenTelemetry SDK: the extension ships one
- * signal, in development builds only, and the SDK would add a dependency to every bundle.
+ * The payload is hand-built rather than produced by the OpenTelemetry SDK: one signal does not
+ * justify the dependency in every bundle importing this.
  *
  * Delivery is fire-and-forget and every failure is swallowed, so a collector that is not running
  * costs nothing more than a failed request: the sink never throws and never leaves an unhandled

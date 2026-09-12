@@ -297,9 +297,9 @@ const Gist = (() => {
  * Boot the background: build the message-handler registry and attach it to the runtime listeners.
  *
  * @param browser - Per-browser glue; see {@link BrowserAdapter}.
- * @param extraHandlers - Handlers a composition root adds, e.g. the development-only log relay.
- *   They are merged before the built-ins, so a built-in action always wins: an extra can only claim
- *   an action the message protocol does not already define, never redirect one that exists.
+ * @param extraHandlers - Further handlers, merged before the built-ins so a built-in action always
+ *   wins: an extra can only claim an action the message protocol does not already define, never
+ *   redirect one that exists.
  */
 function start(browser: BrowserAdapter, extraHandlers?: Record<string, MessageHandler>): void {
   const handlers: Record<string, MessageHandler> = { ...extraHandlers };

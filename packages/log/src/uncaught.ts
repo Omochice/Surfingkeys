@@ -11,7 +11,7 @@ type UncaughtEventTarget = {
 
 /** Options narrowing which uncaught errors are reported. */
 type CaptureOptions = {
-  /** Report only errors attributable to this URL prefix, e.g. `chrome-extension://<id>/`. */
+  /** Report only errors whose filename starts with this prefix, or whose stack contains it. */
   origin?: string;
 };
 
@@ -29,9 +29,8 @@ function extractFilename(event: Event): string | undefined {
 /**
  * Report errors that escaped every handler through `log`.
  *
- * Both events are read by property rather than by narrowing on ErrorEvent / PromiseRejectionEvent:
- * an event crossing realms (a frame, or a worker global) fails an `instanceof` check that its
- * fields still satisfy.
+ * Both events are read by property rather than narrowed with `instanceof`, which an event from
+ * another realm fails while still carrying the fields that are read.
  *
  * @param target - Global object to listen on, e.g. `window` or a worker's `self`.
  * @param log - Logger receiving one "error" record per uncaught error or rejection.
@@ -44,9 +43,8 @@ function captureUncaught(
   options: CaptureOptions = {},
 ): () => void {
   const { origin } = options;
-  // A content script's isolated world receives the page's own error events too, so without an
-  // origin every site's broken script would be reported as ours. An error that carries neither a
-  // filename nor a stack cannot be told apart from a page's, so it is dropped rather than guessed.
+  // An error carrying neither a filename nor a stack cannot be attributed to the origin, so it is
+  // dropped rather than guessed.
   const matchesOrigin = (filename: string | undefined, stack: string | undefined): boolean => {
     if (origin == null) return true;
     if (filename != null) return filename.startsWith(origin);

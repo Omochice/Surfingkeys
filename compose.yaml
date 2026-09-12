@@ -1,7 +1,6 @@
 services:
   otel-collector:
-    # The contrib distribution is required:
-    # because the file exporter is not part of the core collector image.
+    # The file exporter is not part of the core collector image, hence the contrib distribution.
     image: otel/opentelemetry-collector-contrib:0.160.0@sha256:799dc6cf12c96192af37b5bdba804da8c10b3bc563b43cb90c3f3c58d9572ad6
     command: ["--config=/etc/otelcol/config.yaml"]
     configs:

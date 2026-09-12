@@ -49,8 +49,6 @@ pnpm dev:firefox                 # Firefox
 A debug build also reports its errors to a local collector.
 Start it with `docker compose up -d`, then browse the records in Grafana at `http://localhost:3000` or follow `.otel/otel.jsonl`, where the collector appends one JSON object per record.
 
-The same compose file runs Grafana's MCP server, declared in `.mcp.json`, so an agent in this repository can query Loki directly; Claude Code asks once to approve the project server.
-
 ## Test and check
 
 Run the test suites and static checks from the repository root before opening a pull request.
