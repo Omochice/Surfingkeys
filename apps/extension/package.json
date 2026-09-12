@@ -4,8 +4,8 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "build:dev": "wxt build --mode development",
-    "build:dev:firefox": "wxt build --mode development -b firefox",
+    "build:debug": "wxt build --mode development",
+    "build:debug:firefox": "wxt build --mode development -b firefox",
     "build:prod": "wxt build",
     "build:prod:firefox": "wxt build -b firefox",
     "check": "npm-run-all2 --parallel --aggregate-output check:*",

@@ -28,8 +28,8 @@ pnpm install
 pnpm build:prod                  # production build for Chromium based browsers
 pnpm build:prod:firefox          # production build for Firefox
 
-pnpm build:dev                   # development build for Chromium based browsers
-pnpm build:dev:firefox           # development build for Firefox
+pnpm build:debug                 # development build for Chromium based browsers
+pnpm build:debug:firefox         # development build for Firefox
 ```
 
 Builds are emitted to `apps/extension/dist/<browser>-<manifest>`, for example `apps/extension/dist/chrome-mv3` or `apps/extension/dist/firefox-mv3`.
