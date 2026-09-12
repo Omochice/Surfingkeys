@@ -546,11 +546,21 @@ describe("start — tab/window/download handlers delegate to chrome", () => {
 });
 
 describe("start — handleMessage dispatch", () => {
-  it("logs a message for an unrecognized action", () => {
+  it("logs a message for an unrecognized action", async () => {
     const consoleSpy = vi.spyOn(console, "log").mockImplementation(() => {});
-    const dispatch = bootDispatch();
+    // The logger keeps "log" records behind the stored logLevels setting, so the level has to be
+    // enabled for the message to reach the console at all.
+    const dispatch = bootWith({
+      storage: {
+        local: {
+          get: (_keys: unknown, cb: (items: unknown) => void) => cb({ logLevels: ["log"] }),
+        },
+      },
+    });
     dispatch({ action: "unknownAction42" }, {}, vi.fn());
-    expect(consoleSpy).toHaveBeenCalledWith(expect.stringContaining("unknownAction42"));
+    await vi.waitFor(() =>
+      expect(consoleSpy).toHaveBeenCalledWith(expect.stringContaining("unknownAction42")),
+    );
     consoleSpy.mockRestore();
   });
 

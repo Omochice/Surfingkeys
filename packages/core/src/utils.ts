@@ -8,6 +8,7 @@ import {
 } from "@sk/common/result";
 
 import { conf } from "./conf";
+import type { EngineEnv } from "./engineEnv";
 import { dispatchSKEvent } from "./events";
 import KeyboardUtils from "./keyboardUtils";
 import type Trie from "./trie";
@@ -127,12 +128,25 @@ function isEmptyObject(obj: object): boolean {
   return true;
 }
 
-function applyUserSettings(delta: { error: string; settings: Record<string, unknown> }): void {
+/**
+ * Apply the settings a user snippet produced, surfacing any error it reported.
+ *
+ * @param delta The snippet's error message (empty when it ran cleanly) and the settings it set.
+ * @param log Optional logger. Only the top frame can show the error as a popup; elsewhere it goes
+ *   to the logger, and a caller without one drops it.
+ */
+function applyUserSettings(
+  delta: { error: string; settings: Record<string, unknown> },
+  log?: EngineEnv["log"],
+): void {
   if (delta.error !== "") {
     if (window === top) {
       showPopup("[SurfingKeys] Error found in settings: " + delta.error);
     } else {
-      console.log(`[SurfingKeys] Error found in settings(${window.location.href}): ${delta.error}`);
+      log?.(
+        "error",
+        `[SurfingKeys] Error found in settings(${window.location.href}): ${delta.error}`,
+      );
     }
   }
   if (!isEmptyObject(delta.settings)) {
@@ -573,7 +587,6 @@ function filterAncestors(elements: Element[]): Element[] {
           // skip child from shadowRoot of a selected element.
           return;
         } else if (e.contains(r)) {
-          console.log("skip:", e, r);
           return;
         }
       }
