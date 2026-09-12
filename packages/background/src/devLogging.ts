@@ -1,4 +1,4 @@
-import type { LogSink } from "@sk/log";
+import { LOG_LEVELS } from "@sk/log";
 import { otlpSink } from "@sk/log/otlp";
 import { DEV_LOG_ACTION } from "@sk/log/relay";
 import type { UncaughtEventTarget } from "@sk/log/uncaught";
@@ -15,34 +15,25 @@ const OTLP_URL = "http://localhost:4318";
 const relayedLogSchema = v.object({
   action: v.literal(DEV_LOG_ACTION),
   context: v.string(),
-  level: v.picklist(["log", "warn", "error"]),
+  level: v.picklist(LOG_LEVELS),
   args: v.array(v.unknown()),
 });
-
-// One sink per context: the resource attributes are fixed at construction, and the contexts are a
-// closed handful ("content", "frontend"), so the sinks are kept rather than rebuilt per record.
-const sinksByContext = new Map<string, LogSink>();
-
-function sinkFor(context: string): LogSink {
-  const existing = sinksByContext.get(context);
-  if (existing) return existing;
-  const sink = otlpSink({ url: OTLP_URL, resourceAttributes: { "sk.context": context } });
-  sinksByContext.set(context, sink);
-  return sink;
-}
 
 /**
  * Emit a log record relayed by another extension context.
  *
+ * A message that is not a relayed record is ignored.
+ *
  * @param message - Raw runtime message, of any shape.
- * @returns Whether the message was a relayed record and has been emitted.
  */
-function handleRelayedLog(message: unknown): boolean {
+function handleRelayedLog(message: unknown): void {
   const parsed = v.safeParse(relayedLogSchema, message);
-  if (!parsed.success) return false;
+  if (!parsed.success) return;
   const record = parsed.output;
-  sinkFor(record.context)(record.level, ...record.args);
-  return true;
+  // The sink is built per record rather than cached per context: `context` comes from a sender any
+  // page's content script can impersonate, so a map keyed on it would grow without bound.
+  const sink = otlpSink({ url: OTLP_URL, resourceAttributes: { "sk.context": record.context } });
+  sink(record.level, ...record.args);
 }
 
 /**
@@ -52,7 +43,8 @@ function handleRelayedLog(message: unknown): boolean {
  * @returns A disposer detaching the OTLP sink and the uncaught-error listeners.
  */
 function enableDevLogging(target: UncaughtEventTarget): () => void {
-  const removeSink = addLogSink(sinkFor("background"));
+  const sink = otlpSink({ url: OTLP_URL, resourceAttributes: { "sk.context": "background" } });
+  const removeSink = addLogSink(sink);
   const stopCapture = captureUncaught(target, LOG);
   return () => {
     removeSink();
@@ -60,4 +52,4 @@ function enableDevLogging(target: UncaughtEventTarget): () => void {
   };
 }
 
-export { enableDevLogging, handleRelayedLog, OTLP_URL };
+export { enableDevLogging, handleRelayedLog };
