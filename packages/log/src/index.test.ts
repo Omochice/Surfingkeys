@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 
-import type { LogLevel } from "./index";
+import type { LogLevel, LogSink } from "./index";
 import { consoleSink, createLogger, storedLevelGate } from "./index";
 
 const flush = (): Promise<void> => new Promise((resolve) => setTimeout(resolve, 0));
@@ -48,6 +48,18 @@ describe("createLogger", () => {
     await flush();
 
     expect(sink).toHaveBeenCalledExactlyOnceWith("error", "Failed to save:", cause);
+  });
+
+  it("writes to a sink appended to the caller's array after construction", async () => {
+    const sinks: LogSink[] = [];
+    const log = createLogger({ sinks, isEnabled: () => true });
+    const late = vi.fn();
+
+    sinks.push(late);
+    log("error", "boom");
+    await flush();
+
+    expect(late).toHaveBeenCalledExactlyOnceWith("error", "boom");
   });
 
   it("drops a record whose level the gate rejects", async () => {
