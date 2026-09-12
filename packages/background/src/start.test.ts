@@ -375,7 +375,10 @@ describe("start — requestImage", () => {
  * other chrome.* access falls back to the deep noop), and returns the captured dispatcher. Lets a
  * test assert the chrome API a message handler delegates to.
  */
-function bootWith(namespaces: Record<string, any>): MessageHandler {
+function bootWith(
+  namespaces: Record<string, any>,
+  extraHandlers?: Record<string, MessageHandler>,
+): MessageHandler {
   let dispatch: MessageHandler | undefined;
   const base = deepNoop();
   g.chrome = new Proxy(base, {
@@ -410,7 +413,7 @@ function bootWith(namespaces: Record<string, any>): MessageHandler {
     detectTabTitleChange: false,
     getLatestHistoryItem: () => Promise.resolve([]),
   };
-  start(browser);
+  start(browser, extraHandlers);
   expectDefined(dispatch);
   return dispatch;
 }
@@ -577,6 +580,42 @@ describe("start — handleMessage dispatch", () => {
     const dispatch = bootDispatch();
     const ret = dispatch({ action: "openIncognito", url: "https://x.com" }, {}, vi.fn());
     expect(ret).toBeUndefined();
+  });
+
+  it("dispatches to an extra handler without reporting the message as unexpected", async () => {
+    const consoleSpy = vi.spyOn(console, "log").mockImplementation(() => {});
+    const extra = vi.fn();
+    const dispatch = bootWith(
+      {
+        storage: {
+          local: {
+            get: (_keys: unknown, cb: (items: unknown) => void) => cb({ logLevels: ["log"] }),
+          },
+        },
+      },
+      { relayedThing: extra },
+    );
+
+    const message = { action: "relayedThing", payload: 1 };
+    dispatch(message, {}, vi.fn());
+    // The unexpected-message record is written behind an asynchronous storage read, so a second
+    // dispatch that is genuinely unexpected marks the point by which the first one would have
+    // surfaced had it been rejected.
+    dispatch({ action: "unknownAction42" }, {}, vi.fn());
+    await vi.waitFor(() =>
+      expect(consoleSpy).toHaveBeenCalledWith(expect.stringContaining("unknownAction42")),
+    );
+
+    expect(extra).toHaveBeenCalledWith(message, expect.anything(), expect.anything());
+    expect(consoleSpy).not.toHaveBeenCalledWith(expect.stringContaining("relayedThing"));
+    consoleSpy.mockRestore();
+  });
+
+  it("keeps a built-in action when an extra handler claims the same name", () => {
+    const extra = vi.fn();
+    const dispatch = bootWith({}, { openIncognito: extra });
+    dispatch({ action: "openIncognito", url: "https://x.com" }, {}, vi.fn());
+    expect(extra).not.toHaveBeenCalled();
   });
 });
 
