@@ -4,7 +4,10 @@
   "private": true,
   "type": "module",
   "exports": {
-    ".": "./src/index.ts"
+    ".": "./src/index.ts",
+    "./otlp": "./src/otlp.ts",
+    "./relay": "./src/relay.ts",
+    "./uncaught": "./src/uncaught.ts"
   },
   "scripts": {
     "check": "npm-run-all2 --parallel --aggregate-output check:*",
