@@ -285,6 +285,9 @@ importers:
       '@praha/byethrow':
         specifier: 'catalog:'
         version: 0.12.0(typescript@7.0.2)
+      '@sk/adapter':
+        specifier: workspace:*
+        version: link:../../packages/adapter
       '@sk/background':
         specifier: workspace:*
         version: link:../../packages/background

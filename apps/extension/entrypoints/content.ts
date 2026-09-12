@@ -16,5 +16,13 @@ export default defineContentScript({
     } else {
       start({});
     }
+
+    // Development builds relay their errors to the background, which forwards them to a local OTLP
+    // collector. Reached only through this dynamic import, so a production build drops it entirely.
+    if (import.meta.env.DEV) {
+      void import("@sk/adapter/devLogging").then(({ enableDevLogging }) => {
+        enableDevLogging("content");
+      });
+    }
   },
 });
