@@ -284,7 +284,7 @@ export function initModeHub(env: EngineEnv, cb?: () => void): void {
         catch: (cause) => domApiError("iframe init", cause),
       });
       if (Result.isFailure(r)) {
-        console.log("Error on blank iframe loaded: " + String(r.error.cause));
+        engineEnv?.log("log", "Error on blank iframe loaded: " + String(r.error.cause));
       }
     });
   } else {

@@ -4,6 +4,7 @@ import * as v from "valibot";
 
 import { createBookmarkHandlers } from "./bookmarks";
 import { createHistoryHandlers } from "./history";
+import { LOG } from "./log";
 import { request } from "./request";
 import { createSettings } from "./settings";
 import { createTabs } from "./tabs";
@@ -316,7 +317,7 @@ function start(browser: BrowserAdapter): void {
         ? handlers[envelope.output.action]
         : undefined;
     if (!handler || !envelope.success) {
-      console.log("[unexpected runtime message] " + JSON.stringify(rawMessage));
+      LOG("log", "[unexpected runtime message] " + JSON.stringify(rawMessage));
       return undefined;
     }
     const result = handler(rawMessage, sender, sendResponse);
