@@ -242,8 +242,8 @@ catalogs:
       specifier: 7.0.2
       version: 7.0.2
     valibot:
-      specifier: 1.4.2
-      version: 1.4.2
+      specifier: 1.5.0
+      version: 1.5.0
     vitest:
       specifier: 5.0.0
       version: 5.0.0
@@ -409,7 +409,7 @@ importers:
         version: link:../common
       valibot:
         specifier: 'catalog:'
-        version: 1.4.2(typescript@7.0.2)
+        version: 1.5.0(typescript@7.0.2)
     devDependencies:
       '@sk/test-support':
         specifier: workspace:*
@@ -498,7 +498,7 @@ importers:
         version: 1.9.15
       valibot:
         specifier: 'catalog:'
-        version: 1.4.2(typescript@7.0.2)
+        version: 1.5.0(typescript@7.0.2)
     devDependencies:
       '@sk/test-support':
         specifier: workspace:*
@@ -556,7 +556,7 @@ importers:
         version: link:../common
       valibot:
         specifier: 'catalog:'
-        version: 1.4.2(typescript@7.0.2)
+        version: 1.5.0(typescript@7.0.2)
     devDependencies:
       '@sk/test-support':
         specifier: workspace:*
@@ -3020,8 +3020,8 @@ packages:
     peerDependencies:
       browserslist: '>= 4.21.0'
 
-  valibot@1.4.2:
-    resolution: {integrity: sha512-gjdCvJ6d3RyHAneqxMYMW9QMCwYMb3jpOO0IyHZV1bnRHFBHrX3VkIILt5XYR0WhwHiH7Mty8ovuPZ/O3gamrg==}
+  valibot@1.5.0:
+    resolution: {integrity: sha512-nil6AkP2TChWL43Z5uJ6GTxX01CUA+g8LWUM+N/rB9NBbkUMaUsi9PUNzlUPgoKASgmx9f7eGOYpJ04/fSa6FQ==}
     peerDependencies:
       typescript: '>=5'
     peerDependenciesMeta:
@@ -5306,7 +5306,7 @@ snapshots:
       escalade: 3.2.0
       picocolors: 1.1.1
 
-  valibot@1.4.2(typescript@7.0.2):
+  valibot@1.5.0(typescript@7.0.2):
     optionalDependencies:
       typescript: 7.0.2
 
