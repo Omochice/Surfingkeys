@@ -19,6 +19,26 @@ services:
     ports:
       - "3000:3000"
 
+  mcp-grafana:
+    image: grafana/mcp-grafana:1.4.1@sha256:cfcf06863c23b2db64c41b0379d1efe95703aca4ba5434d90674f72ec0b7d810
+    # Without --allowed-hosts the Host check only admits the bind address.
+    command:
+      [
+        "-t",
+        "streamable-http",
+        "--address",
+        "0.0.0.0:8000",
+        "--allowed-hosts",
+        "localhost:8000,127.0.0.1:8000",
+        "--disable-write",
+      ]
+    environment:
+      GRAFANA_URL: http://lgtm:3000
+    ports:
+      - "127.0.0.1:8000:8000"
+    depends_on:
+      - lgtm
+
 configs:
   otel-collector:
     content: |
