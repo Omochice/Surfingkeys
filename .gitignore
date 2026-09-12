@@ -15,3 +15,5 @@ src/content_scripts/safari.js
 # Vitest browser mode failure artifacts
 __screenshots__/
 .vitest-attachments/
+
+.otel/
