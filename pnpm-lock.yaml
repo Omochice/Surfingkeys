@@ -410,6 +410,9 @@ importers:
       '@sk/common':
         specifier: workspace:*
         version: link:../common
+      '@sk/log':
+        specifier: workspace:*
+        version: link:../log
       valibot:
         specifier: 'catalog:'
         version: 1.5.0(typescript@7.0.2)

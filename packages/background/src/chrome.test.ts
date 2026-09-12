@@ -9,6 +9,15 @@ afterEach(() => {
   g.chrome = realChrome;
 });
 
+// The logger reads its enabled levels through the callback form of storage.get, while
+// loadRawSettings uses the promise form; a stub answering both keeps the logged output observable.
+function stubGet(items: Record<string, unknown>) {
+  return vi.fn((_keys?: unknown, cb?: (items: Record<string, unknown>) => void) => {
+    cb?.(items);
+    return Promise.resolve(items);
+  });
+}
+
 describe("chromeSpecifics.loadRawSettings", () => {
   it("degrades gracefully when the sync write fails instead of rejecting", async () => {
     // Local is newer than sync, so settings are mirrored back to sync. In MV3 the
@@ -39,13 +48,13 @@ describe("chromeSpecifics.loadRawSettings", () => {
     // Sync is newer than local, so the sync data is written back to local storage
     // (to keep local as a cached copy). If that local.set rejects, the write must
     // not surface as an unhandled rejection that can terminate the MV3 service
-    // worker; loadRawSettings catches it and logs via console.error instead.
+    // worker; loadRawSettings catches it and logs it instead.
     const errorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
     try {
       g.chrome = {
         storage: {
           local: {
-            get: vi.fn().mockResolvedValue({ savedAt: 1, theme: "light" }),
+            get: stubGet({ savedAt: 1, theme: "light" }),
             set: vi.fn().mockRejectedValue(new Error("QUOTA_BYTES_PER_ITEM quota exceeded")),
           },
           sync: {

@@ -100,6 +100,16 @@ describe("LOG", () => {
     await vi.waitFor(() => expect(log).toHaveBeenCalledExactlyOnceWith(msg));
   });
 
+  it("passes every argument to the console method", async () => {
+    stubStorage({ logLevels: ["error"] });
+    const error = vi.spyOn(console, "error").mockImplementation(() => {});
+    const cause = new Error("boom");
+
+    LOG("error", "Failed to save:", cause);
+
+    await vi.waitFor(() => expect(error).toHaveBeenCalledExactlyOnceWith("Failed to save:", cause));
+  });
+
   it("re-reads logLevels on every call so a stored change takes effect immediately", async () => {
     let stored: unknown = [];
     const get = vi.fn((_keys: string[], cb: (items: any) => void) => cb({ logLevels: stored }));
