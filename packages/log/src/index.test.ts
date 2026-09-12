@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 
 import type { LogLevel } from "./index";
-import { consoleSink, createLogger } from "./index";
+import { consoleSink, createLogger, storedLevelGate } from "./index";
 
 const flush = (): Promise<void> => new Promise((resolve) => setTimeout(resolve, 0));
 
@@ -13,6 +13,16 @@ describe("consoleSink", () => {
 
     expect(warn).toHaveBeenCalledExactlyOnceWith("caution");
     warn.mockRestore();
+  });
+
+  it("passes every argument to the console method, so an Error keeps its stack", () => {
+    const error = vi.spyOn(console, "error").mockImplementation(() => {});
+    const cause = new Error("boom");
+
+    consoleSink("error", "Failed to save:", cause);
+
+    expect(error).toHaveBeenCalledExactlyOnceWith("Failed to save:", cause);
+    error.mockRestore();
   });
 });
 
@@ -27,6 +37,17 @@ describe("createLogger", () => {
 
     expect(first).toHaveBeenCalledExactlyOnceWith("error", "boom");
     expect(second).toHaveBeenCalledExactlyOnceWith("error", "boom");
+  });
+
+  it("forwards every argument of a record to the sinks", async () => {
+    const sink = vi.fn();
+    const log = createLogger({ sinks: [sink], isEnabled: () => true });
+    const cause = new Error("boom");
+
+    log("error", "Failed to save:", cause);
+    await flush();
+
+    expect(sink).toHaveBeenCalledExactlyOnceWith("error", "Failed to save:", cause);
   });
 
   it("drops a record whose level the gate rejects", async () => {
@@ -112,5 +133,47 @@ describe("createLogger", () => {
       ["warn", "warn"],
       ["error", "error"],
     ]);
+  });
+});
+
+describe("storedLevelGate", () => {
+  it("enables exactly the levels listed in the stored array", async () => {
+    const gate = storedLevelGate(async () => ["log", "warn"]);
+
+    expect(await gate("log")).toBe(true);
+    expect(await gate("warn")).toBe(true);
+    expect(await gate("error")).toBe(false);
+  });
+
+  it("enables error only when nothing is stored", async () => {
+    const gate = storedLevelGate(async () => undefined);
+
+    expect(await gate("error")).toBe(true);
+    expect(await gate("log")).toBe(false);
+    expect(await gate("warn")).toBe(false);
+  });
+
+  it("enables error only when the stored value is not an array", async () => {
+    const gate = storedLevelGate(async () => "log");
+
+    expect(await gate("error")).toBe(true);
+    expect(await gate("log")).toBe(false);
+  });
+
+  it("silences every level when the stored array is empty", async () => {
+    const gate = storedLevelGate(async () => []);
+
+    expect(await gate("error")).toBe(false);
+  });
+
+  it("reads on every call so a stored change takes effect immediately", async () => {
+    let stored: unknown = [];
+    const read = vi.fn(() => Promise.resolve(stored));
+    const gate = storedLevelGate(read);
+
+    expect(await gate("log")).toBe(false);
+    stored = ["log"];
+    expect(await gate("log")).toBe(true);
+    expect(read).toHaveBeenCalledTimes(2);
   });
 });

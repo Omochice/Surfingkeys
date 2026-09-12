@@ -20,6 +20,7 @@
   "dependencies": {
     "@praha/byethrow": "catalog:",
     "@sk/common": "workspace:*",
+    "@sk/log": "workspace:*",
     "valibot": "catalog:"
   },
   "devDependencies": {

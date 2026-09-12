@@ -2,6 +2,7 @@ import { Result } from "@praha/byethrow";
 import { chromeRuntimeError } from "@sk/common/result";
 import * as v from "valibot";
 
+import { LOG } from "./log";
 import { request } from "./request";
 import type { BackgroundConf, BrowserAdapter, MessageHandler } from "./start";
 
@@ -98,14 +99,14 @@ export async function save(
       // Leave the cached snippets untouched on failure, but still persist so the
       // chained `afterSet` (and the `updateSettings` response) never hangs on a
       // bad/unreachable snippet URL.
-      console.error("Failed to fetch snippets from", localPath, r.error);
+      LOG("error", "Failed to fetch snippets from", localPath, r.error);
     }
     // storage.set may throw (e.g. quota); swallow so a caller awaiting save
     // (and the response it settles) never hangs on a bad snippet path.
     try {
       await storage.set(toSave);
     } catch (error) {
-      console.error("Failed to save snippets from", localPath, error);
+      LOG("error", "Failed to save snippets from", localPath, error);
     }
   } else {
     await storage.set(toSave);
@@ -190,7 +191,7 @@ export function createSettings(deps: SettingsDeps): SettingsUnit {
     // rejection here (e.g. sync quota) must be caught: an unhandled rejection can
     // terminate the MV3 service worker.
     save(chrome.storage.sync, diffSettings).catch((error) => {
-      console.error("Failed to sync settings:", error);
+      LOG("error", "Failed to sync settings:", error);
     });
   }
 

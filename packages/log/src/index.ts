@@ -2,11 +2,11 @@
 type LogLevel = "log" | "warn" | "error";
 
 /** Destination a log record is handed to once the level gate has let it through. */
-type LogSink = (level: LogLevel, msg: unknown) => void;
+type LogSink = (level: LogLevel, ...args: unknown[]) => void;
 
 /** Sink writing each record to the console method named after its level. */
-const consoleSink: LogSink = (level, msg) => {
-  console[level](msg);
+const consoleSink: LogSink = (level, ...args) => {
+  console[level](...args);
 };
 
 /** Configuration of a logger: where records go, and which levels are currently enabled. */
@@ -27,10 +27,10 @@ type LoggerOptions = {
  * not swallowed.
  *
  * @param options - Sinks to write to and the level gate to consult.
- * @returns A function emitting one record per call.
+ * @returns A function emitting one record per call, taking the console-style argument list.
  */
-function createLogger(options: LoggerOptions): (level: LogLevel, msg: unknown) => void {
-  return (level, msg) => {
+function createLogger(options: LoggerOptions): (level: LogLevel, ...args: unknown[]) => void {
+  return (level, ...args) => {
     // The executor form runs isEnabled synchronously, so a gate reading external state starts
     // that read at call time, and a synchronous throw becomes a rejection instead of escaping.
     new Promise<boolean>((resolve) => {
@@ -39,7 +39,7 @@ function createLogger(options: LoggerOptions): (level: LogLevel, msg: unknown) =
       (enabled) => {
         if (!enabled) return;
         for (const sink of options.sinks) {
-          sink(level, msg);
+          sink(level, ...args);
         }
       },
       () => {},
@@ -47,5 +47,28 @@ function createLogger(options: LoggerOptions): (level: LogLevel, msg: unknown) =
   };
 }
 
-export { consoleSink, createLogger };
+/** Storage key holding the list of enabled levels. */
+const LOG_LEVELS_KEY = "logLevels";
+
+/** Levels enabled when nothing usable is stored: errors are never silenced by a missing setting. */
+const DEFAULT_LEVELS: readonly LogLevel[] = ["error"];
+
+/**
+ * Build a level gate deciding from a stored list of level names.
+ *
+ * A stored value that is not an array (absent, or written by hand as a string) is treated as unset
+ * and falls back to errors only.
+ *
+ * @param read - Returns the raw stored value, leaving the storage API to the caller.
+ * @returns A gate answering whether the given level is currently enabled.
+ */
+function storedLevelGate(read: () => Promise<unknown>): (level: LogLevel) => Promise<boolean> {
+  return async (level) => {
+    const raw = await read();
+    const levels: readonly unknown[] = Array.isArray(raw) ? raw : DEFAULT_LEVELS;
+    return levels.includes(level);
+  };
+}
+
+export { consoleSink, createLogger, LOG_LEVELS_KEY, storedLevelGate };
 export type { LoggerOptions, LogLevel, LogSink };

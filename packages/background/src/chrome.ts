@@ -1,5 +1,6 @@
 import { filterByTitleOrUrl } from "@sk/common/utils";
 
+import { LOG } from "./log";
 import { extendObject, getSubSettings, save } from "./settings";
 
 async function loadRawSettings(
@@ -34,7 +35,7 @@ async function loadRawSettings(
     // branch), but a rejection (e.g. local quota) must be caught: an unhandled
     // rejection can terminate the MV3 service worker.
     save(chrome.storage.local, syncSet).catch((error) => {
-      console.error("Failed to mirror sync settings to local storage:", error);
+      LOG("error", "Failed to mirror sync settings to local storage:", error);
     });
     return getSubSettings(rawSet, keys);
   }

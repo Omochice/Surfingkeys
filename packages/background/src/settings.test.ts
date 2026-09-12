@@ -38,6 +38,9 @@ afterEach(() => {
   mockRequest.mockReset();
 });
 
+/** Answers the logger's level read with an empty result, leaving it at its error-only default. */
+const stubLevelRead = (_keys: unknown, cb: (items: Record<string, unknown>) => void) => cb({});
+
 /** Builds a settings unit with inert defaults; override only what a test needs. */
 function makeUnit(over: Partial<SettingsDeps> = {}) {
   const deps: SettingsDeps = {
@@ -309,7 +312,9 @@ describe("createSettings — updateSettings", () => {
     const errorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
     const localSet = vi.fn().mockResolvedValue(undefined);
     const syncSet = vi.fn().mockRejectedValue(new Error("QUOTA_BYTES quota exceeded"));
-    g.chrome.storage = { local: { set: localSet }, sync: { set: syncSet } };
+    // The logger reads its enabled levels from local storage, so the replacement stub has to
+    // answer that read for the logged failure to reach the console spy.
+    g.chrome.storage = { local: { set: localSet, get: stubLevelRead }, sync: { set: syncSet } };
     g.chrome.tabs = { query: vi.fn().mockResolvedValue([]) };
     const { unit } = makeUnit();
 
