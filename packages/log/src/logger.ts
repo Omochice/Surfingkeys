@@ -10,30 +10,6 @@ type LogSink = (level: LogLevel, ...args: unknown[]) => void;
 /** The call signature every logger built here exposes. */
 type Logger = (level: LogLevel, ...args: unknown[]) => void;
 
-/** The shape an argument must have to be treated as an error. */
-type ErrorLike = { name: string; message: string; stack?: string };
-
-/**
- * Whether a log argument carries an error.
- *
- * Duck-typed on purpose: `instanceof Error` is unusable here, because a record can carry an Error
- * built in another realm (a page's window reaching a content script, or a structured-clone round
- * trip), whose prototype chain does not lead to this realm's Error.
- *
- * @param value - One argument of a log record.
- * @returns Whether the value carries the name and message of an error.
- */
-function isErrorLike(value: unknown): value is ErrorLike {
-  return (
-    typeof value === "object" &&
-    value != null &&
-    "message" in value &&
-    typeof value.message === "string" &&
-    "name" in value &&
-    typeof value.name === "string"
-  );
-}
-
 /** Sink writing each record to the console method named after its level. */
 const consoleSink: LogSink = (level, ...args) => {
   console[level](...args);
@@ -131,13 +107,5 @@ function createHostLogger(read: () => Promise<unknown>): HostLogger {
   };
 }
 
-export {
-  consoleSink,
-  createHostLogger,
-  createLogger,
-  isErrorLike,
-  LOG_LEVELS,
-  LOG_LEVELS_KEY,
-  storedLevelGate,
-};
-export type { ErrorLike, HostLogger, Logger, LoggerOptions, LogLevel, LogSink };
+export { consoleSink, createHostLogger, createLogger, LOG_LEVELS, LOG_LEVELS_KEY, storedLevelGate };
+export type { HostLogger, Logger, LoggerOptions, LogLevel, LogSink };

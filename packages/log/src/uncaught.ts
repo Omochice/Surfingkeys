@@ -15,10 +15,9 @@ type CaptureOptions = {
   origin?: string;
 };
 
-/** Reads a stack off a value without narrowing on Error, which fails across realms. */
+/** Error.isError rather than instanceof: an error thrown in another realm still passes. */
 function extractStack(value: unknown): string | undefined {
-  if (typeof value !== "object" || value == null || !("stack" in value)) return undefined;
-  return typeof value.stack === "string" ? value.stack : undefined;
+  return Error.isError(value) ? value.stack : undefined;
 }
 
 /** Reads the event's filename; Chrome leaves it empty for a script it refuses to attribute. */

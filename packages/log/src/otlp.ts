@@ -1,5 +1,27 @@
 import type { LogLevel, LogSink } from "./logger";
-import { isErrorLike } from "./logger";
+
+/** The shape an argument must have to be reported as an exception. */
+type ErrorLike = { name: string; message: string; stack?: string };
+
+/**
+ * Whether a log argument is reported as an exception.
+ *
+ * Checked by shape rather than with Error.isError: a record relayed from another extension context
+ * carries its error as the plain fields toTransferable produced, not as an Error.
+ *
+ * @param value - One argument of a log record.
+ * @returns Whether the value carries the name and message of an error.
+ */
+function isErrorLike(value: unknown): value is ErrorLike {
+  return (
+    typeof value === "object" &&
+    value != null &&
+    "message" in value &&
+    typeof value.message === "string" &&
+    "name" in value &&
+    typeof value.name === "string"
+  );
+}
 
 /** Configuration of an OTLP sink: the collector to reach and what identifies this process. */
 type OtlpSinkOptions = {
