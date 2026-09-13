@@ -103,9 +103,6 @@ beforeAll(async () => {
   Front = mod.default;
 });
 
-// The scaffold is built once and the module keeps its own state across cases: whichever container
-// was shown last stays in its `display` variable, and topOrigin is empty until initFrontend runs,
-// which makes the postMessage calls throw. Both are given a known value before every case.
 beforeEach(() => {
   for (const el of document.body.children) {
     if (el instanceof HTMLElement && el.id.startsWith("sk_")) {
