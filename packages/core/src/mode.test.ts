@@ -1,6 +1,6 @@
 import { Result } from "@praha/byethrow";
 import * as fc from "fast-check";
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import type { EngineEnv } from "./engineEnv";
 import {
@@ -31,6 +31,13 @@ function makeTestEnv(overrides: Partial<EngineEnv> = {}): EngineEnv {
 function makeMode(name = "Test"): ModeHandle {
   return new ModeHandle(name);
 }
+
+// The mode stack, the window listeners and the settings-ready flag are module-level state that a
+// test would otherwise inherit from whichever test happened to run before it.
+beforeEach(() => {
+  initModeHub(makeTestEnv());
+  releaseBufferedKeyEvents();
+});
 
 describe("suppressKeyUp", () => {
   it("adds a keyCode to the suppressed list", () => {
@@ -159,9 +166,7 @@ describe("initModeHub", () => {
 });
 
 describe("checkEventListener", () => {
-  it("calls onMissing when the sentinel event is not dispatched", () => {
-    // In tests the listeners are installed at module load, so the sentinel
-    // WILL fire and eventListenerBeats WILL change — onMissing is NOT called.
+  it("does not call onMissing while the hub's sentinel listener is installed", () => {
     const onMissing = vi.fn();
     checkEventListener(onMissing);
     expect(onMissing).not.toHaveBeenCalled();
