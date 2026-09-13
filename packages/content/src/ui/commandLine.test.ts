@@ -37,7 +37,6 @@ describe("parseCommandLine", () => {
   });
 
   it("handles a quote that opens mid-token", () => {
-    // 'cmd arg"with space"end' → cmd, argwith spaceend (quotes stripped, content merged)
     expect(parseCommandLine('cmd arg"with space"end')).toEqual(["cmd", "argwith spaceend"]);
   });
 });

@@ -1,17 +1,11 @@
 import Trie from "@sk/core/trie";
 import { runtime } from "@sk/messaging/runtime";
-/**
- * Tests for the settings-application logic (apply stored/user settings onto the live runtime
- * config, basic remaps, and search aliases). The RUNTIME-driven applyRuntimeConf side effects are
- * exercised indirectly through applySettings.
- */
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { applyBasicMappings, applySettings, ensureRegex } from "./settingsApplication";
 
-// Minimal fake Api / Normal that only expose what the helpers actually call.
-// Typed as `any` so the structural surplus of the real Api/Normal types does
-// not require a full implementation.
+// The fakes expose only what the helpers call; `any` keeps the structural surplus of the real
+// Api/Normal types from forcing a full implementation.
 
 type FakeApi = any;
 type FakeNormal = any;
@@ -47,8 +41,7 @@ describe("ensureRegex", () => {
   });
 
   it("rehydrates a serialized {source, flags} object into a real RegExp", () => {
-    // Simulate what happens after JSON.stringify/parse round-trips a RegExp:
-    // the value becomes a plain object with source and flags properties.
+    // A RegExp that has been through JSON.stringify/parse arrives as exactly this shape.
     (runtime.conf as Record<string, unknown>)["nextLinkRegex"] = {
       source: "next",
       flags: "i",
@@ -98,15 +91,11 @@ describe("applyBasicMappings", () => {
 
     applyBasicMappings(api, normal, { j: "" });
 
-    // The mapping for "j" was removed; trie.find should return undefined.
     expect(trie.find("j")).toBeUndefined();
     expect(api.map).not.toHaveBeenCalled();
   });
 
   it("handles a swap by preserving the meta of the key that would be overwritten", () => {
-    // {"a": "b", "b": "a"} — both keys appear on both sides.
-    // When we process "a" -> "b" we note that "b" is itself a key in the map,
-    // so we snapshot its meta before processing "b" -> "a" overwrites it.
     const trie = new Trie();
     const metaA = { annotation: "action-a" };
     const metaB = { annotation: "action-b" };
@@ -118,11 +107,8 @@ describe("applyBasicMappings", () => {
 
     applyBasicMappings(api, normal, { a: "b", b: "a" });
 
-    // "a" -> "b" snapshots metaB (target "b" is itself an origin key) and routes
-    // through api.map("b","a"). "b" -> "a" then re-adds the snapshotted metaB under
-    // "a", so the overwritten key's meta is preserved onto the swapped slot.
-    // Trie.add stores a copy ({...meta, word}); the annotation must come from metaB
-    // (the overwritten "b"), not metaA, proving the snapshot was carried to slot "a".
+    // Slot "a" must end up carrying metaB's annotation, not metaA's: that is what proves the
+    // meta of the key about to be overwritten was snapshotted before the swap completed.
     expect(trie.find("a")?.meta?.annotation).toBe(metaB.annotation);
     expect(api.map).toHaveBeenCalledWith("b", "a");
   });
@@ -193,7 +179,6 @@ describe("applySettings", () => {
     });
 
     expect((runtime.conf as Record<string, unknown>)["unknownSettingXYZ"]).toBeUndefined();
-    // Existing keys remain at their previous values.
     expect(runtime.conf.smartCase).toBe(before["smartCase"]);
   });
 
@@ -244,7 +229,6 @@ describe("applySettings", () => {
       basicMappings: { a: "b" },
     });
 
-    // api.map is the observable effect of applyBasicMappings
     expect(api.map).toHaveBeenCalledWith("b", "a");
   });
 

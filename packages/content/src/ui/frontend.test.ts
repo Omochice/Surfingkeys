@@ -1,27 +1,21 @@
 /**
- * Tests for frontend.ts: Front IIFE, StatusBar, and Find sub-modules.
+ * The module under test is an IIFE that queries the DOM at import time, so the scaffold and vi.mock
+ * calls must be established before the module is loaded: vi.mock is hoisted by Vitest, the DOM body
+ * is set at top level (which runs after the mocks), and the import itself is deferred to
+ * beforeAll.
  *
- * The file runs in jsdom. frontend.ts is an IIFE that queries the DOM at import time, so the DOM
- * scaffold and vi.mock calls must be established before the module is loaded. vi.mock calls are
- * automatically hoisted by Vitest; the DOM body is set in the module's own scope (top-level, runs
- * after mocks) so it is ready when the lazy import executes in beforeAll.
- *
- * Paths that rely on layout geometry (offsetWidth/Height, getBoundingClientRect returning real
- * sizes) are not testable under jsdom and are skipped. Specifically skipped:
- *
- * - Position math for actions["showBubble"] (offsetWidth/offsetHeight return 0 in jsdom)
- * - RenderTabs: relies on getBoundingClientRect().height
- * - ShowRichHints: pendingHint timer (richHintsForKeystroke range only) is tricky to time
+ * Two paths are absent because jsdom reports zeroes for the layout geometry they read: the position
+ * math in actions["showBubble"] (offsetWidth/offsetHeight) and RenderTabs
+ * (getBoundingClientRect().height). ShowRichHints is absent for a different reason: its pendingHint
+ * timer, in the richHintsForKeystroke range only, is hard to drive reliably.
  */
 
 import { specialKeys } from "@sk/core/specialKeys";
 import { RUNTIME, runtime } from "@sk/messaging/runtime";
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 
-// solid-js: override createSignal with a plain [getter, setter] pair so the
-// IIFE can call the setters without triggering Solid's reactive runtime.
-// importOriginal preserves all other exports (DEV, etc.) that Solid's own
-// refresh plugin requires.
+// createSignal becomes a plain [getter, setter] pair so the IIFE can call the setters without
+// Solid's reactive runtime; importOriginal preserves the other exports its refresh plugin needs.
 vi.mock("solid-js", async (importOriginal) => {
   const actual = await importOriginal<typeof import("solid-js")>();
   function createSignal<T>(initial: T): [() => T, (v: T) => void] {
@@ -36,10 +30,8 @@ vi.mock("solid-js", async (importOriginal) => {
   return { ...actual, createSignal };
 });
 
-// solid-js/web: override render with a no-op so the IIFE's many render()
-// calls succeed even though the DOM containers are empty stubs.
-// importOriginal preserves all other exports (template, etc.) that Solid's
-// compiled component output references.
+// render becomes a no-op so the IIFE's render() calls succeed against empty container stubs;
+// importOriginal preserves the exports Solid's compiled component output references.
 vi.mock("solid-js/web", async (importOriginal) => {
   const actual = await importOriginal<typeof import("solid-js/web")>();
   return { ...actual, render: vi.fn() };
@@ -47,8 +39,7 @@ vi.mock("solid-js/web", async (importOriginal) => {
 
 const { omnibarCommandSpy } = vi.hoisted(() => ({ omnibarCommandSpy: vi.fn() }));
 
-// ./omnibar: the real createOmnibar wires up Solid rendering and its own DOM
-// queries; we don't need any of that for these tests.
+// The real createOmnibar wires up Solid rendering and its own DOM queries.
 vi.mock("./omnibar", () => ({
   default: vi.fn(() => ({
     command: omnibarCommandSpy,
@@ -57,10 +48,9 @@ vi.mock("./omnibar", () => ({
   })),
 }));
 
-// ./command: registers keybindings on normal-mode that we don't need here.
+// The real ./command registers keybindings on normal-mode.
 vi.mock("./command", () => ({ default: vi.fn() }));
 
-// ../common/api + ../common/default: heavy wiring we don't need.
 vi.mock("@sk/core/api", () => ({ default: vi.fn(() => ({})) }));
 vi.mock("@sk/core/default", () => ({
   default: vi.fn(() => ({ nmap: {}, vmap: {}, imap: {} })),
@@ -70,8 +60,7 @@ vi.mock("@sk/core/applyDefaultMappings", () => ({
   registerDefaultExtras: vi.fn(),
 }));
 
-// @sk/messaging/runtime: intercept RUNTIME calls so no chrome.runtime.sendMessage
-// reaches the chrome stub.
+// Intercept RUNTIME so no chrome.runtime.sendMessage reaches the chrome stub.
 vi.mock("@sk/messaging/runtime", async (importOriginal) => {
   const orig = await importOriginal<typeof import("@sk/messaging/runtime")>();
   return {
@@ -80,7 +69,6 @@ vi.mock("@sk/messaging/runtime", async (importOriginal) => {
   };
 });
 
-// DOM scaffold — must exist before the IIFE runs at import time.
 document.body.innerHTML = `
   <style id="sk_theme"></style>
   <div id="sk_omnibar" style="display:none">
@@ -107,7 +95,6 @@ document.body.innerHTML = `
   <div id="sk_keystroke" style="display:none"></div>
 `;
 
-// Lazy import — executed after the DOM and mocks are ready.
 let Front: any;
 
 beforeAll(async () => {
@@ -149,7 +136,6 @@ describe("actions['initFrontend']", () => {
 
 describe("actions['destroyFrontend']", () => {
   it("returns true when no popup display is visible", () => {
-    // No display is open, so destroyFrontend should return true.
     const result = Front.actions["destroyFrontend"]();
     expect(result).toBe(true);
   });
@@ -188,13 +174,10 @@ describe("actions['applyUserSettings']", () => {
     const original = runtime.conf.tabsThreshold;
     Front.actions["applyUserSettings"]({ userSettings: { tabsThreshold: 42 } });
     expect(runtime.conf.tabsThreshold).toBe(42);
-    // restore
     runtime.conf.tabsThreshold = original;
   });
 
   it("ignores unknown keys that are not in runtime.conf", () => {
-    // 'unknownKey9999' is not a key in runtime.conf; the action should not
-    // add it or throw.
     expect(() => {
       Front.actions["applyUserSettings"]({ userSettings: { unknownKey9999: "value" } });
     }).not.toThrow();
@@ -213,7 +196,6 @@ describe("actions['applyUserSettings']", () => {
 
 describe("actions['addMapkey'] — specialKeys path", () => {
   beforeEach(() => {
-    // Restore the static specialKeys to known defaults before each test.
     specialKeys["<Alt-s>"] = ["<Alt-s>"];
     specialKeys["<Esc>"] = ["<Esc>"];
   });
@@ -244,7 +226,6 @@ describe("window message handler", () => {
     window.dispatchEvent(
       new MessageEvent("message", { data: { other_data: { action: "initFrontend" } } }),
     );
-    // topOrigin must not change because the message was not for us.
     expect(Front.topOrigin).toBe(before);
   });
 
@@ -258,10 +239,8 @@ describe("window message handler", () => {
   });
 
   it("invokes a one-shot callback seeded via contentCommand and deletes it after first call", () => {
-    // contentCommand with a successById function registers a callback keyed by
-    // the generated id and posts a message to top. Intercept postMessage to
-    // capture the id, then send a response with that id twice — the callback
-    // must fire exactly once (return false removes it).
+    // The callback id is generated inside contentCommand and reachable only through the
+    // message it posts to top, so the spy exists to capture it, not to assert on it.
     Front.topOrigin = "https://cb-test.example.com";
     let capturedId: string | undefined;
     const spy = vi.spyOn(window.top!, "postMessage").mockImplementation((data: any) => {
@@ -271,7 +250,7 @@ describe("window message handler", () => {
     const cbResults: any[] = [];
     Front.contentCommand({ action: "ping" }, (msg: any) => {
       cbResults.push(msg.data);
-      return false; // returning false removes the callback
+      return false;
     });
 
     expect(capturedId).toBeDefined();
@@ -279,14 +258,12 @@ describe("window message handler", () => {
     dispatchFrontendMessage({ id: capturedId, data: "first" });
     dispatchFrontendMessage({ id: capturedId, data: "second" });
 
-    // Callback fires only once because returning false deletes the entry.
     expect(cbResults).toEqual(["first"]);
 
     spy.mockRestore();
   });
 
   it("sends an ack message via top.postMessage when the action sets ack", () => {
-    // Provide a topOrigin so postMessage doesn't target undefined.
     Front.topOrigin = "https://ack-test.example.com";
     const posted: any[] = [];
     const spy = vi.spyOn(window.top!, "postMessage").mockImplementation((data: any) => {
@@ -312,7 +289,6 @@ describe("window message handler", () => {
 
 describe("actions['showStatus'] — StatusBar.show", () => {
   beforeEach(() => {
-    // Reset statusBar display before each test.
     Front.statusBar.style.display = "none";
   });
 
@@ -322,20 +298,15 @@ describe("actions['showStatus'] — StatusBar.show", () => {
   });
 
   it("hides the status bar when all content cells are empty strings", () => {
-    // First show something so display is visible.
     Front.actions["showStatus"]({ contents: ["x"] });
-    // Now clear all cells.
     Front.actions["showStatus"]({ contents: ["", "", ""] });
     expect(Front.statusBar.style.display).toBe("none");
   });
 
   it("leaves trailing cells untouched when a shorter array is passed", () => {
-    // Set cell 0 to "Normal" first.
     Front.actions["showStatus"]({ contents: ["Normal"] });
-    // Show with contents = ["/"] — only updates cell 0 (find-mode status bar
-    // passes ["/", {html:...}] to leave the result cell intact).
+    // Find mode relies on this: it passes ["/", {html:...}] to leave the result cell intact.
     Front.actions["showStatus"]({ contents: ["/"] });
-    // Status bar must still be visible (cell 0 = "/").
     expect(Front.statusBar.style.display).not.toBe("none");
   });
 });
@@ -351,7 +322,6 @@ describe("actions['hideKeystroke']", () => {
 
 describe("Front.contentCommand", () => {
   it("posts a message with a unique id for each call", () => {
-    // Intercept top.postMessage to capture the posted data.
     Front.topOrigin = "https://guid-test.example.com";
     const ids: string[] = [];
     vi.spyOn(window.top!, "postMessage").mockImplementation((data: any) => {
@@ -472,7 +442,6 @@ describe("actions['hideBubble']", () => {
 
 describe("actions['showKeystroke']", () => {
   beforeEach(() => {
-    // Start with keystroke hidden to test the show path.
     document.getElementById("sk_keystroke")!.style.display = "none";
   });
 
@@ -491,17 +460,14 @@ describe("actions['showKeystroke']", () => {
 
   it("accumulates keystroke text across successive calls", () => {
     vi.useFakeTimers();
-    // Hide first to enter the accumulate path.
     document.getElementById("sk_keystroke")!.style.display = "none";
     Front.actions["hideKeystroke"]();
     Front.actions["showKeystroke"]({
       keyHints: { key: "g", accumulated: "g", candidates: {} },
     });
-    // A second call while visible and NOT rich should accumulate.
     Front.actions["showKeystroke"]({
       keyHints: { key: "g", accumulated: "gg", candidates: {} },
     });
-    // The element is still visible.
     expect(document.getElementById("sk_keystroke")!.style.display).not.toBe("none");
   });
 });
@@ -513,13 +479,12 @@ describe("actions['hideKeystroke'] — richHintsForKeystroke branch", () => {
 
   it("clears the pending hint timer when richHintsForKeystroke is in range", () => {
     vi.useFakeTimers();
-    // Show a keystroke first so pendingHint might get scheduled.
     document.getElementById("sk_keystroke")!.style.display = "none";
     Front.actions["showKeystroke"]({
       keyHints: { key: "g", accumulated: "g", candidates: {} },
     });
-    // Now hide: clearPendingHint is called when richHintsForKeystroke is in (0, 10000).
-    // richHintsForKeystroke defaults to 1000, so this branch executes.
+    // clearPendingHint runs only when richHintsForKeystroke is in (0, 10000); the branch is
+    // reached here because the setting is left at its default of 1000.
     expect(() => {
       Front.actions["hideKeystroke"]();
     }).not.toThrow();
@@ -529,14 +494,11 @@ describe("actions['hideKeystroke'] — richHintsForKeystroke branch", () => {
 
 describe("actions['destroyFrontend'] — returns false when display visible", () => {
   it("returns false when the popup is currently shown", () => {
-    // Open the popup to set display.
     Front.actions["showPopup"]({ content: "blocking popup" });
     const popup = document.getElementById("sk_popup")!;
-    // The popup must be visible for destroyFrontend to return false.
     popup.style.display = "";
     const result = Front.actions["destroyFrontend"]();
     expect(result).toBe(false);
-    // Clean up: hide the popup so subsequent tests are unaffected.
     popup.style.display = "none";
   });
 });
@@ -551,22 +513,15 @@ describe("actions['showStatus'] — StatusBar duration auto-clear", () => {
     Front.actions["showStatus"]({ contents: ["Normal"], duration: 300 });
     expect(Front.statusBar.style.display).not.toBe("none");
     vi.advanceTimersByTime(400);
-    // After the timer fires, StatusBar.show(["","","",""]) is called, which
-    // sets display to "none" because all cells become empty strings.
     expect(Front.statusBar.style.display).toBe("none");
   });
 
   it("cancels a previous duration timer when show is called again before it fires", () => {
     vi.useFakeTimers();
-    // Start a 1000 ms timer.
     Front.actions["showStatus"]({ contents: ["Mode1"], duration: 1000 });
-    // Advance part-way.
     vi.advanceTimersByTime(500);
-    // Show again — must cancel the previous timer.
     Front.actions["showStatus"]({ contents: ["Mode2"], duration: 1000 });
-    // Advance past the original deadline.
     vi.advanceTimersByTime(600);
-    // Status bar must still be visible (only the new 1000 ms timer is running).
     expect(Front.statusBar.style.display).not.toBe("none");
   });
 });
@@ -580,8 +535,6 @@ describe("window message handler — persistent callback (returns true)", () => 
     });
 
     const seen: unknown[] = [];
-    // Returning true takes the `if (!f(...))` false arm, so the callback is NOT
-    // deleted and fires again on the next response with the same id.
     Front.contentCommand({ action: "ping" }, (msg: any) => {
       seen.push(msg.data);
       return true;
@@ -603,8 +556,8 @@ describe("Find — ArrowUp/ArrowDown history recall", () => {
   });
 
   it("sends the recalled history entry as the visualUpdate query", () => {
-    // The solid-js/web mock stubs `render`, so StatusBar.show() mounts nothing; seed the input
-    // that Find.open() queries.
+    // The solid-js/web mock stubs `render`, so StatusBar.show() mounts nothing; the input that
+    // Find.open() queries has to be seeded by hand.
     const findInput = document.createElement("input");
     findInput.id = "sk_find";
     Front.statusBar.appendChild(findInput);

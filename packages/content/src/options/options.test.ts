@@ -3,8 +3,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import optionsMain from "./options";
 
-// Build the minimal DOM that options.ts reads at init time.
-// All IDs match the options.html structure the module depends on.
+// Every id here mirrors options.html, which is what the module queries at init time.
 function buildDOM(): void {
   document.body.innerHTML = `
     <div id="keyPicker" style="display:none">
@@ -29,7 +28,6 @@ function buildDOM(): void {
   `;
 }
 
-// Minimal dependency stubs.
 function makeRUNTIME() {
   return vi.fn(
     (_action: string, _args?: Record<string, unknown> | null, _cb?: (resp: any) => void) =>
@@ -45,7 +43,6 @@ function makeKeyboardUtils() {
 }
 
 function makeMode() {
-  // A minimal Mode-like constructor: returns an object with enough surface.
   return class FakeMode {
     name: string;
     container?: unknown;
@@ -76,8 +73,6 @@ function makeCreateElementWithContent() {
   };
 }
 
-// options.ts init dispatches nothing, but several behaviors are triggered
-// by DOM events.  Helper to invoke options and get the RUNTIME spy back.
 function initOptions(runtimeSpy = makeRUNTIME()) {
   optionsMain(
     runtimeSpy,
@@ -96,7 +91,6 @@ function initOptions(runtimeSpy = makeRUNTIME()) {
   return runtimeSpy;
 }
 
-// Fire the surfingkeys:userSettingsLoaded event to simulate settings load.
 function fireUserSettingsLoaded(settings: Record<string, unknown> = {}) {
   document.dispatchEvent(
     new CustomEvent("surfingkeys:userSettingsLoaded", {
@@ -122,7 +116,6 @@ describe("options page initialization", () => {
 
   it("calls RUNTIME to update settings with showAdvanced when the advanced toggler is clicked", () => {
     const RUNTIME = initOptions();
-    // Check the toggler, then click it.
     const toggler = document.getElementById("advancedToggler") as HTMLInputElement;
     toggler.checked = true;
     toggler.onclick!(new MouseEvent("click") as unknown as PointerEvent);
@@ -208,11 +201,9 @@ describe("resetSettings button", () => {
     const RUNTIME = initOptions();
     const btn = document.getElementById("resetSettings") as HTMLElement;
     btn.innerText = "Reset";
-    // First click shows warning.
     btn.onclick!(new MouseEvent("click") as unknown as PointerEvent);
     expect(RUNTIME).not.toHaveBeenCalledWith("resetSettings", expect.anything(), expect.anything());
 
-    // Second click fires the reset.
     btn.onclick!(new MouseEvent("click") as unknown as PointerEvent);
     expect(RUNTIME).toHaveBeenCalledWith("resetSettings", null, expect.any(Function));
   });
@@ -272,7 +263,6 @@ describe("renderSettings", () => {
     fireUserSettingsLoaded({ showAdvanced: true });
 
     const advancedDiv = document.getElementById("advancedSetting") as HTMLElement;
-    // show() sets style.display = ""
     expect(advancedDiv.style.display).toBe("");
   });
 
@@ -301,7 +291,6 @@ describe("saveSettings via save_button", () => {
     // Settings must be loaded first so mappingsEditor is created.
     fireUserSettingsLoaded({});
 
-    // Set a value in the textarea created for "mappings"
     const textarea = document.getElementById("mappings") as HTMLTextAreaElement;
     textarea.value = "api.mapkey('x', 'test', function(){});";
 
@@ -348,7 +337,6 @@ describe("getURIPath (via saveSettings)", () => {
     fireUserSettingsLoaded({});
 
     const localPathInput = document.getElementById("localPath") as HTMLInputElement;
-    // A bare absolute path gets converted to file:/// URI
     localPathInput.value = "/home/user/settings.js";
 
     const saveBtn = document.getElementById("save_button") as HTMLInputElement;
@@ -383,7 +371,6 @@ describe("getURIPath (via saveSettings)", () => {
     fireUserSettingsLoaded({});
 
     const localPathInput = document.getElementById("localPath") as HTMLInputElement;
-    // Backslashes get replaced with forward slashes; leading / is dropped then file:/// is prepended
     localPathInput.value = String.raw`C:\Users\user\settings.js`;
 
     const saveBtn = document.getElementById("save_button") as HTMLInputElement;
@@ -460,7 +447,6 @@ describe("MV3 advanced toggler", () => {
     fireUserSettingsLoaded({ isMV3: false, showAdvanced: true });
 
     const toggler = document.getElementById("advancedToggler") as HTMLInputElement;
-    // non-MV3 path does not set disabled
     expect(toggler.disabled).toBe(false);
   });
 
@@ -492,7 +478,6 @@ describe("advancedToggler checked attribute", () => {
 
   it("removes the checked attribute on the toggler when showAdvanced is false", () => {
     initOptions();
-    // First set it, then clear it.
     fireUserSettingsLoaded({ showAdvanced: true });
     fireUserSettingsLoaded({ showAdvanced: false });
 
@@ -552,12 +537,9 @@ describe("surfingkeys:defaultSettingsLoaded event", () => {
       }),
     );
 
-    // After firing the event, trigger renderKeyMappings via userSettingsLoaded
-    // so we can check the DOM output.
     fireUserSettingsLoaded({});
 
     const mappingsDiv = document.getElementById("basicMappings") as HTMLElement;
-    // "j" was found, so it should appear; other unmapped keys should not.
     expect(mappingsDiv.innerHTML).toContain("scroll down");
   });
 });
@@ -582,7 +564,6 @@ function makeTrackingMode() {
       return this;
     }
 
-    // The base stack-push enter the KeyPicker controller delegates to.
     enter(..._args: unknown[]) {}
 
     exit(..._args: unknown[]) {}
@@ -591,7 +572,6 @@ function makeTrackingMode() {
   return { ModeClass, instances };
 }
 
-// Helper to fire userSettingsLoaded with an explicit frontCommand.
 function fireUserSettingsLoadedWith(
   settings: Record<string, unknown>,
   frontCommand: (req: unknown, cb: (r: any) => void) => void,
@@ -643,7 +623,6 @@ describe("KeyPicker keydown: Escape hides the picker", () => {
     const event: Record<string, unknown> = { keyCode: 27, sk_keyName: "<Esc>" };
     kp.eventListeners["keydown"]?.(event);
 
-    // hide() should have set display to "none".
     expect(keyPickerDiv.style.display).toBe("none");
     expect(event["sk_stopPropagation"]).toBe(true);
   });
@@ -677,12 +656,11 @@ describe("KeyPicker keydown: regular character appends to key", () => {
     );
 
     const kp = instances.get("KeyPicker");
-    // Press 'a' — sk_keyName length is 1 so it goes to the char-append branch.
+    // A single-character sk_keyName is what selects the char-append branch.
     const event: Record<string, unknown> = { keyCode: 65, sk_keyName: "a" };
     kp.eventListeners["keydown"]?.(event);
 
     const inputKey = document.getElementById("inputKey") as HTMLElement;
-    // htmlEncode("a") = "a", setSanitizedContent puts it in innerHTML.
     expect(inputKey.innerHTML).toBe("a");
     expect(event["sk_stopPropagation"]).toBe(true);
   });
@@ -746,7 +724,6 @@ describe("KeyPicker enter: show keyPicker and populate from kbd element", () => 
 
     expect(keyPickerDiv.style.display).toBe("");
     const inputKey = document.getElementById("inputKey") as HTMLElement;
-    // "j" is the key text taken from the clicked kbd.
     expect(inputKey.innerHTML).toBe("j");
   });
 
@@ -756,7 +733,7 @@ describe("KeyPicker enter: show keyPicker and populate from kbd element", () => 
 
     kbd.click();
 
-    // After clearing, showKey() with empty _key sets innerHTML to "&nbsp;"
+    // An empty key is what showKey renders as "&nbsp;".
     const inputKey = document.getElementById("inputKey") as HTMLElement;
     expect(inputKey.innerHTML).toBe("&nbsp;");
   });
@@ -782,7 +759,6 @@ describe("KeyPicker keydown: Enter saves the mapping", () => {
     kp.eventListeners["keydown"]?.({ keyCode: 65, sk_keyName: "k" });
     kp.eventListeners["keydown"]?.({ keyCode: 13, sk_keyName: "<Enter>" });
 
-    // RUNTIME should have been called with updateSettings containing basicMappings.
     expect(RUNTIME).toHaveBeenCalledWith(
       "updateSettings",
       expect.objectContaining({
@@ -821,14 +797,12 @@ describe("KeyPicker keydown: Backspace removes last character", () => {
 
     const kp = instances.get("KeyPicker");
 
-    // Type two characters: 'a' then 'b'.
     kp.eventListeners["keydown"]?.({ keyCode: 65, sk_keyName: "a" });
     kp.eventListeners["keydown"]?.({ keyCode: 66, sk_keyName: "b" });
 
     let inputKey = document.getElementById("inputKey") as HTMLElement;
     expect(inputKey.innerHTML).toBe("ab");
 
-    // Backspace should remove the last character.
     kp.eventListeners["keydown"]?.({ keyCode: 8, sk_keyName: "<BS>" });
 
     inputKey = document.getElementById("inputKey") as HTMLElement;
@@ -858,7 +832,6 @@ describe("renderSettings with snippets", () => {
     fireUserSettingsLoaded({ snippets: "" });
 
     const textarea = document.getElementById("mappings") as HTMLTextAreaElement;
-    // The sample element contains "sample snippet".
     expect(textarea.value).toBe("sample snippet");
   });
 });
@@ -875,7 +848,6 @@ describe("renderSearchAlias: aliases with object prompt", () => {
   it("uses alias.prompt.html when prompt is an object with an html property", async () => {
     initOptions();
 
-    // Fire settings loaded with a frontCommand that returns an alias with an object prompt.
     fireUserSettingsLoadedWith({}, (_req: unknown, cb: (r: any) => void) => {
       cb({
         aliases: {
@@ -884,11 +856,11 @@ describe("renderSearchAlias: aliases with object prompt", () => {
       });
     });
 
-    // renderSearchAlias resolves a promise asynchronously.
+    // renderSearchAlias appends only once its own promise resolves.
     await new Promise((r) => setTimeout(r, 0));
 
-    // jsdom normalizes the HTML (single → double quotes, no self-closing slash);
-    // assert via the parsed DOM instead.
+    // jsdom normalizes the markup (single quotes become double, the self-closing slash is
+    // dropped), so the parsed DOM is the stable thing to assert on.
     const searchAliases = document.getElementById("searchAliases") as HTMLElement;
     const img = searchAliases.querySelector("img");
     expect(img).not.toBeNull();
@@ -913,14 +885,9 @@ describe("renderSearchAlias: aliases with object prompt", () => {
   });
 
   it("toggling a search alias checkbox calls RUNTIME to update disabledSearchAliases", async () => {
-    // Directly invoke renderSearchAlias by capturing the frontCommand from the
-    // userSettingsLoaded event, bypassing the cross-test listener accumulation issue.
-    //
-    // We wire a RUNTIME spy and a frontCommand that delivers one alias, then
-    // trigger the module by calling optionsMain + fireUserSettingsLoadedWith.
-    // Because multiple optionsMain listeners may exist from prior tests, the
-    // searchAliases container is cleared first so only this test's appended
-    // checkboxes are present.
+    // Earlier tests leave their own optionsMain listeners on the document, so every
+    // userSettingsLoaded event reaches all of them and several instances append checkboxes.
+    // Clearing the container and taking the last checkbox isolates this instance's own row.
     const RUNTIME = makeRUNTIME();
 
     optionsMain(
@@ -938,10 +905,8 @@ describe("renderSearchAlias: aliases with object prompt", () => {
       (_msg: string, _timeout?: number) => {},
     );
 
-    // Clear the container so only aliases from this optionsMain instance appear.
     document.getElementById("searchAliases")!.innerHTML = "";
 
-    // Deliver one alias via the event; the module appends it after the promise resolves.
     fireUserSettingsLoadedWith({}, (_req: unknown, cb: (r: any) => void) => {
       cb({
         aliases: {
@@ -952,12 +917,10 @@ describe("renderSearchAlias: aliases with object prompt", () => {
 
     await new Promise((r) => setTimeout(r, 0));
 
-    // Pick the last checkbox added (from our optionsMain, which appended after the clear).
     const checkboxes = Array.from(
       document.querySelectorAll("#searchAliases input"),
     ) as HTMLInputElement[];
     expect(checkboxes.length).toBeGreaterThan(0);
-    // Trigger the last one — that's the one registered by our RUNTIME-spy optionsMain.
     const lastCheckbox = checkboxes.at(-1)!;
     lastCheckbox.onchange!(new Event("change") as unknown as Event);
 
@@ -1017,8 +980,8 @@ describe("saveSettings: loadSettingsFromUrl callback updates snippets", () => {
   it("falls back to the sample snippet when the remote response has no snippets and the editor is empty", () => {
     const RUNTIME = vi.fn((action: string, _args: any, cb?: (r: any) => void) => {
       if (action === "loadSettingsFromUrl") {
-        // No snippets in the response, and the editor was left empty → the
-        // `else if (settingsCode === "")` arm restores the sample snippet.
+        // Omitting snippets, together with the emptied editor below, is what selects
+        // the arm that restores the sample snippet.
         cb?.({ status: "200 OK", renderKeyMappings: () => {} });
       }
       return Result.succeed(undefined);
@@ -1041,7 +1004,7 @@ describe("saveSettings: loadSettingsFromUrl callback updates snippets", () => {
 
     fireUserSettingsLoaded({});
     const textarea = document.getElementById("mappings") as HTMLTextAreaElement;
-    textarea.value = ""; // empty editor
+    textarea.value = "";
 
     const localPathInput = document.getElementById("localPath") as HTMLInputElement;
     localPathInput.value = "https://example.com/empty-settings.js";
@@ -1049,7 +1012,6 @@ describe("saveSettings: loadSettingsFromUrl callback updates snippets", () => {
     const saveBtn = document.getElementById("save_button") as HTMLInputElement;
     saveBtn.onclick!(new MouseEvent("click") as unknown as PointerEvent);
 
-    // The sample snippet (from #sample in buildDOM) is restored.
     expect(textarea.value).toBe("sample snippet");
   });
 });
@@ -1065,7 +1027,7 @@ describe("advancedToggler onclick — success arm shows/hides the advanced panel
 
   it("reveals the advanced panel and marks the toggler checked when the update succeeds", () => {
     const RUNTIME = vi.fn((_action: string, _args: any, cb?: (r: any) => void) => {
-      // No error in the response → the success arm calls showAdvanced(newFlag).
+      // An error-free response is what selects the success arm.
       cb?.({});
       return Result.succeed(undefined);
     });
@@ -1095,13 +1057,10 @@ describe("infoPointer onclick — missing target is a no-op", () => {
   it("does nothing when the 'for' target element does not exist", () => {
     initOptions();
     const pointer = document.querySelector(".infoPointer") as HTMLElement;
-    // Point at a non-existent id → getElementById returns null → early return,
-    // no toggling and no exception.
     pointer.setAttribute("for", "does-not-exist");
 
     pointer.onclick!(new MouseEvent("click") as unknown as PointerEvent);
 
-    // The real infoTarget is untouched (still hidden as built).
     const target = document.getElementById("infoTarget") as HTMLElement;
     expect(target.style.display).toBe("none");
   });
