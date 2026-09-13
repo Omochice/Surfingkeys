@@ -32,34 +32,3 @@ export type FeatureGroup = (typeof featureGroups)[number]["key"];
 export function isFeatureGroup(value: unknown): value is FeatureGroup {
   return typeof value === "string" && featureGroups.some((group) => group.key === value);
 }
-
-/**
- * The numbers the legacy `#N` annotation prefix used, written out rather than derived from the
- * order above so that reordering the list cannot silently change what an existing `#N` means.
- *
- * Only the `#N` parser still reads this, and it goes away with that prefix.
- */
-const legacyNumbers: Record<number, FeatureGroup> = {
-  0: "help",
-  1: "mouseClick",
-  2: "scroll",
-  3: "tabs",
-  4: "pageNavigation",
-  5: "sessions",
-  6: "searchSelectedWith",
-  7: "clipboard",
-  8: "omnibar",
-  9: "visualMode",
-  10: "marks",
-  11: "settings",
-  12: "chromeUrls",
-  13: "misc",
-  14: "insertMode",
-  15: "lurkMode",
-  16: "regionalHintsMode",
-};
-
-/** The section a legacy `#N` annotation prefix named. */
-export function featureGroupFromLegacyNumber(n: number): FeatureGroup | undefined {
-  return legacyNumbers[n];
-}

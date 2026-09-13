@@ -1,6 +1,6 @@
 import type { EngineEnv } from "./engineEnv";
 import { dispatchSKEvent } from "./events";
-import type { FeatureGroup } from "./featureGroup";
+import { type FeatureGroup, isFeatureGroup } from "./featureGroup";
 import KeyboardUtils from "./keyboardUtils";
 import type { Keymap } from "./keymap";
 import type { ModeContext } from "./modeGraph";
@@ -29,7 +29,13 @@ type KeyTarget = {
   annotation?: string | string[];
 };
 type Annotation = { annotation: string | string[]; group?: FeatureGroup };
-export type MapOptions = { domain?: RegExp; repeatIgnore?: boolean; codeHasParameter?: boolean };
+export type MapOptions = {
+  domain?: RegExp;
+  repeatIgnore?: boolean;
+  codeHasParameter?: boolean;
+  /** The help section this mapping is listed under; defaults by mode, and Misc for normal mode. */
+  group?: FeatureGroup;
+};
 
 function createAPI(ctx: ModeContext, env: EngineEnv) {
   const { clipboard, insert, normal, hints, visual, front } = ctx;
@@ -120,9 +126,15 @@ function createAPI(ctx: ModeContext, env: EngineEnv) {
           p = p.slice(0, -1);
         }
       }
+      // A user snippet is plain JavaScript, so a mistyped group reaches here as an ordinary string.
+      // Saying so and falling back beats dropping the mapping out of the help without a word.
+      if (options.group != null && !isFeatureGroup(options.group)) {
+        LOG("warn", `${keys} names no help section [${options.group}]; listing it under Misc.`);
+      }
+      const group = isFeatureGroup(options.group) ? options.group : defaultFeatureGroup(mode);
       const keybound = createKeyTarget(
         jscode,
-        { annotation: annotation, group: defaultFeatureGroup(mode) },
+        { annotation: annotation, group: group },
         options.repeatIgnore,
       );
       mode.mappings.add(keys, keybound);
@@ -146,7 +158,8 @@ function createAPI(ctx: ModeContext, env: EngineEnv) {
    * @param {object} [options=null] `domain`: regex, a Javascript regex pattern to identify the
    *   domains that this mapping works, for example, `/github\.com/i` says that this mapping works
    *   only for github.com, `repeatIgnore`: boolean, whether this action can be repeated by dot
-   *   command. Default is `null`
+   *   command, `group`: string, the section of the help opened by `?` that lists this mapping, such
+   *   as `"tabs"` or `"clipboard"`. Default is `null`
    */
   function mapkey(
     keys: string,
@@ -171,7 +184,8 @@ function createAPI(ctx: ModeContext, env: EngineEnv) {
    * @param {object} [options=null] `domain`: regex, a Javascript regex pattern to identify the
    *   domains that this mapping works, for example, `/github\.com/i` says that this mapping works
    *   only for github.com, `repeatIgnore`: boolean, whether this action can be repeated by dot
-   *   command. Default is `null`
+   *   command, `group`: string, the section of the help opened by `?` that lists this mapping, such
+   *   as `"tabs"` or `"clipboard"`. Default is `null`
    * @see mapkey
    */
   function vmapkey(
@@ -197,7 +211,8 @@ function createAPI(ctx: ModeContext, env: EngineEnv) {
    * @param {object} [options=null] `domain`: regex, a Javascript regex pattern to identify the
    *   domains that this mapping works, for example, `/github\.com/i` says that this mapping works
    *   only for github.com, `repeatIgnore`: boolean, whether this action can be repeated by dot
-   *   command. Default is `null`
+   *   command, `group`: string, the section of the help opened by `?` that lists this mapping, such
+   *   as `"tabs"` or `"clipboard"`. Default is `null`
    * @see mapkey
    */
   function imapkey(
@@ -224,12 +239,16 @@ function createAPI(ctx: ModeContext, env: EngineEnv) {
    *   mapping works. Default is `null`
    * @param {string} [new_annotation=null] Use it instead of the annotation from old_keystroke if
    *   provided. Default is `null`
+   * @param {string} [group=null] The section of the help opened by `?` that lists this mapping,
+   *   such as `"tabs"`. Only read when old_keystroke is a `:command`, since a key alias takes the
+   *   section of the key it replaces. Default is `null`
    */
   function map(
     new_keystroke: string,
     old_keystroke: string,
     domain?: RegExp | number,
     new_annotation?: string,
+    group?: FeatureGroup,
   ): void {
     if (isDomainApplicable(domain)) {
       if (old_keystroke[0] === ":" && old_keystroke.length > 1) {
@@ -242,12 +261,8 @@ function createAPI(ctx: ModeContext, env: EngineEnv) {
             }
             front.executeCommand(cmdline);
           },
-          new_annotation
-            ? parseAnnotation({
-                annotation: new_annotation,
-                group: "misc",
-              })
-            : null,
+          // There is no source mapping to take a section from, unlike the alias branch below.
+          new_annotation ? { annotation: new_annotation, group: group ?? "misc" } : null,
           false,
         );
         normal.mappings.add(KeyboardUtils.encodeKeystroke(new_keystroke), keybound);
@@ -518,10 +533,17 @@ function createAPI(ctx: ModeContext, env: EngineEnv) {
     function ssw() {
       searchSelectedWith(search_url);
     }
-    mapkey((search_leader_key || "s") + alias, ["#6Search selected with {0}", prompt], ssw);
-    mapkey("o" + alias, ["#8Open Omnibar for {0} Search", prompt], () => {
-      front.openOmnibar({ type: "SearchEngine", extra: alias });
+    mapkey((search_leader_key || "s") + alias, ["Search selected with {0}", prompt], ssw, {
+      group: "searchSelectedWith",
     });
+    mapkey(
+      "o" + alias,
+      ["Open Omnibar for {0} Search", prompt],
+      () => {
+        front.openOmnibar({ type: "SearchEngine", extra: alias });
+      },
+      { group: "omnibar" },
+    );
     vmapkey((search_leader_key || "s") + alias, "", ssw);
     function ssw2() {
       searchSelectedWith(search_url, true);

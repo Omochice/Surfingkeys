@@ -124,14 +124,14 @@ describe("default mappings registration", () => {
   });
 
   it("records the feature-group annotation verbatim", () => {
-    expect(registry.get("T")!.annotation).toBe("#3Choose a tab");
-    expect(registry.get("x")!.annotation).toBe("#3Close current tab");
+    expect(registry.get("T")!.annotation).toBe("Choose a tab");
+    expect(registry.get("x")!.annotation).toBe("Close current tab");
   });
 
   it("binds Toggle-quotes to <Ctrl-'> in insert mode", () => {
     const insertBinding = allRegs.find((r) => r.keys === "<Ctrl-'>" && r.mode === "insert");
     expect(insertBinding).toBeDefined();
-    expect(insertBinding!.annotation).toBe("#14Toggle quotes in an input element");
+    expect(insertBinding!.annotation).toBe("Toggle quotes in an input element");
   });
 });
 
@@ -576,7 +576,7 @@ describe("search aliases", () => {
 
 describe("remaps", () => {
   it("maps g0/g$ to tab edges and remaps arrow keys in command mode", () => {
-    expect(remaps).toContainEqual(["map", "g0", ":feedkeys 99E", 0, "#3Go to the first tab"]);
+    expect(remaps).toContainEqual(["map", "g0", ":feedkeys 99E", 0, "Go to the first tab", "tabs"]);
     expect(remaps).toContainEqual(["cmap", "<ArrowDown>", "<Ctrl-n>"]);
   });
 });
@@ -1778,11 +1778,15 @@ describe("createDefaultMappings returns data keyed by mode then key", () => {
     const defaults = createDefaultMappings(ctx, makeEnv(), api.searchSelectedWith);
 
     expect(Object.keys(defaults)).toEqual(["nmap", "vmap", "imap"]);
-    expect(defaults.nmap["T"]).toMatchObject({ annotation: "#3Choose a tab" });
+    expect(defaults.nmap["T"]).toMatchObject({ group: "tabs", annotation: "Choose a tab" });
     expect(typeof defaults.nmap["T"].code).toBe("function");
-    expect(defaults.vmap["<Ctrl-u>"]).toMatchObject({ annotation: "#9Backward 20 lines" });
+    expect(defaults.vmap["<Ctrl-u>"]).toMatchObject({
+      group: "visualMode",
+      annotation: "Backward 20 lines",
+    });
     expect(defaults.imap["<Ctrl-'>"]).toMatchObject({
-      annotation: "#14Toggle quotes in an input element",
+      group: "insertMode",
+      annotation: "Toggle quotes in an input element",
     });
   });
 

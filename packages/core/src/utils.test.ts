@@ -65,27 +65,25 @@ describe("getColor", () => {
 });
 
 describe("parseAnnotation", () => {
-  it("splits a leading #N from a string annotation into the group", () => {
-    const result = parseAnnotation({ annotation: "#5Quit chrome" });
-    expect(result.group).toBe("sessions");
+  it("wraps a string annotation in an array", () => {
+    const result = parseAnnotation({ annotation: "Quit chrome" });
     expect(result.annotation).toEqual(["Quit chrome"]);
   });
 
-  it("returns an empty annotation when only the #N marker is present", () => {
-    const result = parseAnnotation({ annotation: "#5" });
-    expect(result.group).toBe("sessions");
+  it("returns an empty annotation when the text is empty", () => {
+    const result = parseAnnotation({ annotation: "" });
     expect(result.annotation).toBe("");
   });
 
-  it("leaves a string annotation without #N wrapped in an array", () => {
-    const result = parseAnnotation({ annotation: "Plain text" });
-    expect(result.group).toBeUndefined();
-    expect(result.annotation).toEqual(["Plain text"]);
+  it("carries the group through untouched", () => {
+    const result = parseAnnotation({ annotation: "Plain text", group: "sessions" });
+    expect(result.group).toBe("sessions");
   });
 
-  it("returns the array form when given an array annotation with a #N marker", () => {
+  it("leaves an array annotation and its format arguments intact", () => {
     const result = parseAnnotation({
-      annotation: ["#6Search selected with {0}", "Google"],
+      annotation: ["Search selected with {0}", "Google"],
+      group: "searchSelectedWith",
     });
     expect(result.group).toBe("searchSelectedWith");
     expect(result.annotation).toEqual(["Search selected with {0}", "Google"]);
@@ -446,11 +444,14 @@ describe("mapInMode", () => {
     expect(rebound?.meta?.code).toBe(code);
   });
 
-  it("applies a replacement annotation when given one", () => {
+  it("applies a replacement annotation while keeping the source group", () => {
     const mode = { name: "normal", mappings: new Trie() };
-    mode.mappings.add(KeyboardUtils.encodeKeystroke("j"), { annotation: "down" });
+    mode.mappings.add(KeyboardUtils.encodeKeystroke("j"), {
+      annotation: "down",
+      group: "sessions",
+    });
 
-    mapInMode(mode, "x", "j", false, "#5Custom");
+    mapInMode(mode, "x", "j", false, "Custom");
 
     const rebound = mode.mappings.find(KeyboardUtils.encodeKeystroke("x"));
     expect(rebound?.meta?.group).toBe("sessions");
@@ -529,15 +530,14 @@ describe("parseAnnotation — additional branches", () => {
     expect(result.group).toBe("clipboard");
   });
 
-  it("leaves an array annotation with no #N marker intact", () => {
+  it("leaves an array annotation intact", () => {
     const result = parseAnnotation({ annotation: ["plain text", "arg"] });
     expect(result.group).toBeUndefined();
     expect(result.annotation).toEqual(["plain text", "arg"]);
   });
 
-  it("collapses to empty string when the #N marker has nothing after it and rest is empty", () => {
-    const result = parseAnnotation({ annotation: ["#3", "ignored"] });
-    expect(result.group).toBe("tabs");
+  it("collapses to an empty string when the first element is empty", () => {
+    const result = parseAnnotation({ annotation: ["", "ignored"] });
     expect(result.annotation).toBe("");
   });
 });

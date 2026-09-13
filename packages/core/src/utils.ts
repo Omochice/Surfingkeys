@@ -10,7 +10,7 @@ import {
 import { conf } from "./conf";
 import type { EngineEnv } from "./engineEnv";
 import { dispatchSKEvent } from "./events";
-import { type FeatureGroup, featureGroupFromLegacyNumber } from "./featureGroup";
+import type { FeatureGroup } from "./featureGroup";
 import KeyboardUtils from "./keyboardUtils";
 import type Trie from "./trie";
 import type { TrieMeta } from "./trie";
@@ -874,25 +874,13 @@ function parseAnnotation(ag: { annotation: string | string[]; group?: FeatureGro
 } {
   let an: string | string[] = ag.annotation;
   if (typeof an === "string") {
-    // for parameterized annotations such as ["#6Search selected with {0}", "Google"]
+    // for parameterized annotations such as ["Search selected with {0}", "Google"]
     an = [an];
   }
   const arr = an;
   const first = arr[0];
   if (first == null) {
     return ag;
-  }
-  const annotations = first.match(/^#(\d+)(.*)/);
-  if (annotations !== null) {
-    const featureGroup = annotations[1];
-    const rest = annotations[2];
-    if (featureGroup != null && rest != null) {
-      const group = featureGroupFromLegacyNumber(Number.parseInt(featureGroup));
-      if (group != null) {
-        ag.group = group;
-      }
-      arr[0] = rest;
-    }
   }
   // first element must not be ""
   const head = arr[0] ?? "";

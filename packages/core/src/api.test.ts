@@ -139,11 +139,11 @@ describe("createAPI mapkey", () => {
     expect(node?.meta?.repeatIgnore).toBe(true);
   });
 
-  it("extracts the group from a #N annotation prefix", () => {
+  it("takes the group from the options", () => {
     const ctx = makeCtx();
     const api = createAPI(ctx as any, env);
 
-    api.mapkey("f", "#6Search selected with Google", vi.fn());
+    api.mapkey("f", "Search selected with Google", vi.fn(), { group: "searchSelectedWith" });
 
     const encoded = KeyboardUtils.encodeKeystroke("f");
     const node = ctx.normal.mappings.find(encoded);
@@ -738,7 +738,7 @@ describe("createAPI map special-key and not-found arms", () => {
     const ctx = makeCtx();
     const api = createAPI(ctx as any, env);
 
-    api.map("e", ":echo", undefined, "#3Echo it");
+    api.map("e", ":echo", undefined, "Echo it", "tabs");
 
     const node = ctx.normal.mappings.find(KeyboardUtils.encodeKeystroke("e"));
     expect(node?.meta?.annotation).toContain("Echo it");
@@ -912,7 +912,7 @@ describe("createAPI map feature group inheritance", () => {
   it("keeps the source mapping's feature group when aliasing a key", () => {
     const ctx = makeCtx();
     const api = createAPI(ctx as any, env);
-    api.mapkey("p", "#3Choose a tab", vi.fn());
+    api.mapkey("p", "Choose a tab", vi.fn(), { group: "tabs" });
 
     api.map("f", "p");
 
@@ -923,7 +923,7 @@ describe("createAPI map feature group inheritance", () => {
   it("keeps the source mapping's feature group when the alias renames the annotation", () => {
     const ctx = makeCtx();
     const api = createAPI(ctx as any, env);
-    api.mapkey("p", "#3Choose a tab", vi.fn());
+    api.mapkey("p", "Choose a tab", vi.fn(), { group: "tabs" });
 
     api.map("f", "p", undefined, "Pick a tab");
 
@@ -952,5 +952,20 @@ describe("createAPI mapkey default feature group", () => {
 
     const node = ctx.insert.mappings.find(KeyboardUtils.encodeKeystroke("<Ctrl-y>"));
     expect(node?.meta?.group).toBe("insertMode");
+  });
+});
+
+describe("createAPI mapkey with an unknown group", () => {
+  it("warns and lists the mapping under Misc", () => {
+    const ctx = makeCtx();
+    const log = vi.fn();
+    const api = createAPI(ctx as any, { ...env, log });
+
+    // A user snippet is plain JavaScript, so the type of `group` proves nothing at runtime.
+    api.mapkey("zy", "typo group", vi.fn(), { group: "tabz" } as any);
+
+    const node = ctx.normal.mappings.find(KeyboardUtils.encodeKeystroke("zy"));
+    expect(node?.meta?.group).toBe("misc");
+    expect(log).toHaveBeenCalledWith("warn", expect.stringContaining("tabz"));
   });
 });

@@ -18,22 +18,22 @@ const youtubeSuggestSchema = v.tupleWithRest(
 /** Register the data-driven default mappings onto `api`. */
 export function applyDefaultMappings(api: SurfingkeysApi, mappings: DefaultMappings): void {
   for (const [keys, def] of Object.entries(mappings.vmap)) {
-    api.vmapkey(keys, def.annotation, def.code, def.options);
+    api.vmapkey(keys, def.annotation, def.code, { ...def.options, group: def.group });
   }
   for (const [keys, def] of Object.entries(mappings.imap)) {
-    api.imapkey(keys, def.annotation, def.code, def.options);
+    api.imapkey(keys, def.annotation, def.code, { ...def.options, group: def.group });
   }
   for (const [keys, def] of Object.entries(mappings.nmap)) {
-    api.mapkey(keys, def.annotation, def.code, def.options);
+    api.mapkey(keys, def.annotation, def.code, { ...def.options, group: def.group });
   }
 }
 
 function registerGoToFirstTab(api: SurfingkeysApi): void {
-  api.map("g0", ":feedkeys 99E", 0, "#3Go to the first tab");
+  api.map("g0", ":feedkeys 99E", 0, "Go to the first tab", "tabs");
 }
 
 function registerGoToLastTab(api: SurfingkeysApi): void {
-  api.map("g$", ":feedkeys 99R", 0, "#3Go to the last tab");
+  api.map("g$", ":feedkeys 99R", 0, "Go to the last tab", "tabs");
 }
 
 function registerQuit(api: SurfingkeysApi): void {

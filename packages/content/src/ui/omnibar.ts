@@ -2018,8 +2018,13 @@ function Commands(omnibar: Omnibar, front: OmnibarFront): OmnibarHandler {
     execute(message.cmdline);
   };
 
-  omnibar.command = (cmd: string, annotation: string, jscode: (args: string[]) => void) => {
-    const ag = parseAnnotation({ annotation: annotation, group: "misc" });
+  omnibar.command = (
+    cmd: string,
+    annotation: string,
+    jscode: (args: string[]) => void,
+    group: FeatureGroup = "misc",
+  ) => {
+    const ag = parseAnnotation({ annotation: annotation, group });
     items[cmd] = {
       code: jscode,
       group: ag.group,

@@ -1107,11 +1107,16 @@ div.hint-scrollable {
    * Create hints for elements to click.
    *
    * @example
-   *   mapkey("yA", "#7Copy a link URL to the clipboard", function () {
-   *     Hints.create("*[href]", function (element) {
-   *       Clipboard.write("[" + element.innerText + "](" + element.href + ")");
-   *     });
-   *   });
+   *   mapkey(
+   *     "yA",
+   *     "Copy a link URL to the clipboard",
+   *     function () {
+   *       Hints.create("*[href]", function (element) {
+   *         Clipboard.write("[" + element.innerText + "](" + element.href + ")");
+   *       });
+   *     },
+   *     { group: "clipboard" },
+   *   );
    *
    * @param cssSelector `string or array of HTMLElement`, if `links` is a string, it will be used as
    *   css selector.
