@@ -15,6 +15,7 @@ export default defineConfig({
     // Distinct from the jsdom project (which inherits the package name) so both can run together
     // under the root coverage run.
     name: "content-browser",
+    sequence: { shuffle: { tests: true } },
     include: ["src/**/*.browser.test.{ts,tsx}"],
     browser: {
       enabled: true,
