@@ -1,16 +1,11 @@
 /**
- * The live settings bag shared across every content-script module as {@link runtime.conf}. The
- * object literal below is the default value of each field; user settings are merged in by
- * {@link applySettings} (content.ts), which copies only keys that already exist here. Adding a
- * setting therefore means adding it both to this interface and to the defaults — there is no index
- * signature on purpose, so an unknown `conf.foo` is a type error rather than silently `any`.
+ * The live settings bag. User settings are merged in by copying only keys that already exist here,
+ * so a new setting must be added both to this type and to the defaults below; the absent index
+ * signature is deliberate, making an unknown `conf.foo` a type error rather than silently `any`.
  */
 type RuntimeConf = {
-  /** Keys typed so far in the pending sequence; runtime state, not persisted. */
   lastKeys: string[];
-  /** Hydrated from the `blocklistPattern` setting; disables Surfingkeys on matching URLs. */
   blocklistPattern: RegExp | undefined;
-  /** Hydrated from the `lurkingPattern` setting; enables lurking mode on matching URLs. */
   lurkingPattern: RegExp | undefined;
   disabledOnActiveElementPattern: string | undefined;
   smartCase: boolean;
@@ -70,14 +65,10 @@ type RuntimeConf = {
 };
 
 /**
- * The persisted settings bag exchanged with the background over the
- * `getSettings`/`updateSettings`/`settingsUpdated` messages and rendered by the options page. It is
- * deliberately distinct from {@link RuntimeConf}: this is the **wire/storage** shape, so regex
- * options arrive as their source strings (hydrated into RegExp by `applySettings`/`ensureRegex` in
- * content.ts) and it carries UI/meta fields that are not part of the live config. The index
- * signature is honest — the background merges arbitrary user-snippet settings and its own
- * bookkeeping keys — while the named fields are the ones the content scripts and options page
- * actually read.
+ * The persisted settings bag exchanged with the background. It is deliberately distinct from
+ * {@link RuntimeConf}: this is the wire/storage shape, so regex options arrive as their source
+ * strings, and the index signature is honest because arbitrary user-snippet settings are merged
+ * in.
  */
 export type StoredSettings = {
   showAdvanced?: boolean;
@@ -95,7 +86,6 @@ export type StoredSettings = {
 
 const conf: RuntimeConf = {
   lastKeys: [],
-  // local part from settings
   blocklistPattern: undefined,
   lurkingPattern: undefined,
   disabledOnActiveElementPattern: undefined,
@@ -148,10 +138,7 @@ const conf: RuntimeConf = {
   mouseSelectToQuery: [],
 };
 
-/**
- * Whether a search query should be matched case-sensitively, honouring the `caseSensitive` and
- * `smartCase` settings (smart case treats a query containing an uppercase letter as sensitive).
- */
+/** Whether `query` should be matched case-sensitively under the current settings. */
 function getCaseSensitive(query: string): boolean {
   return conf.caseSensitive || (conf.smartCase && /[A-Z]/.test(query));
 }

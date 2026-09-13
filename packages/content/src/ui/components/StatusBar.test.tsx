@@ -33,9 +33,7 @@ describe("StatusBar", () => {
     expect(firstSpan.style.padding).toBe("0px 8px");
     // jsdom normalizes the #999 divider color to its rgb() form
     expect(firstSpan.style.borderRight).toBe("1px solid rgb(153, 153, 153)");
-    // last non-empty cell carries no trailing divider
     expect(secondSpan.style.borderRight).toBe("");
-    // empty cells collapse: no padding, no divider
     expect(thirdSpan.style.padding).toBe("");
     expect(thirdSpan.style.borderRight).toBe("");
   });

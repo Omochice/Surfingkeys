@@ -8,7 +8,6 @@ import { defineConfig } from "wxt";
 
 import { generateIcons } from "./generate-icons.js";
 
-// Permissions shared by both browsers (the base manifest's `permissions`).
 const basePermissions = [
   "nativeMessaging",
   "tabs",
@@ -23,14 +22,11 @@ const basePermissions = [
   "clipboardWrite",
 ];
 
-// The dev-only key pins a stable extension id in development (carried over from
-// the webpack manifest transform).
+// The dev-only key pins a stable extension id in development.
 const devKey =
   "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAneIRqYRqG/0RoYzpWoyeeO8KxxvWZvIabABbeQyHQ2PFOf81j/O5J28HGAEQJ56AptKMTcTeG2qZga9B2u9k98OmRcGp8BDco6fh1vD6/x0fWfehPeub5IcEcQmCd1lBuVa8AtUqV3C+He5rS4g8dB8g8GRlSPPSiDSVNMv+iwKAk7TbM3TKz6DyFO8eCtWXr6wJCcYeJA+Mub7o8DKIHKgv8XH8+GbJGjeeIUBU7mlGlyS7ivdsG1V6D2/Ldx0O1e6sRn7f9jiC4Xy1N+zgZ7BshYbnlbwedomg1d5kuo5m4rS+8BgTchPPkhkvEs62MI4e+fmQd0oGgs7PtMSrTwIDAQAb";
 
 export default defineConfig({
-  // The source tree predates WXT; entrypoints/ and public/ live at the root and
-  // re-export the existing src/ modules rather than moving them.
   outDir: "dist",
   // The unimport build plugin WXT forwards `imports` to must not rewrite
   // workspace-package files, or `wxt/browser` fails to resolve from packages/
@@ -68,7 +64,7 @@ export default defineConfig({
     },
     // content.css ships as a single shared stylesheet (public/content.css,
     // copied to the root), injected by the content script and referenced by
-    // the frontend iframe — mirror the old webpack manifest's css entry.
+    // the frontend iframe.
     "build:manifestGenerated": (wxt, manifest) => {
       const cs = manifest.content_scripts?.[0];
       if (cs) {
@@ -143,8 +139,8 @@ export default defineConfig({
     // built-in favicon endpoint and the user-scripts api bundle (emitted by
     // the build:done hook above).
     const webResources = ["frontend.html", "pages/emoji.tsv", "pages/l10n.json"];
-    // Build-config manifest builder: heterogeneous manifest JSON fields (strings, nested objects,
-    // arrays) assembled and handed back to wxt; constraining the values adds no runtime type safety.
+    // Heterogeneous manifest JSON handed straight back to wxt; constraining the values adds no
+    // runtime type safety.
     // eslint-disable-next-line typescript/no-explicit-any
     const manifest: Record<string, any> = {
       name: "Surfingkeys",

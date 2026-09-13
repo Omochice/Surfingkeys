@@ -2,7 +2,7 @@
  * `window.frameElement` belongs to the embedding parent document, which is a different realm, so
  * `instanceof HTMLElement` against this realm's constructor would be `false` even for a real
  * same-origin frame. This duck-typed guard probes for the layout-offset properties directly, which
- * is realm-agnostic, and narrows to the offset-bearing shape the callers read.
+ * is realm-agnostic.
  */
 type LayoutOffsetElement = Element & {
   offsetLeft: number;

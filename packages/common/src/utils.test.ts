@@ -62,7 +62,6 @@ describe("filterByTitleOrUrl", () => {
       fc.property(fc.array(urlItem), fc.string(), fc.boolean(), (urls, query, caseSensitive) => {
         const result = filterByTitleOrUrl(urls, query, caseSensitive);
         expect(result.length).toBeLessThanOrEqual(urls.length);
-        // Every survivor keeps its original relative position.
         expect(result).toStrictEqual(urls.filter((u) => result.includes(u)));
       }),
     );

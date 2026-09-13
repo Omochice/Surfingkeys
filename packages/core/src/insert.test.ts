@@ -63,7 +63,6 @@ describe("deleteNextWord", () => {
   });
 });
 
-// Helper: look up a mapping's code by keystroke string from the Insert mode trie.
 function getCode(
   insert: ReturnType<typeof createInsert>,
   keystroke: string,
@@ -76,7 +75,6 @@ function getCode(
   return code;
 }
 
-// Helper: create a focused input with a given value and cursor position.
 function makeInput(value: string, cursorPos: number): HTMLInputElement {
   const input = document.createElement("input");
   input.type = "text";
@@ -87,7 +85,6 @@ function makeInput(value: string, cursorPos: number): HTMLInputElement {
   return input;
 }
 
-// Helper: create a focused textarea with a given value and cursor position.
 function makeTextarea(value: string, cursorPos: number): HTMLTextAreaElement {
   const ta = document.createElement("textarea");
   document.body.appendChild(ta);
@@ -97,8 +94,7 @@ function makeTextarea(value: string, cursorPos: number): HTMLTextAreaElement {
   return ta;
 }
 
-// Helper: create a focused editable container that takes the contenteditable
-// code paths. The default editableSelector matches `div.CodeMirror-scroll`, so a
+// The default editableSelector matches `div.CodeMirror-scroll`, so a
 // div with that class makes isEditable() true without relying on jsdom's
 // (unimplemented) isContentEditable; tabIndex makes it the activeElement so
 // getRealEdit() resolves to it; and it has no setSelectionRange, forcing the
@@ -120,7 +116,6 @@ describe("createInsert mapping codes", () => {
   });
 
   afterEach(() => {
-    // Remove any DOM elements added during the test.
     document.body.innerHTML = "";
   });
 
@@ -198,13 +193,10 @@ describe("createInsert mapping codes", () => {
 
   describe("move backward one word (<Alt-b>)", () => {
     it("moves the caret back by one word", () => {
-      // cursor starts at 11 (end of "hello world"); moving back one word lands on
-      // the space at index 5, as asserted below.
       const input = makeInput("hello world", 11);
       const code = getCode(insert, "<Alt-b>");
       expect(code).toBeDefined();
       code!();
-      // nextNonWord("hello world", -1, 11) == 5 (space position)
       expect(input.selectionStart).toBe(5);
       expect(input.selectionEnd).toBe(5);
     });
@@ -223,7 +215,6 @@ describe("createInsert mapping codes", () => {
       const code = getCode(insert, "<Alt-f>");
       expect(code).toBeDefined();
       code!();
-      // nextNonWord("hello world", 1, 0) == 5
       expect(input.selectionStart).toBe(5);
       expect(input.selectionEnd).toBe(5);
     });
@@ -242,7 +233,6 @@ describe("createInsert mapping codes", () => {
       const code = getCode(insert, "<Alt-w>");
       expect(code).toBeDefined();
       code!();
-      // deleteNextWord("hello world", -1, 11) == ["hello", 5]
       expect(input.value).toBe("hello");
       expect(input.selectionStart).toBe(5);
     });
@@ -269,7 +259,6 @@ describe("createInsert mapping codes", () => {
       const code = getCode(insert, "<Alt-d>");
       expect(code).toBeDefined();
       code!();
-      // deleteNextWord("hello world", 1, 0) == [" world", 0]
       expect(input.value).toBe(" world");
       expect(input.selectionStart).toBe(0);
     });
@@ -302,9 +291,7 @@ describe("createInsert mapping codes", () => {
       const node = insert.mappings.find(encoded);
       const sp: any = node?.meta?.stopPropagation;
       expect(typeof sp).toBe("function");
-      // comma is ASCII
       expect(sp(",")).toBe(true);
-      // ESC character itself (charCode 27)
       expect(sp("\x1B")).toBe(true);
     });
   });
@@ -393,7 +380,6 @@ describe("createInsert mapping codes — contenteditable (no setSelectionRange) 
     div.appendChild(span);
     getCode(insert, "<Ctrl-e>")!();
     const sel = document.getSelection();
-    // The else arm targets the element node itself at childNodes.length (2).
     expect(sel?.focusNode).toBe(span);
     expect(sel?.focusOffset).toBe(2);
   });
@@ -411,15 +397,13 @@ describe("createInsert mapping codes — contenteditable (no setSelectionRange) 
     div.appendChild(wrapper);
     getCode(insert, "<Ctrl-e>")!();
     const sel = document.getSelection();
-    // setEndOfContenteditable selects the div contents then collapses to end.
     expect(sel?.isCollapsed).toBe(true);
   });
 
   it("moveCursorEOL does nothing for an empty editable (no child nodes)", () => {
-    makeEditableDiv(); // focused editable with no children → getRealEdit resolves to it
+    makeEditableDiv();
     document.getSelection()?.removeAllRanges();
     getCode(insert, "<Ctrl-e>")!();
-    // The `childNodes.length > 0` guard is false, so no caret position is set.
     expect(document.getSelection()?.rangeCount).toBe(0);
   });
 
@@ -441,7 +425,6 @@ describe("createInsert mapping codes — contenteditable (no setSelectionRange) 
     div.appendChild(text);
     document.getSelection()?.setPosition(text, 6);
     getCode(insert, "<Ctrl-u>")!();
-    // focus.data becomes data.substring(focusOffset) → "world".
     expect(text.data).toBe("world");
   });
 });
@@ -462,7 +445,6 @@ describe("createInsert moveCursorEOL — setSelectionRange failure handling", ()
     input.setSelectionRange = () => {
       throw new DOMException("not applicable", "InvalidStateError");
     };
-    // The InvalidStateError arm is swallowed, so invoking the code must not throw.
     expect(() => getCode(insert, "<Ctrl-e>")!()).not.toThrow();
     expect(input.value).toBe("abc");
   });
@@ -477,12 +459,10 @@ describe("createInsert moveCursorEOL — setSelectionRange failure handling", ()
   });
 });
 
-// Helper to retrieve the keydown handler registered via addEventListener.
 function getKeydownHandler(insert: ReturnType<typeof createInsert>): (event: any) => void {
   return (insert as any).eventListeners["keydown"];
 }
 
-// Helper to retrieve the focus handler registered via addEventListener.
 function getFocusHandler(insert: ReturnType<typeof createInsert>): (event: any) => void {
   return (insert as any).eventListeners["focus"];
 }
@@ -508,7 +488,6 @@ describe("createInsert keydown event listener", () => {
   });
 
   it("exits insert mode when the focused element is not editable", () => {
-    // A non-editable element (e.g. document.body) causes exit.
     const div = document.createElement("div");
     document.body.appendChild(div);
     div.focus();
@@ -529,18 +508,14 @@ describe("createInsert keydown event listener", () => {
       isTrusted: false,
     };
     handler(event);
-    // The handler always sets sk_suppressed=true at the bottom of the keydown branch.
     expect(event.sk_suppressed).toBe(true);
   });
 
   it("does not set sk_suppressed from IME branch when key is ASCII", () => {
     const input = makeInput("hello", 0);
     const handler = getKeydownHandler(insert);
-    // Regular ASCII key should NOT trigger the IME early-return branch.
     const event: any = { key: "a", target: input, sk_keyName: "" };
     handler(event);
-    // The IME guard does not fire; sk_suppressed is set by the bottom of the handler.
-    // (sk_keyName is empty so handleMapKey is not called, but sk_suppressed is still set)
     expect(event.sk_suppressed).toBe(true);
   });
 });
@@ -561,7 +536,6 @@ describe("createInsert focus event listener", () => {
     document.body.appendChild(div);
     const exitSpy = vi.spyOn(insert, "exit");
     const handler = getFocusHandler(insert);
-    // target is div (not window), and div is not editable → exit.
     const event: any = { target: div };
     handler(event);
     expect(exitSpy).toHaveBeenCalledOnce();
@@ -609,7 +583,6 @@ describe("createInsert enter override", () => {
     conf.cursorAtEndOfInput = true;
     const input = makeInput("hello world", 0);
     insert.enter(input);
-    // moveCursorEOL should have moved the caret to position 11.
     expect(input.selectionStart).toBe(11);
   });
 
@@ -617,7 +590,6 @@ describe("createInsert enter override", () => {
     conf.cursorAtEndOfInput = true;
     const input = makeInput("hello world", 0);
     insert.enter(input, true);
-    // cursor should remain at 0 because keepCursor=true suppresses moveCursorEOL.
     expect(input.selectionStart).toBe(0);
   });
 
@@ -647,38 +619,29 @@ describe("createInsert enter override", () => {
   it("entering the same element twice does not move cursor on the second call (not changed)", () => {
     conf.cursorAtEndOfInput = true;
     const input = makeInput("hello world", 0);
-    insert.enter(input); // first call: changed=true, moves cursor to 11
-    // Move the cursor manually back to position 3 to detect if it moves again.
+    insert.enter(input);
     input.setSelectionRange(3, 3);
-    insert.enter(input); // second call: element === elm → changed=false → cursor stays
+    insert.enter(input);
     expect(input.selectionStart).toBe(3);
   });
 });
 
 describe("nextNonWord — boundary conditions", () => {
   it("stops immediately when the first scanned character is non-word (char is undefined via out-of-bounds)", () => {
-    // Scanning forward from position 2 in "ab" (length 2): cur becomes 3, which
-    // is >= str.length → clamps to 2.
     expect(nextNonWord("ab", 1, 1)).toBe(2);
   });
 
   it("moves backward and stops at the first non-word character encountered", () => {
-    // "a.b": scanning backward from 2 → cur becomes 1 → ch='.' (non-word) → stops at 1.
     expect(nextNonWord("a.b", -1, 2)).toBe(1);
   });
 });
 
 describe("deleteNextWord — pos === cur fallthrough (single-char deletion)", () => {
   it("deletes forward when pos equals cur (character under cursor is non-word)", () => {
-    // nextNonWord(".", 1, 0) → cur becomes 1 (>=length) → pos=1; pos > cur → delete right.
-    // Wait: nextNonWord starts at cur+dir=1 → 1 >= 1 (length of ".") → clamps to 1.
-    // pos=1 > cur=0 → s = "".substring(0,0) + ".".substring(1) = "".
     expect(deleteNextWord(".", 1, 0)).toEqual(["", 0]);
   });
 
   it("deletes backward when pos equals cur at start of string", () => {
-    // nextNonWord(".", -1, 0) → cur becomes -1 → clamps to 0; pos=0 === cur=0.
-    // pos === cur: deletes str[pos..pos+1] → "".substring(0,0) + ".".substring(1) = "".
     expect(deleteNextWord(".", -1, 0)).toEqual(["", 0]);
   });
 });

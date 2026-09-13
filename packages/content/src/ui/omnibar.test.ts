@@ -4,9 +4,7 @@ import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from "vites
 
 import createOmnibar from "./omnibar";
 
-// RUNTIME mock — intercept all background-service calls so handler code that
-// calls RUNTIME(...) does not reach chrome.runtime.sendMessage.
-// The return value must be a real @praha/byethrow Result so reportOnFail works.
+// The mocked return value must be a real @praha/byethrow Result so reportOnFail works.
 vi.mock("@sk/messaging/runtime", async (importOriginal) => {
   const orig = await importOriginal<typeof import("@sk/messaging/runtime")>();
   return {
@@ -260,7 +258,6 @@ describe("createOmnibar — listWords", () => {
   beforeAll(() => {
     buildOmnibarDOM();
     omnibar = createOmnibar(makeFront(), makeClipboard());
-    // Provide a minimal input stub so listResults can call omnibar.input.value
     omnibar.input = stubInput("");
   });
 
@@ -400,7 +397,6 @@ describe("createOmnibar — focusedResult", () => {
 
   it("returns undefined when focusedIndex is -1", () => {
     omnibar.listWords(["x"]);
-    // focusFirstCandidate is false → index stays -1
     expect(omnibar.focusedResult()).toBeUndefined();
   });
 
@@ -425,7 +421,6 @@ describe("createOmnibar — addHandler / Commands integration", () => {
     runtime.conf.focusFirstCandidate = false;
     runtime.conf.omnibarPosition = "middle";
 
-    // Register a test command that captures its arguments
     omnibar.command?.("greet", "Greet somebody", (args: string[]) => {
       executedArgs = args;
     });
@@ -442,7 +437,6 @@ describe("createOmnibar — addHandler / Commands integration", () => {
   });
 
   it("a second executeCommand call routes the correct args to the correct command", () => {
-    // Confirms the command registry is additive and dispatch still finds the right entry.
     omnibar.command?.("tabopen", "Open a tab", () => {});
     front.actions["executeCommand"]({ cmdline: "greet Alice" });
     expect(executedArgs).toEqual(["Alice"]);
@@ -468,11 +462,6 @@ describe("createOmnibar — SearchEngine alias registration", () => {
       url: "https://www.google.com/search?q={0}",
       suggestionURL: undefined,
     });
-    // expandAlias returns true when the alias exists and the handler is not already searchEngine
-    // We need a lastHandler set first — simulate by pointing omnibar at a different handler
-    // This is observable: expandAlias returns true only when the alias is found.
-    // The handler at this point is null (no onShow called), so test just the alias storage
-    // via removeSearchAlias / getSearchAliases.
     const aliases: any[] = [];
     front.postMessage.mockImplementationOnce((msg: any) => {
       aliases.push(msg.aliases);
@@ -517,8 +506,6 @@ describe("createOmnibar — updateOmnibarResult action", () => {
   });
 
   it("populates results from the words array sent by updateOmnibarResult", () => {
-    // front.actions["updateOmnibarResult"] is wired inside createOmnibar
-    // We can reach it via the front object reference captured at creation time.
     const front = makeFront();
     buildOmnibarDOM();
     const localOmnibar = createOmnibar(front, makeClipboard());
@@ -569,9 +556,8 @@ describe("createOmnibar — Ctrl-c clipboard copy paths", () => {
     o2.listResults([{ url: "https://copy.example.com" }], (b: any) =>
       o2.createItemFromRawHtml({ html: b.url, props: { url: b.url } }),
     );
-    expect(o2.focusedIndex()).toBe(0); // focusFirstCandidate=true focuses index 0
+    expect(o2.focusedIndex()).toBe(0);
 
-    // Drive the REAL Ctrl-c mapping; it reads focusedResult().data.url and writes it.
     const ctrlCCode = getMappingByAnnotation(o2, "Copy selected item url or all listed item urls");
     expect(ctrlCCode).toBeDefined();
     ctrlCCode!();
@@ -631,13 +617,6 @@ describe("createOmnibar — Ctrl-m vim-like mark creation", () => {
   });
 });
 
-// NOTE: the former "CloseTabs URL normalisation" and "CloseTabs onEnter tab-id
-// extraction" blocks were deleted here. They re-implemented the handler logic
-// (manual `new URL()` / manual uid parse) instead of driving the handler, and
-// their real-path coverage already exists in the "CloseTabs handler — onOpen
-// fires RUNTIME getTabs" describe below (onShow → results() normalised URL, and
-// fireEnter → RUNTIME closeTabByIds).
-
 describe("createOmnibar — AddBookmark.onInput folder filtering", () => {
   beforeEach(() => {
     mockRUNTIME.mockReset();
@@ -659,17 +638,14 @@ describe("createOmnibar — AddBookmark.onInput folder filtering", () => {
       return Result.succeed(undefined);
     });
 
-    // Drive the real handler: onShow → onOpen populates the folder list.
     ui.onShow({ type: "AddBookmark", extra: { url: "https://x.com", title: "X" } });
-    // Initially all three folders are listed.
     expect(omnibar.results().length).toBe(3);
 
-    // Type a query and let the real onInput filter run (case-insensitive substring).
     omnibar.input.value = "bar";
     omnibar.triggerInput();
 
     const folderIds = omnibar.results().map((r: any) => r.data.folder);
-    expect(folderIds).toEqual(["1"]); // only "/Bookmarks Bar/" matches "bar"
+    expect(folderIds).toEqual(["1"]);
   });
 });
 
@@ -696,14 +672,13 @@ describe("createOmnibar — OpenURLs onReset sort order toggling", () => {
   it("re-sorts results by visitCount desc when Ctrl-r toggles historyMUOrder to true", async () => {
     const { omnibar, ui } = makeOmnibar();
     runtime.conf.omnibarHistoryCacheSize = 100;
-    runtime.conf.historyMUOrder = false; // onReset will toggle this to true
+    runtime.conf.historyMUOrder = false;
     mockHistory();
 
     ui.onShow({ type: "History" });
     await Promise.resolve();
     await Promise.resolve();
 
-    // Drive the REAL Ctrl-r mapping, which calls handler.onReset().
     const ctrlR = getMappingByAnnotation(omnibar, "Re-sort history by visitCount or lastVisitTime");
     expect(ctrlR).toBeDefined();
     ctrlR!();
@@ -718,7 +693,7 @@ describe("createOmnibar — OpenURLs onReset sort order toggling", () => {
   it("re-sorts results by lastVisitTime desc when Ctrl-r toggles historyMUOrder to false", async () => {
     const { omnibar, ui } = makeOmnibar();
     runtime.conf.omnibarHistoryCacheSize = 100;
-    runtime.conf.historyMUOrder = true; // onReset will toggle this to false
+    runtime.conf.historyMUOrder = true;
     mockHistory();
 
     ui.onShow({ type: "History" });
@@ -821,7 +796,6 @@ describe("OpenTabs handler — onOpen/onInput lists filtered tabs via RUNTIME('g
     await Promise.resolve();
     await Promise.resolve();
 
-    // Only the "Alpha Page" tab should survive the filter
     expect(omnibar.results().length).toBe(1);
     expect(omnibar.results()[0]?.data.uid).toBe("T1:10");
   });
@@ -841,8 +815,8 @@ describe("OpenTabs handler — onOpen/onInput lists filtered tabs via RUNTIME('g
     await Promise.resolve();
     await Promise.resolve();
 
-    // The handler is the Tabs handler; its prompt is set inside onOpen
-    // We verify the RUNTIME call used currentWindow: false (gather mode)
+    // The gather prompt is not exposed by the omnibar API, so the currentWindow: false
+    // query stands in for it: onOpen sets both together in the gather branch.
     const getTabs = mockRUNTIME.mock.calls.find((c) => c[0] === "getTabs");
     expect(getTabs?.[1]).toMatchObject({ queryInfo: { currentWindow: false } });
   });
@@ -879,7 +853,6 @@ describe("CloseTabs handler — onOpen fires RUNTIME getTabs and resolves cached
     await Promise.resolve();
     await Promise.resolve();
 
-    // After normalisation the URL should have no query string or hash
     const urls = omnibar.results().map((r: any) => r.data.url);
     expect(urls).toContain("https://example.com/page");
   });
@@ -905,22 +878,16 @@ describe("CloseTabs handler — onOpen fires RUNTIME getTabs and resolves cached
 
     mockRUNTIME.mockClear();
 
-    // Simulate pressing Enter — CloseTabs.onEnter reads results and sends closeTabByIds
-    // Trigger onEnter by firing the keydown handler through the keyboard mechanism
-    // The simplest path: access the omnibar DOM input and fire the enter action.
-    // CloseTabs.onEnter is invoked by the keydown path; we test the contract directly
-    // by verifying what RUNTIME is called with after onEnter runs.
-    // Find the CloseTabs handler result UIDs and simulate the enter action.
     const uids = omnibar.results().map((r: any) => r.data.uid);
     expect(uids).toContain("T3:55");
     expect(uids).toContain("T3:66");
 
-    // Manually call the RUNTIME with the tabIds that onEnter would extract
+    // This re-implements the uid parse CloseTabs.onEnter performs rather than
+    // driving onEnter itself; the driven path is covered by the next test.
     const tabIds = omnibar
       .results()
       .filter((r: any) => r.data.uid?.[0] === "T")
       .map((r: any) => Number.parseInt(r.data.uid.slice(1).split(":")[1]));
-    // Verify the extraction formula (same one CloseTabs.onEnter uses) produces the right IDs
     expect(tabIds.toSorted((a: number, b: number) => a - b)).toEqual([55, 66]);
   });
 
@@ -1047,7 +1014,6 @@ describe("OpenWindows handler — onInput builds window results", () => {
     await Promise.resolve();
     await Promise.resolve();
 
-    // focusFirstCandidate → index 0 is focused
     expect(omnibar.focusedResult()?.data.windowId).toBe(99);
 
     fireEnter(omnibar);
@@ -1102,7 +1068,6 @@ describe("OpenVIMarks handler — onOpen lists marks from settings", () => {
     });
 
     ui.onShow({ type: "VIMarks" });
-    // onOpen is synchronous after RUNTIME fires callback synchronously
 
     expect(omnibar.results().length).toBe(2);
     const urls = omnibar.results().map((r: any) => r.data.url);
@@ -1145,7 +1110,6 @@ describe("OpenVIMarks handler — onOpen lists marks from settings", () => {
     omnibar.input.value = "alpha";
     ui.onShow({ type: "VIMarks" });
 
-    // The VIMarks handler pre-filters on input value during onOpen
     expect(omnibar.results().length).toBe(1);
     expect(omnibar.results()[0]?.data.url).toBe("https://alpha.com");
   });
@@ -1161,7 +1125,6 @@ describe("Commands handler — onInput lists matching commands", () => {
   it("onInput lists commands whose name contains the current input", () => {
     const { omnibar, ui } = makeOmnibar();
 
-    // Register commands via omnibar.command (set up by Commands handler)
     omnibar.command?.("tabopen", "Open a tab", () => {});
     omnibar.command?.("tabnew", "New tab", () => {});
     omnibar.command?.("quit", "Quit browser", () => {});
@@ -1173,11 +1136,9 @@ describe("Commands handler — onInput lists matching commands", () => {
       return Result.succeed(undefined);
     });
 
-    // Set input before triggering
     omnibar.input.value = "tab";
     ui.onShow({ type: "Commands" });
 
-    // onOpen with non-empty input calls triggerInput → onInput filters items
     const cmds = omnibar.results().map((r: any) => r.data.cmd);
     expect(cmds).toContain("tabopen");
     expect(cmds).toContain("tabnew");
@@ -1218,7 +1179,6 @@ describe("Commands handler — onInput lists matching commands", () => {
     ui.onShow({ type: "Commands" });
     mockRUNTIME.mockClear();
 
-    // Type a command and press Enter
     omnibar.input.value = "greet2 Alice";
     fireEnter(omnibar);
 
@@ -1238,7 +1198,6 @@ describe("OmniQuery handler — onOpen/onInput/onEnter", () => {
   it("onInput filters page words that contain the typed substring", () => {
     const { omnibar, front, ui } = makeOmnibar();
 
-    // Provide page text synchronously via contentCommand stub
     front.contentCommand.mockImplementation((msg: any, cb?: any) => {
       if (msg.action === "getPageText" && cb) {
         cb({ data: "apple apricot banana cherry" });
@@ -1248,12 +1207,10 @@ describe("OmniQuery handler — onOpen/onInput/onEnter", () => {
     omnibar.input.value = "";
     ui.onShow({ type: "OmniQuery" });
 
-    // Now type "ap" and trigger onInput
     omnibar.input.value = "ap";
     omnibar.triggerInput();
 
     const words = omnibar.results().map((r: any) => r.html);
-    // "apple" and "apricot" contain "ap"; "banana" and "cherry" do not
     expect(words.some((h: string) => h.includes("apple"))).toBe(true);
     expect(words.some((h: string) => h.includes("apricot"))).toBe(true);
     expect(words.some((h: string) => h.includes("banana"))).toBe(false);
@@ -1359,7 +1316,6 @@ describe("OmniQuery handler — onOpen/onInput/onEnter", () => {
     });
 
     ui.onShow({ type: "OmniQuery" });
-    // Switch to the search engine within the same open, before the page text arrives.
     omnibar.expandAlias("g", "cat");
 
     if (deliver == null) {
@@ -1422,7 +1378,6 @@ describe("OpenBookmarks handler — onInput + onResponse", () => {
     omnibar.input.value = "";
     ui.onShow({ type: "Bookmarks" });
 
-    // Now simulate typing and triggering onInput
     mockRUNTIME.mockClear();
     mockRUNTIME.mockImplementation((_action: any, _args: any, cb?: any) => {
       if (_action === "getBookmarks" && cb) {
@@ -1517,13 +1472,11 @@ describe("SearchEngine handler — onInput without suggestionURL clears results"
       suggestionURL: undefined,
     });
 
-    // Activate the SearchEngine handler via onShow
     ui.onShow({ type: "SearchEngine", extra: "g" });
 
     omnibar.input.value = "vitest";
     omnibar.triggerInput();
 
-    // No suggestionURL → listSuggestions([]) → results cleared
     expect(omnibar.results().length).toBe(0);
   });
 
@@ -1545,15 +1498,12 @@ describe("SearchEngine handler — onInput without suggestionURL clears results"
     omnibar.input.value = "hello";
     omnibar.triggerInput();
 
-    // Before timeout elapses, RUNTIME 'request' must not have been called
     expect(mockRUNTIME.mock.calls.find((c) => c[0] === "request")).toBeUndefined();
 
-    // Advance the fake clock past the suggestion timeout
     vi.advanceTimersByTime(400);
 
     const requestCall = mockRUNTIME.mock.calls.find((c) => c[0] === "request");
     expect(requestCall).toBeDefined();
-    // The request URL must encode the query
     const requestArgs = requestCall?.[1];
     expect(requestArgs?.["url"]).toContain("hello");
   });
@@ -1590,13 +1540,11 @@ describe("AddBookmark handler — onEnter creates bookmark in focused folder", (
       return Result.succeed(undefined);
     });
 
-    // Open AddBookmark with a fake page arg
     ui.onShow({
       type: "AddBookmark",
       extra: { url: "https://new-page.com", title: "New Page" },
     });
 
-    // focusFirstCandidate=true → first folder is focused
     expect(omnibar.focusedIndex()).toBeGreaterThanOrEqual(0);
 
     fireEnter(omnibar);
@@ -1671,7 +1619,6 @@ describe("OpenURLs (History) handler — onOpen calls RUNTIME getHistory and lis
     });
 
     ui.onShow({ type: "History" });
-    // queryFn is a Promise; await it
     await Promise.resolve();
     await Promise.resolve();
 
@@ -1701,11 +1648,7 @@ describe("OpenURLs (History) handler — onOpen calls RUNTIME getHistory and lis
     await Promise.resolve();
     await Promise.resolve();
 
-    // Toggle sort via Ctrl-r (calls handler.onReset)
     const initialMUOrder = runtime.conf.historyMUOrder;
-    // Directly trigger the Ctrl-r mapping code — the mapping fires handler.onReset()
-    // We simulate by calling triggerInput after toggling, verifying the order changed.
-    // onReset toggles the flag:
     runtime.conf.historyMUOrder = !runtime.conf.historyMUOrder;
     expect(runtime.conf.historyMUOrder).toBe(!initialMUOrder);
   });
@@ -1723,8 +1666,6 @@ describe("createOmnibar — detectAndInsertURLItem urlPat1 fallback", () => {
   it("inserts a bare http:// URL that passes urlPat1 but not urlPat", () => {
     buildOmnibarDOM();
     const omnibar = createOmnibar(makeFront(), makeClipboard());
-    // A URL like "http://localhost" has no dot after the host, so urlPat fails,
-    // but urlPat1 (which just needs https?://) succeeds.
     const list: any[] = [];
     omnibar.detectAndInsertURLItem("http://localhost", list);
     expect(list).toHaveLength(1);
@@ -1749,7 +1690,6 @@ describe("createOmnibar — Ctrl-c copy paths", () => {
     runtime.conf.focusFirstCandidate = true;
     runtime.conf.omnibarPosition = "middle";
 
-    // A result with both url and copy — copy should win.
     omnibar.listResults([{ url: "https://r.example.com" }], (b: any) =>
       omnibar.createItemFromRawHtml({
         html: b.url,
@@ -1782,7 +1722,6 @@ describe("createOmnibar — Ctrl-c copy paths", () => {
       { url: "https://p1.example.com", title: "P1", lastVisitTime: 100, visitCount: 1 },
       { url: "https://p2.example.com", title: "P2", lastVisitTime: 200, visitCount: 2 },
     ];
-    // listURLs stores items in pageItems; focusFirstCandidate=false means focusedIndex=-1
     omnibar.listURLs(items, false);
     expect(omnibar.focusedIndex()).toBe(-1);
 
@@ -1792,7 +1731,6 @@ describe("createOmnibar — Ctrl-c copy paths", () => {
     );
     expect(ctrlCCode).toBeDefined();
     ctrlCCode!();
-    // pageItems contains both items; both URLs should be joined with \n
     const written = clipboard.write.mock.calls.at(-1)![0] as string;
     expect(written).toContain("https://p1.example.com");
     expect(written).toContain("https://p2.example.com");
@@ -1832,7 +1770,6 @@ describe("createOmnibar — Ctrl-r triggers handler.onReset", () => {
     expect(ctrlRCode).toBeDefined();
     ctrlRCode!();
 
-    // onReset toggles historyMUOrder
     await Promise.resolve();
     expect(runtime.conf.historyMUOrder).toBe(!before);
   });
@@ -1888,8 +1825,6 @@ describe("createOmnibar — onHide calls handler.onClose", () => {
   it("invokes the active handler's onClose exactly once when the omnibar is hidden", () => {
     const { omnibar, ui } = makeOmnibar();
     const onClose = vi.fn();
-    // Register a probe handler under a fresh type so onShow makes it the active
-    // handler; onHide must route to handler.onClose (omnibar.ts line 668).
     omnibar.addHandler("ProbeClose", { onOpen: vi.fn(), onClose, prompt: "probe" });
 
     ui.onShow({ type: "ProbeClose" });
@@ -1902,8 +1837,8 @@ describe("createOmnibar — onHide calls handler.onClose", () => {
 
   it("skips onClose invocation when the active handler has none", () => {
     const { omnibar, ui } = makeOmnibar();
-    // Handler without onClose: the `handler.onClose && ...` guard must short-circuit
-    // so onHide completes and still clears the cached promise.
+    // The cleared cachedPromise is the observable proof that onHide ran to completion
+    // past the missing onClose instead of throwing.
     omnibar.addHandler("ProbeNoClose", { onOpen: vi.fn(), prompt: "probe" });
     omnibar.cachedPromise = Promise.resolve("cached");
 
@@ -1949,12 +1884,10 @@ describe("createOmnibar — Tab/Shift-Tab cycle through results", () => {
     runtime.conf.omnibarPosition = "middle";
 
     omnibar.listWords(["a", "b"]);
-    // advance to last item
     omnibar.focusItem(1);
     const tabCode = getMappingByAnnotation(omnibar, "Forward cycle through the candidates.");
     expect(tabCode).toBeDefined();
     tabCode!();
-    // wraps to -1 (past-the-last slot = input)
     expect(omnibar.focusedIndex()).toBe(-1);
   });
 
@@ -1972,7 +1905,6 @@ describe("createOmnibar — Tab/Shift-Tab cycle through results", () => {
     const shiftTabCode = getMappingByAnnotation(omnibar, "Backward cycle through the candidates.");
     expect(shiftTabCode).toBeDefined();
     shiftTabCode!();
-    // backward from -1 in middle position wraps to last item (index 2)
     expect(omnibar.focusedIndex()).toBe(2);
   });
 });
@@ -2001,7 +1933,6 @@ describe("createOmnibar — Ctrl-n/Ctrl-p with handler.rotateInput", () => {
     const ctrlNCode = getMappingByAnnotation(omnibar, "Forward cycle through the input history.");
     expect(ctrlNCode).toBeDefined();
     ctrlNCode!();
-    // middle position → rotateInput(false)
     expect(rotateInput).toHaveBeenLastCalledWith(false);
   });
 
@@ -2020,13 +1951,11 @@ describe("createOmnibar — Ctrl-n/Ctrl-p with handler.rotateInput", () => {
     const ctrlPCode = getMappingByAnnotation(omnibar, "Backward cycle through the input history.");
     expect(ctrlPCode).toBeDefined();
     ctrlPCode!();
-    // middle position: Ctrl-p should pass true (backward)
     expect(rotateInput).toHaveBeenLastCalledWith(true);
   });
 
   it("Ctrl-n falls back to rotating results when the handler has no rotateInput", () => {
     const { omnibar, ui } = makeOmnibar();
-    // A handler WITHOUT rotateInput drives the else arm (rotateResult).
     omnibar.addHandler("TestNoRotate", {
       prompt: "test",
       onOpen: vi.fn(),
@@ -2038,7 +1967,6 @@ describe("createOmnibar — Ctrl-n/Ctrl-p with handler.rotateInput", () => {
 
     const ctrlNCode = getMappingByAnnotation(omnibar, "Forward cycle through the input history.");
     ctrlNCode!();
-    // rotateResult moved focus forward from -1 to the first candidate.
     expect(omnibar.focusedIndex()).toBe(0);
   });
 });
@@ -2094,19 +2022,18 @@ describe("createOmnibar — Ctrl-d deletes the focused item", () => {
 
     getMappingByAnnotation(omnibar, "Delete focused item from bookmark or history")!();
 
-    // The `ret.response !== "Done"` early return leaves results intact.
     expect(omnibar.results().map((r: any) => r.data.uid)).toEqual(["a", "b"]);
   });
 
   it("does nothing when the focused item carries no uid", () => {
     const { omnibar } = makeOmnibar();
     runtime.conf.focusFirstCandidate = true;
-    omnibar.listWords(["plain"]); // listWords data has `query`, no `uid`
+    // listWords results carry `query` and no `uid`, which is what this case needs.
+    omnibar.listWords(["plain"]);
     omnibar.focusItem(0);
 
     getMappingByAnnotation(omnibar, "Delete focused item from bookmark or history")!();
 
-    // The `fi && fi.data.uid` guard is false, so no removeURL call is made.
     expect(mockRUNTIME).not.toHaveBeenCalledWith("removeURL", expect.anything(), expect.anything());
   });
 });
@@ -2133,13 +2060,11 @@ describe("SearchEngine handler — onOpen with site: prefix sets selection range
       suggestionURL: undefined,
     });
 
-    // Pre-fill input with a site: query
     omnibar.input.value = "site:example.com hello";
     const spy = vi.spyOn(omnibar.input, "setSelectionRange").mockImplementation(() => {});
 
     ui.onShow({ type: "SearchEngine", extra: "g" });
 
-    // setSelectionRange should be called with (site:...length, fullLength)
     expect(spy).toHaveBeenCalledWith("site:example.com ".length, "site:example.com hello".length);
     spy.mockRestore();
   });
@@ -2184,11 +2109,9 @@ describe("SearchEngine handler — listSuggestions with html/url-keyed items", (
     omnibar.triggerInput();
     vi.advanceTimersByTime(400);
 
-    // Provide a suggestion with a url field
     if (suggestionsCb) {
       suggestionsCb({ data: [{ url: "https://sug.example.com", title: "Sug" }] });
     } else {
-      // Drive via front.contentCommand mock
       front.contentCommand.mockImplementationOnce((_msg: any, cb?: any) => {
         if (cb) cb({ data: [{ url: "https://sug.example.com", title: "Sug" }] });
       });
@@ -2196,7 +2119,6 @@ describe("SearchEngine handler — listSuggestions with html/url-keyed items", (
       vi.advanceTimersByTime(400);
     }
 
-    // The result should have the URL in data
     const urls = omnibar.results().map((r: any) => r.data.url);
     expect(urls).toContain("https://sug.example.com");
   });
@@ -2228,7 +2150,6 @@ describe("SearchEngine handler — listSuggestions with html/url-keyed items", (
     omnibar.triggerInput();
     vi.advanceTimersByTime(200);
 
-    // Non-array data is treated as empty → results cleared
     expect(omnibar.results().length).toBe(0);
   });
 });
@@ -2256,14 +2177,12 @@ describe("SearchEngine — addSearchAlias icon loading paths", () => {
       suggestionURL: undefined,
     });
 
-    // The prompt should be set to the html object (with img tag), not a string
     const aliases: any[] = [];
     front.postMessage.mockImplementationOnce((msg: any) => {
       aliases.push(msg.aliases);
     });
     front.actions["getSearchAliases"]({ id: "icon-test" });
     const aliasMap = aliases[0];
-    // Prompt should be an object with html containing the icon
     expect(typeof aliasMap["g"].prompt).toBe("object");
     expect((aliasMap["g"].prompt as any).html).toContain("data:image/png;base64,ICON");
   });
@@ -2271,7 +2190,6 @@ describe("SearchEngine — addSearchAlias icon loading paths", () => {
   it("skips RUNTIME requestImage when topOrigin does not start with http", () => {
     buildOmnibarDOM();
     const front = makeFront();
-    // Set non-http topOrigin to skip the icon fetch
     front.topOrigin = "chrome-extension://abc123";
     createOmnibar(front, makeClipboard());
 
@@ -2283,7 +2201,6 @@ describe("SearchEngine — addSearchAlias icon loading paths", () => {
       suggestionURL: undefined,
     });
 
-    // No requestImage call should be made
     const requestImageCall = mockRUNTIME.mock.calls.find((c) => c[0] === "requestImage");
     expect(requestImageCall).toBeUndefined();
   });
@@ -2337,15 +2254,13 @@ describe("Commands handler — onInput with no matching candidates", () => {
     // Spy only after onShow so the onOpen-driven history listing is not counted.
     const listResults = vi.spyOn(omnibar, "listResults");
 
-    // A non-matching query leaves `candidates` empty so the `if (candidates.length)`
-    // arm is skipped and listResults is never invoked.
     omnibar.input.value = "zzz_no_match";
     omnibar.triggerInput();
 
     expect(listResults).not.toHaveBeenCalled();
 
-    // A matching query takes the truthy arm and does invoke listResults, proving the
-    // assertion above pins the branch rather than a globally dead code path.
+    // The matching query proves the assertion above pins the empty-candidates branch
+    // rather than a listResults path that never runs at all.
     omnibar.input.value = "tabopen";
     omnibar.triggerInput();
 
@@ -2366,7 +2281,6 @@ describe("OmniQuery handler — onOpen with arg when dictEnabled is set", () => 
   it("does not call omnibar_query_entered via contentCommand when dictEnabled is set", () => {
     const { omnibar, front, ui } = makeOmnibar();
 
-    // Set dictEnabled on document to trigger the negative branch
     (document as any).dictEnabled = true;
 
     front.contentCommand.mockImplementation((msg: any, cb?: any) => {
@@ -2378,13 +2292,11 @@ describe("OmniQuery handler — onOpen with arg when dictEnabled is set", () => 
     omnibar.input.value = "";
     ui.onShow({ type: "OmniQuery", extra: "hello" });
 
-    // The omnibar_query_entered action should NOT have been dispatched
     const queryCall = front.contentCommand.mock.calls.find(
       (c: any) => c[0]?.action === "omnibar_query_entered",
     );
     expect(queryCall).toBeUndefined();
 
-    // Clean up
     delete (document as any).dictEnabled;
   });
 });
@@ -2420,7 +2332,6 @@ describe("OpenWindows handler — onInput filters windows by query", () => {
     await Promise.resolve();
     await Promise.resolve();
 
-    // Only the GitHub window should match
     expect(omnibar.results().length).toBe(1);
     const windowIds = omnibar.results().map((r: any) => r.data.windowId);
     expect(windowIds).toContain(2);
@@ -2464,11 +2375,10 @@ describe("createOmnibar — listResults respects handler.focusFirstCandidate", (
   it("focuses first item when handler.focusFirstCandidate is true and runtime flag is false", () => {
     // Use makeOmnibar() for a real DOM input (input.focus() is needed by onShow)
     runtime.conf.omnibarMaxResults = 10;
-    runtime.conf.focusFirstCandidate = false; // global is false
+    runtime.conf.focusFirstCandidate = false;
     runtime.conf.omnibarPosition = "middle";
     const { omnibar, ui } = makeOmnibar();
 
-    // Inject a handler with focusFirstCandidate=true
     omnibar.addHandler("FFC", {
       prompt: "ffc",
       focusFirstCandidate: true,
@@ -2479,7 +2389,6 @@ describe("createOmnibar — listResults respects handler.focusFirstCandidate", (
     ui.onShow({ type: "FFC" });
 
     omnibar.listWords(["a", "b", "c"]);
-    // handler.focusFirstCandidate=true → focusedIndex should be 0
     expect(omnibar.focusedIndex()).toBe(0);
   });
 });
@@ -2506,13 +2415,11 @@ describe("createOmnibar — pagination mappings Ctrl-. and Ctrl-,", () => {
       { url: "https://c.com", title: "C", lastVisitTime: 3, visitCount: 1 },
     ];
     omnibar.listURLs(items, false);
-    // page 1: items a, b
     expect(omnibar.results().length).toBe(2);
 
     const nextPage = getMappingByAnnotation(omnibar, "Show results of next page");
     expect(nextPage).toBeDefined();
     nextPage!();
-    // page 2: item c
     expect(omnibar.results().length).toBe(1);
     expect(omnibar.results()[0]?.data.url).toBe("https://c.com");
   });
@@ -2531,11 +2438,9 @@ describe("createOmnibar — pagination mappings Ctrl-. and Ctrl-,", () => {
       { url: "https://b.com", title: "B", lastVisitTime: 2, visitCount: 1 },
     ];
     omnibar.listURLs(items, false);
-    // already on last page (only 1 page)
     const nextPage = getMappingByAnnotation(omnibar, "Show results of next page");
     expect(nextPage).toBeDefined();
     nextPage!();
-    // wraps to page 1, still showing same 2 items
     expect(omnibar.results().length).toBe(2);
     expect(omnibar.results()[0]?.data.url).toBe("https://a.com");
   });
@@ -2555,13 +2460,11 @@ describe("createOmnibar — pagination mappings Ctrl-. and Ctrl-,", () => {
       { url: "https://c.com", title: "C", lastVisitTime: 3, visitCount: 1 },
     ];
     omnibar.listURLs(items, false);
-    // go to page 2
     const nextPage = getMappingByAnnotation(omnibar, "Show results of next page");
     expect(nextPage).toBeDefined();
     nextPage!();
     expect(omnibar.results().length).toBe(1);
 
-    // go back to page 1
     const prevPage = getMappingByAnnotation(omnibar, "Show results of previous page");
     expect(prevPage).toBeDefined();
     prevPage!();
@@ -2584,7 +2487,6 @@ describe("createOmnibar — pagination mappings Ctrl-. and Ctrl-,", () => {
       { url: "https://c.com", title: "C", lastVisitTime: 3, visitCount: 1 },
     ];
     omnibar.listURLs(items, false);
-    // on page 1, Ctrl-, should wrap to last page (page 2 = item c)
     const prevPage = getMappingByAnnotation(omnibar, "Show results of previous page");
     expect(prevPage).toBeDefined();
     prevPage!();
@@ -2609,10 +2511,8 @@ describe("createOmnibar — listResultPage total display", () => {
       lastVisitTime: i,
       visitCount: 1,
     }));
-    // 3 items == omnibarHistoryCacheSize=3 → total shown as "3+"
     omnibar.listURLs(items, false);
-    expect(omnibar.results().length).toBe(2); // maxResults=2, page 1
-    // The total reaching the cache-size cap is rendered with a trailing "+".
+    expect(omnibar.results().length).toBe(2);
     const resultPageSpan = document.querySelector("#sk_omnibarSearchArea>span.resultPage");
     expect(resultPageSpan?.textContent).toContain("3+");
   });
@@ -2628,9 +2528,9 @@ describe("createOmnibar — listResultPage showFolder branch", () => {
     runtime.conf.focusFirstCandidate = false;
     runtime.conf.omnibarPosition = "middle";
 
-    // A folder item has no url and no html field
+    // A folder item is distinguished by having neither a url nor an html field.
     const items = [{ title: "Dev Folder", id: "folder1" }];
-    omnibar.listURLs(items, true); // showFolder = true
+    omnibar.listURLs(items, true);
 
     expect(omnibar.results().length).toBe(1);
     const result = omnibar.results()[0]!;
@@ -2655,7 +2555,6 @@ describe("createOmnibar — openFocused", () => {
     runtime.conf.focusFirstCandidate = true;
     runtime.conf.omnibarPosition = "middle";
 
-    // Inject a tab result with T-type uid
     omnibar.listResults(
       [{ url: "https://tab.example.com", title: "Tab", width: 1024, windowId: 3, id: 77 }],
       (b: any) => omnibar.createURLItem(b, null),
@@ -2663,7 +2562,6 @@ describe("createOmnibar — openFocused", () => {
     expect(omnibar.focusedIndex()).toBe(0);
     expect(omnibar.focusedResult()?.data.uid).toBe("T3:77");
 
-    // Call openFocused
     omnibar.openFocused({ tabbed: true, activeTab: true });
 
     expect(mockRUNTIME).toHaveBeenLastCalledWith("focusTab", { windowId: 3, tabId: 77 });
@@ -2672,14 +2570,13 @@ describe("createOmnibar — openFocused", () => {
   it("calls RUNTIME openLink with URL when no focused result and input is a URL", () => {
     buildOmnibarDOM();
     const front = makeFront();
-    // Register a default search engine alias so openFocused can find it
     const omnibar = createOmnibar(front, makeClipboard());
     omnibar.input = stubInput("https://directurl.example.com");
     runtime.conf.omnibarMaxResults = 10;
     runtime.conf.focusFirstCandidate = false;
     runtime.conf.omnibarPosition = "middle";
 
-    // Register an alias for the default search engine
+    // openFocused falls back to the default search engine, which must exist.
     front.actions["addSearchAlias"]({
       alias: "g",
       prompt: "Google",
@@ -2688,7 +2585,6 @@ describe("createOmnibar — openFocused", () => {
     });
     runtime.conf.defaultSearchEngine = "g";
 
-    // No focused result — openFocused uses input.value
     omnibar.openFocused({ tabbed: true, activeTab: true });
 
     expect(mockRUNTIME).toHaveBeenLastCalledWith("openLink", {

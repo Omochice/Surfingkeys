@@ -17,19 +17,17 @@ type KeyboardUtilsLike = {
 };
 type ModeCtor = new (name: string) => ModeHandle;
 
-/** The mappings editor: the snippets textarea wrapped with value accessors. */
 type MappingsEditor = {
   container: HTMLTextAreaElement;
   setValue(v: string, cursorPos: number): void;
   getValue(): string;
 };
 
-/** KeyPicker exposes a single `enter`, taking the element whose binding is being picked. */
 type KeyPickerMode = { enter(elm: HTMLElement): void };
 
 /**
- * The keydown payload KeyPicker inspects. Extends the stack event with the KeyboardEvent fields it
- * reads, kept optional so the handler still accepts the bare stack events ModeHandle dispatches.
+ * The KeyboardEvent fields KeyPicker reads, kept optional so the handler still accepts the bare
+ * stack events ModeHandle dispatches.
  */
 type KeyPickerKeydownEvent = Event & {
   keyCode?: number;
@@ -44,7 +42,6 @@ type KeyPickerKeydownEvent = Event & {
 /** A search-engine alias as the omnibar reports it: a label or an `{ html }` icon prompt. */
 type AliasInfo = { prompt: string | { html: string } };
 
-/** A default keystroke binding the options page lets the user re-map, with its help annotation. */
 type BasicMapping = { origin: string; annotation: string | string[] | undefined };
 
 export default function optionsMain(
@@ -64,7 +61,6 @@ export default function optionsMain(
   showBanner: (msg: string, timeout?: number) => void,
 ): void {
   let mappingsEditor: MappingsEditor | null = null;
-  // The editor is created when user settings arrive; reaching it earlier is a programming error.
   function getMappingsEditor(): MappingsEditor {
     if (mappingsEditor === null) {
       throw new Error("mappingsEditor is not initialized until user settings are loaded");
@@ -342,8 +338,6 @@ export default function optionsMain(
         if (alias == null) {
           continue;
         }
-        // The omnibar prompt is either a plain label or an `{ html }` icon (the search-engine
-        // image); the options row shows the label text or the icon markup respectively.
         const raw = alias.prompt;
         const prompt = raw && typeof raw === "object" ? raw.html : raw;
         allAliases[key] = { prompt, checked: "checked" };

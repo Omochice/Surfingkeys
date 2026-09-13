@@ -41,9 +41,8 @@ describe("KeyboardUtils.encodeKeystroke / decodeKeystroke", () => {
 });
 
 describe("KeyboardUtils.getKeyChar", () => {
-  // getKeyChar collapses a key event into a keystroke token, encoding any
-  // <...> form to a single char. Assert through decodeKeystroke so the
-  // expectations stay readable rather than comparing opaque code points.
+  // getKeyChar encodes a <...> token to a single code point, so the assertions
+  // decode it back rather than comparing opaque characters.
   const decode = (s: string) => KeyboardUtils.decodeKeystroke(s);
 
   it("returns an empty string for modifier-only keys", () => {
@@ -89,14 +88,8 @@ describe("KeyboardUtils.isWordChar", () => {
   });
 });
 
-// ── getKeyChar — additional branch coverage ───────────────────────────────────
-
 describe("KeyboardUtils.getKeyChar — key string in modifier-name list", () => {
-  // When event.key is one of Shift/Meta/Alt/Ctrl and the keyCode is not a named
-  // modifier key code, the modifier-name guard clears the character to "".
   it("returns empty string when key is 'Alt' but keyCode is not a modifier keyCode", () => {
-    // keyCode 200 is not in modifierKeys, so the first guard is bypassed.
-    // key='Alt' is in the modifier-name list → character is cleared to "".
     expect(KeyboardUtils.getKeyChar({ keyCode: 200, key: "Alt" })).toBe("");
   });
 
@@ -117,19 +110,16 @@ describe("KeyboardUtils.getKeyChar — keyIdentifier legacy path", () => {
   const decode = (s: string) => KeyboardUtils.decodeKeystroke(s);
 
   it("uses keyIdentifier directly when it does not start with 'U+'", () => {
-    // Non-U+ keyIdentifier values (e.g. named keys like 'Enter') are returned verbatim.
     const result = KeyboardUtils.getKeyChar({ keyCode: 300, keyIdentifier: "Enter" });
     expect(decode(result)).toBe("<Enter>");
   });
 
   it("decodes a U+ keyIdentifier to its Unicode character (no shift, no correction)", () => {
-    // U+0041 = 'A'; lowercase because shiftKey is false.
     const result = KeyboardUtils.getKeyChar({ keyCode: 300, keyIdentifier: "U+0041" });
     expect(result).toBe("a");
   });
 
   it("preserves case when shiftKey is true for a U+ keyIdentifier", () => {
-    // U+0041 = 'A'; kept uppercase because shiftKey is true.
     const result = KeyboardUtils.getKeyChar({
       keyCode: 300,
       keyIdentifier: "U+0041",
@@ -143,15 +133,13 @@ describe("KeyboardUtils.getKeyChar — charCode > 127 (Mac dead-key / Alt path)"
   const decode = (s: string) => KeyboardUtils.decodeKeystroke(s);
 
   it("falls back to keyCode character when key charCode > 127 and keyCode < 127", () => {
-    // Simulate Alt-s on Mac: key = 'ß' (charCode 223 > 127), keyCode = 83 ('S' = 83 < 127).
-    // The branch converts to String.fromCharCode(83) = 'S', then lowercases because shiftKey is false.
+    // Alt-s on a Mac keyboard emits key 'ß' with keyCode 83.
     const result = decode(KeyboardUtils.getKeyChar({ keyCode: 83, key: "ß", altKey: true }));
     expect(result).toBe("<Alt-s>");
   });
 
   it("uses keyCodesMac when key charCode > 127, keyCode >= 127, and code is in keyCodesMac", () => {
-    // Simulate Alt-/ on Mac: key produces charCode > 127, code='Slash' is in keyCodesMac.
-    // keyCodesMac['Slash'] = ['/', '?']; shiftKey false → index 0 → '/'.
+    // Alt-/ on a Mac keyboard emits key '÷' with code 'Slash'.
     const result = decode(
       KeyboardUtils.getKeyChar({ keyCode: 191, key: "÷", code: "Slash", altKey: true }),
     );
@@ -159,9 +147,7 @@ describe("KeyboardUtils.getKeyChar — charCode > 127 (Mac dead-key / Alt path)"
   });
 
   it("uses keyCodesMac shift variant (index 1) when shiftKey is true", () => {
-    // keyCodesMac['Slash'] = ['/', '?']; shiftKey true → index 1 → character='?'.
-    // '?' has length 1, so the Shift- prefix is NOT applied (only applies to length>1 names).
-    // altKey adds 'Alt-' → character='Alt-?' → wrapped → '<Alt-?>'.
+    // A single-character result takes no Shift- prefix, only the Alt- one.
     const result = decode(
       KeyboardUtils.getKeyChar({
         keyCode: 191,
@@ -175,20 +161,13 @@ describe("KeyboardUtils.getKeyChar — charCode > 127 (Mac dead-key / Alt path)"
   });
 
   it("produces empty string when key is 'Dead', keyCode >= 127, and code not in keyCodesMac", () => {
-    // 'Dead' triggers the charCode > 127 || 'Dead' branch.
-    // keyCode=200 (>= 127), code='Unknown' is not in keyCodesMac → character stays unchanged
-    // but 'Dead' itself is the character; after no correction it remains 'Dead'.
-    // With no macCodes match, character is not reassigned → stays "Dead".
-    // "Dead" length > 1, so it becomes <Dead>. Then encodeKeystroke roundtrip may or may not match.
-    // The concrete observable: the function does not throw.
     const result = KeyboardUtils.getKeyChar({
       keyCode: 200,
       key: "Dead",
       code: "Unknown",
       altKey: true,
     });
-    // Character ends up as 'Dead' → wrapped → <Alt-Dead>; encodeKeystroke can't round-trip "Dead"
-    // (it's not a known special key) so the function returns the raw <Alt-Dead> string.
+    // "Dead" is not a known special key, so the result stays unencoded.
     expect(result).toBe("<Alt-Dead>");
   });
 });

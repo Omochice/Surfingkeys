@@ -227,7 +227,6 @@ function getKeyChar(event: KeyEventLike): string {
       } else if (event.code != null) {
         const macCodes = keyCodesMac.get(event.code);
         if (macCodes) {
-          // Alt-/ or Alt-?
           character = macCodes[event.shiftKey ? 1 : 0];
         }
       }

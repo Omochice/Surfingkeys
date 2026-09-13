@@ -11,11 +11,6 @@ import type { TrieMeta } from "@sk/core/trie";
 import { applyUserSettings } from "@sk/core/utils";
 import { RUNTIME, runtime } from "@sk/messaging/runtime";
 
-// This module owns the single concern of applying stored/user settings onto the
-// live extension state: the runtime config, the basic key remaps, search-alias
-// removals, user snippets, and the resulting mode/icon state. content.ts boots
-// the modes and then delegates to applySettings here.
-
 type Api = ReturnType<typeof createAPI>;
 type Normal = ReturnType<typeof createNormal>;
 
@@ -35,9 +30,8 @@ export function applyBasicMappings(
     if (newKey == null) {
       continue;
     }
-    // current new key is one original key that will be overrode later
-    // we need save it some where first, since current map will lose it,
-    // such as the `a` in above example.
+    // The new key is itself an original key that will be overridden later, so its
+    // meta must be saved before the current map loses it (the `a` in the example).
     if (originKeys.has(newKey)) {
       const target = normal.mappings.find(newKey);
       if (target?.meta) {
@@ -115,8 +109,7 @@ export function applySettings(api: Api, normal: Normal, rs: StoredSettings): voi
     }
   }
   if ("findHistory" in rs) {
-    // Guard against a non-array findHistory from malformed stored settings; a real
-    // array preserves the previous semantics (lastQuery = first entry, else "").
+    // Guard against a non-array findHistory from malformed stored settings.
     const fh = Array.isArray(rs.findHistory) ? rs.findHistory : [];
     runtime.conf.lastQuery = fh[0] ?? "";
   }

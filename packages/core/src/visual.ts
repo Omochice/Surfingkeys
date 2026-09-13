@@ -36,14 +36,6 @@ type HintsLike = {
 
 type Match = [Node, number, HTMLElement[]];
 
-/**
- * The visual-mode controller. It wraps a private {@link ModeHandle} rather than being one, so the
- * base mode members it relies on are surfaced explicitly: `name` / `mappings` feed api.ts and the
- * frontend registry, `eventListeners` lets the hub (and tests) dispatch key / scroll / click
- * events, `statusLine` is a read-only view of the handle's status line, and `enter` / `exit` /
- * `onEnter` / `onExit` drive the mode's own state machine. The rest are the visual operations
- * callers invoke.
- */
 type VisualMode = {
   eventListeners: ModeHandle["eventListeners"];
   name: string;
@@ -70,9 +62,8 @@ type VisualMode = {
 };
 
 /**
- * Compile the find query, which Surfingkeys deliberately treats as a regular expression, so it is
- * not escaped upfront (that would drop intentional regex search); only a pattern that fails to
- * compile is searched as a literal.
+ * The find query is deliberately treated as a regular expression, so it is not escaped upfront;
+ * only a pattern that fails to compile is searched as a literal.
  */
 function buildFindRegExp(query: string): RegExp {
   const flags = getCaseSensitive(query) ? "" : "i";
@@ -520,7 +511,6 @@ function createVisual(clipboard: ClipboardLike, hints: HintsLike, env: EngineEnv
   cursor.className = "surfingkeys_cursor";
   cursor.style.zIndex = "2147483299";
 
-  // f in visual mode
   let visualf = 0;
   let lastF: [number, string] | null = null;
 
@@ -534,7 +524,6 @@ function createVisual(clipboard: ClipboardLike, hints: HintsLike, env: EngineEnv
       selection.focusNode.textContent[selection.focusOffset] === chr &&
       dir === 1
     ) {
-      // if the char after cursor is the char to find, forward one step.
       selection.setPosition(selection.focusNode, selection.focusOffset + 1);
     }
     if (findNextTextNodeBy(chr, true, dir === -1)) {
@@ -583,8 +572,6 @@ function createVisual(clipboard: ClipboardLike, hints: HintsLike, env: EngineEnv
         (selection.focusNode.parentNode instanceof HTMLElement &&
           selection.focusNode.parentNode.offsetHeight > 0))
     ) {
-      // https://developer.mozilla.org/en-US/docs/Web/API/Selection
-      // If focusNode is a text node, this is the number of characters within focusNode preceding the focus. If focusNode is an element, this is the number of child nodes of the focusNode preceding the focus.
       const r = locateFocusNode(selection);
       if (r) {
         cursor.style.position = "fixed";
@@ -864,7 +851,6 @@ function createVisual(clipboard: ClipboardLike, hints: HintsLike, env: EngineEnv
   const visualUpdate = (query: string): void => {
     self.visualClear();
 
-    // set caret to top in view
     selection.setPosition(getTextNodeByY(0), 0);
 
     let scrollTop = document.scrollingElement!.scrollTop,
@@ -874,7 +860,6 @@ function createVisual(clipboard: ClipboardLike, hints: HintsLike, env: EngineEnv
     if (findNextTextNodeBy(query, caseSensitive, false)) {
       selection.setPosition(posToStartFind[0], posToStartFind[1]);
     } else {
-      // start from beginning if no found from current position
       selection.setPosition(document.body.firstChild, 0);
     }
 
@@ -972,10 +957,6 @@ function createVisual(clipboard: ClipboardLike, hints: HintsLike, env: EngineEnv
   };
 
   const self: VisualMode = {
-    // The hub dispatches events through the private handle's listener map; sharing the reference
-    // keeps the keydown/scroll/click/resize/selectionchange listeners registered above observable
-    // through the controller. `statusLine` is read-only because the handle owns it and the hub reads
-    // it off the stacked handle; `onEnter` / `onExit` mirror the handle's lifecycle hooks.
     eventListeners: mode.eventListeners,
     name: mode.name,
     get statusLine() {

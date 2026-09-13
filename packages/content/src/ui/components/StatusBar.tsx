@@ -4,17 +4,13 @@ import type { Component } from "solid-js";
 import { setSafeHtml } from "../setSafeHtml";
 
 /**
- * A single status cell. A plain string is rendered as a text node (the mode name and the search
- * result count are plain text); an `{ html }` cell is injected as sanitized HTML (only the search
- * cell needs this, to carry the find `<input>` the legacy code reaches into).
+ * A single status cell. A plain string renders as a text node; an `{ html }` cell is injected as
+ * sanitized HTML.
  */
 export type StatusCell = string | { html: string };
 
 export type StatusBarProps = {
-  /**
-   * The status cells (mode, search, search result). Empty cells render no padding or border so they
-   * collapse; the caller hides the whole bar when every cell is empty.
-   */
+  /** The status cells (mode, search, search result). Empty cells collapse. */
   cells: StatusCell[];
 };
 
@@ -26,14 +22,10 @@ const htmlCell = (cell: StatusCell): { html: string } | null =>
 const textCell = (cell: StatusCell): string => (typeof cell === "string" ? cell : "");
 
 /**
- * Status line shown in the frontend iframe. A reactive Solid replacement for the imperative
- * `showStatus` DOM updates in the legacy frontend.
+ * Status line shown in the frontend iframe.
  *
- * Text cells render as text nodes; only the search cell carries markup (the find `<input>`), so it
- * is the sole cell that is sanitized. Keeping plain text out of `innerHTML` removes it from the
- * sanitization path entirely rather than relying on the sanitizer to pass it through unchanged.
- * Non-empty cells get padding and a divider; the divider is dropped on the last non-empty cell so
- * the bar has no trailing separator.
+ * Text cells render as text nodes, which keeps them out of the sanitization path entirely rather
+ * than relying on the sanitizer to pass them through unchanged.
  */
 export const StatusBar: Component<StatusBarProps> = (props) => {
   const lastNonEmpty = () => {

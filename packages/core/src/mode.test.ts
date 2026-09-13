@@ -34,10 +34,6 @@ function makeMode(name = "Test"): ModeHandle {
 
 describe("suppressKeyUp", () => {
   it("adds a keyCode to the suppressed list", () => {
-    // We can indirectly verify: calling it twice with the same keyCode
-    // should not add a duplicate (the internal list won't blow up).
-    // The behavior we pin: adding the same keyCode twice doesn't cause errors
-    // and the keyCode is tracked (evidenced by no throw).
     suppressKeyUp(65);
     suppressKeyUp(65); // dedup — no assertion error
   });
@@ -71,12 +67,10 @@ describe("ModeHandle enter / exit / getCurrentMode", () => {
     const modeB = makeMode("B");
 
     modeA.enter(5);
-    modeB.enter(10); // B has higher priority → goes to top
+    modeB.enter(10);
 
-    // B is at top, A is below
     expect(getCurrentMode()).toBe(modeB);
 
-    // peek-exit A: only removes A, B should still be on stack
     modeA.exit(true);
     expect(getCurrentMode()).toBe(modeB);
 
@@ -88,9 +82,8 @@ describe("ModeHandle enter / exit / getCurrentMode", () => {
     const modeB = makeMode("B");
 
     modeA.enter(5);
-    modeB.enter(10); // B is on top
+    modeB.enter(10);
 
-    // non-peek exit of A removes A and everything above (B)
     modeA.exit();
     expect(getCurrentMode()).not.toBe(modeB);
     expect(getCurrentMode()).not.toBe(modeA);
@@ -115,7 +108,6 @@ describe("ModeHandle enter / exit / getCurrentMode", () => {
 
     mode.enter(1);
     mode.exit();
-    // position was 0 (top of stack, only mode)
     expect(capturedPos).toBe(0);
   });
 
@@ -141,7 +133,6 @@ describe("ModeHandle enter / exit / getCurrentMode", () => {
 
     expect(getCurrentMode()).toBe(top);
 
-    // Re-enter base with reentrant=true: should pop top
     base.enter(undefined, true);
     expect(getCurrentMode()).toBe(base);
 
@@ -169,16 +160,10 @@ describe("initModeHub", () => {
 
 describe("checkEventListener", () => {
   it("calls onMissing when the sentinel event is not dispatched", () => {
-    // The sentinel listener increments eventListenerBeats each time the
-    // 'sentinel' custom event fires. By spying on window.dispatchEvent we
-    // can verify checkEventListener dispatches the sentinel and calls onMissing
-    // only when the counter did not change (which happens when listeners were removed).
-    //
     // In tests the listeners are installed at module load, so the sentinel
     // WILL fire and eventListenerBeats WILL change — onMissing is NOT called.
     const onMissing = vi.fn();
     checkEventListener(onMissing);
-    // The sentinel listener fires → beats changed → onMissing is NOT called.
     expect(onMissing).not.toHaveBeenCalled();
   });
 });
@@ -189,10 +174,8 @@ describe("ModeHandle.enter — reentrant=false re-entry reports an issue and lea
     initModeHub(makeTestEnv({ reportIssue }));
     const lower = new ModeHandle("Lower");
     const upper = new ModeHandle("Upper");
-    // lower enters first (lower priority), upper enters on top (higher priority).
     lower.enter(1);
     upper.enter(2);
-    // upper is current because it has the higher priority and sits at stack[0].
     expect(getCurrentMode()).toBe(upper);
 
     // Re-enter the lower (non-top, pos > 0) mode without reentrant=true: the else
@@ -204,7 +187,6 @@ describe("ModeHandle.enter — reentrant=false re-entry reports an issue and lea
       "Mode Lower pushed into mode stack again.",
       expect.stringContaining("Modes in stack:"),
     );
-    // Stack top is unchanged: upper still current (the reentrant slice did NOT run).
     expect(getCurrentMode()).toBe(upper);
 
     upper.exit();
@@ -249,7 +231,7 @@ describe("handleStack dispatch — suppression, stopPropagation and Disabled bre
     disabled.addEventListener("keydown", disabledHandler);
 
     lower.enter(1);
-    disabled.enter(2); // Disabled sits on top (higher priority)
+    disabled.enter(2);
 
     const event = new Event("keydown") as Event & {
       sk_keyName?: string;
@@ -257,8 +239,6 @@ describe("handleStack dispatch — suppression, stopPropagation and Disabled bre
     };
     window.dispatchEvent(event);
 
-    // Disabled handled the event and suppressed it; the loop breaks at Disabled so
-    // the lower Normal mode never sees it.
     expect(disabledHandler).toHaveBeenCalledTimes(1);
     expect(lowerHandler).not.toHaveBeenCalled();
 
@@ -277,8 +257,6 @@ describe("key buffering before user settings are applied", () => {
   });
 
   it("does not deliver a keydown to mode handlers before settings are applied", () => {
-    // The content script opts into buffering after installing the hub; keys are held
-    // until the user settings have been applied.
     initModeHub(makeTestEnv());
     beginBufferingKeyEvents();
     const mode = new ModeHandle("Normal");
@@ -479,7 +457,6 @@ describe("key buffering before user settings are applied", () => {
       window.dispatchEvent(second);
       expect(seen).toHaveLength(0);
 
-      // The iframe finishes booting: the mode enters and the settings are applied.
       mode.enter(1);
       document.dispatchEvent(new CustomEvent("surfingkeys:userSettingsLoaded"));
 
@@ -506,7 +483,6 @@ describe("key buffering before user settings are applied", () => {
       const handler = vi.fn();
       mode.addEventListener("keydown", handler);
 
-      // modeStack is empty, so the key hits the iframe-boot branch and is held, not handled.
       const event = new Event("keydown", { cancelable: true });
       const preventDefault = vi.spyOn(event, "preventDefault");
       window.dispatchEvent(event);
@@ -542,7 +518,6 @@ describe("key buffering before user settings are applied", () => {
       window.dispatchEvent(new Event("keydown"));
       expect(handler).not.toHaveBeenCalled();
 
-      // The settings fetch failed: the content script releases the buffer directly.
       mode.enter(1);
       releaseBufferedKeyEvents();
       expect(handler).toHaveBeenCalledTimes(1);
@@ -571,11 +546,9 @@ describe("key buffering before user settings are applied", () => {
         for (const name of names) {
           window.dispatchEvent(new Event(name));
         }
-        // While buffering, nothing reaches the mode handlers.
         expect(seen).toHaveLength(0);
 
         releaseBufferedKeyEvents();
-        // The whole buffer is replayed exactly once, preserving dispatch order.
         expect(seen).toStrictEqual(names);
 
         mode.exit();

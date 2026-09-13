@@ -42,12 +42,6 @@ function deepNoop(): any {
   });
 }
 
-/**
- * Boots `start` with inert dependencies and returns the registered dispatch function so a test can
- * drive a single handler by `message.action`. `start` registers its dispatcher via
- * `chrome.runtime.onMessage.addListener`, so the harness captures that callback instead of reaching
- * for the private handler map.
- */
 function bootDispatch(): MessageHandler {
   return bootWith({});
 }
@@ -177,7 +171,6 @@ describe("start — readComment", () => {
   it("still settles the response when reading a known comment fails", async () => {
     const dispatch = bootDispatch();
     await primeGist(dispatch, "tok-read-read-fail");
-    // List succeeds with one comment, then the per-comment read fails.
     mockRequest
       .mockResolvedValueOnce(Result.succeed(JSON.stringify([{ id: "c1" }])))
       .mockResolvedValueOnce(gistsFail());
@@ -272,7 +265,6 @@ describe("start — editComment", () => {
   it("still settles the response when writing a known comment fails", async () => {
     const dispatch = bootDispatch();
     await primeGist(dispatch, "tok-edit-write-fail");
-    // List succeeds with one comment, then the write to it fails.
     mockRequest
       .mockResolvedValueOnce(Result.succeed(JSON.stringify([{ id: "c1" }])))
       .mockResolvedValueOnce(gistsFail());
@@ -688,25 +680,13 @@ describe("start — localData", () => {
   });
 });
 
-// The Gist singleton is shared across all dispatchers within the same module
-// import, so the no-gist tests must run before any primeGist call (while
-// cachedGist is still "") — they sit between the initGist describe blocks and
-// any further primeGist calls.
-
-// Covered by the initGist failure tests above (they boot fresh dispatchers and
-// readComment/editComment are not called until after primeGist in those suites).
-// The cachedGist=="" guard is an alternative entry; the test below fires it after
-// explicitly forcing a failed initGist so the singleton cachedGist remains empty.
-
 describe("start — readComment / editComment when gist initialisation failed", () => {
   it("readComment settles with status 1 when the gist init failed (gist stays empty)", async () => {
-    // Force cachedGist to stay "" by having initGist fail
     mockRequest.mockResolvedValue(gistsFail());
     const dispatch = bootDispatch();
     const initDone = vi.fn();
     dispatch({ action: "initGist", token: "tok-fail-read", needResponse: true }, {}, initDone);
     await vi.waitFor(() => expect(initDone).toHaveBeenCalled());
-    // cachedGist is still "" → readComment should bail immediately
     mockRequest.mockReset();
 
     const sendResponse = vi.fn();
@@ -720,7 +700,6 @@ describe("start — readComment / editComment when gist initialisation failed", 
         expect.objectContaining({ status: 1, content: "Please call initGist first!" }),
       ),
     );
-    // No network request should have been made for readComment itself
     expect(mockRequest).not.toHaveBeenCalled();
   });
 
@@ -752,7 +731,6 @@ describe("start — editComment writes to an existing comment", () => {
     const dispatch = bootDispatch();
     await primeGist(dispatch, "tok-edit-existing");
 
-    // List returns one comment; write to it succeeds
     mockRequest
       .mockResolvedValueOnce(Result.succeed(JSON.stringify([{ id: "c1" }])))
       .mockResolvedValueOnce(Result.succeed("ok"));
@@ -774,7 +752,6 @@ describe("start — editComment creates placeholder comments when index exceeds 
     const dispatch = bootDispatch();
     await primeGist(dispatch, "tok-edit-create");
 
-    // List returns 0 comments; index=1 → toCreate=2 → creates placeholder "." then writes clip
     mockRequest
       .mockResolvedValueOnce(Result.succeed(JSON.stringify([]))) // listComment
       .mockResolvedValueOnce(Result.succeed("")) // newComment(".")
@@ -788,7 +765,6 @@ describe("start — editComment creates placeholder comments when index exceeds 
     );
 
     await vi.waitFor(() => expect(sendResponse).toHaveBeenCalled());
-    // Third request is the write for the actual content
     expect(mockRequest).toHaveBeenCalledTimes(3);
   });
 });
@@ -798,7 +774,7 @@ describe("start — readComment reads from cached comment list", () => {
     const dispatch = bootDispatch();
     await primeGist(dispatch, "tok-read-cached");
 
-    // Populate cachedComments cache by listing first
+    // Populate the cachedComments cache by listing first.
     mockRequest.mockResolvedValueOnce(Result.succeed(JSON.stringify([{ id: "c1" }, { id: "c2" }])));
     const listResponse = vi.fn();
     dispatch(
@@ -807,12 +783,11 @@ describe("start — readComment reads from cached comment list", () => {
       listResponse,
     );
 
-    // Wait for list to complete; the per-comment read fails here (no more mock) — that is fine
     mockRequest.mockResolvedValueOnce(Result.succeed(JSON.stringify({ body: "hello" })));
     await vi.waitFor(() => expect(listResponse).toHaveBeenCalled());
     mockRequest.mockReset();
 
-    // Now index 1 is within the cached list → reads directly without listing again
+    // Index 1 is within the cached list, so the read happens without listing again.
     mockRequest.mockResolvedValueOnce(Result.succeed(JSON.stringify({ body: "world" })));
     const sendResponse = vi.fn();
     dispatch(
@@ -822,7 +797,6 @@ describe("start — readComment reads from cached comment list", () => {
     );
     await vi.waitFor(() => expect(sendResponse).toHaveBeenCalled());
     expect(sendResponse.mock.calls.at(-1)?.[0]).toMatchObject({ status: 0, content: "world" });
-    // Only one request was made (no new list request)
     expect(mockRequest).toHaveBeenCalledTimes(1);
   });
 });
@@ -832,7 +806,6 @@ describe("start — readComment when register does not exist", () => {
     const dispatch = bootDispatch();
     await primeGist(dispatch, "tok-read-not-exists");
 
-    // List returns one comment; requesting index 5 (beyond the list)
     mockRequest.mockResolvedValueOnce(Result.succeed(JSON.stringify([{ id: "c1" }])));
     const sendResponse = vi.fn();
     dispatch(
@@ -865,7 +838,6 @@ describe("start — initGist returns cached gist when token matches", () => {
     );
     expect(ret).toBe(true);
     await vi.waitFor(() => expect(sendResponse).toHaveBeenCalledWith({ gist: "gist-id" }));
-    // No new network request should be made
     expect(mockRequest).not.toHaveBeenCalled();
   });
 });
@@ -964,7 +936,6 @@ describe("start — initGist clears cachedComments when token changes", () => {
   it("does not reuse comment IDs from a previous gist after switching tokens", async () => {
     const dispatch = bootDispatch();
 
-    // Prime gist A with token-A
     await primeGist(dispatch, "tok-switch-A");
 
     // Populate cachedComments for gist A by reading a comment at index 0.
@@ -981,7 +952,6 @@ describe("start — initGist clears cachedComments when token changes", () => {
     await vi.waitFor(() => expect(firstRead).toHaveBeenCalled());
     mockRequest.mockReset();
 
-    // Switch to token-B → a completely different gist (gist-B).
     mockRequest.mockResolvedValueOnce(
       Result.succeed(
         JSON.stringify([{ description: "cloudboard", files: { cloudboard: {} }, id: "gist-B" }]),
@@ -1011,7 +981,6 @@ describe("start — initGist clears cachedComments when token changes", () => {
     );
     await vi.waitFor(() => expect(afterSwitch).toHaveBeenCalled());
 
-    // Two requests: listComment then fetchComment — the stale cache was cleared.
     expect(mockRequest).toHaveBeenCalledTimes(2);
     expect(afterSwitch.mock.calls.at(-1)?.[0]).toMatchObject({ status: 0, content: "world" });
   });
@@ -1052,7 +1021,6 @@ describe("start — initGist clears cachedComments when token changes", () => {
       status: 1,
       content: "Please call initGist first!",
     });
-    // No extra request was issued: only the still-pending initGist lookup.
     expect(mockRequest).toHaveBeenCalledTimes(1);
 
     resolveGist(

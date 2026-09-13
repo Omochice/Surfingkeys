@@ -6,8 +6,6 @@ import type { EngineEnv } from "./engineEnv";
 import KeyboardUtils from "./keyboardUtils";
 import createVisual from "./visual";
 
-// ─── helpers ─────────────────────────────────────────────────────────────────
-
 // visual reaches the seam only via RUNTIME (find-history update); the rest are inert stubs.
 function makeEnv(): EngineEnv {
   return {
@@ -31,7 +29,6 @@ function makeHints() {
   };
 }
 
-/** Dispatch an event directly to the mode's registered listener. */
 function fireEvent(
   mode: ReturnType<typeof createVisual>,
   name: string,
@@ -49,7 +46,6 @@ function fireEvent(
   return evt;
 }
 
-// Captured `surfingkeys:front` event payloads for assertion.
 function captureEvents(target: EventTarget): { detail: unknown }[] {
   const captured: { detail: unknown }[] = [];
   target.addEventListener("surfingkeys:front", (e) => {
@@ -58,16 +54,12 @@ function captureEvents(target: EventTarget): { detail: unknown }[] {
   return captured;
 }
 
-// ─── construction & name ─────────────────────────────────────────────────────
-
 describe("createVisual — mode identity", () => {
   it("creates a mode named 'Visual'", () => {
     const visual = createVisual(makeClipboard(), makeHints(), makeEnv());
     expect(visual.name).toBe("Visual");
   });
 });
-
-// ─── mapping registrations ────────────────────────────────────────────────────
 
 describe("createVisual — mapping registrations", () => {
   const singleKeys = [
@@ -133,15 +125,10 @@ describe("createVisual — mapping registrations", () => {
   });
 });
 
-// ─── self.style ───────────────────────────────────────────────────────────────
-
-// ─── self.emptySelection ──────────────────────────────────────────────────────
-
 describe("createVisual — emptySelection()", () => {
   it("collapses any existing selection", () => {
     const visual = createVisual(makeClipboard(), makeHints(), makeEnv());
 
-    // Put something in the document so we can form a selection.
     const p = document.createElement("p");
     p.textContent = "hello world";
     document.body.appendChild(p);
@@ -152,7 +139,6 @@ describe("createVisual — emptySelection()", () => {
     sel.removeAllRanges();
     sel.addRange(range);
 
-    // Before: selection has content.
     expect(sel.toString()).toBe("hello world");
 
     visual.emptySelection();
@@ -163,8 +149,6 @@ describe("createVisual — emptySelection()", () => {
   });
 });
 
-// ─── state line via onEnter / incState / onStateChange ─────────────────────
-
 describe("createVisual — statusLine reflects state transitions", () => {
   afterEach(() => {
     document.body.replaceChildren();
@@ -172,9 +156,6 @@ describe("createVisual — statusLine reflects state transitions", () => {
 
   it("starts with an empty statusLine (state=0)", () => {
     const visual = createVisual(makeClipboard(), makeHints(), makeEnv());
-    // Before enter(), the statusLine is whatever Mode constructed it as.
-    // We exercise onStateChange by triggering onEnter (which calls incState).
-    // state=0 -> after enter -> state=1, statusLine == "Visual - Caret"
     visual.onEnter!();
     expect(visual.statusLine).toBe("Visual - Caret");
   });
@@ -195,8 +176,6 @@ describe("createVisual — statusLine reflects state transitions", () => {
     expect(visual.statusLine).toBe("Visual - ");
   });
 });
-
-// ─── self.visualClear ─────────────────────────────────────────────────────────
 
 describe("createVisual — visualClear()", () => {
   afterEach(() => {
@@ -220,8 +199,6 @@ describe("createVisual — visualClear()", () => {
   });
 });
 
-// ─── self.visualEnter ─────────────────────────────────────────────────────────
-
 describe("createVisual — visualEnter()", () => {
   afterEach(() => {
     document.body.replaceChildren();
@@ -229,8 +206,6 @@ describe("createVisual — visualEnter()", () => {
 
   it("returns early without entering the mode for an empty query", () => {
     const visual = createVisual(makeClipboard(), makeHints(), makeEnv());
-    // Entering a fresh visual and then calling visualEnter with "" should not
-    // change state (the mode should stay unentered).
     const enterSpy = vi.spyOn(visual, "enter");
 
     visual.visualEnter("");
@@ -275,8 +250,6 @@ describe("createVisual — visualEnter()", () => {
   });
 });
 
-// ─── self.next ────────────────────────────────────────────────────────────────
-
 describe("createVisual — next()", () => {
   let savedLastQuery: string;
 
@@ -290,8 +263,6 @@ describe("createVisual — next()", () => {
   });
 
   it("when no matches and lastQuery is set, dispatches 'Pattern not found' via visualEnter", () => {
-    // next() falls through to visualEnter(lastQuery) when matches is empty.
-    // visualEnter dispatches a 'Pattern not found' status when highlight finds nothing.
     conf.lastQuery = "xyzzy_absent";
     document.body.textContent = "unrelated content";
     const visual = createVisual(makeClipboard(), makeHints(), makeEnv());
@@ -320,8 +291,6 @@ describe("createVisual — next()", () => {
     );
   });
 });
-
-// ─── self.visualEnter / next — query compilation ──────────────────────────────
 
 // jsdom has no layout engine, so highlight()'s match pipeline finds nothing by
 // default: getTextNodes rejects nodes without an offsetParent or a sized bounding
@@ -449,15 +418,12 @@ describe("createVisual — next() repeats an invalid regex query", () => {
   });
 });
 
-// ─── self.findSentenceOf ──────────────────────────────────────────────────────
-
 describe("createVisual — findSentenceOf()", () => {
   afterEach(() => {
     document.body.replaceChildren();
   });
 
   it("returns an empty string when the query word is not visible in the document", () => {
-    // No element in document contains 'xyzzy_nonexistent'.
     document.body.textContent = "completely different content here";
     const visual = createVisual(makeClipboard(), makeHints(), makeEnv());
 
@@ -467,8 +433,6 @@ describe("createVisual — findSentenceOf()", () => {
   });
 });
 
-// ─── self.toggle — state transitions ─────────────────────────────────────────
-
 describe("createVisual — toggle() state transitions", () => {
   afterEach(() => {
     document.body.replaceChildren();
@@ -477,20 +441,16 @@ describe("createVisual — toggle() state transitions", () => {
   it("in state=0 (default) calls hints.create with textAnchorPat", () => {
     const hints = makeHints();
     const visual = createVisual(makeClipboard(), hints, makeEnv());
-    // State is 0 after construction; toggle() should fall into the default branch.
     visual.toggle();
 
     expect(hints.create).toHaveBeenCalledOnce();
-    // First argument should be conf.textAnchorPat.
     expect(hints.create.mock.calls[0]?.[0]).toBe(conf.textAnchorPat);
   });
 
   it("in state=1 (Caret) extends selection anchor and increments state to 2", () => {
     const visual = createVisual(makeClipboard(), makeHints(), makeEnv());
 
-    // Advance to state=1 by calling onEnter once.
     visual.onEnter!();
-    // statusLine should now be "Visual - Caret".
     expect(visual.statusLine).toBe("Visual - Caret");
 
     // Place a real selection so selection.extend doesn't throw.
@@ -502,14 +462,12 @@ describe("createVisual — toggle() state transitions", () => {
 
     visual.toggle();
 
-    // After toggle() from state=1, incState() is called: state becomes 2.
     expect(visual.statusLine).toBe("Visual - Range");
   });
 
   it("in state=2 (Range) exits the mode and wraps state back to 0", () => {
     const visual = createVisual(makeClipboard(), makeHints(), makeEnv());
 
-    // Advance to state=2.
     visual.onEnter!();
     visual.onEnter!();
     expect(visual.statusLine).toBe("Visual - Range");
@@ -522,12 +480,9 @@ describe("createVisual — toggle() state transitions", () => {
 
     visual.toggle();
 
-    // After toggle() from state=2, state becomes 0.
     expect(visual.statusLine).toBe("Visual - ");
   });
 });
-
-// ─── keydown handler — visualf branch ────────────────────────────────────────
 
 describe("createVisual — keydown: 'f' sets visualf=1 and updates statusLine", () => {
   it("the 'f' mapping sets statusLine to include '- forward'", () => {
@@ -535,7 +490,6 @@ describe("createVisual — keydown: 'f' sets visualf=1 and updates statusLine", 
     visual.onEnter!(); // state=1
     expect(visual.statusLine).toBe("Visual - Caret");
 
-    // Trigger the 'f' mapping code directly via the trie.
     const fNode = visual.mappings.find("f");
     fNode?.meta?.code?.();
 
@@ -553,8 +507,6 @@ describe("createVisual — keydown: 'f' sets visualf=1 and updates statusLine", 
   });
 });
 
-// ─── keydown handler — <Esc> when state > 1 ──────────────────────────────────
-
 describe("createVisual — keydown: <Esc> when state <= 1 calls visualClear and exit", () => {
   afterEach(() => {
     document.body.replaceChildren();
@@ -565,7 +517,6 @@ describe("createVisual — keydown: <Esc> when state <= 1 calls visualClear and 
     visual.onEnter!(); // state=1
     const clearSpy = vi.spyOn(visual, "visualClear");
 
-    // Simulate an <Esc> keydown event.
     const escKey = KeyboardUtils.encodeKeystroke("<Esc>");
     fireEvent(visual, "keydown", { sk_keyName: escKey });
 
@@ -574,8 +525,6 @@ describe("createVisual — keydown: <Esc> when state <= 1 calls visualClear and 
     expect(clearSpy).toHaveBeenCalled();
   });
 });
-
-// ─── getCursorPixelPos ────────────────────────────────────────────────────────
 
 describe("createVisual — getCursorPixelPos()", () => {
   it("returns a DOMRect (all zeros in jsdom since cursor is not in DOM)", () => {
@@ -589,8 +538,6 @@ describe("createVisual — getCursorPixelPos()", () => {
   });
 });
 
-// ─── onExit calls visualClear ─────────────────────────────────────────────────
-
 describe("createVisual — onExit()", () => {
   it("onExit calls visualClear", () => {
     const visual = createVisual(makeClipboard(), makeHints(), makeEnv());
@@ -601,8 +548,6 @@ describe("createVisual — onExit()", () => {
     expect(clearSpy).toHaveBeenCalledOnce();
   });
 });
-
-// ─── restore ─────────────────────────────────────────────────────────────────
 
 describe("createVisual — restore()", () => {
   afterEach(() => {
@@ -636,15 +581,12 @@ describe("createVisual — restore()", () => {
   });
 });
 
-// ─── 'y' mapping registered per-state ────────────────────────────────────────
-
 describe("createVisual — 'y' mapping is registered after state change", () => {
   it("'y' has no code in the initial state=0 (yankFunctions[0] is empty)", () => {
     const visual = createVisual(makeClipboard(), makeHints(), makeEnv());
     // In state=0, yankFunctions[0] = {} which has no code. The mapping may
     // exist but code should be undefined.
     const yNode = visual.mappings.find("y");
-    // The mapping is added with an empty object, so meta.code is undefined.
     expect(yNode?.meta?.code).toBeUndefined();
   });
 
@@ -674,7 +616,6 @@ describe("createVisual — 'y' mapping is registered after state change", () => 
     const yNode = visual.mappings.find("y");
     expect(yNode?.meta?.code).toBeTypeOf("function");
 
-    // Invoke the yank code.
     yNode?.meta?.code?.();
 
     expect(clipboard.write).toHaveBeenCalledOnce();
@@ -683,8 +624,6 @@ describe("createVisual — 'y' mapping is registered after state change", () => 
     document.body.replaceChildren();
   });
 });
-
-// ─── 'o' swap-ends mapping ───────────────────────────────────────────────────
 
 describe("createVisual — 'o' mapping swaps anchor and focus", () => {
   afterEach(() => {
@@ -700,7 +639,6 @@ describe("createVisual — 'o' mapping swaps anchor and focus", () => {
 
     const textNode = p.firstChild as Text;
     const sel = document.getSelection()!;
-    // anchor at offset 0, focus at offset 4.
     sel.setBaseAndExtent(textNode, 0, textNode, 4);
 
     expect(sel.anchorOffset).toBe(0);
@@ -709,14 +647,10 @@ describe("createVisual — 'o' mapping swaps anchor and focus", () => {
     const oNode = visual.mappings.find("o");
     oNode?.meta?.code?.();
 
-    // After 'o', the former anchor (0) becomes the focus and the former focus (4)
-    // becomes the anchor.
     expect(sel.anchorOffset).toBe(4);
     expect(sel.focusOffset).toBe(0);
   });
 });
-
-// ─── 'y' yank modeAfterYank branches (state=2 "Copy selected text") ───────────
 
 describe("createVisual — 'y' yank honours modeAfterYank", () => {
   let savedMode: string;
@@ -752,7 +686,6 @@ describe("createVisual — 'y' yank honours modeAfterYank", () => {
     visual.mappings.find("y")?.meta?.code?.();
 
     expect(clipboard.write).toHaveBeenCalledWith("yank me");
-    // modeAfterYank "Caret" → state=1, onStateChange refreshes the status line.
     expect(visual.statusLine).toBe("Visual - Caret");
   });
 
@@ -768,12 +701,9 @@ describe("createVisual — 'y' yank honours modeAfterYank", () => {
     visual.mappings.find("y")?.meta?.code?.();
 
     expect(clipboard.write).toHaveBeenCalledWith("take this");
-    // modeAfterYank "Normal" → state=2 then self.toggle(); toggle's case 2 exits.
     expect(exitSpy).toHaveBeenCalled();
   });
 });
-
-// ─── keydown handler — visualf seek / Esc arms ───────────────────────────────
 
 describe("createVisual — keydown while visualf is active", () => {
   afterEach(() => {
@@ -815,7 +745,6 @@ describe("createVisual — keydown while visualf is active", () => {
     const escKey = KeyboardUtils.encodeKeystroke("<Esc>");
     const event = fireEvent(visual, "keydown", { sk_keyName: escKey });
 
-    // Esc takes the exitf arm (no seek) and resets the status line back to Caret.
     expect(visual.statusLine).toBe("Visual - Caret");
     expect((event as any).sk_suppressed).toBe(true);
   });

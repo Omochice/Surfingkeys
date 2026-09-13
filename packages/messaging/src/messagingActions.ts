@@ -32,7 +32,6 @@ function tabOpenLink(str: string | string[] | NodeList, simultaneousness: number
       "showDialog",
       `Do you really want to open all these ${urls.length} links?`,
       () => {
-        // open the first batch links immediately
         urls.slice(0, simultaneousness).forEach((url) => {
           RUNTIME("openLink", {
             tab: {
@@ -41,7 +40,6 @@ function tabOpenLink(str: string | string[] | NodeList, simultaneousness: number
             url: url,
           });
         });
-        // queue the left for later opening when there is one tab closed.
         RUNTIME("queueURLs", {
           urls: urls.slice(simultaneousness),
         });

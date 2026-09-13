@@ -4,9 +4,8 @@ import { httpError, type HttpError } from "@sk/common/result";
 const CHARSET_RE = /(?:charset|encoding)\s*=\s*['"]? *([\w-]+)/i;
 
 /**
- * Thrown when a response arrives with a non-2xx status. `fetch` only rejects on network failures,
- * so this marker lets the `catch` arm distinguish an HTTP error and forward its status to
- * `httpError`.
+ * `fetch` only rejects on network failures, so a non-2xx status is thrown as this marker for the
+ * `catch` arm to recognize and forward.
  */
 class HttpStatusError extends Error {
   constructor(readonly status: number) {
@@ -17,12 +16,7 @@ class HttpStatusError extends Error {
 
 /**
  * Fetches a URL and decodes the body using the charset advertised in its `content-type` header
- * (falling back to UTF-8). Shared by the settings storage (snippet loading), the `request` message
- * handler, and the Gist closure, so it lives in its own module rather than inside any one concern.
- *
- * @param url - The URL to fetch.
- * @param headers - Optional request headers.
- * @param data - Optional request body; its presence switches the method to POST.
+ * (falling back to UTF-8). Passing `data` switches the method to POST.
  */
 export function request(
   url: string,

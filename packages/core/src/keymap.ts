@@ -6,10 +6,7 @@ import { isSpecialKeyOf } from "./specialKeys";
 import type Trie from "./trie";
 import type { TrieMeta } from "./trie";
 
-/**
- * Structural key event — satisfied by real Events via the globals.d.ts augmentation, and by bare
- * object literals in tests.
- */
+/** Structural key event, satisfied by real Events and by bare object literals alike. */
 export type KeyEventLike = {
   readonly isTrusted: boolean;
   sk_keyName?: string | undefined;
@@ -19,14 +16,11 @@ export type KeyEventLike = {
 
 export type KeymapOptions = {
   /**
-   * Opt in to vim-style numeric repeat prefixes. Only Normal and Visual count digits; with the
-   * option unset `repeats` stays undefined and digits are looked up as ordinary keys.
+   * Opt in to vim-style numeric repeat prefixes; unset, `repeats` stays undefined and digits are
+   * looked up as ordinary keys.
    */
   enableRepeats?: boolean;
-  /**
-   * Invoked when a complete mapping executes (or when a pending mapping receives its argument key),
-   * with the matched node's meta so callers can read flags such as `repeatIgnore`.
-   */
+  /** Invoked when a mapping completes, or when a pending mapping receives its argument key. */
   onKeysExecuted?: (keys: string, meta: TrieMeta) => void;
 };
 
@@ -42,9 +36,8 @@ export type Keymap = {
   /** Reset the sequence/pending/repeat state, telling the front to hide the keystroke hint. */
   finish(): boolean;
   /**
-   * Silently discard the in-flight state (cursor, pending argument mapping, repeat digits) for when
-   * the owning controller replaces its root trie wholesale (api.ts unmapAllExcept). Unlike
-   * {@link finish} it never notifies the front (no hideKeystroke).
+   * Silently discard the in-flight state (cursor, pending argument mapping, repeat digits). Unlike
+   * {@link finish} it never notifies the front.
    */
   reset(): void;
 };
@@ -55,15 +48,11 @@ function callStopPropagation(meta: TrieMeta, key: string): boolean {
     : !!meta.stopPropagation;
 }
 
-/**
- * Create the key-mapping state machine formerly carried by Mode's optional slots and the static
- * handleMapKey/finish. The root trie stays owned by the caller and is read through `getRoot`, so
- * replacing the root (api.ts unmapAllExcept) cannot desynchronize the keymap.
- */
+/** Create the key-mapping state machine over the root trie read through `getRoot`. */
 export function createKeymap(getRoot: () => Trie, opts?: KeymapOptions): Keymap {
   // null means "parked on the root". The root is re-read through getRoot on demand (never
-  // captured), so the keymap can be created before the controller that owns the trie is
-  // fully assembled, and a wholesale root replacement is picked up transparently.
+  // captured), so the keymap can be created before the controller that owns the trie is fully
+  // assembled, and a wholesale root replacement is picked up transparently.
   let currentNode: Trie | null = null;
   let repeats: string | undefined = opts?.enableRepeats ? "" : undefined;
   let pendingMap: ((key: string) => void) | null = null;
@@ -112,7 +101,7 @@ export function createKeymap(getRoot: () => Trie, opts?: KeymapOptions): Keymap 
       key <= "9" &&
       getRoot().getWords().length > 0
     ) {
-      // reset only after target action executed or cancelled
+      // The digits are cleared only once the target action has run or been cancelled.
       repeats += key;
       isTrustedEvent && dispatchSKEvent("front", ["showKeystroke", key, keymap]);
       event.sk_stopPropagation = true;

@@ -1,16 +1,10 @@
 import type { LogLevel, LogSink } from "./logger";
 
-/** The shape an argument must have to be reported as an exception. */
 type ErrorLike = { name: string; message: string; stack?: string };
 
 /**
- * Whether a log argument is reported as an exception.
- *
  * Checked by shape rather than with Error.isError: an error that crossed a serialisation boundary
  * arrives as plain fields, not as an Error.
- *
- * @param value - One argument of a log record.
- * @returns Whether the value carries the name and message of an error.
  */
 function isErrorLike(value: unknown): value is ErrorLike {
   return (
@@ -23,7 +17,7 @@ function isErrorLike(value: unknown): value is ErrorLike {
   );
 }
 
-/** Configuration of an OTLP sink: the collector to reach and what identifies this process. */
+/** Configuration of an OTLP sink. */
 type OtlpSinkOptions = {
   /** Collector base URL, without the signal path; "/v1/logs" is appended. */
   url: string;
@@ -31,23 +25,19 @@ type OtlpSinkOptions = {
   resourceAttributes?: Record<string, string>;
 };
 
-/** An OTLP attribute value. Only the string form is produced here. */
 type OtlpAttribute = { key: string; value: { stringValue: string } };
 
-/** Severity number and text OTLP expects, keyed by the console-shaped level. */
 const SEVERITY: Record<LogLevel, { number: number; text: string }> = {
   log: { number: 9, text: "INFO" },
   warn: { number: 13, text: "WARN" },
   error: { number: 17, text: "ERROR" },
 };
 
-/** Attribute naming this codebase as the emitting service, per OTLP semantic conventions. */
 const SERVICE_NAME = "surfingkeys";
 
-/** Record attribute repeated from the resource so a record identifies its emitting context. */
+/** Repeated from the resource so a record identifies its emitting context on its own. */
 const CONTEXT_KEY = "sk.context";
 
-/** Renders one argument the way the console would display it. */
 function renderArg(arg: unknown): string {
   if (typeof arg === "string") return arg;
   if (isErrorLike(arg)) return arg.message;
@@ -63,7 +53,6 @@ function renderArg(arg: unknown): string {
   return String(arg);
 }
 
-/** Builds the string attribute list OTLP expects from a plain record. */
 function toAttributes(entries: Record<string, string>): OtlpAttribute[] {
   return Object.entries(entries).map(([key, value]) => ({ key, value: { stringValue: value } }));
 }
@@ -77,9 +66,6 @@ function toAttributes(entries: Record<string, string>): OtlpAttribute[] {
  * Delivery is fire-and-forget and every failure is swallowed, so a collector that is not running
  * costs nothing more than a failed request: the sink never throws and never leaves an unhandled
  * rejection behind.
- *
- * @param options - Collector URL and the resource attributes identifying this process.
- * @returns A sink usable in a logger's `sinks` list.
  */
 function otlpSink(options: OtlpSinkOptions): LogSink {
   const resourceAttributes = options.resourceAttributes ?? {};

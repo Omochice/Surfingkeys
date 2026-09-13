@@ -1,19 +1,7 @@
 import { runtime } from "@sk/messaging/runtime";
-/**
- * Tests for createFront: the factory that wires up the content-script ↔ frontend communication
- * layer.
- *
- * Isolation strategy: because createFront registers a capturing window "message" listener that
- * calls stopImmediatePropagation() for non-dictorium messages, each call to createFront would block
- * subsequent listeners registered by later tests. To isolate each test we spy on
- * window.addEventListener before calling createFront so we can capture the handler directly and
- * invoke it in-process, bypassing the stacking problem.
- */
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import createFront from "./front";
-
-// Mock the uiframe module so createUiHost never touches the real DOM or iframe.
 
 vi.mock("./uiframe", () => ({
   default: vi.fn(),
@@ -61,10 +49,6 @@ function makeBrowser() {
   return {};
 }
 
-// Capture the window "message" handler that createFront registers.
-// front.ts registers its listener with `true` as the third argument (the
-// capture flag), so we spy on addEventListener to intercept exactly that call.
-
 type MessageHandlerFn = (event: MessageEvent) => void;
 
 function captureMessageHandler(): {
@@ -91,10 +75,9 @@ function captureMessageHandler(): {
   };
 }
 
-// Capture the document "surfingkeys:front" listener that createFront registers
-// via initSKFunctionListener. The detail array is mutated by args.shift()
-// inside the listener, so dispatching to all stacked listeners would corrupt
-// later ones. Capturing it lets us call it directly, in isolation.
+// The detail array is mutated by args.shift() inside the listener, so dispatching
+// to all stacked listeners would corrupt later ones. Capturing it lets us call it
+// directly, in isolation.
 
 type SKFrontHandlerFn = (event: CustomEvent) => void;
 
@@ -118,12 +101,10 @@ function captureFrontSKHandler(): {
   };
 }
 
-/** Invoke a captured surfingkeys:front handler with the given args, bypassing stacking. */
 function invokeFrontSK(handler: SKFrontHandlerFn, args: unknown[]): void {
   handler(new CustomEvent("surfingkeys:front", { detail: args }));
 }
 
-/** Build a fake MessageEvent wrapping surfingkeys_content_data. */
 function makeContentEvent(
   payload: Record<string, unknown>,
   overrides: Partial<MessageEventInit> = {},
@@ -221,8 +202,6 @@ describe("createFront window message handler — action dispatch", () => {
 
       expect(visual.visualUpdate).toHaveBeenCalledWith("search");
     } finally {
-      // Restore real timers even if an assertion throws, so a failure here does
-      // not leak fake timers into sibling tests.
       vi.useRealTimers();
     }
   });
@@ -255,12 +234,10 @@ describe("createFront window message handler — action dispatch", () => {
     restore();
     const messageHandler = handler()!;
 
-    // Deactivate: subsequent actions should NOT reach visual.
     messageHandler(makeContentEvent({ action: "deactivated" }));
     messageHandler(makeContentEvent({ action: "visualClear" }));
     expect(visual.visualClear).not.toHaveBeenCalled();
 
-    // Re-activate via the special inactive-path for "activated".
     messageHandler(makeContentEvent({ action: "activated" }));
     messageHandler(makeContentEvent({ action: "visualClear" }));
     expect(visual.visualClear).toHaveBeenCalledOnce();
@@ -340,8 +317,6 @@ describe("createFront getSearchSuggestions — non-function listSuggestion dispa
 
 describe("createFront actions[dialogResponse] — triggers onDialogResponseOk callback", () => {
   it("calls onDialogResponseOk when result is Ok", () => {
-    // Capture both the window message handler and the surfingkeys:front SK handler
-    // so that dispatching to them is direct and isolated from prior instances.
     const { handler: msgHandler, restore: restoreMsg } = captureMessageHandler();
     const { handler: skHandler, restore: restoreSK } = captureFrontSKHandler();
     createFront(makeInsert(), makeNormal(), null, makeVisual(), makeBrowser());
@@ -351,7 +326,6 @@ describe("createFront actions[dialogResponse] — triggers onDialogResponseOk ca
     const frontHandler = skHandler()!;
 
     const onOk = vi.fn();
-    // showDialog is wired via initSKFunctionListener "front" channel.
     invokeFrontSK(frontHandler, ["showDialog", "Are you sure?", onOk]);
 
     messageHandler(makeContentEvent({ action: "dialogResponse", result: "Ok" }));
@@ -447,9 +421,6 @@ describe("createFront openOmnibar", () => {
 
     front.openOmnibar({ type: "OmniQuery", extra: "search term", style: "" });
 
-    // openOmnibar -> self.command({action:"openOmnibar",...})
-    // self.command sees frontendPromise==undefined, action!="hideKeystroke",
-    // body!=null, so it calls newFrontEnd() which calls createUiHost.
     expect(mockCreateUiHost).toHaveBeenCalledOnce();
   });
 });
@@ -464,9 +435,7 @@ describe("createFront showUsage / getAllAnnotations — includes lurk mode trie"
 
     front.showUsage();
 
-    // getLurkMode was called during getAllAnnotations.
     expect(normal.getLurkMode).toHaveBeenCalled();
-    // The showUsage action triggered newFrontEnd (createUiHost invoked once).
     expect(mockCreateUiHost).toHaveBeenCalled();
   });
 });
@@ -490,8 +459,6 @@ describe("createFront SKEvent front channel — hideKeystroke / showKeystroke", 
     };
     invokeFrontSK(frontHandler, ["showKeystroke", "x", mockMode]);
 
-    // showKeystroke calls self.command({action:"showKeystroke",...}), which
-    // triggers newFrontEnd (createUiHost) on first use.
     expect(mockCreateUiHost).toHaveBeenCalled();
   });
 });
@@ -539,8 +506,6 @@ describe("createFront runtime.on focusFrame — highlights when frameId matches"
     createFront(makeInsert(), makeNormal(), null, makeVisual(), makeBrowser());
 
     const focusFrameHandler = capturedHandlers["focusFrame"];
-    // Fail loudly if the focusFrame handler was never registered, rather than
-    // silently passing the test on missing wiring.
     expect(focusFrameHandler).toBeDefined();
 
     // jsdom does not implement scrollIntoView — stub it.
@@ -549,7 +514,6 @@ describe("createFront runtime.on focusFrame — highlights when frameId matches"
     (window as any).frameId = "frame-42";
     focusFrameHandler!({ frameId: "frame-42" }, undefined, () => {});
 
-    // The handler appends the sk_frame div to documentElement.
     const frameEl = document.getElementById("sk_frame");
     expect(frameEl).not.toBeNull();
   });
@@ -563,11 +527,9 @@ describe("createFront window message handler — DictoriumViewReady activates wh
     restore();
     const messageHandler = handler()!;
 
-    // Deactivate first.
     messageHandler(makeContentEvent({ action: "deactivated" }));
     expect(visual.visualClear).not.toHaveBeenCalled();
 
-    // Send a DictoriumViewReady message (uses dictorium_data key).
     messageHandler(
       new MessageEvent("message", {
         data: { dictorium_data: { type: "DictoriumViewReady" } },
@@ -575,7 +537,6 @@ describe("createFront window message handler — DictoriumViewReady activates wh
       }),
     );
 
-    // After DictoriumViewReady, frontActive should be true again.
     messageHandler(makeContentEvent({ action: "visualClear" }));
     expect(visual.visualClear).toHaveBeenCalledOnce();
   });
@@ -616,7 +577,6 @@ describe("createFront window message handler — stopImmediatePropagation behavi
 
     messageHandler(dictEvent);
 
-    // dictorium_data is present so stopImmediatePropagation must NOT be called.
     expect(stopSpy).not.toHaveBeenCalled();
   });
 
@@ -646,17 +606,10 @@ describe("createFront removeSearchAlias — queues applyUICommand for removeSear
 
     const front = createFront(makeInsert(), makeNormal(), null, makeVisual(), makeBrowser());
 
-    // Before frontend is loaded no createUiHost call has happened yet; the
-    // command is buffered in uiUserSettings. Calling removeSearchAlias must
-    // not throw and must NOT trigger newFrontEnd (no createUiHost call).
     expect(() => {
       front.removeSearchAlias("g");
     }).not.toThrow();
 
-    // uiUserSettings is a private closure; its effect is observable only
-    // after the frontend resolves. We verify that the alias is queued by
-    // triggering newFrontEnd and confirming createUiHost was invoked — that
-    // path confirms applyUICommand ran without error.
     expect(mockCreateUiHost).not.toHaveBeenCalled();
   });
 });
@@ -685,7 +638,6 @@ describe("createFront executeCommand — triggers newFrontEnd", () => {
 
     front.executeCommand("tabNext");
 
-    // executeCommand -> self.command({action:'executeCommand',...}) -> newFrontEnd()
     expect(mockCreateUiHost).toHaveBeenCalledOnce();
   });
 });
@@ -699,7 +651,6 @@ describe("createFront getUsage — builds annotations and delivers via newFrontE
     const cb = vi.fn();
     front.getUsage(cb);
 
-    // getUsage -> self.command({action:'getUsage',...}, callback) -> newFrontEnd()
     expect(mockCreateUiHost).toHaveBeenCalledOnce();
   });
 });
@@ -759,10 +710,10 @@ describe("createFront addSearchAlias — without suggestionURL skips listSuggest
     restore();
     const messageHandler = handler()!;
 
-    // Register alias without suggestionURL: no entry added to listSuggestions.
     front.addSearchAlias("d", "DuckDuckGo", "https://duckduckgo.com/?q=");
 
-    // A getSearchSuggestions message for any url must return null (no handler).
+    // The sentinel alias is the only registered listSuggestion fn, so a call to it
+    // would mean the "d" url resolved to some handler rather than to none.
     const suggestionFn = vi.fn();
     front.addSearchAlias(
       "sentinel",
@@ -772,8 +723,6 @@ describe("createFront addSearchAlias — without suggestionURL skips listSuggest
       suggestionFn,
     );
 
-    // Fire getSearchSuggestions for the no-suggestionURL alias: the listSuggestion
-    // fn for "d" should never be registered, so this must NOT call suggestionFn.
     messageHandler(
       makeContentEvent({
         action: "getSearchSuggestions",
@@ -800,12 +749,10 @@ describe("createFront window message — frontendDestroyed resets frontend", () 
     restore();
     const messageHandler = handler()!;
 
-    // Trigger newFrontEnd by sending a command action.
     mockCreateUiHost.mockClear();
     front.executeCommand("tabNext");
     expect(mockCreateUiHost).toHaveBeenCalledOnce();
 
-    // Simulate the frontend iframe being destroyed.
     mockCreateUiHost.mockClear();
     messageHandler(
       new MessageEvent("message", {
@@ -814,8 +761,6 @@ describe("createFront window message — frontendDestroyed resets frontend", () 
       }),
     );
 
-    // frontendDestroyed cleared frontendPromise, so the next executeCommand must
-    // build the host again (proving the reset, not merely that it did not throw).
     front.executeCommand("tabNext2");
     expect(mockCreateUiHost).toHaveBeenCalledOnce();
   });
@@ -832,7 +777,6 @@ describe("createFront self.attach — calls showModeStatus", () => {
       front.attach();
     }).not.toThrow();
 
-    // attach() calls newFrontEnd() when frontendPromise is undefined.
     expect(mockCreateUiHost).toHaveBeenCalledOnce();
   });
 
@@ -842,10 +786,10 @@ describe("createFront self.attach — calls showModeStatus", () => {
 
     const front = createFront(makeInsert(), makeNormal(), null, makeVisual(), makeBrowser());
 
-    front.attach(); // creates frontend
+    front.attach();
     const firstCount = mockCreateUiHost.mock.calls.length;
 
-    front.attach(); // frontend already exists — must NOT recreate
+    front.attach();
     expect(mockCreateUiHost.mock.calls.length).toBe(firstCount);
   });
 });
@@ -860,20 +804,18 @@ describe("createFront self.detach — schedules tryDetach on the uiHost", () => 
     const tryDetach = vi.fn();
     const mockCreateUiHost = createUiHost as ReturnType<typeof vi.fn>;
     mockCreateUiHost.mockClear();
-    // Make createUiHost resolve immediately with a fake uiHost.
     mockCreateUiHost.mockImplementation((_browser: any, cb: (res: any) => void) => {
       cb({ tryDetach });
     });
 
     const front = createFront(makeInsert(), makeNormal(), null, makeVisual(), makeBrowser());
-    front.attach(); // creates frontendPromise
+    front.attach();
 
-    front.detach(); // schedules tryDetach after 3000 ms
+    front.detach();
     await vi.runAllTimersAsync();
 
     expect(tryDetach).toHaveBeenCalledOnce();
 
-    // Restore mock.
     mockCreateUiHost.mockReset();
   });
 });
@@ -899,8 +841,8 @@ describe("createFront self.attach — cancels pending detach timer", () => {
     // Flush microtasks so the .then callback fires and uiHostDetaching is set
     // before attach() runs, which clears it.
     front.detach();
-    await Promise.resolve(); // flush microtask queue so setTimeout is scheduled
-    front.attach(); // clears uiHostDetaching before the 3000 ms fires
+    await Promise.resolve();
+    front.attach();
 
     await vi.runAllTimersAsync();
 
@@ -917,7 +859,6 @@ describe("createFront actions[getSearchSuggestions] — non-function dispatches 
     restoreMsg();
     const messageHandler = msgHandler()!;
 
-    // Register a non-function listSuggestion.
     front.addSearchAlias(
       "z",
       "Zeta",
@@ -926,7 +867,6 @@ describe("createFront actions[getSearchSuggestions] — non-function dispatches 
       { notAFunction: true } as any,
     );
 
-    // Capture the surfingkeys:user event dispatched by the non-function path.
     const captured: unknown[][] = [];
     const userListener = (e: Event) => {
       captured.push((e as CustomEvent).detail as unknown[]);
@@ -948,7 +888,6 @@ describe("createFront actions[getSearchSuggestions] — non-function dispatches 
     // The non-function branch dispatches: ["getSearchSuggestions", url, response, ctx, callbackId]
     const evt = captured.find((d) => d[0] === "getSearchSuggestions");
     expect(evt).toBeDefined();
-    // callbackId is the 5th element and must be a non-empty string (a guid).
     expect(typeof evt![4]).toBe("string");
     expect((evt![4] as string).length).toBeGreaterThan(0);
   });

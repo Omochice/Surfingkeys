@@ -6,10 +6,7 @@ describe("hasScroll", () => {
   it("returns false for an element with scrollTop=0 and no effective scroll", () => {
     const el = document.createElement("div");
     document.body.appendChild(el);
-    // jsdom elements have no real layout; scrollTop=0 and getBoundingClientRect returns 0.
-    // result < barSize branch: sets scroll to getBoundingClientRect height (0), reads back 0.
-    // 0 !== 0 is false → the scroll-suppression counter is not incremented.
-    // result (0) >= barSize (16) → false.
+    // jsdom elements have no layout, so both scrollTop and the bounding rect are 0.
     expect(hasScroll(el, "y", 16)).toBe(false);
     document.body.innerHTML = "";
   });
@@ -25,7 +22,7 @@ describe("hasScroll", () => {
   it("checks horizontal scroll (x direction) — returns false when scrollLeft is 0", () => {
     const el = document.createElement("div");
     document.body.appendChild(el);
-    // scrollLeft = 0 < 16 (barSize), getBoundingClientRect().width = 0 → no change → false.
+    // jsdom elements have no layout, so both scrollLeft and the bounding rect are 0.
     expect(hasScroll(el, "x", 16)).toBe(false);
     document.body.innerHTML = "";
   });

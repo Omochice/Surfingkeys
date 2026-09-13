@@ -57,7 +57,6 @@ describe("Tabs", () => {
     expect(hintLink.get(firstHint)).toEqual({ id: 1, windowId: 7 });
     expect(hintLabel.get(secondHint)).toBe("B");
     expect(hintLink.get(secondHint)).toEqual({ id: 3, windowId: 7 });
-    // the active tab carries no hint
     expect(container.querySelectorAll("div.sk_tab.active div.sk_tab_hint").length).toBe(0);
   });
 

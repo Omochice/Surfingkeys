@@ -1,7 +1,7 @@
 import { conf } from "@sk/core/conf";
 import { getBrowserName, showPopup } from "@sk/core/utils";
 
-/** Whether the current frame is the Surfingkeys UI iframe (an extension-page child frame). */
+/** Whether the current frame is the Surfingkeys UI iframe. */
 function isInUIFrame(): boolean {
   return window !== top && document.location.href.indexOf(chrome.runtime.getURL("/")) === 0;
 }

@@ -7,7 +7,6 @@ export type SurfingkeysHost = {
   sendMouseEvent(type: number, x: number, y: number, button: number): void;
 };
 
-/** The messaging call the engine requires: send `action` to the background, optional response. */
 type RuntimeSend = <R = unknown>(
   action: string,
   args?: Record<string, unknown> | null,
@@ -16,10 +15,7 @@ type RuntimeSend = <R = unknown>(
 
 /**
  * The WebExtension-facing capabilities the content-script engine depends on, declared here so the
- * engine owns its required contract and never imports the chrome seams directly. The concrete
- * implementation is built by createEngineEnv (a seam module) and injected at the composition roots:
- * factories receive it as a constructor argument, while the module-level mode hub receives it via
- * {@link initModeHub}.
+ * engine owns its required contract and never imports the chrome seams directly.
  */
 export type EngineEnv = {
   RUNTIME: RuntimeSend;

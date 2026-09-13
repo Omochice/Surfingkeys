@@ -18,7 +18,6 @@ afterEach(() => {
   delete g.chrome.bookmarks;
 });
 
-/** A browser stub whose history search resolves a fixed list. */
 function browserWith(items: any[]) {
   return {
     getLatestHistoryItem: vi.fn().mockResolvedValue(items),

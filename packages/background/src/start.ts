@@ -13,12 +13,7 @@ import { createTabs } from "./tabs";
  * A background message handler, dispatched by `message.action`. It resolves to the response
  * payload: a returned value is sent as the synchronous response, while a returned promise is
  * awaited and its resolved value sent asynchronously (the dispatcher settles even on rejection).
- * Extracted background units export a `Record<string, MessageHandler>` map that the composition
- * root registers into the dispatch registry.
  */
-// The dispatch slot is intentionally loose: each handler narrows `message` (and
-// `sender`) for itself, and the dispatcher only inspects the returned value's
-// then-able-ness, so the registry stays callable with any handler shape.
 /* eslint-disable typescript/no-explicit-any -- heterogeneous dispatch registry: each handler narrows
    message/sender for itself and the dispatcher only checks the return's then-ableness, so the slot
    must stay callable with any handler shape (an `unknown` parameter would reject the typed handlers). */
@@ -29,11 +24,7 @@ export type MessageHandler = (
 ) => any;
 /* eslint-enable typescript/no-explicit-any */
 
-/**
- * The fixed-shape subset of settings the background keeps in memory. Settings only ever updates
- * keys already present here (the `updateSettings` loop guards with `Object.hasOwn(conf, k)`), so
- * the shape never grows beyond these five fields.
- */
+/** The fixed-shape subset of settings the background keeps in memory. */
 export type BackgroundConf = {
   focusAfterClosed?: string;
   tabsMRUOrder?: boolean;
@@ -43,9 +34,8 @@ export type BackgroundConf = {
 };
 
 /**
- * The per-browser glue the composition root injects: history search, raw settings load/save, the
- * new-tab URL, and the Firefox-only container-name handler (a no-op on Chrome). Implemented by
- * `chromeSpecifics`/`firefoxSpecifics`.
+ * The per-browser glue: history search, raw settings load, the new-tab URL, and the Firefox-only
+ * container-name handler (a no-op on Chrome).
  */
 export type BrowserAdapter = {
   detectTabTitleChange: boolean;
@@ -186,11 +176,9 @@ const Gist = (() => {
     return cachedGist;
   };
 
-  // The Gist comment helpers below always resolve, even on request failure:
-  // their consumers (`self.readComment`/`self.editComment`) hand the result
-  // straight to the dispatcher, so a rejected promise would hang the runtime
-  // sender forever. Each helper forwards the failure through a payload shaped
-  // like its success path so the sender still settles.
+  // The Gist comment helpers below always resolve, even on request failure: their result reaches
+  // the dispatcher unchanged, so a rejected promise would hang the runtime sender forever. Each
+  // forwards the failure through a payload shaped like its success path.
   async function newComment(text: string): Promise<string> {
     const r = await request(
       `https://api.github.com/gists/${cachedGist}/comments`,
@@ -280,8 +268,6 @@ const Gist = (() => {
     if (fresh !== undefined) {
       return writeComment(fresh, clip);
     }
-    // Pad the comment list with placeholders up to the requested index, then
-    // write the clip into the final new comment.
     let toCreate = nr - listed.comments.length + 1;
     while (toCreate > 1) {
       await newComment(".");
@@ -295,11 +281,7 @@ const Gist = (() => {
 
 /**
  * Boot the background: build the message-handler registry and attach it to the runtime listeners.
- *
- * @param browser - Per-browser glue; see {@link BrowserAdapter}.
- * @param extraHandlers - Further handlers, merged before the built-ins so a built-in action always
- *   wins: an extra can only claim an action the message protocol does not already define, never
- *   redirect one that exists.
+ * `extraHandlers` are merged before the built-ins, so a built-in action always wins.
  */
 function start(browser: BrowserAdapter, extraHandlers?: Record<string, MessageHandler>): void {
   const handlers: Record<string, MessageHandler> = { ...extraHandlers };
@@ -343,7 +325,6 @@ function start(browser: BrowserAdapter, extraHandlers?: Record<string, MessageHa
       );
       return true;
     }
-    // Synchronous handlers return their payload directly.
     if (envelope.output.needResponse && result) {
       sendResponse(result);
     }
@@ -351,8 +332,6 @@ function start(browser: BrowserAdapter, extraHandlers?: Record<string, MessageHa
   }
   chrome.runtime.onMessage.addListener(handleMessage);
   if (isMV3) {
-    // `fromUserScript` was written here but never read, so the message is
-    // forwarded to the shared dispatcher unchanged.
     chrome.runtime.onUserScriptMessage.addListener((m, s, r) => {
       handleMessage(m, s, r);
     });
@@ -488,13 +467,12 @@ function start(browser: BrowserAdapter, extraHandlers?: Record<string, MessageHa
   handlers["localData"] = async (message: unknown) => {
     const { data } = v.parse(localDataSchema, message);
     if (typeof data === "object" && !Array.isArray(data)) {
+      // Local rather than sync: frequently updated keys such as lastKeys would breach
+      // chrome.storage.sync.MAX_WRITE_OPERATIONS_PER_MINUTE.
       void chrome.storage.local.set(data);
-      // broadcast the change also, such as lastKeys
-      // we would set lastKeys in sync to avoid breaching chrome.storage.sync.MAX_WRITE_OPERATIONS_PER_MINUTE
       void settings.broadcastSettings(data);
       return undefined;
     }
-    // string or array of string keys
     const result = await chrome.storage.local.get(data);
     return { data: result };
   };

@@ -11,8 +11,8 @@ import Trie from "./trie";
 import { getRealEdit, isEditable, isTextInput } from "./utils";
 
 /**
- * Find the offset of the next non-word character from `cur` in `str`, scanning in direction `dir`
- * (+1 forward, -1 backward), clamped to the string bounds.
+ * Find the offset of the next non-word character from `cur`, scanning forward when `dir` is +1 and
+ * backward when it is -1.
  */
 export function nextNonWord(str: string, dir: number, cur: number): number {
   const nonWord = /\W/;
@@ -35,10 +35,7 @@ export function nextNonWord(str: string, dir: number, cur: number): number {
   return cur;
 }
 
-/**
- * Delete the word adjacent to `cur` in direction `dir`. Returns the resulting string and the cursor
- * offset after the deletion.
- */
+/** Delete the word adjacent to `cur` in direction `dir`, returning the new string and cursor offset. */
 export function deleteNextWord(str: string, dir: number, cur: number): [string, number] {
   const pos = nextNonWord(str, dir, cur);
   let s = str;
@@ -53,13 +50,8 @@ export function deleteNextWord(str: string, dir: number, cur: number): [string, 
 }
 
 /**
- * The Insert-mode controller. It wraps a private {@link ModeHandle} rather than being one, so
- * `enter` is just the element-entry method callers (normal/hints) need, with no base stack-push
- * `enter` to shadow. `eventListeners` mirrors the private handle's listener map (same reference) so
- * the keydown/focus listeners registered below stay observable; the hub dispatches through the
- * handle pushed onto the mode stack, not through this property. `mappings` and `keymap` are exposed
- * because api.ts unmapAllExcept replaces `mappings` wholesale and re-roots the keymap; `name` feeds
- * the frontend modes registry.
+ * The Insert-mode controller. It wraps a private ModeHandle rather than being one, because its
+ * `enter(elm, keepCursor)` would otherwise shadow the handle's `enter(priority, reentrant)`.
  */
 type InsertMode = {
   eventListeners: ModeHandle["eventListeners"];
@@ -92,7 +84,7 @@ function createInsert(env: EngineEnv): InsertMode {
         }
       }
     } else if (element && isEditable(element) && element.childNodes.length > 0) {
-      // for contenteditable div; childNodes is a NodeList, which has no Array#at, so use NodeList#item.
+      // childNodes is a NodeList, which has no Array#at, so use NodeList#item.
       const node = element.childNodes.item(element.childNodes.length - 1);
       if (node instanceof Text) {
         document.getSelection()!.setPosition(node, node.data.length);
@@ -108,7 +100,7 @@ function createInsert(env: EngineEnv): InsertMode {
   function setEndOfContenteditable(contentEditableElement: HTMLElement): void {
     const range = document.createRange();
     range.selectNodeContents(contentEditableElement);
-    // collapse to the end point; false means collapse to end rather than start
+    // false collapses to the end rather than the start
     range.collapse(false);
     const selection = window.getSelection()!;
     selection.removeAllRanges();
@@ -130,7 +122,6 @@ function createInsert(env: EngineEnv): InsertMode {
       if (isTextInput(element)) {
         element.setSelectionRange(0, 0);
       } else {
-        // for contenteditable div
         const selection = document.getSelection()!;
         selection.setPosition(selection.focusNode, 0);
       }
@@ -145,7 +136,6 @@ function createInsert(env: EngineEnv): InsertMode {
         element.value = element.value.slice(element.selectionStart ?? 0);
         element.setSelectionRange(0, 0);
       } else {
-        // for contenteditable div
         const selection = document.getSelection()!;
         const focus = selection.focusNode;
         if (focus instanceof Text) {
@@ -163,7 +153,6 @@ function createInsert(env: EngineEnv): InsertMode {
         const pos = nextNonWord(element.value, -1, element.selectionStart ?? 0);
         element.setSelectionRange(pos, pos);
       } else {
-        // for contenteditable div
         document.getSelection()!.modify("move", "backward", "word");
       }
     },
@@ -177,7 +166,6 @@ function createInsert(env: EngineEnv): InsertMode {
         const pos = nextNonWord(element.value, 1, element.selectionStart ?? 0);
         element.setSelectionRange(pos, pos);
       } else {
-        // for contenteditable div
         document.getSelection()!.modify("move", "forward", "word");
       }
     },
@@ -192,7 +180,6 @@ function createInsert(env: EngineEnv): InsertMode {
         element.value = pos[0];
         element.setSelectionRange(pos[1], pos[1]);
       } else {
-        // for contenteditable div
         const selection = document.getSelection()!;
         const p0 = selection.focusOffset;
         selection.modify("move", "backward", "word");
@@ -216,7 +203,6 @@ function createInsert(env: EngineEnv): InsertMode {
         element.value = pos[0];
         element.setSelectionRange(pos[1], pos[1]);
       } else {
-        // for contenteditable div
         const selection = document.getSelection()!;
         const p0 = selection.focusOffset;
         selection.modify("move", "forward", "word");
@@ -292,7 +278,6 @@ function createInsert(env: EngineEnv): InsertMode {
       event.sk_suppressed = true;
       return;
     }
-    // prevent this event to be handled by Surfingkeys' other listeners
     const realTarget = getRealEdit(event);
     if (!isEditable(realTarget)) {
       self.exit();
@@ -350,8 +335,6 @@ function createInsert(env: EngineEnv): InsertMode {
 
   let element: HTMLElement | undefined;
   const self: InsertMode = {
-    // The hub dispatches events by reading the private handle's listener map; sharing the reference
-    // keeps the keydown/focus listeners registered above observable through the controller.
     eventListeners: mode.eventListeners,
     name: mode.name,
     mappings,

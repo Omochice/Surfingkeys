@@ -2,7 +2,6 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { tabOpenLink } from "./messagingActions";
 
-// Collect the detail payloads of surfingkeys:front CustomEvents fired while `run` executes.
 function captureFrontEvents(run: () => void): unknown[] {
   const details: unknown[] = [];
   const handler = (e: Event) => details.push((e as CustomEvent).detail);
@@ -43,7 +42,6 @@ describe("tabOpenLink", () => {
 
   it("prompts with a showDialog when the URL count exceeds simultaneousness", () => {
     const details = captureFrontEvents(() => {
-      // 3 URLs with simultaneousness=2 trips the `urls.length > simultaneousness` arm.
       tabOpenLink("https://a\nhttps://b\nhttps://c", 2);
     });
     const dialog = details.find((d) => Array.isArray(d) && d[0] === "showDialog") as

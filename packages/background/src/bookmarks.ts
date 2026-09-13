@@ -19,12 +19,7 @@ const getBookmarksSchema = v.object({
   caseSensitive: v.optional(v.boolean()),
 });
 
-/**
- * Bookmark message handlers: folder listing, create/remove, and query. Owns the `bookmarkFolders`
- * cache it rebuilds from the bookmark tree, and depends only on the promise-based
- * `chrome.bookmarks` API. Handlers resolve to their response payload; the dispatcher in `start`
- * settles the sender.
- */
+/** Bookmark message handlers: folder listing, create/remove, and query. */
 export function createBookmarkHandlers(): Record<string, MessageHandler> {
   let bookmarkFolders: { id: string; title: string }[] = [];
   function getFolders(tree: chrome.bookmarks.BookmarkTreeNode, root: string) {

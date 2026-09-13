@@ -73,10 +73,6 @@ function makeNoopListener() {
   return { addListener: () => {} };
 }
 
-/**
- * Builds a chrome stub with a promise-based `tabs.query` and returns the vi.fn mocks for
- * `tabs.update` (and any extras passed in). The query resolves `defaultTabs`.
- */
 function buildChrome(
   defaultTabs: any[],
   extra: Partial<TabsStub> = {},
@@ -100,7 +96,6 @@ function buildChrome(
   return { update, query };
 }
 
-/** Creates a tabs unit and hands back the mocks. */
 function tabUnitOver(tabs: any[], conf: Record<string, any> = {}, extra: Partial<TabsStub> = {}) {
   const { update, query } = buildChrome(tabs, extra);
   const handlers: Record<string, any> = {};
@@ -143,7 +138,6 @@ describe("createTabs — tab navigation index math", () => {
     const { unit, update } = tabUnitOver([{ id: 1 }, { id: 2 }, { id: 3 }, { id: 4 }, { id: 5 }]);
     const previousTab = unit.handlers["previousTab"];
     expectDefined(previousTab);
-    // index 3, step -3 -> index 0 -> id 1
     await previousTab({ repeats: 3 }, { tab: { index: 3, windowId: 5 } }, vi.fn());
     expect(update).toHaveBeenCalledWith(1, { active: true });
   });
@@ -322,7 +316,6 @@ describe("tabOnly", () => {
     const { unit } = tabUnitOver(tabs, {}, { remove });
     const handler = unit.handlers["tabOnly"];
     expectDefined(handler);
-    // sender tab id = 3 (stays), id=2 is pinned (stays), id=1 and id=4 removed
     await handler({}, { tab: { id: 3 } }, vi.fn());
     expect(remove).toHaveBeenCalledWith([1, 4]);
   });
@@ -459,7 +452,6 @@ describe("moveTab", () => {
     const { unit } = tabUnitOver(tabs, {}, { move });
     const handler = unit.handlers["moveTab"];
     expectDefined(handler);
-    // tab at index 1, step 1, repeats 2 -> destination 3, clamped to tabs.length = 5
     await handler({ step: 1, repeats: 2 }, { tab: { id: 2, index: 1, windowId: 1 } }, vi.fn());
     expect(move).toHaveBeenCalledWith(2, { index: 3 });
   });
@@ -470,7 +462,6 @@ describe("moveTab", () => {
     const { unit } = tabUnitOver(tabs, {}, { move });
     const handler = unit.handlers["moveTab"];
     expectDefined(handler);
-    // tab at index 2, step 1, repeats 5 -> raw 7 clamped to length (3)
     await handler({ step: 1, repeats: 5 }, { tab: { id: 3, index: 2, windowId: 1 } }, vi.fn());
     expect(move).toHaveBeenCalledWith(3, { index: 3 });
   });
@@ -647,7 +638,6 @@ describe("getTabs", () => {
       { tab: { id: 99 } },
       vi.fn(),
     )) as { tabs: any[] };
-    // sender tab excluded; sorted descending by lastAccessed: 300, 200, 100
     expect(result.tabs.map((t) => t.id)).toEqual([2, 3, 1]);
   });
 });
@@ -685,7 +675,6 @@ describe("goToLastTab", () => {
       handlers: {},
     });
 
-    // simulate activating tabs 5 then 6 to populate history
     // onActivatedCb is assigned inside the addListener closure above; assert non-null
     onActivatedCb!({ tabId: 5 });
     onActivatedCb!({ tabId: 6 });
@@ -693,7 +682,6 @@ describe("goToLastTab", () => {
     const handler = unit.handlers["goToLastTab"];
     expectDefined(handler);
     handler({}, {}, vi.fn());
-    // should go back to tab 5
     expect(update).toHaveBeenCalledWith(5, { active: true });
   });
 });
@@ -893,7 +881,6 @@ describe("closeTabsToRight", () => {
     const { unit } = tabUnitOver(tabs, {}, { remove });
     const handler = unit.handlers["closeTabsToRight"];
     expectDefined(handler);
-    // sender is at index 1 (id=2); tabs to the right: id=3, id=4
     await handler({}, { tab: { id: 2, index: 1 } }, vi.fn());
     expect(remove).toHaveBeenCalledWith([3, 4]);
   });
@@ -906,7 +893,6 @@ describe("closeTabsToLeft", () => {
     const { unit } = tabUnitOver(tabs, {}, { remove });
     const handler = unit.handlers["closeTabsToLeft"];
     expectDefined(handler);
-    // sender is at index 2 (id=3); tabs to the left: id=1, id=2
     await handler({}, { tab: { id: 3, index: 2 } }, vi.fn());
     expect(remove).toHaveBeenCalledWith([1, 2]);
   });
@@ -921,7 +907,6 @@ describe("closeTab — focusAfterClosed", () => {
     expectDefined(handler);
     await handler({ repeats: 1 }, { tab: { id: 2, index: 1, windowId: 1 } }, vi.fn());
     expect(remove).toHaveBeenCalled();
-    // after close, should navigate to previous tab (index - 1 = 0 -> id=1)
     expect(update).toHaveBeenCalledWith(1, { active: true });
   });
 });
@@ -938,7 +923,6 @@ describe("sendTabMessage — opts argument", () => {
     const sendMessage = vi.fn().mockReturnValue(undefined);
     const { unit } = tabUnitOver([], {}, { sendMessage });
     unit.sendTabMessage(5, -1, { subject: "focusFrame" });
-    // third arg to sendMessage should be undefined
     expect(sendMessage).toHaveBeenCalledWith(5, { subject: "focusFrame" }, undefined);
   });
 
@@ -998,7 +982,6 @@ describe("tabActivated — branch arms", () => {
 
   it("does not send a deactivate message when there is no previously active tab", () => {
     const { sendMessage, onActivatedCb } = buildWithOnActivated();
-    // First activation: no prior tab, so no tabDeactivated message
     onActivatedCb()({ tabId: 10 });
     const subjects = sendMessage.mock.calls.map((c) => c[1]?.subject);
     expect(subjects).not.toContain("tabDeactivated");
@@ -1010,7 +993,6 @@ describe("tabActivated — branch arms", () => {
     onActivatedCb()({ tabId: 10 });
     sendMessage.mockClear();
     onActivatedCb()({ tabId: 20 });
-    // tabDeactivated should go to tab 10
     const deactivateCalls = sendMessage.mock.calls.filter(
       (c) => c[1]?.subject === "tabDeactivated",
     );
@@ -1022,7 +1004,6 @@ describe("tabActivated — branch arms", () => {
     const { sendMessage, onActivatedCb } = buildWithOnActivated();
     onActivatedCb()({ tabId: 10 });
     sendMessage.mockClear();
-    // Second activation of the same tab — no messages should be sent
     onActivatedCb()({ tabId: 10 });
     expect(sendMessage).not.toHaveBeenCalled();
   });
@@ -1098,12 +1079,11 @@ describe("onUpdated listener — branch arms", () => {
 
 describe("getActiveTab — no active tab", () => {
   it("does not call the callback when query returns an empty array", async () => {
-    // togglePinTab calls getActiveTab; with empty tabs, update should not be called.
+    // togglePinTab serves as the entry point into getActiveTab.
     const { unit, update } = tabUnitOver([]);
     const handler = unit.handlers["togglePinTab"];
     expectDefined(handler);
     await handler({}, {}, vi.fn());
-    // The query returns [] so the active tab is undefined, hence no update call
     expect(update).not.toHaveBeenCalled();
   });
 });
@@ -1199,14 +1179,11 @@ describe("removeTab — URL queue drain", () => {
       browser: { setNewTabUrl: () => "about:newtab" },
       handlers: {},
     });
-    // Queue a URL first
     unit.handlers["queueURLs"]!({ urls: ["https://queued.com"] }, {}, vi.fn());
-    // Now fire onRemoved
     onRemovedCb!(42);
     expect(create).toHaveBeenCalledWith(
       expect.objectContaining({ url: "https://queued.com", active: false }),
     );
-    // Queue should be empty afterwards
     const result = unit.handlers["getQueueURLs"]!({}, {}, vi.fn());
     expect(result).toEqual({ queueURLs: [] });
   });
@@ -1237,7 +1214,6 @@ describe("goToLastTab — no history", () => {
     const { unit, update } = tabUnitOver([]);
     const handler = unit.handlers["goToLastTab"];
     expectDefined(handler);
-    // No activations recorded → previousTab() returns null
     handler({}, {}, vi.fn());
     expect(update).not.toHaveBeenCalled();
   });
@@ -1249,7 +1225,6 @@ describe("closeTab — focusAfterClosed === 'last'", () => {
     const tabs = [{ id: 1 }, { id: 2 }, { id: 3 }];
     const { unit, handlers } = tabUnitOver(tabs, { focusAfterClosed: "last" }, { remove });
     const historyTabSpy = vi.fn();
-    // Override the historyTab handler so we can observe the call
     handlers["historyTab"] = historyTabSpy;
 
     const handler = unit.handlers["closeTab"];
@@ -1287,8 +1262,6 @@ describe("closeTab — focusAfterClosed === 'last'", () => {
 
 describe("getTabs — MRU sort tabActivated fallback", () => {
   it("pushes tabs with no lastAccessed and no tabActivated entry to the end", async () => {
-    // This test exercises the `!isFinite(a) && !isFinite(b)` (return 0) and
-    // `!isFinite(a)` (return 1) sort comparator arms.
     const tabs = [
       { id: 1, url: "https://a.com", title: "A", lastAccessed: 1000 },
       { id: 2, url: "https://b.com", title: "B" }, // no lastAccessed, no tabActivated → NaN
@@ -1323,15 +1296,13 @@ describe("getTabs — MRU sort tabActivated fallback", () => {
       { tab: { id: 99 } },
       vi.fn(),
     )) as { tabs: any[] };
-    // tab 1 has lastAccessed=1000 → first; tabs 2 and 3 have NaN → sorted to end
     expect(result.tabs[0]!.id).toBe(1);
-    // tabs 2 and 3 both lack access time → end (order between them is stable/equal = 0 return)
+    // Tabs 2 and 3 compare equal, so their relative order is not pinned.
     const endIds = result.tabs.slice(1).map((t) => t.id);
     expect(endIds).toEqual(expect.arrayContaining([2, 3]));
   });
 
   it("uses tabActivated timestamp as a fallback when lastAccessed is absent", async () => {
-    // Exercises the `x.lastAccessed || tabActivated[x.id]` fallback arm.
     const tabs = [
       { id: 1, url: "https://a.com", title: "A" }, // will get tabActivated timestamp
       { id: 2, url: "https://b.com", title: "B" }, // no source → NaN → sinks to end
@@ -1363,7 +1334,6 @@ describe("getTabs — MRU sort tabActivated fallback", () => {
       browser: { setNewTabUrl: () => "about:newtab" },
       handlers: {},
     });
-    // Record activation of tab 1 to populate tabActivated map
     onActivatedCb!({ tabId: 1 });
 
     const handler = unit.handlers["getTabs"];
@@ -1373,7 +1343,6 @@ describe("getTabs — MRU sort tabActivated fallback", () => {
       { tab: { id: 99 } },
       vi.fn(),
     )) as { tabs: any[] };
-    // tab 1 has a tabActivated timestamp (finite) → comes before tab 2 (NaN → sinks)
     expect(result.tabs[0]!.id).toBe(1);
     expect(result.tabs[1]!.id).toBe(2);
   });
@@ -1417,7 +1386,6 @@ describe("setScrollPos — tabMessages branch", () => {
   it("sends setScrollPos and removes entry when the tab has a stored message", () => {
     const sendMessage = vi.fn().mockReturnValue(undefined);
     const { unit } = tabUnitOver([], {}, { sendMessage });
-    // Store a scroll position for tab 77
     unit.tabMessages[77] = { scrollLeft: 10, scrollTop: 20 };
     unit.setScrollPos(77);
     expect(sendMessage).toHaveBeenCalledWith(
@@ -1425,7 +1393,6 @@ describe("setScrollPos — tabMessages branch", () => {
       expect.objectContaining({ subject: "setScrollPos", scrollLeft: 10, scrollTop: 20 }),
       { frameId: 0 },
     );
-    // Entry should be removed after sending
     expect(unit.tabMessages[77]).toBeUndefined();
   });
 
@@ -1584,11 +1551,10 @@ describe("nextFrame", () => {
     const { unit, sendMessage } = buildWithExecuteScript([{ result: 1 }, { result: 2 }]);
     const handler = unit.handlers["nextFrame"];
     expectDefined(handler);
-    // frames 1 and 2; frameId 1 is current → next is 2
     await handler({ frameId: 1 }, { tab: { id: 5 } }, vi.fn());
     const focusCalls = sendMessage.mock.calls.filter((c) => c[1]?.subject === "focusFrame");
     expect(focusCalls).toHaveLength(1);
-    expect(focusCalls[0]![2]).toBeUndefined(); // frameId -1 → undefined opts
+    expect(focusCalls[0]![2]).toBeUndefined();
     expect(focusCalls[0]![1].frameId).toBe(2);
   });
 
@@ -1596,7 +1562,6 @@ describe("nextFrame", () => {
     const { unit, sendMessage } = buildWithExecuteScript([{ result: 1 }, { result: 2 }]);
     const handler = unit.handlers["nextFrame"];
     expectDefined(handler);
-    // Current frame (2) is the last → wrap to index 0 → frameId 1
     await handler({ frameId: 2 }, { tab: { id: 5 } }, vi.fn());
     const focusCall = sendMessage.mock.calls.find((c) => c[1]?.subject === "focusFrame");
     expect(focusCall![1].frameId).toBe(1);
@@ -1606,7 +1571,6 @@ describe("nextFrame", () => {
     const { unit, sendMessage } = buildWithExecuteScript([{ result: 0 }, { result: 0 }]);
     const handler = unit.handlers["nextFrame"];
     expectDefined(handler);
-    // All results are 0 → filter removes them → framesInTab.length === 0
     await handler({ frameId: 0 }, { tab: { id: 5 } }, vi.fn());
     const focusCalls = sendMessage.mock.calls.filter((c) => c[1]?.subject === "focusFrame");
     expect(focusCalls).toHaveLength(0);

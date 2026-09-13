@@ -31,7 +31,6 @@ describe("Prompt", () => {
 
     expect(container.querySelector("script")).toBeNull();
     expect(container.querySelector("img")?.hasAttribute("onerror")).toBe(false);
-    // the icon path carries no separator
     expect(container.querySelector("span.separator")).toBeNull();
   });
 });

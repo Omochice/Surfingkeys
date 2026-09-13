@@ -11,7 +11,6 @@ type CommandFn = (
   handler: (args: string[]) => void | boolean,
 ) => void;
 type OmnibarLike = {
-  // Each renderer must yield an OmnibarResult for the Solid-driven result store, not a raw <li>.
   listResults<T>(
     items: readonly T[] | null | undefined,
     renderItem: (item: T) => OmnibarResult | null | undefined,

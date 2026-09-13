@@ -21,7 +21,6 @@ function isInUIFrame() {
   );
 }
 
-/** Options accepted by the mapkey family: a domain filter plus arbitrary forwarded flags. */
 type MapkeyOptions = { domain?: RegExp; codeHasParameter?: number; [key: string]: unknown };
 
 function isDomainApplicable(domain?: RegExp) {
@@ -117,7 +116,6 @@ function vmap(
 const functionsToListSuggestions: Record<string, (response: unknown, request: unknown) => unknown> =
   {};
 
-/** A user-registered inline-query dictionary service. */
 type InlineQuery = {
   url: string | ((query: string) => string);
   headers?: Record<string, string>;
@@ -379,7 +377,6 @@ const api = {
   },
 };
 
-/** The Surfingkeys API object handed to user snippet functions. */
 type UserScriptApi = typeof api;
 
 const initUserScripts = (

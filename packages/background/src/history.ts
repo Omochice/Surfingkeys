@@ -28,12 +28,7 @@ type FilterByTitleOrUrl = <T extends { title?: string | undefined; url?: string 
   query: string,
 ) => readonly T[];
 
-/**
- * History, top-sites and recently-closed search handlers backing the omnibar. These are stateless
- * read queries against chrome.history/topSites/sessions. The browser-specific history search and
- * the shared tab/url filter are injected; handlers resolve to their response payload and the
- * dispatcher in `start` settles the sender.
- */
+/** History, top-sites and recently-closed search handlers backing the omnibar. */
 export function createHistoryHandlers(
   browser: HistoryBrowser,
   filterByTitleOrUrl: FilterByTitleOrUrl,

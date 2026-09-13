@@ -23,8 +23,8 @@ export type UiHost = HTMLDivElement & { tryDetach(): void };
 type ActiveContent = { window: Window; origin: string } | null;
 
 function createUiHost(adapter: BrowserLike, onload: (uiHost: UiHost) => void): void {
-  // tryDetach is wired up below (it closes over `ifr`); the stub keeps the value a UiHost from the
-  // start without a cast and is overwritten before anything can call it.
+  // tryDetach closes over `ifr`, so it is wired up below; the stub keeps the value a UiHost from
+  // the start without a cast.
   const uiHost: UiHost = Object.assign(document.createElement("div"), {
     tryDetach: (): void => {},
   });
@@ -55,7 +55,6 @@ function createUiHost(adapter: BrowserLike, onload: (uiHost: UiHost) => void): v
     }
     const message = parsed.output.surfingkeys_uihost_data;
     if (message.toFrontend) {
-      // forward message to frontend
       ifr.contentWindow!.postMessage({ surfingkeys_frontend_data: message }, frontEndURL);
       if (
         message.toFrontend &&
@@ -68,7 +67,6 @@ function createUiHost(adapter: BrowserLike, onload: (uiHost: UiHost) => void): v
         ["showStatus", "openOmnibar", "openFinder", "chooseTab"].includes(message.action) &&
         (!activeContent || activeContent.window !== event.source)
       ) {
-        // reset active Content
         if (activeContent) {
           activeContent.window.postMessage(
             {
@@ -104,15 +102,11 @@ function createUiHost(adapter: BrowserLike, onload: (uiHost: UiHost) => void): v
         action(message);
       }
     } else if (message.toContent && activeContent) {
-      // forward message to content
       activeContent.window.postMessage({ surfingkeys_content_data: message }, activeContent.origin);
     }
     event.stopImmediatePropagation();
   }
 
-  // top -> frontend: origin
-  // frontend -> top:
-  // top -> top: apply user settings
   ifr.addEventListener(
     "load",
     () => {

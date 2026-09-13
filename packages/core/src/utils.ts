@@ -117,7 +117,6 @@ const colors = [
   "#6B8E23", // Olive Drab
 ];
 function getColor(i: number): string {
-  // wrap around so more hints/marks than palette entries still get a valid color
   return colors[i % colors.length]!;
 }
 
@@ -128,13 +127,7 @@ function isEmptyObject(obj: object): boolean {
   return true;
 }
 
-/**
- * Apply the settings a user snippet produced, surfacing any error it reported.
- *
- * @param delta The snippet's error message (empty when it ran cleanly) and the settings it set.
- * @param log Logger receiving the error in a frame that is not the top one, where the popup cannot
- *   be shown.
- */
+/** Apply the settings a user snippet produced, surfacing any error it reported. */
 function applyUserSettings(
   delta: { error: string; settings: Record<string, unknown> },
   log: EngineEnv["log"],
@@ -283,7 +276,7 @@ function initSKFunctionListener(
         const target = evt.target;
         const first = args[0];
         if (args.length > 0 && Array.isArray(first) && first[0] === "__EVENT_TARGET__") {
-          // restore args from evt.target, see src/content_scripts/common/hints.js:442
+          // the sentinel marks where the sender wanted evt.target restored into its args
           first[0] = target;
         } else {
           args.push(target);
@@ -452,7 +445,6 @@ function getVisibleElements<T extends Element = Element>(
     if (e == null) {
       continue;
     }
-    // include elements in a shadowRoot.
     if (e.shadowRoot) {
       const cc = e.shadowRoot.querySelectorAll("*");
       for (let j = 0; j < cc.length; j++) {
@@ -477,23 +469,7 @@ function getVisibleElements<T extends Element = Element>(
   return visibleElements;
 }
 
-/**
- * Get large elements that are currently visible in the viewport. A large element is defined as one
- * that takes up a significant portion of the viewport.
- *
- * @example
- *   // Get elements that are at least 30% of viewport dimensions
- *   var largeElements = getLargeElements();
- *
- *   // Get elements that are at least 50% of viewport dimensions
- *   var veryLargeElements = getLargeElements(0.5, 0.5);
- *
- * @param {number} [minWidth=0.3] Minimum width as a fraction of viewport width (0.0 to 1.0).
- *   Default is `0.3`
- * @param {number} [minHeight=0.3] Minimum height as a fraction of viewport height (0.0 to 1.0).
- *   Default is `0.3`
- * @returns {Element[]} Array of large visible elements
- */
+/** Get visible elements that occupy at least the given fraction of the viewport's width or height. */
 function getLargeElements(minWidth = 0.3, minHeight = 0.3): Element[] {
   const viewportWidth = window.innerWidth;
   const viewportHeight = window.innerHeight;
@@ -567,7 +543,6 @@ function filterAncestors(elements: Element[]): Element[] {
     return elements;
   }
 
-  // filter out element which has its children covered
   const result: Element[] = [];
   elements.forEach((e) => {
     if (isExplicitlyRequested(e)) {
@@ -584,7 +559,6 @@ function filterAncestors(elements: Element[]): Element[] {
           }
           return;
         } else if (r.shadowRoot && r.shadowRoot.contains(e)) {
-          // skip child from shadowRoot of a selected element.
           return;
         } else if (e.contains(r)) {
           return;
@@ -625,7 +599,6 @@ function isExplicitlyRequested(element: Element): boolean {
 }
 
 function filterOverlapElements(elements: Element[]): Element[] {
-  // filter out tiny elements
   elements = elements.filter((e) => {
     const be = getRealRect(e);
     const disabled = "disabled" in e && Boolean(e.disabled);
@@ -887,9 +860,8 @@ function format(template: string, ...args: unknown[]): string {
 }
 
 /**
- * JSON.stringify replacer that serializes RegExp values to { source, flags }. Settings may carry
- * RegExp instances (e.g. nextLinkRegex); this preserves them across JSON serialization so
- * ensureRegex can rehydrate them on the other side.
+ * JSON.stringify replacer that serializes RegExp values to { source, flags }, so settings carrying
+ * a RegExp survive serialization and can be rehydrated.
  */
 function regExpReplacer(_key: string, value: unknown): unknown {
   return value instanceof RegExp ? { source: value.source, flags: value.flags } : value;
@@ -928,8 +900,7 @@ function mapInMode(
   mode: { name: string; mappings: Trie },
   nks: string,
   oks: string,
-  // Whether the caller is the Surfingkeys UI iframe; injected because this pure helper must not
-  // reach the WebExtension API. Only a non-UI frame notifies the front about the added mapkey.
+  // Injected because this pure helper must not reach the WebExtension API itself.
   inUIFrame: boolean,
   new_annotation?: string | string[],
 ): Trie | undefined {
@@ -996,7 +967,7 @@ function filterInvisibleElements<T extends Element>(nodes: T[]): T[] {
 // class/data-* attributes our generated markup relies on for styling and behaviour. Passing an
 // (empty) removeAttributes list switches it to remove-list mode, which preserves every attribute
 // except the listed ones while the safe sink still strips scripts, event handlers, and
-// javascript: URLs — matching the DOMPurify behaviour this replaced.
+// javascript: URLs.
 const SAFE_HTML_OPTIONS: SetHTMLOptions = { sanitizer: { removeAttributes: [] } };
 
 function setSanitizedContent(elm: Element, str: string): void {
@@ -1081,9 +1052,6 @@ function getCssSelectorsOfEditable(): string {
   return "input:not([type=submit]), textarea, *[contenteditable=true], *[role=textbox], select, div.ace_cursor";
 }
 
-// Hint label/link kept off the element (set in hints.ts / frontend.ts), read
-// here by refreshHints. Lets HintElement drop these expandos. `link` is the
-// arbitrary payload (target element or string) the caller stored, hence `any`.
 const hintLabel = new WeakMap<HTMLElement, string>();
 // Hint payload store: values are a heterogeneous mix (HTMLElement for regional hints, a label string,
 // or a { id, windowId } tab descriptor) consumed polymorphically; `unknown` would cascade narrowing
@@ -1149,13 +1117,8 @@ function rotateInput(
 }
 
 /**
- * Query a single element that the page is statically known to contain (markup wired up at init
- * time) and narrow it to {@link T}. A missing match throws, because it signals a broken template
- * rather than a runtime condition the caller should branch on. Using
- * {@link Document.querySelector}'s generic keeps the result typed without a cast.
- *
- * @param selector A CSS selector identifying the required element.
- * @throws {Error} If no element matches the selector.
+ * Query a single element the page is statically known to contain, throwing when it is missing
+ * because that signals a broken template rather than a condition the caller should branch on.
  */
 function requireElement<T extends Element = HTMLElement>(selector: string): T {
   const el = document.querySelector<T>(selector);

@@ -1,7 +1,4 @@
-/**
- * Metadata bound to a complete keystroke sequence in the {@link Trie}. `word` is filled in by
- * {@link Trie.add}, so callers omit it.
- */
+/** Metadata bound to a complete keystroke sequence in the {@link Trie}. */
 export type TrieMeta = {
   word: string;
   annotation?: string | string[];
@@ -15,9 +12,6 @@ export type TrieMeta = {
  * A prefix tree mapping keystroke sequences to their metadata, used for key binding lookup.
  * Children are keyed by single characters; a node carries its own `stem` character and, when it
  * terminates a bound sequence, its `meta`.
- *
- * The implementation is intentionally faithful to the original prototype-based version:
- * matched-prefix reconstruction and branch pruning behave identically.
  */
 export default class Trie {
   stem: string | undefined;
@@ -119,9 +113,8 @@ export default class Trie {
    * completing word.
    */
   getPrefixWord(): string {
-    // A node without a stem is the trie's root — no character was swallowed to
-    // reach it, so the matched prefix is empty regardless of what descends from
-    // it.
+    // A node without a stem is the root: no character was swallowed to reach it, so the matched
+    // prefix is empty regardless of what descends from it.
     if (this.stem == null) {
       return "";
     }
