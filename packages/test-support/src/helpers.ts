@@ -11,8 +11,8 @@ export function flush(): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, 0));
 }
 
-/** The items a storage read resolves to; `undefined` stands for a read that yielded nothing. */
-type StoredItems = Record<string, unknown> | undefined;
+/** The items a storage read resolves to. */
+type StoredItems = Record<string, unknown>;
 
 /** The part of the WebExtension namespace a storage stub replaces. */
 type StorageGetHost = { storage: { local: { get: unknown } } };

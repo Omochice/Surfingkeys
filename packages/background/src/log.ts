@@ -4,7 +4,7 @@ import { createHostLogger, LOG_LEVELS_KEY } from "@sk/log";
 // content-script seam and depends on @sk/core, which the background must not pull in.
 // To turn on all levels: chrome.storage.local.set({"logLevels": ["log", "warn", "error"]})
 const readLogLevels = (): Promise<unknown> =>
-  chrome.storage.local.get([LOG_LEVELS_KEY]).then((r) => r?.[LOG_LEVELS_KEY]);
+  chrome.storage.local.get([LOG_LEVELS_KEY]).then((r) => r[LOG_LEVELS_KEY]);
 
 /**
  * Background-side logger and its sink registry.

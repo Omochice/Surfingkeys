@@ -22,8 +22,8 @@ describe("LOG", () => {
     expect(vi.mocked(chrome.storage.local.get)).toHaveBeenCalledWith(["logLevels"]);
   });
 
-  it("falls back to error only when the storage read yields no result object at all", async () => {
-    restoreStorage = stubStorageGet(undefined);
+  it("falls back to error only when logLevels is not stored", async () => {
+    restoreStorage = stubStorageGet({});
     const error = vi.spyOn(console, "error").mockImplementation(() => {});
     const log = vi.spyOn(console, "log").mockImplementation(() => {});
 
