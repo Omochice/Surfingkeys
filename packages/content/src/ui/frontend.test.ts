@@ -103,6 +103,15 @@ beforeAll(async () => {
   Front = mod.default;
 });
 
+beforeEach(() => {
+  for (const el of document.body.children) {
+    if (el instanceof HTMLElement && el.id.startsWith("sk_")) {
+      el.style.display = "none";
+    }
+  }
+  Front.actions["initFrontend"]({ origin: window.location.origin, winSize: [1280, 800] });
+});
+
 function dispatchFrontendMessage(data: Record<string, unknown>): void {
   window.dispatchEvent(
     new MessageEvent("message", {
