@@ -1,5 +1,6 @@
 import type { EngineEnv } from "./engineEnv";
 import { dispatchSKEvent } from "./events";
+import { FeatureGroup } from "./featureGroup";
 import KeyboardUtils from "./keyboardUtils";
 import type { Keymap } from "./keymap";
 import type { ModeContext } from "./modeGraph";
@@ -108,7 +109,10 @@ function createAPI(ctx: ModeContext, env: EngineEnv) {
       }
       const keybound = createKeyTarget(
         jscode,
-        { annotation: annotation, feature_group: mode === visual ? 9 : 14 },
+        {
+          annotation: annotation,
+          feature_group: mode === visual ? FeatureGroup.visualMode : FeatureGroup.insertMode,
+        },
         options.repeatIgnore,
       );
       mode.mappings.add(keys, keybound);

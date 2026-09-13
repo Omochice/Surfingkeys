@@ -1,5 +1,6 @@
 import { conf } from "./conf";
 import { dispatchSKEvent } from "./events";
+import { FeatureGroup } from "./featureGroup";
 import KeyboardUtils from "./keyboardUtils";
 import { createKeymap } from "./keymap";
 import { ModeHandle, getCurrentMode, showModeStatus, suppressKeyUp } from "./mode";
@@ -144,7 +145,7 @@ kbd {
 
   mappings.add(KeyboardUtils.encodeKeystroke("<Esc>"), {
     annotation: "Exit regional hints mode",
-    feature_group: 16,
+    feature_group: FeatureGroup.regionalHintsMode,
     code: () => {
       mode.exit();
     },
@@ -152,7 +153,7 @@ kbd {
 
   mappings.add("ct", {
     annotation: "copy text from target element",
-    feature_group: 16,
+    feature_group: FeatureGroup.regionalHintsMode,
     code: () => {
       clipboard.write(hintLink.get(overlay!).innerText);
     },
@@ -160,7 +161,7 @@ kbd {
 
   mappings.add("ch", {
     annotation: "copy html from target element",
-    feature_group: 16,
+    feature_group: FeatureGroup.regionalHintsMode,
     code: () => {
       clipboard.write(hintLink.get(overlay!).innerHTML);
     },
@@ -168,7 +169,7 @@ kbd {
 
   mappings.add("d", {
     annotation: "delete target element",
-    feature_group: 16,
+    feature_group: FeatureGroup.regionalHintsMode,
     code: () => {
       hintLink.get(overlay!).remove();
       mode.exit();

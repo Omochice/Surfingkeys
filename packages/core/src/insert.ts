@@ -4,6 +4,7 @@ import { domApiError } from "@sk/common/result";
 import { conf } from "./conf";
 import CursorPrompt from "./cursorPrompt";
 import type { EngineEnv } from "./engineEnv";
+import { FeatureGroup } from "./featureGroup";
 import KeyboardUtils from "./keyboardUtils";
 import { type Keymap, createKeymap } from "./keymap";
 import { ModeHandle } from "./mode";
@@ -110,13 +111,13 @@ function createInsert(env: EngineEnv): InsertMode {
   const mappings = new Trie();
   mappings.add(KeyboardUtils.encodeKeystroke("<Ctrl-e>"), {
     annotation: "Move the cursor to the end of the line",
-    feature_group: 14,
+    feature_group: FeatureGroup.insertMode,
     code: moveCursorEOL,
   });
   const keyToBOL = KeyboardUtils.platform === "Windows" ? "<Ctrl-f>" : "<Ctrl-a>";
   mappings.add(KeyboardUtils.encodeKeystroke(keyToBOL), {
     annotation: "Move the cursor to the beginning of the line",
-    feature_group: 14,
+    feature_group: FeatureGroup.insertMode,
     code: () => {
       const element = getRealEdit();
       if (isTextInput(element)) {
@@ -129,7 +130,7 @@ function createInsert(env: EngineEnv): InsertMode {
   });
   mappings.add(KeyboardUtils.encodeKeystroke("<Ctrl-u>"), {
     annotation: "Delete all entered characters before the cursor",
-    feature_group: 14,
+    feature_group: FeatureGroup.insertMode,
     code: () => {
       const element = getRealEdit();
       if (isTextInput(element)) {
@@ -146,7 +147,7 @@ function createInsert(env: EngineEnv): InsertMode {
   });
   mappings.add(KeyboardUtils.encodeKeystroke("<Alt-b>"), {
     annotation: "Move the cursor Backward 1 word",
-    feature_group: 14,
+    feature_group: FeatureGroup.insertMode,
     code: () => {
       const element = getRealEdit();
       if (isTextInput(element)) {
@@ -159,7 +160,7 @@ function createInsert(env: EngineEnv): InsertMode {
   });
   mappings.add(KeyboardUtils.encodeKeystroke("<Alt-f>"), {
     annotation: "Move the cursor Forward 1 word",
-    feature_group: 14,
+    feature_group: FeatureGroup.insertMode,
     code: () => {
       const element = getRealEdit();
       if (isTextInput(element)) {
@@ -172,7 +173,7 @@ function createInsert(env: EngineEnv): InsertMode {
   });
   mappings.add(KeyboardUtils.encodeKeystroke("<Alt-w>"), {
     annotation: "Delete a word backwards",
-    feature_group: 14,
+    feature_group: FeatureGroup.insertMode,
     code: () => {
       const element = getRealEdit();
       if (isTextInput(element)) {
@@ -195,7 +196,7 @@ function createInsert(env: EngineEnv): InsertMode {
   });
   mappings.add(KeyboardUtils.encodeKeystroke("<Alt-d>"), {
     annotation: "Delete a word forwards",
-    feature_group: 14,
+    feature_group: FeatureGroup.insertMode,
     code: () => {
       const element = getRealEdit();
       if (isTextInput(element)) {
@@ -218,7 +219,7 @@ function createInsert(env: EngineEnv): InsertMode {
   });
   mappings.add(KeyboardUtils.encodeKeystroke("<Esc>"), {
     annotation: "Exit insert mode",
-    feature_group: 14,
+    feature_group: FeatureGroup.insertMode,
     stopPropagation: (key: string) => {
       // return true only if bind key is not an ASCII key
       // so that imap(',,', "<Esc>") won't leave a comma in input
@@ -258,7 +259,7 @@ function createInsert(env: EngineEnv): InsertMode {
   const enableEmojiInsertion = (): void => {
     mappings.add(":", {
       annotation: "Input emoji",
-      feature_group: 14,
+      feature_group: FeatureGroup.insertMode,
       stopPropagation: () => false,
       code: () => {
         setTimeout(() => {

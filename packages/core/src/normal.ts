@@ -2,6 +2,7 @@ import { conf } from "./conf";
 import { isAutoFocusMarked, isNewlyCreated, unmarkNewlyCreated } from "./domFlags";
 import type { EngineEnv } from "./engineEnv";
 import { dispatchSKEvent } from "./events";
+import { FeatureGroup } from "./featureGroup";
 import KeyboardUtils from "./keyboardUtils";
 import { type Keymap, createKeymap } from "./keymap";
 import { ModeHandle, getCurrentMode, showModeStatus, suppressKeyUp } from "./mode";
@@ -143,12 +144,12 @@ function createLurk(normal: NormalMode, RUNTIME: EngineEnv["RUNTIME"]): LurkMode
 
   mappings.add(KeyboardUtils.encodeKeystroke("<Alt-i>"), {
     annotation: "Enter normal mode",
-    feature_group: 15,
+    feature_group: FeatureGroup.lurkMode,
     code: enterNormal,
   });
   mappings.add("p", {
     annotation: "Enter ephemeral normal mode to temporarily enable SurfingKeys",
-    feature_group: 15,
+    feature_group: FeatureGroup.lurkMode,
     code: () => {
       enterNormal();
       setTimeout(() => {
@@ -465,14 +466,14 @@ function createNormal(insert: InsertLike, env: EngineEnv): NormalMode {
   };
   mappings.add(KeyboardUtils.encodeKeystroke("<Alt-i>"), {
     annotation: "Enter PassThrough mode to temporarily suppress SurfingKeys",
-    feature_group: 0,
+    feature_group: FeatureGroup.help,
     code: () => {
       self.passThrough();
     },
   });
   mappings.add("p", {
     annotation: "Enter ephemeral PassThrough mode to temporarily suppress SurfingKeys",
-    feature_group: 0,
+    feature_group: FeatureGroup.help,
     code: () => {
       self.passThrough(1000);
     },
@@ -1018,7 +1019,7 @@ function createNormal(insert: InsertLike, env: EngineEnv): NormalMode {
 
   mappings.add("yG", {
     annotation: "Capture current full page",
-    feature_group: 7,
+    feature_group: FeatureGroup.clipboard,
     code: () => {
       const scrollingElement = htmlScrollingElement();
       if (scrollingElement) {
@@ -1028,7 +1029,7 @@ function createNormal(insert: InsertLike, env: EngineEnv): NormalMode {
   });
   mappings.add("yS", {
     annotation: "Capture scrolling element",
-    feature_group: 7,
+    feature_group: FeatureGroup.clipboard,
     code: () => {
       let scrollNode = htmlScrollingElement();
       initScrollIndex();
@@ -1043,7 +1044,7 @@ function createNormal(insert: InsertLike, env: EngineEnv): NormalMode {
 
   mappings.add("cS", {
     annotation: "Reset scroll target",
-    feature_group: 2,
+    feature_group: FeatureGroup.scroll,
     code: () => {
       scrollNodes = null;
       initScrollIndex();
@@ -1070,85 +1071,85 @@ function createNormal(insert: InsertLike, env: EngineEnv): NormalMode {
 
   mappings.add("e", {
     annotation: "Scroll half page up",
-    feature_group: 2,
+    feature_group: FeatureGroup.scroll,
     repeatIgnore: true,
     code: () => scroll("pageUp"),
   });
   mappings.add("U", {
     annotation: "Scroll full page up",
-    feature_group: 2,
+    feature_group: FeatureGroup.scroll,
     repeatIgnore: true,
     code: () => scroll("fullPageUp"),
   });
   mappings.add("d", {
     annotation: "Scroll half page down",
-    feature_group: 2,
+    feature_group: FeatureGroup.scroll,
     repeatIgnore: true,
     code: () => scroll("pageDown"),
   });
   mappings.add("P", {
     annotation: "Scroll full page down",
-    feature_group: 2,
+    feature_group: FeatureGroup.scroll,
     repeatIgnore: true,
     code: () => scroll("fullPageDown"),
   });
   mappings.add("gg", {
     annotation: "Scroll to the top of the page",
-    feature_group: 2,
+    feature_group: FeatureGroup.scroll,
     repeatIgnore: true,
     code: () => scroll("top"),
   });
   mappings.add("G", {
     annotation: "Scroll to the bottom of the page",
-    feature_group: 2,
+    feature_group: FeatureGroup.scroll,
     repeatIgnore: true,
     code: bindScrollForHints("bottom"),
   });
   mappings.add("j", {
     annotation: "Scroll down",
-    feature_group: 2,
+    feature_group: FeatureGroup.scroll,
     repeatIgnore: true,
     code: bindScrollForHints("down"),
   });
   mappings.add("k", {
     annotation: "Scroll up",
-    feature_group: 2,
+    feature_group: FeatureGroup.scroll,
     repeatIgnore: true,
     code: bindScrollForHints("up"),
   });
   mappings.add("h", {
     annotation: "Scroll left",
-    feature_group: 2,
+    feature_group: FeatureGroup.scroll,
     repeatIgnore: true,
     code: bindScrollForHints("left"),
   });
   mappings.add("l", {
     annotation: "Scroll right",
-    feature_group: 2,
+    feature_group: FeatureGroup.scroll,
     repeatIgnore: true,
     code: bindScrollForHints("right"),
   });
   mappings.add("0", {
     annotation: "Scroll all the way to the left",
-    feature_group: 2,
+    feature_group: FeatureGroup.scroll,
     repeatIgnore: true,
     code: bindScrollForHints("leftmost"),
   });
   mappings.add("$", {
     annotation: "Scroll all the way to the right",
-    feature_group: 2,
+    feature_group: FeatureGroup.scroll,
     repeatIgnore: true,
     code: bindScrollForHints("rightmost"),
   });
   mappings.add("%", {
     annotation: "Scroll to percentage of current page",
-    feature_group: 2,
+    feature_group: FeatureGroup.scroll,
     repeatIgnore: true,
     code: () => scroll("byRatio"),
   });
   mappings.add("cs", {
     annotation: "Change scroll target",
-    feature_group: 2,
+    feature_group: FeatureGroup.scroll,
     repeatIgnore: true,
     code: () => {
       changeScrollTarget();
@@ -1157,7 +1158,7 @@ function createNormal(insert: InsertLike, env: EngineEnv): NormalMode {
 
   mappings.add("/", {
     annotation: "Find in current page",
-    feature_group: 9,
+    feature_group: FeatureGroup.visualMode,
     repeatIgnore: true,
     code: () => {
       dispatchSKEvent("front", ["openFinder"]);
@@ -1166,7 +1167,7 @@ function createNormal(insert: InsertLike, env: EngineEnv): NormalMode {
 
   mappings.add("E", {
     annotation: "Go one tab left",
-    feature_group: 3,
+    feature_group: FeatureGroup.tabs,
     repeatIgnore: true,
     code: () => {
       RUNTIME("previousTab");
@@ -1174,7 +1175,7 @@ function createNormal(insert: InsertLike, env: EngineEnv): NormalMode {
   });
   mappings.add("R", {
     annotation: "Go one tab right",
-    feature_group: 3,
+    feature_group: FeatureGroup.tabs,
     repeatIgnore: true,
     code: () => {
       RUNTIME("nextTab");
