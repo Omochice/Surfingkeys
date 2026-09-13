@@ -3,7 +3,6 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import type { EngineEnv } from "./engineEnv";
 
-// Mock utils so we can control getBrowserName and capture showBanner calls.
 vi.mock("./utils", () => ({
   getBrowserName: vi.fn(() => "Chrome"),
   actionWithSelectionPreserved: vi.fn((cb: (s: Selection | null) => void) => cb(null)),
@@ -11,7 +10,7 @@ vi.mock("./utils", () => ({
   showBanner: vi.fn(),
 }));
 
-// Mock domFlags — markAutoFocus is called at module-init time inside createClipboard.
+// markAutoFocus is called at module-init time inside createClipboard.
 vi.mock("./domFlags", () => ({
   markAutoFocus: vi.fn(),
 }));
@@ -23,7 +22,6 @@ const mockGetBrowserName = vi.mocked(getBrowserName);
 const mockShowBanner = vi.mocked(showBanner);
 const mockRUNTIME = vi.fn(() => Result.succeed(undefined));
 
-// clipboard only reaches the messaging seam via RUNTIME; the other env members are inert stubs.
 const makeEnv = (): EngineEnv => ({
   RUNTIME: mockRUNTIME,
   isInUIFrame: () => false,
@@ -106,13 +104,10 @@ describe("Clipboard.read on Chrome (execCommand path)", () => {
   it("delivers clipboard text synchronously via the onReady callback", () => {
     const clipboard = createClipboard(makeEnv());
 
-    // Simulate the browser pasting text into the holder by intercepting
-    // document.execCommand.  After execCommand("paste") the holder's value
-    // should contain the pasted text.
+    // jsdom has no clipboard behind execCommand, so the paste is simulated by
+    // writing into the holder the production code created.
     const execCommandSpy = vi.spyOn(document, "execCommand").mockImplementation((cmd) => {
       if (cmd === "paste") {
-        // The holder textarea is appended to documentElement during the action;
-        // we can find it by id.
         const holder = document.getElementById("sk_clipboard") as HTMLTextAreaElement | null;
         if (holder) {
           holder.value = "pasted content";
@@ -133,16 +128,13 @@ describe("Clipboard.read on Chrome (execCommand path)", () => {
   it("falls back to innerHTML when holder.value is empty after paste", () => {
     const clipboard = createClipboard(makeEnv());
 
-    // jsdom treats textarea innerHTML as escaped text, so we use a <div>
-    // replacement strategy: override the property on the holder element directly
-    // by finding it after it is appended to the DOM.
+    // jsdom escapes raw HTML assigned to a textarea's innerHTML, so the getter is
+    // overridden instead.
     const execCommandSpy = vi.spyOn(document, "execCommand").mockImplementation((cmd) => {
       if (cmd === "paste") {
         const holder = document.getElementById("sk_clipboard") as HTMLTextAreaElement | null;
         if (holder) {
           holder.value = "";
-          // Directly define innerHTML to return a string with <br> tags, since
-          // jsdom escapes raw HTML set on textarea innerHTML.
           Object.defineProperty(holder, "innerHTML", {
             get: () => "lineA<br>lineB",
             configurable: true,
@@ -166,7 +158,6 @@ describe("Clipboard.read on Firefox (navigator.clipboard path)", () => {
   it("reads from navigator.clipboard.readText and delivers via callback after timeout", async () => {
     mockGetBrowserName.mockReturnValue("Firefox");
 
-    // Stub navigator.clipboard.readText
     const origClipboard = Object.getOwnPropertyDescriptor(navigator, "clipboard");
     Object.defineProperty(navigator, "clipboard", {
       value: {
@@ -184,8 +175,7 @@ describe("Clipboard.read on Firefox (navigator.clipboard path)", () => {
         received = response.data;
       });
 
-      // The Firefox path calls setTimeout to deliver the result asynchronously;
-      // advance fake timers to trigger the callback.
+      // The Firefox path delivers the result from a setTimeout callback.
       vi.useFakeTimers();
       await Promise.resolve(); // let the readText promise resolve
       vi.runAllTimers();
@@ -193,8 +183,6 @@ describe("Clipboard.read on Firefox (navigator.clipboard path)", () => {
 
       expect(received).toBe("clipboard text");
     } finally {
-      // Always restore the stubbed navigator.clipboard, real timers, and the
-      // browser-name mock, even if the assertion above throws.
       vi.useRealTimers();
       if (origClipboard) {
         Object.defineProperty(navigator, "clipboard", origClipboard);

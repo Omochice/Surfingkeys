@@ -3,10 +3,6 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { EngineEnv } from "./engineEnv";
 import { repeatCount } from "./repeatCount";
 
-// default.ts wires the built-in key map onto an api/ctx pair. These tests pin
-// that contract: which keys are bound, and where each key's action delegates
-// (RUNTIME message, front, visual, clipboard, tabOpenLink, search aliases).
-// The external seams are mocked so the delegations are observable.
 const seam = vi.hoisted(() => {
   const RUNTIME = Object.assign(vi.fn(), { repeats: 1 });
   return {
@@ -49,9 +45,8 @@ vi.mock("./utils", () => seam.utils);
 import { applyDefaultMappings, registerDefaultExtras } from "./applyDefaultMappings";
 import createDefaultMappings from "./default";
 
-// default.ts now reaches RUNTIME / tabOpenLink / chrome.surfingkeys through the injected env; build
-// it from the seam spies. surfingkeys is a live getter so the per-test globalThis.chrome swaps below
-// are reflected at handler-invocation time.
+// surfingkeys is a live getter so the per-test globalThis.chrome swaps below are
+// reflected at handler-invocation time.
 const makeEnv = (): EngineEnv => ({
   RUNTIME: seam.RUNTIME,
   isInUIFrame: () => false,
@@ -71,7 +66,6 @@ type Registration = {
   options: unknown;
 };
 
-/** An object whose every property is a lazily-created vi.fn returning a promise. */
 function autoMock(): any {
   const cache: Record<string, ReturnType<typeof vi.fn>> = {};
   return new Proxy(
@@ -344,8 +338,8 @@ describe("tabOpenLink keys (Chrome)", () => {
 });
 
 describe("RUNTIME keys that pass a response handler", () => {
-  // These call RUNTIME(subject, arg, responseCallback); the mock never invokes
-  // the callback, so we assert only the outgoing message (subject + arg).
+  // The RUNTIME mock never invokes the response callback, so only the outgoing
+  // message is observable.
   const cases: Array<[string, string, unknown]> = [
     ["yj", "getSettings", { key: "RAW" }],
     ["yY", "getTabs", null],
@@ -537,9 +531,6 @@ describe("yf copies form data as JSON", () => {
 });
 
 describe("hint-yank keys copy the picked element's text", () => {
-  // Each fires the mapping, captures the per-hint callback passed to
-  // hints.create, then drives it with a stand-in element to assert what the
-  // callback writes to the clipboard.
   const lastHintCallback = () => {
     const calls = ctx.hints.create.mock.calls;
     return calls.at(-1)[1] as (el: any) => void;
@@ -688,7 +679,6 @@ describe("yc copies a table column", () => {
     fire("yc");
     const calls = ctx.hints.create.mock.calls;
     const cb = calls.at(-1)[1] as (el: any) => void;
-    // Pick the first cell (column 0, cellIndex 0)
     const header = table.rows[0]!.cells[0]!;
     cb(header);
     expect(ctx.clipboard.write).toHaveBeenLastCalledWith("Name\nAlice\nBob");
@@ -741,7 +731,6 @@ describe("yj response callback writes JSON settings to clipboard", () => {
       },
     );
     fire("yj");
-    // Leave regExpReplacer returning its second argument (the identity default) so JSON is preserved.
     seam.utils.regExpReplacer.mockImplementation((_k: string, v: unknown) => v);
     capturedCb!({ settings: { foo: "bar" } });
     const written = ctx.clipboard.write.mock.calls.at(-1)![0] as string;
@@ -967,7 +956,7 @@ describe("cq queries word under cursor via hint callback", () => {
     fire("cq");
     const calls = ctx.hints.create.mock.calls;
     const cb = calls.at(-1)[1] as (el: any) => void;
-    // element[2] is the text fragment; element[0] is the text node; element[1] is offset
+    // The hint element is a [textNode, offset, textFragment] tuple.
     cb([{}, 0, "  hello  "]);
     expect(ctx.front.performInlineQuery).toHaveBeenCalledWith(
       "hello",
@@ -1034,7 +1023,6 @@ describe("getFormData branches via yf and yp", () => {
     const form = document.createElement("form");
     form.method = "get";
     form.action = "https://example.com/submit";
-    // Two inputs with the same name but non-empty values.
     for (const val of ["alpha", "beta"]) {
       const input = document.createElement("input");
       input.name = "tags";
@@ -1076,7 +1064,6 @@ describe("getFormData branches via yf and yp", () => {
     const form = document.createElement("form");
     form.method = "get";
     form.action = "https://example.com/skip";
-    // First input gives a value; second is empty (length 0).
     const input1 = document.createElement("input");
     input1.name = "field";
     input1.value = "filled";
@@ -1090,7 +1077,6 @@ describe("getFormData branches via yf and yp", () => {
     const written = ctx.clipboard.write.mock.calls.at(-1)![0] as string;
     const parsed = JSON.parse(written) as Record<string, Record<string, unknown>>;
     const key = Object.keys(parsed)[0]!;
-    // Empty second value must not promote to array
     expect((parsed[key] as any).field).toBe("filled");
   });
 });
@@ -1420,7 +1406,6 @@ describe("w switches frames when window !== top", () => {
     applyDefaultMappings(api, createDefaultMappings(ctx, makeEnv(), api.searchSelectedWith));
     fire("w");
     expect(ctx.normal.rotateFrame).toHaveBeenCalled();
-    // The ensureFrontEnd dispatch also happens regardless of frame position.
     expect(seam.dispatchSKEvent).toHaveBeenCalledWith("ensureFrontEnd");
     Object.defineProperty(window, "top", { value: originalTop, configurable: true });
   });
@@ -1430,8 +1415,6 @@ describe("gu navigates up URL path", () => {
   afterEach(() => vi.restoreAllMocks());
 
   it("does not mutate href when pathname is already root '/'", () => {
-    // With pathname === "/", the `pathname.length > 1` guard is skipped so no path
-    // segment is trimmed; href is rewritten to origin + the untouched "/" pathname.
     let writtenHref: string | undefined;
     const locationStub = {
       pathname: "/",
@@ -1449,7 +1432,6 @@ describe("gu navigates up URL path", () => {
 
     fire("gu");
 
-    // The root pathname is preserved: href stays at origin + "/" rather than walking up.
     expect(writtenHref).toBe("https://example.com/");
     locationSpy.mockRestore();
   });
@@ -1459,9 +1441,7 @@ describe("gu with multiple repeats", () => {
   afterEach(() => vi.restoreAllMocks());
 
   it("walks up multiple path segments when repeatCount.value > 1", () => {
-    // jsdom default location.pathname is "/" (length 1), which is guarded by
-    // `if (pathname.length > 1)`.  Mock a deeper path so the guard is entered
-    // and `repeatCount.value` is consumed and reset to 1.
+    // jsdom's default pathname is "/", which gu treats as already at the root.
     vi.spyOn(window, "location", "get").mockReturnValue({
       ...window.location,
       pathname: "/a/b/c",
@@ -1471,15 +1451,13 @@ describe("gu with multiple repeats", () => {
 
     repeatCount.value = 3;
     fire("gu");
-    // repeats must be reset to 1 after gu consumes it
     expect(repeatCount.value).toBe(1);
   });
 });
 
 describe("gu goes up one path segment", () => {
-  // jsdom does not navigate on `location.href = ...`, so intercept the href
-  // setter while proxying the reads `gu` performs (pathname/origin). This lets
-  // the computed go-up URL be asserted as the observable contract.
+  // jsdom does not navigate on `location.href = ...`, so the computed URL is
+  // observable only by intercepting the setter.
   function withInterceptedHref(path: string, run: () => void): string | undefined {
     const real = window.location;
     window.history.replaceState(null, "", path);
@@ -1521,8 +1499,6 @@ describe("gu goes up one path segment", () => {
     repeatCount.value = 5; // more levels than the path has
     const assigned = withInterceptedHref("/only/", () => fire("gu"));
     repeatCount.value = 1;
-    // The lastIndexOf("/", last-1) search returns -1 and breaks, leaving the
-    // root path "".
     expect(assigned).toBe(window.location.origin + "");
   });
 });
@@ -1540,8 +1516,6 @@ describe(". repeat — non-Hints and empty sub-sequence arms", () => {
     fire(".");
     expect(ctx.normal.feedkeys).toHaveBeenLastCalledWith("f");
     vi.advanceTimersByTime(300);
-    // Only the Hints branch schedules a hints.feedkeys replay; a Visual entry
-    // must not.
     expect(ctx.hints.feedkeys).not.toHaveBeenCalled();
   });
 
@@ -1553,8 +1527,6 @@ describe(". repeat — non-Hints and empty sub-sequence arms", () => {
 
   it("schedules no hints replay for a Hints entry that carries no key part", () => {
     vi.useFakeTimers();
-    // "Hints" with no tab-separated key → modeKey[1] is undefined, so the
-    // `hintKeys != null` guard takes its false arm and feedkeys is never called.
     seam.runtimeConf.lastKeys = ["f", "Hints"];
     fire(".");
     vi.advanceTimersByTime(300);
@@ -1588,8 +1560,6 @@ describe("yc / ymc table-column edge arms", () => {
     const table = document.createElement("table");
     document.body.appendChild(table);
     fire("yc");
-    // getTableColumnHeads skips the table (the `if (tr)` arm is false), so the
-    // heads passed to hints.create are empty.
     expect(ctx.hints.create).toHaveBeenLastCalledWith([], expect.any(Function));
   });
 
@@ -1604,12 +1574,11 @@ describe("yc / ymc table-column edge arms", () => {
     const shortRow = document.createElement("tr");
     const onlyCell = document.createElement("td");
     Object.defineProperty(onlyCell, "innerText", { get: () => "x", configurable: true });
-    shortRow.appendChild(onlyCell); // only one cell → index 1 is out of range
+    shortRow.appendChild(onlyCell);
     table.append(head, shortRow);
     document.body.appendChild(table);
 
     fire("yc");
-    // Pick the second header (cellIndex 1); the short row has no cell 1 → "".
     lastHintCallback()(head.cells[1]!);
     expect(ctx.clipboard.write).toHaveBeenLastCalledWith("B\n");
   });
@@ -1630,7 +1599,6 @@ describe("yc / ymc table-column edge arms", () => {
     document.body.appendChild(table);
 
     fire("ymc");
-    // Picking the out-of-range column header drives the ternary's "" arm.
     lastHintCallback()(head.cells[1]!);
     expect(ctx.clipboard.write).toHaveBeenLastCalledWith("B\n");
   });
@@ -1645,10 +1613,10 @@ describe("getFormData duplicate key where the first value is empty", () => {
     form.action = "https://example.com/firstempty";
     const empty = document.createElement("input");
     empty.name = "field";
-    empty.value = ""; // first occurrence empty
+    empty.value = "";
     const filled = document.createElement("input");
     filled.name = "field";
-    filled.value = "later"; // second occurrence non-empty
+    filled.value = "later";
     form.append(empty, filled);
     document.body.appendChild(form);
 
@@ -1656,8 +1624,6 @@ describe("getFormData duplicate key where the first value is empty", () => {
     const written = ctx.clipboard.write.mock.calls.at(-1)![0] as string;
     const parsed = JSON.parse(written) as Record<string, Record<string, unknown>>;
     const key = Object.keys(parsed)[0]!;
-    // obj[key] is reset to [] and the empty first value is NOT pushed (p.length
-    // is 0), so only the later value survives.
     expect((parsed[key] as any).field).toEqual(["later"]);
   });
 });
@@ -1692,7 +1658,6 @@ describe(";pf fill-form skip arms", () => {
     document.body.appendChild(form);
 
     runFill(form, { "get::/hidden": { token: "new" } });
-    // The `ip.type !== "hidden"` guard skips hidden inputs.
     expect(hidden.value).toBe("orig");
   });
 
@@ -1708,7 +1673,6 @@ describe(";pf fill-form skip arms", () => {
     document.body.appendChild(form);
 
     runFill(form, { "get::/nomatch": { choice: "z" } });
-    // No option has value "z", so the `if (op)` arm is false and nothing checks.
     expect(radio.checked).toBe(false);
   });
 
@@ -1724,8 +1688,6 @@ describe(";pf fill-form skip arms", () => {
     document.body.appendChild(form);
 
     runFill(form, { "get::/cbnomatch": { opts: ["zzz"] } });
-    // The array branch clears all then re-checks matches; "zzz" matches nothing,
-    // so the inner `if (op)` arm stays false.
     expect(cb.checked).toBe(false);
   });
 
@@ -1741,7 +1703,6 @@ describe(";pf fill-form skip arms", () => {
     document.body.appendChild(form);
 
     runFill(form, { "get::/number": { count: 42 } });
-    // 42 is neither radio, array, nor string, so none of the assignment arms run.
     expect(text.value).toBe("orig");
   });
 });
@@ -1779,7 +1740,6 @@ describe("Firefox-only mappings", () => {
       otherApi as any,
       createDefaultMappings(ctx, makeEnv(), api.searchSelectedWith),
     );
-    // Neither the Firefox arm nor the Chrome else-if arm runs, so 'on' is absent.
     expect(otherRegistry.has("on")).toBe(false);
   });
 });
@@ -1818,7 +1778,6 @@ describe("createDefaultMappings returns data keyed by mode then key", () => {
     const defaults = createDefaultMappings(ctx, makeEnv(), api.searchSelectedWith);
 
     expect(Object.keys(defaults)).toEqual(["nmap", "vmap", "imap"]);
-    // A representative key from each mode is present with its help text and a callable handler.
     expect(defaults.nmap["T"]).toMatchObject({ annotation: "#3Choose a tab" });
     expect(typeof defaults.nmap["T"].code).toBe("function");
     expect(defaults.vmap["<Ctrl-u>"]).toMatchObject({ annotation: "#9Backward 20 lines" });
@@ -1835,8 +1794,6 @@ describe("createDefaultMappings returns data keyed by mode then key", () => {
   });
 
   it("lets a caller reuse one key's default action for another key (bind f to p's action)", () => {
-    // The data form makes recombination trivial: pull an entry and register it under a new key.
-    // "p" has no default normal binding, so borrow the link-open action from "f" the other way.
     const defaults = createDefaultMappings(ctx, makeEnv(), api.searchSelectedWith);
     const source = defaults.nmap["f"];
 
@@ -1846,7 +1803,6 @@ describe("createDefaultMappings returns data keyed by mode then key", () => {
     expect(rebound).toBeDefined();
     expect(rebound!.annotation).toBe(source.annotation);
     rebound!.cb();
-    // "f" delegates to hints.create; the borrowed handler does the same when fired under "p".
     expect(ctx.hints.create).toHaveBeenCalled();
   });
 });

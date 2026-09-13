@@ -83,12 +83,10 @@ describe("Trie", () => {
 
     expect(trie.remove("abc")).toBeTruthy();
     expect(trie.find("abc")).toBeUndefined();
-    // the shared "ab" branch survives because "abd" still uses it
     expect(trie.find("ab")).toBeTruthy();
     expect(trie.find("abd")).toBeTruthy();
 
     trie.remove("abd");
-    // now the whole branch is gone
     expect(trie.find("ab")).toBeUndefined();
     expect(trie.find("a")).toBeUndefined();
   });

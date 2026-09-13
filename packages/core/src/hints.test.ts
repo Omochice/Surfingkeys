@@ -2,7 +2,6 @@ import { describe, expect, it, vi } from "vitest";
 
 import createHints from "./hints";
 
-// Minimal stubs for the three collaborator interfaces required by createHints.
 function makeInsert() {
   return { enter: vi.fn(), exit: vi.fn() };
 }
@@ -21,10 +20,6 @@ function makeClipboard() {
 }
 
 describe("createHints — genLabels", () => {
-  // genLabels is the hint label generation algorithm: given a total count it
-  // produces exactly that many unique, prefix-free labels drawn from the
-  // character set.
-
   it("generates the correct number of labels", () => {
     const hints = createHints(makeInsert(), makeNormal(), makeClipboard());
     hints.setCharacters("asdf");
@@ -37,17 +32,14 @@ describe("createHints — genLabels", () => {
     const hints = createHints(makeInsert(), makeNormal(), makeClipboard());
     hints.setCharacters("asdf");
     const labels = hints.genLabels(4);
-    // Each label should be exactly one character from the uppercased charset
     expect(labels).toEqual(["A", "S", "D", "F"]);
   });
 
   it("produces two-character labels when total exceeds charset size", () => {
     const hints = createHints(makeInsert(), makeNormal(), makeClipboard());
     hints.setCharacters("asdf");
-    // With charset size 4, labels are AA AS AD AF SA SS SD SF DA DS ...
     const labels = hints.genLabels(16);
     expect(labels).toHaveLength(16);
-    // All two-character labels
     for (const label of labels) {
       expect(label.length).toBe(2);
     }
@@ -94,12 +86,10 @@ describe("createHints — genLabels", () => {
   it("generates three-character labels for very large totals", () => {
     const hints = createHints(makeInsert(), makeNormal(), makeClipboard());
     hints.setCharacters("asdf");
-    // 4^2 = 16, so 17 requires at least one 3-char label
     const labels = hints.genLabels(65);
     expect(labels).toHaveLength(65);
     const unique = new Set(labels);
     expect(unique.size).toBe(65);
-    // prefix-free
     for (let i = 0; i < labels.length; i++) {
       for (let j = 0; j < labels.length; j++) {
         if (i !== j) {
@@ -118,10 +108,8 @@ describe("createHints — genLabels", () => {
 
   it("switches the charset to digits through the real create() path after setNumeric()", async () => {
     const hints = createHints(makeInsert(), makeNormal(), makeClipboard());
-    // The default charset is alphabetic; create() is what consults the numeric
-    // flag and swaps the charset. Drive that real wiring (not a hand-set
-    // charset): the selector matches nothing in jsdom, so create() resolves
-    // without geometry, but the `if (numeric)` swap still runs.
+    // create() is what swaps the charset, and it resolves without geometry
+    // because the selector matches nothing in jsdom.
     expect(hints.getCharacters()).toBe("asdfgqwertzxcvb");
     hints.setNumeric();
     await hints.create("a.no-such-element", () => {});
@@ -148,11 +136,9 @@ describe("createHints — getCharacters / setCharacters", () => {
 
   it("records scroll keys that overlap with the new character set", () => {
     const normal = makeNormal();
-    // Pretend 'j' and 'k' are scroll keys
     normal.isScrollKeyInHints.mockImplementation((key: string) => key === "j" || key === "k");
     const hints = createHints(makeInsert(), normal, makeClipboard());
     hints.setCharacters("jkl");
-    // isScrollKeyInHints must have been called for each character
     expect(normal.isScrollKeyInHints).toHaveBeenCalledWith("j");
     expect(normal.isScrollKeyInHints).toHaveBeenCalledWith("k");
     expect(normal.isScrollKeyInHints).toHaveBeenCalledWith("l");

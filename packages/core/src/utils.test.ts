@@ -34,7 +34,6 @@ import {
   tryDecodeURIComponent,
 } from "./utils";
 
-// Capture the surfingkeys:front CustomEvents a helper dispatches on document.
 function captureFrontEvents(run: () => void): unknown[] {
   const details: unknown[] = [];
   const handler = (e: Event) => details.push((e as CustomEvent).detail);
@@ -93,10 +92,8 @@ describe("parseAnnotation", () => {
   });
 });
 
-// Characterization tests pinning refreshHints before the HintElement WeakMap
-// refactor. They record how the function reads `label`/`link` off the elements
-// it is handed and how it mutates them; the expected values are whatever the
-// current code produces, not a hand-authored spec.
+// The expected values below are whatever the current code produces, not a
+// hand-authored spec.
 function makeHint(label: string, link: unknown) {
   const el = document.createElement("div");
   hintLabel.set(el, label);
@@ -140,10 +137,6 @@ describe("refreshHints (characterization)", () => {
   });
 });
 
-// Settings may contain RegExp values (e.g. nextLinkRegex). They are serialized
-// to { source, flags } when persisted/cloned and rehydrated via
-// `new RegExp(source, flags)` by ensureRegex. These tests pin that round-trip
-// through the regExpReplacer used at the JSON.stringify call sites.
 describe("RegExp settings serialization", () => {
   it("serializes a RegExp to its source and flags", () => {
     const settings = { pat: /foo\d+/gi, n: 1 };
@@ -340,8 +333,6 @@ describe("tryDecodeURIComponent", () => {
   });
 });
 
-// getBrowserName and attachFaviconToImgSrc branch on navigator.userAgent, the
-// seam that tells Chrome from Firefox. Override it per-test and restore after.
 describe("getBrowserName", () => {
   const original = window.navigator.userAgent;
   const setUserAgent = (value: string) => {
@@ -437,7 +428,6 @@ describe("getAnnotations", () => {
 
     expect(result).toContainEqual({ word: "x", feature_group: 1, annotation: "do x" });
     expect(result).toContainEqual({ word: "z", feature_group: 3, annotation: ["a", "b"] });
-    // "y" has an empty annotation and is filtered out.
     expect(result.some((m) => m.word === "y")).toBe(false);
   });
 });
@@ -523,8 +513,6 @@ describe("format — additional branches", () => {
 
 describe("regExpReplacer — non-RegExp value passthrough", () => {
   it("returns a non-RegExp value unchanged", () => {
-    // The replacer must leave plain values alone; the RegExp arm is exercised
-    // by the serialization tests above.
     const replacer = regExpReplacer;
     expect(replacer("key", 42)).toBe(42);
     expect(replacer("key", "hello")).toBe("hello");
@@ -534,7 +522,6 @@ describe("regExpReplacer — non-RegExp value passthrough", () => {
 
 describe("parseAnnotation — additional branches", () => {
   it("returns ag immediately when the annotation array is empty (first == null)", () => {
-    // The empty-array case hits the `first == null` early-return guard.
     const emptyAnnotation: string[] = [];
     const ag = { annotation: emptyAnnotation, feature_group: 7 };
     const result = parseAnnotation(ag);
@@ -543,15 +530,12 @@ describe("parseAnnotation — additional branches", () => {
   });
 
   it("leaves an array annotation with no #N marker intact", () => {
-    // annotations === null branch: no feature-group extraction, array preserved.
     const result = parseAnnotation({ annotation: ["plain text", "arg"] });
     expect(result.feature_group).toBeUndefined();
     expect(result.annotation).toEqual(["plain text", "arg"]);
   });
 
   it("collapses to empty string when the #N marker has nothing after it and rest is empty", () => {
-    // After extraction, arr[0] = "" → head.length === 0 → annotation becomes "".
-    // This is distinct from the existing test because the marker sits inside an array.
     const result = parseAnnotation({ annotation: ["#3", "ignored"] });
     expect(result.feature_group).toBe(3);
     expect(result.annotation).toBe("");
@@ -588,7 +572,6 @@ describe("isEditable — additional element types", () => {
   });
 
   it("returns a falsy value for a null element (falsy element guard)", () => {
-    // isEditable starts with `element && ...`; null short-circuits to null (falsy).
     expect(isEditable(null)).toBeFalsy();
   });
 
@@ -599,7 +582,6 @@ describe("isEditable — additional element types", () => {
   });
 
   it("matches an element via editableSelector when it would otherwise fail type checks", () => {
-    // Temporarily add a custom editable selector to cover the matches() branch.
     const previous = conf.editableSelector;
     conf.editableSelector = "div.custom-editor";
     try {
@@ -630,7 +612,6 @@ describe("isElementClickable — additional branches", () => {
     anchor.appendChild(span);
     document.body.appendChild(anchor);
     try {
-      // span itself doesn't match the selector, but closest("a,...") finds the parent anchor.
       expect(isElementClickable(span)).toBe(true);
     } finally {
       anchor.remove();
@@ -638,7 +619,6 @@ describe("isElementClickable — additional branches", () => {
   });
 
   it("appends the custom clickableSelector when non-empty and uses it", () => {
-    // Cover the `conf.clickableSelector.length` truthy branch.
     const previous = conf.clickableSelector;
     conf.clickableSelector = ".my-clickable";
     try {
@@ -653,38 +633,28 @@ describe("isElementClickable — additional branches", () => {
 
 describe("constructSearchURL — additional branches", () => {
   it("appends the word when {0} appears at position 0 (not > 0)", () => {
-    // indexOf("{0}") === 0, which fails the `> 0` guard, so falls through to append.
     expect(constructSearchURL("{0}extra", "cat")).toBe("{0}extracat");
   });
 
   it("appends the word when neither placeholder is present", () => {
-    // Already covered by the 'appends' test above, but this confirms no-placeholder.
     expect(constructSearchURL("https://x/search?q=", "dog")).toBe("https://x/search?q=dog");
   });
 });
 
 describe("rotateInput — additional branches", () => {
   it("clamps curr to list.length when it exceeds the filtered list size", () => {
-    // With str="a", only ["aa","ab"] pass the filter (length=2).
-    // curr=5 > 2, so curr is clamped to 2 before the modular step.
-    // After: delta=1, length=3, curr = (2+3+1)%3 = 0 → list[0] = "aa".
     expect(rotateInput(["aa", "ab", "bc"], false, 5, "a")).toEqual(["aa", 0]);
   });
 
   it("steps backward through a prefix-filtered list", () => {
-    // With str="a", list=["aa","ab"], curr=1.
-    // delta=-1, length=3, curr=(1+3-1)%3=0 → list[0]="aa".
     expect(rotateInput(["aa", "ab", "bc"], true, 1, "a")).toEqual(["aa", 0]);
   });
 
   it("returns str when rotating past the last filtered entry backward", () => {
-    // With str="a", list=["aa","ab"], curr=0.
-    // delta=-1, length=3, curr=(0+3-1)%3=2 → 2 >= list.length → return str="a".
     expect(rotateInput(["aa", "ab", "bc"], true, 0, "a")).toEqual(["a", 2]);
   });
 
   it("wraps forward from the last slot back to the first entry", () => {
-    // curr=2 is the empty slot, forward → curr=(2+3+1)%3=0 → list[0]="x".
     expect(rotateInput(["x", "y"], false, 2)).toEqual(["x", 0]);
   });
 });
@@ -710,12 +680,9 @@ describe("getRealEdit — additional shadow-root branches", () => {
   });
 
   it("falls through to the host when shadow root has no activeElement and no input", () => {
-    // Neither activeElement nor querySelector("input,...") matches → else break.
-    // rt ends up as the host element itself.
     const host = document.createElement("div");
     document.body.appendChild(host);
     host.attachShadow({ mode: "open" });
-    // The shadow root is empty; no input/textarea/select inside.
     expect(getRealEdit(eventFrom(host))).toBe(host);
   });
 });
@@ -733,7 +700,6 @@ describe("refreshHints — additional branches", () => {
     const b = makeHint("ab", "LINK_B");
     const c = makeHint("bc", "LINK_C");
     const result = refreshHints([a, b, c], "a");
-    // "aa" and "ab" both start with "a"; "bc" does not.
     expect(result.candidates).toBe(2);
     expect(a.style.opacity).toBe("1");
     expect(b.style.opacity).toBe("1");
@@ -743,7 +709,6 @@ describe("refreshHints — additional branches", () => {
   it("stops iterating immediately when an exact match is found", () => {
     const a = makeHint("ab", "LINK_A");
     const b = makeHint("ab", "LINK_B");
-    // First hint matches exactly; loop breaks before reaching second hint.
     const result = refreshHints([a, b], "ab");
     expect(result.matched).toBe("LINK_A");
     expect(result.candidates).toBe(0);
@@ -758,8 +723,6 @@ describe("mapInMode — additional branches", () => {
     mapInMode(mode, "y", "k", false, ["Custom annotation", "param"]);
 
     const rebound = mode.mappings.find(KeyboardUtils.encodeKeystroke("y"));
-    // The array form passes through parseAnnotation: first element has no #N,
-    // so annotation stays as the array.
     expect(rebound?.meta?.annotation).toEqual(["Custom annotation", "param"]);
   });
 });
@@ -789,7 +752,6 @@ describe("listElements — filter false branch", () => {
       (n) => n.id === "never-matches",
     );
 
-    // The div is visited but the filter returns false, so it must not appear.
     expect(found).not.toContain(div);
   });
 });
@@ -802,7 +764,6 @@ describe("toggleQuote — trailing-quote-only arm", () => {
   it("strips surrounding quotes when the value ends with a quote only", () => {
     const input = document.createElement("input");
     document.body.appendChild(input);
-    // A value ending with `"` matches `/^"|"$/`; the replace removes it.
     input.value = 'hello"';
     input.focus();
     toggleQuote();
@@ -822,15 +783,13 @@ describe("applyUserSettings", () => {
     const details = captureFrontEvents(() => {
       applyUserSettings({ error: "", settings: {} }, vi.fn());
     });
-    // The `!isEmptyObject` guard is false, so no applySettingsFromSnippets event.
     expect(details.some((d) => Array.isArray(d) && d[0] === "applySettingsFromSnippets")).toBe(
       false,
     );
   });
 
   it("surfaces a settings error via showPopup at the top frame", () => {
-    // jsdom runs as the top frame, so a non-empty error takes the showPopup arm;
-    // showPopup dispatches a ["showPopup", msg] surfingkeys:front event.
+    // jsdom runs as the top frame, which is what selects the showPopup arm.
     const details = captureFrontEvents(() => {
       applyUserSettings({ error: "bad config", settings: {} }, vi.fn());
     });
@@ -843,8 +802,6 @@ describe("applyUserSettings", () => {
 
 describe("getDocumentOrigin", () => {
   it("returns the window origin for a normal http(s) page", () => {
-    // jsdom's default origin is a normal http origin → neither the "*" fallback
-    // nor the file://-or-null replacement applies.
     expect(getDocumentOrigin()).toBe(window.location.origin);
   });
 
@@ -864,7 +821,6 @@ describe("getDocumentOrigin", () => {
       value: { origin: "" },
       configurable: true,
     });
-    // The `origin ? origin : "*"` ternary takes its false arm for an empty origin.
     expect(getDocumentOrigin()).toBe("*");
     Object.defineProperty(window, "location", { value: realLocation, configurable: true });
   });

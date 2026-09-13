@@ -21,8 +21,6 @@ function press(keymap: Keymap, key: string, isTrusted = true): KeyEventLike {
   return event;
 }
 
-// Capture surfingkeys:front CustomEvents (dispatchSKEvent("front", [...])) so the
-// keystroke/dialog side effects of handleKey and finish can be asserted.
 function captureFront(): { events: unknown[][]; cleanup: () => void } {
   const events: unknown[][] = [];
   const handler = (e: Event) => {
@@ -75,7 +73,7 @@ describe("Keymap.handleKey", () => {
     });
 
     press(keymap, "a");
-    expect(runs).toBe(0); // still pending after first key
+    expect(runs).toBe(0);
     expect(keymap.getCurrentNode()).not.toBe(mappings);
 
     press(keymap, "b");
@@ -129,7 +127,6 @@ describe("Keymap.handleKey", () => {
     expect(keymap.repeats).toBe("3");
 
     press(keymap, "a");
-    // The action runs 3 times due to repeat
     expect(runs).toBe(3);
     expect(keymap.repeats).toBe("");
   });
@@ -140,10 +137,9 @@ describe("Keymap.handleKey", () => {
       code: () => {},
     });
 
-    press(keymap, "a"); // partial match — the current node advances
-    const event = press(keymap, "z"); // no match from mid-node
+    press(keymap, "a");
+    const event = press(keymap, "z");
 
-    // was mid-sequence when z was pressed → should be suppressed
     expect(event.sk_suppressed).toBe(true);
   });
 
@@ -178,7 +174,6 @@ describe("Keymap without enableRepeats", () => {
 
     press(keymap, "3");
 
-    // The digit is looked up as an ordinary key (and misses) instead of counting.
     expect(keymap.repeats).toBeUndefined();
     expect(keymap.getCurrentNode()).toBe(mappings);
   });
@@ -232,7 +227,6 @@ describe("Keymap.finish", () => {
     const result = keymap.finish();
 
     expect(result).toBe(true);
-    // The pending mapping was discarded: the next key is an ordinary lookup.
     press(keymap, "x");
     expect(received).toEqual([]);
   });
@@ -242,7 +236,7 @@ describe("Keymap.reset", () => {
   it("re-roots the cursor without dispatching hideKeystroke", () => {
     const { keymap, mappings } = makeKeymap();
     mappings.add(KeyboardUtils.encodeKeystroke("ab"), { annotation: "two", code: () => {} });
-    press(keymap, "a"); // trusted mid-sequence
+    press(keymap, "a");
 
     const { events, cleanup } = captureFront();
     keymap.reset();
@@ -264,12 +258,10 @@ describe("Keymap.reset", () => {
         received.push(key);
       },
     });
-    press(keymap, "a"); // waits for the argument key
+    press(keymap, "a");
 
     keymap.reset();
 
-    // The pending code belongs to the (conceptually replaced) old root; the next
-    // key must be an ordinary lookup, not an argument delivery.
     press(keymap, "x");
     expect(received).toEqual([]);
   });
@@ -299,16 +291,12 @@ describe("Keymap.handleKey — pendingMap branch", () => {
       code: pendingFn,
     });
 
-    // First press: key 'a' matches the mapping. Because code.length === 1 (it takes a key
-    // arg), handleKey waits for the next key instead of calling code directly.
     const first = press(keymap, "a");
     expect(first.sk_stopPropagation).toBe(true);
 
-    // Second press: the pending mapping is called with 'x'.
     press(keymap, "x");
     expect(received).toEqual(["x"]);
 
-    // The pending state was cleared: a further key is an ordinary (missing) lookup.
     press(keymap, "y");
     expect(received).toEqual(["x"]);
   });
@@ -345,8 +333,6 @@ describe("Keymap.handleKey — stopPropagation variants", () => {
 
     const event = press(keymap, "z");
     expect(ran).toBe(1);
-    // sk_stopPropagation = !meta.stopPropagation || callStopPropagation(meta, key).
-    // With stopPropagation: true that is `false || true === true`.
     expect(event.sk_stopPropagation).toBe(true);
   });
 
@@ -381,7 +367,6 @@ describe("Keymap.handleKey — stopPropagation variants", () => {
 
     press(keymap, "p");
     expect(ran).toBe(1);
-    // callStopPropagation calls the function with the encoded key name.
     expect(spFn).toHaveBeenCalledWith(KeyboardUtils.encodeKeystroke("p"));
   });
 
@@ -397,12 +382,10 @@ describe("Keymap.handleKey — stopPropagation variants", () => {
       code: pendingFn,
     });
 
-    press(keymap, "a"); // waits for the argument key
-    const event = press(keymap, "y"); // delivers "y"
+    press(keymap, "a");
+    const event = press(keymap, "y");
 
     expect(received).toEqual(["y"]);
-    // event.sk_stopPropagation = !meta.stopPropagation || callStopPropagation(meta, key)
-    // = !true || true = true
     expect(event.sk_stopPropagation).toBe(true);
   });
 });
@@ -453,10 +436,8 @@ describe("Keymap.handleKey — repeat digit accumulation edge cases", () => {
       code: () => {},
     });
 
-    // '1' sets repeats="1"; '0' is allowed because repeats is non-empty.
     press(keymap, "1");
     press(keymap, "0");
-    // The digit-accumulation branch has fired twice: repeats="10".
     expect(keymap.repeats).toBe("10");
 
     // repeatThreshold defaults to 9; "10" > 9 triggers the showDialog branch rather than
@@ -466,9 +447,6 @@ describe("Keymap.handleKey — repeat digit accumulation edge cases", () => {
   });
 
   it("does not treat '0' as a repeat digit when repeats is still empty", () => {
-    // When repeats="" and key="0", the condition `key >= "0"` is true but
-    // `repeats !== "" && key >= "0"` is false (repeats is ""), so the
-    // digit-accumulation branch is not taken. Instead '0' is looked up as a key.
     const { keymap, mappings } = makeKeymap();
     mappings.add(KeyboardUtils.encodeKeystroke("0"), {
       annotation: "zero",
@@ -476,9 +454,6 @@ describe("Keymap.handleKey — repeat digit accumulation edge cases", () => {
     });
 
     press(keymap, "0");
-    // If '0' were treated as a repeat digit, the current node would still be the root
-    // with repeats="0". Because it is not (repeats still ""), the node resets to the
-    // root via finish after executing the mapping.
     expect(keymap.repeats).toBe("");
     expect(keymap.getCurrentNode()).toBe(mappings);
   });
@@ -519,10 +494,8 @@ describe("Keymap.handleKey — repeatThreshold dialog branch", () => {
     expect(dialog).toBeDefined();
     expect(dialog![1]).toContain("big-repeat");
     expect(dialog![1]).toContain("10");
-    // The code must NOT have run inline — it runs only when the dialog callback fires.
     expect(runs).toBe(0);
 
-    // Invoking the dialog confirm callback runs the action exactly `repeats` (10) times.
     (dialog![2] as () => void)();
     expect(runs).toBe(10);
 

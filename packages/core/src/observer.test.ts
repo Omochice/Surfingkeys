@@ -44,11 +44,9 @@ describe("startScrollNodeObserver — flags newly inserted nodes", () => {
 });
 
 // startScrollNodeObserver leaves a permanent surfingkeys:observer listener on the
-// document with no teardown, so dispatchSKEvent fires every observer registered by
-// earlier tests too. To assert one observer's behaviour in isolation we (a) stub
-// MutationObserver so only the instance built in this test is tracked, and (b)
-// capture this observer's own document listener and invoke it directly instead of
-// broadcasting through dispatchSKEvent.
+// document with no teardown, so dispatchSKEvent would also fire every observer
+// registered by earlier tests. Stubbing MutationObserver and invoking this
+// observer's own listener directly keeps one observer under assertion.
 function startIsolatedObserver(): {
   observe: ReturnType<typeof vi.fn>;
   disconnect: ReturnType<typeof vi.fn>;
@@ -87,7 +85,6 @@ function startIsolatedObserver(): {
     observe,
     disconnect,
     mutationCallback: mutationCallback!,
-    // Invoke only this observer's listener; detail is consumed via args.shift().
     fire: (action: string) =>
       listener!(new CustomEvent("surfingkeys:observer", { detail: [action] })),
     restore: () => {},
@@ -101,7 +98,6 @@ describe("startScrollNodeObserver — turnOn/turnOff connection guard", () => {
     obs.fire("turnOn");
     obs.fire("turnOn");
 
-    // The isConnected guard short-circuits the second turnOn.
     expect(obs.observe).toHaveBeenCalledTimes(1);
     expect(obs.observe).toHaveBeenCalledWith(document, { childList: true, subtree: true });
 
@@ -113,7 +109,6 @@ describe("startScrollNodeObserver — turnOn/turnOff connection guard", () => {
 
     obs.fire("turnOff");
 
-    // isConnected is false from construction, so disconnect must be skipped.
     expect(obs.disconnect).not.toHaveBeenCalled();
   });
 
@@ -145,8 +140,7 @@ describe("startScrollNodeObserver — debounce coalescing", () => {
       return [{ addedNodes: [el] as unknown as NodeList } as unknown as MutationRecord];
     };
 
-    // First batch schedules the 200ms updater; second batch (before it fires)
-    // must hit the `if (pendingUpdater)` arm and clear the prior timer.
+    // The second batch must arrive before the first batch's 200ms updater fires.
     obs.mutationCallback(makeMutation(), {} as MutationObserver);
     expect(clearSpy).not.toHaveBeenCalled();
     obs.mutationCallback(makeMutation(), {} as MutationObserver);

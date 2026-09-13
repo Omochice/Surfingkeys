@@ -7,7 +7,6 @@ describe("dispatchSKEvent", () => {
     const received: CustomEvent[] = [];
     const handler = (e: Event) => received.push(e as CustomEvent);
     document.addEventListener("surfingkeys:front", handler);
-    // No target argument → the default `document` parameter is used.
     dispatchSKEvent("front", ["x", 1]);
     document.removeEventListener("surfingkeys:front", handler);
 

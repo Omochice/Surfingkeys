@@ -171,7 +171,6 @@ describe("createAPI vmapkey", () => {
 
     const encoded = KeyboardUtils.encodeKeystroke("q");
     const node = ctx.visual.mappings.find(encoded);
-    // visual mode gets feature_group 9 per mapkeyInMode implementation
     expect(node?.meta?.feature_group).toBe(9);
   });
 });
@@ -211,7 +210,6 @@ describe("createAPI unmap", () => {
 
     api.unmap("w", /this-domain-will-never-match\.example/);
 
-    // mapping should still be present because domain did not match
     expect(ctx.normal.mappings.find(encoded)).not.toBeUndefined();
   });
 });
@@ -258,7 +256,6 @@ describe("createAPI unmapAllExcept", () => {
     const encB = KeyboardUtils.encodeKeystroke("b");
     expect(ctx.normal.mappings.find(encA)).not.toBeUndefined();
     expect(ctx.normal.mappings.find(encB)).toBeUndefined();
-    // The replaced root must be accompanied by a keymap re-root.
     expect(ctx.normal.keymap.reset).toHaveBeenCalledOnce();
   });
 
@@ -275,7 +272,6 @@ describe("createAPI unmapAllExcept", () => {
     const encD = KeyboardUtils.encodeKeystroke("d");
     expect(ctx.insert.mappings.find(encC)).not.toBeUndefined();
     expect(ctx.insert.mappings.find(encD)).toBeUndefined();
-    // The replaced root must be accompanied by a keymap re-root.
     expect(ctx.insert.keymap.reset).toHaveBeenCalledOnce();
   });
 });
@@ -285,8 +281,6 @@ describe("createAPI cmap", () => {
     const ctx = makeCtx();
     createAPI(ctx as any, env);
 
-    // cmap dispatches via dispatchSKEvent which fires a CustomEvent on document.
-    // Capture it before creating the api.
     const captured: CustomEvent[] = [];
     const handler = (e: Event) => captured.push(e as CustomEvent);
     document.addEventListener("surfingkeys:front", handler);
@@ -319,7 +313,6 @@ describe("createAPI map with command-line prefix", () => {
     const node = ctx.normal.mappings.find(encoded);
     expect(node).not.toBeUndefined();
 
-    // Invoke the bound code — it should delegate to front.executeCommand
     node!.meta!.code!();
     expect(ctx.front.executeCommand).toHaveBeenCalledWith("echo");
   });
@@ -344,7 +337,6 @@ describe("createAPI map with command-line prefix", () => {
 
 describe("createAPI addSearchAlias key mappings", () => {
   beforeEach(() => {
-    // Ensure window.location.href is well-defined for domain checks
     Object.defineProperty(window, "location", {
       value: {
         href: "https://example.com/",
@@ -361,15 +353,12 @@ describe("createAPI addSearchAlias key mappings", () => {
 
     api.addSearchAlias("g", "Google", "https://www.google.com/search?q=");
 
-    // Default leader key is 's', so the alias is the composed sequence 'sg'.
     // Walking only to the 's' root would pass even if the 'g' child were never
-    // registered, so assert the leaf node carries the alias annotation + code.
+    // registered, so the assertions below target the leaf node.
     let node: any = ctx.normal.mappings;
     for (const ch of "sg") {
       node = node?.find(ch);
     }
-    // The "#6" prefix is parsed off into feature_group, leaving the prompt
-    // interpolated with the engine name in the annotation array.
     expect(node?.meta?.annotation).toEqual(["Search selected with {0}", "Google"]);
     expect(node?.meta?.feature_group).toBe(6);
     expect(typeof node!.meta!.code).toBe("function");
@@ -381,7 +370,6 @@ describe("createAPI addSearchAlias key mappings", () => {
 
     api.addSearchAlias("d", "DuckDuckGo", "https://duckduckgo.com/?q=");
 
-    // 'od' should be registered
     let node: any = ctx.normal.mappings;
     for (const ch of "od") {
       node = node?.find(ch);
@@ -396,7 +384,6 @@ describe("createAPI addSearchAlias key mappings", () => {
 
     api.addSearchAlias("g", "Google", "https://www.google.com/search?q=");
 
-    // visual mode should have 'sg'
     let node: any = ctx.visual.mappings;
     for (const ch of "sg") {
       node = node?.find(ch);
@@ -441,12 +428,10 @@ describe("createAPI addSearchAlias key mappings", () => {
     const ctx = makeCtx();
     const api = createAPI(ctx as any, env);
 
-    // Before: no mappings starting with 's' related to this alias
     api.addSearchAlias("k", "Kagi", "https://kagi.com/search?q=", "s", undefined, undefined, "o", {
       skipMaps: true,
     });
 
-    // No 'sk' in normal mode
     let node: any = ctx.normal.mappings;
     for (const ch of "sk") {
       node = node?.find(ch);
@@ -460,7 +445,6 @@ describe("createAPI addSearchAlias key mappings", () => {
 
     api.addSearchAlias("g", "Google", "https://www.google.com/search?q=");
 
-    // 'sG' (uppercase) should be registered in normal mappings
     let node: any = ctx.normal.mappings;
     for (const ch of "sG") {
       node = node?.find(ch);
@@ -474,7 +458,6 @@ describe("createAPI addSearchAlias key mappings", () => {
 
     api.addSearchAlias("x", "Example", "https://example.com/?q=", "t");
 
-    // 'tx' should be in normal.mappings (custom leader 't')
     let node: any = ctx.normal.mappings;
     for (const ch of "tx") {
       node = node?.find(ch);
@@ -496,7 +479,6 @@ describe("createAPI addSearchAlias key mappings", () => {
       "n",
     );
 
-    // 'sny' should be in normal.mappings (custom only_this_site_key 'n')
     let node: any = ctx.normal.mappings;
     for (const ch of "sny") {
       node = node?.find(ch);
@@ -512,7 +494,6 @@ describe("createAPI removeSearchAlias", () => {
 
     api.addSearchAlias("m", "MDN", "https://developer.mozilla.org/en-US/search?q=");
 
-    // 'sm' should now be absent after removal
     api.removeSearchAlias("m");
 
     let node: any = ctx.normal.mappings;
@@ -543,12 +524,10 @@ describe("createAPI searchSelectedWith", () => {
     const tabOpenLink = vi.mocked(env.tabOpenLink);
     tabOpenLink.mockClear();
 
-    // Simulate a text selection of "surfingkeys"
     const getSelection = vi.spyOn(window, "getSelection").mockReturnValue({
       toString: () => "surfingkeys",
     } as any);
 
-    // clipboard.read is synchronous in our mock — call cb immediately
     ctx.clipboard.read.mockImplementation((cb: any) => cb({ data: "" }));
 
     api.searchSelectedWith("https://www.google.com/search?q=");
@@ -577,7 +556,6 @@ describe("createAPI searchSelectedWith", () => {
 
     expect(tabOpenLink).toHaveBeenCalledTimes(1);
     const url = tabOpenLink.mock.calls[0]![0] as string;
-    // URL should contain the encoded "site:<hostname> test query"
     expect(url).toContain("site%3A");
     expect(url).toContain("test%20query");
 
@@ -682,8 +660,6 @@ describe("createAPI Hints.setCharacters", () => {
     const ctx = makeCtx();
     ctx.front.setHintsCharacters = undefined;
     const api = createAPI(ctx as any, env);
-    // The `if (front.setHintsCharacters)` guard takes its false arm; hints still
-    // receives the update and nothing throws.
     api.Hints.setCharacters("qwerty");
     expect(ctx.hints.setCharacters).toHaveBeenCalledWith("qwerty");
   });
@@ -700,7 +676,6 @@ describe("createAPI mapkey override and precedence", () => {
     api.mapkey("g", "second", second);
 
     const node = ctx.normal.mappings.find(KeyboardUtils.encodeKeystroke("g"));
-    // The override arm removes the old mapping and binds the new code.
     expect(node?.meta?.code).toBe(second);
     expect(node?.meta?.annotation).toContain("second");
   });
@@ -710,8 +685,6 @@ describe("createAPI mapkey override and precedence", () => {
     const api = createAPI(ctx as any, env);
 
     api.mapkey("a", "leaf", vi.fn());
-    // 'ab' would shadow the existing leaf 'a', so the precedence guard returns
-    // early and 'ab' is never registered.
     api.mapkey("ab", "longer", vi.fn());
 
     let node: any = ctx.normal.mappings;
@@ -725,9 +698,6 @@ describe("createAPI mapkey override and precedence", () => {
     const ctx = makeCtx();
     const api = createAPI(ctx as any, env);
 
-    // 'ab' makes 'a' a branch node without its own meta. Mapping 'a' then removes
-    // that branch (exercising the `old.meta` false arm that reports child metas)
-    // and binds 'a' as a leaf.
     api.mapkey("ab", "deep", vi.fn());
     const aLeaf = vi.fn();
     api.mapkey("a", "now-a-leaf", aLeaf);
@@ -761,7 +731,6 @@ describe("createAPI map special-key and not-found arms", () => {
 
     api.map("w", "totally-unknown-keystroke");
 
-    // The else arm only logs a warning; no normal mapping is created for 'w'.
     expect(ctx.normal.mappings.find(KeyboardUtils.encodeKeystroke("w"))).toBeUndefined();
   });
 
@@ -779,8 +748,6 @@ describe("createAPI map special-key and not-found arms", () => {
     const ctx = makeCtx();
     const api = createAPI(ctx as any, env);
 
-    // No "#N" prefix → parseAnnotation yields no feature_group, exercising the
-    // `ag.feature_group != null` false arm of createKeyTarget.
     api.map("e", ":echo", undefined, "plain label");
 
     const node = ctx.normal.mappings.find(KeyboardUtils.encodeKeystroke("e"));
@@ -803,14 +770,13 @@ describe("createAPI unmap special-key arm", () => {
     const ctx = makeCtx();
     const api = createAPI(ctx as any, env);
 
-    // Bind an alias to the <Esc> special key, then unmap it. The alias is not in
-    // normal.mappings, so unmap walks specialKeys and splices it out.
     api.map("w", "<Esc>");
     const dispatched: unknown[][] = [];
     document.addEventListener("surfingkeys:front", (e) => {
       dispatched.push((e as CustomEvent).detail);
     });
-    // Re-mapping after unmap should re-add the alias (proving it was removed).
+    // The alias is not in normal.mappings, so removal is observable only through
+    // the re-map below dispatching addMapkey again.
     api.unmap("w");
     api.map("w", "<Esc>");
     const addCount = dispatched.filter(
@@ -867,7 +833,6 @@ describe("createAPI unmapAllExcept domain guard", () => {
 
     api.unmapAllExcept(["a"], /this-domain-will-never-match\.example/);
 
-    // Domain guard short-circuits, so even the un-listed 'b' survives.
     expect(ctx.normal.mappings.find(KeyboardUtils.encodeKeystroke("b"))?.meta).not.toBeUndefined();
   });
 });
@@ -921,8 +886,6 @@ describe("createAPI search-alias defensive arms", () => {
     ctx.front.addSearchAlias = undefined;
     const api = createAPI(ctx as any, env);
 
-    // The `&& front.addSearchAlias` short-circuit takes its false arm; local key
-    // mappings are still created.
     api.addSearchAlias("g", "Google", "https://www.google.com/search?q=");
     let node: any = ctx.normal.mappings;
     for (const ch of "sg") {
@@ -936,8 +899,6 @@ describe("createAPI search-alias defensive arms", () => {
     const api = createAPI(ctx as any, env);
 
     api.addSearchAlias("G", "Google", "https://www.google.com/search?q=");
-    // capitalAlias === alias ("G"), so the `if (capitalAlias !== alias)` arm is
-    // false and the base 'sG' mapping is the one removed.
     api.removeSearchAlias("G");
     let node: any = ctx.normal.mappings;
     for (const ch of "sG") {
