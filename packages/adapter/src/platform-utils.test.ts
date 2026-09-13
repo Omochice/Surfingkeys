@@ -20,7 +20,6 @@ describe("initL10n", () => {
       }),
     );
 
-    // Wrap the callback in a Promise so the test can await the async chain settling.
     const result = await new Promise<string>((resolve) => {
       initL10n((translate) => resolve(translate("hello")));
     });
@@ -64,8 +63,6 @@ describe("initL10n", () => {
   });
 });
 
-// attachFaviconToImgSrc branches on navigator.userAgent, the seam that tells
-// Chrome from Firefox. Override it per-test and restore after.
 describe("attachFaviconToImgSrc", () => {
   const original = window.navigator.userAgent;
   const setUserAgent = (value: string) => {
@@ -95,7 +92,6 @@ describe("attachFaviconToImgSrc", () => {
   it("sets src to empty string when favIconUrl is absent on Firefox", () => {
     setUserAgent("Firefox/120.0");
     const img = document.createElement("img");
-    // favIconUrl is intentionally omitted to exercise the `?? ""` fallback.
     attachFaviconToImgSrc({ url: "https://example.com/" }, img);
     expect(img.getAttribute("src")).toBe("");
   });
