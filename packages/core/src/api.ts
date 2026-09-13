@@ -38,6 +38,19 @@ function createAPI(ctx: ModeContext, env: EngineEnv) {
   // a guarded call. The iframe front omits it (inline queries act on the hosting page, which the
   // iframe lacks), so it falls back to a no-op there instead of registering an undefined handler.
   const registerInlineQuery = front.registerInlineQuery ?? (() => {});
+  // Visual and Insert each own a help section, so a mapping added to them belongs there unless its
+  // annotation says otherwise. Normal mode has no section of its own — the built-in normal mappings
+  // are filed by topic — so a mapping with nothing to go on lands in Misc rather than under a
+  // heading that would misdescribe it.
+  function defaultFeatureGroup(mode: ModeWithMappings): number {
+    if (mode === visual) {
+      return FeatureGroup.visualMode;
+    }
+    if (mode === insert) {
+      return FeatureGroup.insertMode;
+    }
+    return FeatureGroup.misc;
+  }
   function createKeyTarget(
     // User keypress handler of arbitrary signature (see mapkey's jscode).
     // eslint-disable-next-line typescript/no-explicit-any
@@ -109,10 +122,7 @@ function createAPI(ctx: ModeContext, env: EngineEnv) {
       }
       const keybound = createKeyTarget(
         jscode,
-        {
-          annotation: annotation,
-          feature_group: mode === visual ? FeatureGroup.visualMode : FeatureGroup.insertMode,
-        },
+        { annotation: annotation, feature_group: defaultFeatureGroup(mode) },
         options.repeatIgnore,
       );
       mode.mappings.add(keys, keybound);
@@ -232,7 +242,12 @@ function createAPI(ctx: ModeContext, env: EngineEnv) {
             }
             front.executeCommand(cmdline);
           },
-          new_annotation ? parseAnnotation({ annotation: new_annotation }) : null,
+          new_annotation
+            ? parseAnnotation({
+                annotation: new_annotation,
+                feature_group: FeatureGroup.misc,
+              })
+            : null,
           false,
         );
         normal.mappings.add(KeyboardUtils.encodeKeystroke(new_keystroke), keybound);

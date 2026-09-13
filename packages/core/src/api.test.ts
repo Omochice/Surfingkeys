@@ -3,6 +3,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import createAPI from "./api";
 import type { EngineEnv } from "./engineEnv";
+import { FeatureGroup } from "./featureGroup";
 import KeyboardUtils from "./keyboardUtils";
 import Trie from "./trie";
 
@@ -744,7 +745,7 @@ describe("createAPI map special-key and not-found arms", () => {
     expect(node?.meta?.annotation).toContain("Echo it");
   });
 
-  it("binds a ':' mapping with a plain annotation that carries no feature group", () => {
+  it("files a ':' mapping with a plain annotation under Misc", () => {
     const ctx = makeCtx();
     const api = createAPI(ctx as any, env);
 
@@ -752,7 +753,7 @@ describe("createAPI map special-key and not-found arms", () => {
 
     const node = ctx.normal.mappings.find(KeyboardUtils.encodeKeystroke("e"));
     expect(node?.meta?.annotation).toContain("plain label");
-    expect(node?.meta?.feature_group).toBeUndefined();
+    expect(node?.meta?.feature_group).toBe(FeatureGroup.misc);
   });
 
   it("does not register the mapping when the domain does not match", () => {
@@ -930,5 +931,27 @@ describe("createAPI map feature group inheritance", () => {
     const node = ctx.normal.mappings.find(KeyboardUtils.encodeKeystroke("f"));
     expect(node?.meta?.annotation).toContain("Pick a tab");
     expect(node?.meta?.feature_group).toBe(3);
+  });
+});
+
+describe("createAPI mapkey default feature group", () => {
+  it("files a normal-mode mapping with no annotated group under Misc", () => {
+    const ctx = makeCtx();
+    const api = createAPI(ctx as any, env);
+
+    api.mapkey("zz", "my plain help text", vi.fn());
+
+    const node = ctx.normal.mappings.find(KeyboardUtils.encodeKeystroke("zz"));
+    expect(node?.meta?.feature_group).toBe(FeatureGroup.misc);
+  });
+
+  it("files an insert-mode mapping with no annotated group under Insert Mode", () => {
+    const ctx = makeCtx();
+    const api = createAPI(ctx as any, env);
+
+    api.imapkey("<Ctrl-y>", "insert action", vi.fn());
+
+    const node = ctx.insert.mappings.find(KeyboardUtils.encodeKeystroke("<Ctrl-y>"));
+    expect(node?.meta?.feature_group).toBe(FeatureGroup.insertMode);
   });
 });
