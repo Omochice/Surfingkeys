@@ -127,11 +127,13 @@ function createAPI(ctx: ModeContext, env: EngineEnv) {
         }
       }
       // A user snippet is plain JavaScript, so a mistyped group reaches here as an ordinary string.
-      // Saying so and falling back beats dropping the mapping out of the help without a word.
-      if (options.group != null && !isFeatureGroup(options.group)) {
-        LOG("warn", `${keys} names no help section [${options.group}]; listing it under Misc.`);
-      }
+      // Saying so and falling back beats dropping the mapping out of the help without a word. The
+      // fallback is the same section the mapping would have had with no group at all, so a typo in
+      // vmapkey stays under Visual Mode rather than being moved away from its own mode.
       const group = isFeatureGroup(options.group) ? options.group : defaultFeatureGroup(mode);
+      if (options.group != null && !isFeatureGroup(options.group)) {
+        LOG("warn", `${keys} names no help section [${options.group}]; listing it under ${group}.`);
+      }
       const keybound = createKeyTarget(
         jscode,
         { annotation: annotation, group: group },

@@ -956,7 +956,7 @@ describe("createAPI mapkey default feature group", () => {
 });
 
 describe("createAPI mapkey with an unknown group", () => {
-  it("warns and lists the mapping under Misc", () => {
+  it("warns and lists a normal-mode mapping under Misc", () => {
     const ctx = makeCtx();
     const log = vi.fn();
     const api = createAPI(ctx as any, { ...env, log });
@@ -966,6 +966,21 @@ describe("createAPI mapkey with an unknown group", () => {
 
     const node = ctx.normal.mappings.find(KeyboardUtils.encodeKeystroke("zy"));
     expect(node?.meta?.group).toBe("misc");
-    expect(log).toHaveBeenCalledWith("warn", expect.stringContaining("tabz"));
+    expect(log).toHaveBeenCalledWith("warn", expect.stringContaining("listing it under misc"));
+  });
+
+  it("keeps a visual-mode mapping in its own section and says so", () => {
+    const ctx = makeCtx();
+    const log = vi.fn();
+    const api = createAPI(ctx as any, { ...env, log });
+
+    api.vmapkey("zy", "typo group", vi.fn(), { group: "tabz" } as any);
+
+    const node = ctx.visual.mappings.find(KeyboardUtils.encodeKeystroke("zy"));
+    expect(node?.meta?.group).toBe("visualMode");
+    expect(log).toHaveBeenCalledWith(
+      "warn",
+      expect.stringContaining("listing it under visualMode"),
+    );
   });
 });
