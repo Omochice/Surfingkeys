@@ -4,5 +4,6 @@ export default defineConfig({
   test: {
     environment: "jsdom",
     setupFiles: ["@sk/test-support/setup"],
+    sequence: { shuffle: { tests: true } },
   },
 });
