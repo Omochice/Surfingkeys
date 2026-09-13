@@ -1,8 +1,10 @@
+import type { FeatureGroup } from "./featureGroup";
+
 /** Metadata bound to a complete keystroke sequence in the {@link Trie}. */
 export type TrieMeta = {
   word: string;
   annotation?: string | string[];
-  feature_group?: number;
+  group?: FeatureGroup;
   code?: (...args: string[]) => void;
   repeatIgnore?: boolean;
   stopPropagation?: ((key: string) => boolean) | boolean;

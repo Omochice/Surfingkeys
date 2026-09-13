@@ -2,7 +2,7 @@ import { attachFaviconToImgSrc, initL10n, isInUIFrame } from "@sk/adapter/platfo
 import createAPI from "@sk/core/api";
 import { applyDefaultMappings, registerDefaultExtras } from "@sk/core/applyDefaultMappings";
 import createDefaultMappings from "@sk/core/default";
-import { FeatureGroup } from "@sk/core/featureGroup";
+import { type FeatureGroup, featureGroups, isFeatureGroup } from "@sk/core/featureGroup";
 import KeyboardUtils from "@sk/core/keyboardUtils";
 import { ModeHandle, initModeHub } from "@sk/core/mode";
 import createModeGraph, { type ModeContext } from "@sk/core/modeGraph";
@@ -39,32 +39,6 @@ import type { StatusCell } from "./components/StatusBar";
 import { Tabs as TabsView, type TabsTab } from "./components/Tabs";
 import { Usage as UsageView } from "./components/Usage";
 import createOmnibar from "./omnibar";
-
-// Keyed by the group's own number rather than by position, so adding a section cannot renumber the
-// existing ones; `satisfies` makes a section without a title a type error.
-const featureGroupTitle: Partial<Record<number, string>> = {
-  [FeatureGroup.help]: "Help",
-  [FeatureGroup.mouseClick]: "Mouse Click",
-  [FeatureGroup.scroll]: "Scroll Page / Element",
-  [FeatureGroup.tabs]: "Tabs",
-  [FeatureGroup.pageNavigation]: "Page Navigation",
-  [FeatureGroup.sessions]: "Sessions",
-  [FeatureGroup.searchSelectedWith]: "Search selected with",
-  [FeatureGroup.clipboard]: "Clipboard",
-  [FeatureGroup.omnibar]: "Omnibar",
-  [FeatureGroup.visualMode]: "Visual Mode",
-  [FeatureGroup.marks]: "vim-like marks",
-  [FeatureGroup.settings]: "Settings",
-  [FeatureGroup.chromeUrls]: "Chrome URLs",
-  [FeatureGroup.misc]: "Misc",
-  [FeatureGroup.insertMode]: "Insert Mode",
-  [FeatureGroup.lurkMode]: "Lurk Mode",
-  [FeatureGroup.regionalHintsMode]: "Regional Hints Mode",
-} satisfies Record<FeatureGroup, string>;
-
-const featureGroupOrder = Object.keys(featureGroupTitle)
-  .map((group) => Number(group))
-  .toSorted((a, b) => a - b);
 
 // Any page can postMessage to this window, so the envelope from the content
 // side is external data; validate its shape before dispatching. looseObject
@@ -488,7 +462,7 @@ const Front = (() => {
   // The annotation is either a plain string or a [format, ...args] tuple localizeAnnotation expands.
   type UsageMeta = {
     word: string;
-    feature_group?: number | undefined;
+    group?: string | undefined;
     annotation?: string | string[] | undefined;
   };
 
@@ -508,8 +482,8 @@ const Front = (() => {
     cb: (result: { groups: string[]; moreHelp: string }) => void,
   ) {
     initL10n((locale) => {
-      const itemsByGroup = new Map<number, string[]>();
-      const addItem = (group: number, item: string): void => {
+      const itemsByGroup = new Map<FeatureGroup, string[]>();
+      const addItem = (group: FeatureGroup, item: string): void => {
         const items = itemsByGroup.get(group);
         if (items != null) {
           items.push(item);
@@ -524,7 +498,7 @@ const Front = (() => {
         const last = altSKeys[lh - 1];
         if (last != null) {
           addItem(
-            FeatureGroup.help,
+            "help",
             `<div><span class=kbd-span><kbd>${htmlEncode(last)}</kbd></span><span class=annotation>${locale("Toggle SurfingKeys on current site")}</span></div>`,
           );
         }
@@ -535,19 +509,19 @@ const Front = (() => {
         const w = KeyboardUtils.decodeKeystroke(meta.word);
         const annotation = localizeAnnotation(locale, meta.annotation);
         const item = `<div><span class=kbd-span><kbd>${htmlEncode(w)}</kbd></span><span class=annotation>${annotation}</span></div>`;
-        // A user snippet may carry any number through the `#N` annotation prefix, so one naming no
-        // section is dropped rather than given a heading of its own.
-        if (meta.feature_group != null && featureGroupTitle[meta.feature_group] != null) {
-          addItem(meta.feature_group, item);
+        // The metas arrive over the message boundary, so a key naming no section is dropped rather
+        // than given a heading of its own.
+        if (isFeatureGroup(meta.group)) {
+          addItem(meta.group, item);
         }
       });
       // <Usage> wraps each of these in its own <div> and renders the footer link itself.
-      const groups = featureGroupOrder
-        .map((group) => {
-          const items = itemsByGroup.get(group);
+      const groups = featureGroups
+        .map(({ key, title }) => {
+          const items = itemsByGroup.get(key);
           return items == null
             ? ""
-            : `<div class=feature_name><span>${locale(featureGroupTitle[group] ?? "")}</span></div>${items.join("")}`;
+            : `<div class=feature_name><span>${locale(title)}</span></div>${items.join("")}`;
         })
         .filter((s) => s.length);
       cb({ groups, moreHelp: locale("More help") });
@@ -572,7 +546,7 @@ const Front = (() => {
   );
   const usageMetaSchema = v.object({
     word: v.string(),
-    feature_group: v.optional(v.number()),
+    group: v.optional(v.string()),
     annotation: v.optional(v.union([v.string(), v.array(v.string())])),
   });
   actions["showUsage"] = (message: unknown) => {

@@ -1,6 +1,6 @@
 import type { EngineEnv } from "./engineEnv";
 import { dispatchSKEvent } from "./events";
-import { FeatureGroup } from "./featureGroup";
+import type { FeatureGroup } from "./featureGroup";
 import KeyboardUtils from "./keyboardUtils";
 import type { Keymap } from "./keymap";
 import type { ModeContext } from "./modeGraph";
@@ -25,10 +25,10 @@ type KeyTarget = {
   // eslint-disable-next-line typescript/no-explicit-any
   code: (...args: any[]) => void;
   repeatIgnore?: boolean;
-  feature_group?: number;
+  group?: FeatureGroup;
   annotation?: string | string[];
 };
-type Annotation = { annotation: string | string[]; feature_group?: number };
+type Annotation = { annotation: string | string[]; group?: FeatureGroup };
 export type MapOptions = { domain?: RegExp; repeatIgnore?: boolean; codeHasParameter?: boolean };
 
 function createAPI(ctx: ModeContext, env: EngineEnv) {
@@ -42,14 +42,14 @@ function createAPI(ctx: ModeContext, env: EngineEnv) {
   // annotation says otherwise. Normal mode has no section of its own — the built-in normal mappings
   // are filed by topic — so a mapping with nothing to go on lands in Misc rather than under a
   // heading that would misdescribe it.
-  function defaultFeatureGroup(mode: ModeWithMappings): number {
+  function defaultFeatureGroup(mode: ModeWithMappings): FeatureGroup {
     if (mode === visual) {
-      return FeatureGroup.visualMode;
+      return "visualMode";
     }
     if (mode === insert) {
-      return FeatureGroup.insertMode;
+      return "insertMode";
     }
-    return FeatureGroup.misc;
+    return "misc";
   }
   function createKeyTarget(
     // User keypress handler of arbitrary signature (see mapkey's jscode).
@@ -66,8 +66,8 @@ function createAPI(ctx: ModeContext, env: EngineEnv) {
     }
     if (ag) {
       ag = parseAnnotation(ag);
-      if (ag.feature_group != null) {
-        keybound.feature_group = ag.feature_group;
+      if (ag.group != null) {
+        keybound.group = ag.group;
       }
       keybound.annotation = ag.annotation;
     }
@@ -122,7 +122,7 @@ function createAPI(ctx: ModeContext, env: EngineEnv) {
       }
       const keybound = createKeyTarget(
         jscode,
-        { annotation: annotation, feature_group: defaultFeatureGroup(mode) },
+        { annotation: annotation, group: defaultFeatureGroup(mode) },
         options.repeatIgnore,
       );
       mode.mappings.add(keys, keybound);
@@ -245,7 +245,7 @@ function createAPI(ctx: ModeContext, env: EngineEnv) {
           new_annotation
             ? parseAnnotation({
                 annotation: new_annotation,
-                feature_group: FeatureGroup.misc,
+                group: "misc",
               })
             : null,
           false,

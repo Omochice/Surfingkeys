@@ -10,6 +10,7 @@ import {
 import { conf } from "./conf";
 import type { EngineEnv } from "./engineEnv";
 import { dispatchSKEvent } from "./events";
+import { type FeatureGroup, featureGroupFromLegacyNumber } from "./featureGroup";
 import KeyboardUtils from "./keyboardUtils";
 import type Trie from "./trie";
 import type { TrieMeta } from "./trie";
@@ -867,9 +868,9 @@ function regExpReplacer(_key: string, value: unknown): unknown {
   return value instanceof RegExp ? { source: value.source, flags: value.flags } : value;
 }
 
-function parseAnnotation(ag: { annotation: string | string[]; feature_group?: number }): {
+function parseAnnotation(ag: { annotation: string | string[]; group?: FeatureGroup }): {
   annotation: string | string[];
-  feature_group?: number;
+  group?: FeatureGroup;
 } {
   let an: string | string[] = ag.annotation;
   if (typeof an === "string") {
@@ -886,7 +887,10 @@ function parseAnnotation(ag: { annotation: string | string[]; feature_group?: nu
     const featureGroup = annotations[1];
     const rest = annotations[2];
     if (featureGroup != null && rest != null) {
-      ag.feature_group = Number.parseInt(featureGroup);
+      const group = featureGroupFromLegacyNumber(Number.parseInt(featureGroup));
+      if (group != null) {
+        ag.group = group;
+      }
       arr[0] = rest;
     }
   }
@@ -924,7 +928,7 @@ function mapInMode(
 
 function getAnnotations(mappings: Trie): {
   word: string;
-  feature_group: number | undefined;
+  group: FeatureGroup | undefined;
   annotation: string | string[] | undefined;
 }[] {
   return mappings
@@ -933,7 +937,7 @@ function getAnnotations(mappings: Trie): {
       const meta = mappings.find(w)!.meta!;
       return {
         word: w,
-        feature_group: meta.feature_group,
+        group: meta.group,
         annotation: meta.annotation,
       };
     })

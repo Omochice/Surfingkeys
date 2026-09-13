@@ -3,7 +3,6 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import createAPI from "./api";
 import type { EngineEnv } from "./engineEnv";
-import { FeatureGroup } from "./featureGroup";
 import KeyboardUtils from "./keyboardUtils";
 import Trie from "./trie";
 
@@ -140,7 +139,7 @@ describe("createAPI mapkey", () => {
     expect(node?.meta?.repeatIgnore).toBe(true);
   });
 
-  it("extracts feature_group from #N annotation prefix", () => {
+  it("extracts the group from a #N annotation prefix", () => {
     const ctx = makeCtx();
     const api = createAPI(ctx as any, env);
 
@@ -148,7 +147,7 @@ describe("createAPI mapkey", () => {
 
     const encoded = KeyboardUtils.encodeKeystroke("f");
     const node = ctx.normal.mappings.find(encoded);
-    expect(node?.meta?.feature_group).toBe(6);
+    expect(node?.meta?.group).toBe("searchSelectedWith");
   });
 });
 
@@ -164,7 +163,7 @@ describe("createAPI vmapkey", () => {
     expect(ctx.normal.mappings.find(encoded)).toBeUndefined();
   });
 
-  it("assigns feature_group 9 for visual mode mappings", () => {
+  it("assigns the Visual Mode group to visual mode mappings", () => {
     const ctx = makeCtx();
     const api = createAPI(ctx as any, env);
 
@@ -172,7 +171,7 @@ describe("createAPI vmapkey", () => {
 
     const encoded = KeyboardUtils.encodeKeystroke("q");
     const node = ctx.visual.mappings.find(encoded);
-    expect(node?.meta?.feature_group).toBe(9);
+    expect(node?.meta?.group).toBe("visualMode");
   });
 });
 
@@ -361,7 +360,7 @@ describe("createAPI addSearchAlias key mappings", () => {
       node = node?.find(ch);
     }
     expect(node?.meta?.annotation).toEqual(["Search selected with {0}", "Google"]);
-    expect(node?.meta?.feature_group).toBe(6);
+    expect(node?.meta?.group).toBe("searchSelectedWith");
     expect(typeof node!.meta!.code).toBe("function");
   });
 
@@ -753,7 +752,7 @@ describe("createAPI map special-key and not-found arms", () => {
 
     const node = ctx.normal.mappings.find(KeyboardUtils.encodeKeystroke("e"));
     expect(node?.meta?.annotation).toContain("plain label");
-    expect(node?.meta?.feature_group).toBe(FeatureGroup.misc);
+    expect(node?.meta?.group).toBe("misc");
   });
 
   it("does not register the mapping when the domain does not match", () => {
@@ -918,7 +917,7 @@ describe("createAPI map feature group inheritance", () => {
     api.map("f", "p");
 
     const node = ctx.normal.mappings.find(KeyboardUtils.encodeKeystroke("f"));
-    expect(node?.meta?.feature_group).toBe(3);
+    expect(node?.meta?.group).toBe("tabs");
   });
 
   it("keeps the source mapping's feature group when the alias renames the annotation", () => {
@@ -930,7 +929,7 @@ describe("createAPI map feature group inheritance", () => {
 
     const node = ctx.normal.mappings.find(KeyboardUtils.encodeKeystroke("f"));
     expect(node?.meta?.annotation).toContain("Pick a tab");
-    expect(node?.meta?.feature_group).toBe(3);
+    expect(node?.meta?.group).toBe("tabs");
   });
 });
 
@@ -942,7 +941,7 @@ describe("createAPI mapkey default feature group", () => {
     api.mapkey("zz", "my plain help text", vi.fn());
 
     const node = ctx.normal.mappings.find(KeyboardUtils.encodeKeystroke("zz"));
-    expect(node?.meta?.feature_group).toBe(FeatureGroup.misc);
+    expect(node?.meta?.group).toBe("misc");
   });
 
   it("files an insert-mode mapping with no annotated group under Insert Mode", () => {
@@ -952,6 +951,6 @@ describe("createAPI mapkey default feature group", () => {
     api.imapkey("<Ctrl-y>", "insert action", vi.fn());
 
     const node = ctx.insert.mappings.find(KeyboardUtils.encodeKeystroke("<Ctrl-y>"));
-    expect(node?.meta?.feature_group).toBe(FeatureGroup.insertMode);
+    expect(node?.meta?.group).toBe("insertMode");
   });
 });

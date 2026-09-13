@@ -10,6 +10,7 @@
  * timer, in the richHintsForKeystroke range only, is hard to drive reliably.
  */
 
+import { featureGroups } from "@sk/core/featureGroup";
 import { specialKeys } from "@sk/core/specialKeys";
 import { RUNTIME, runtime } from "@sk/messaging/runtime";
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
@@ -613,11 +614,11 @@ describe("actions['getUsage'] feature group placement", () => {
     });
   }
 
-  it("renders each feature group number under its own section title", () => {
-    const metas = Array.from({ length: 17 }, (_, group) => ({
-      word: `k${group}`,
-      feature_group: group,
-      annotation: `ANN_${group}`,
+  it("renders each feature group under its own section title, in declared order", () => {
+    const metas = featureGroups.map(({ key }) => ({
+      word: `k_${key}`,
+      group: key,
+      annotation: `ANN_${key}`,
     }));
 
     const titled = sectionsOf(renderUsage(metas)).map((s) => [
@@ -626,41 +627,41 @@ describe("actions['getUsage'] feature group placement", () => {
     ]);
 
     expect(titled).toEqual([
-      ["Help", ["ANN_0"]],
-      ["Mouse Click", ["ANN_1"]],
-      ["Scroll Page / Element", ["ANN_2"]],
-      ["Tabs", ["ANN_3"]],
-      ["Page Navigation", ["ANN_4"]],
-      ["Sessions", ["ANN_5"]],
-      ["Search selected with", ["ANN_6"]],
-      ["Clipboard", ["ANN_7"]],
-      ["Omnibar", ["ANN_8"]],
-      ["Visual Mode", ["ANN_9"]],
-      ["vim-like marks", ["ANN_10"]],
-      ["Settings", ["ANN_11"]],
-      ["Chrome URLs", ["ANN_12"]],
-      ["Misc", ["ANN_13"]],
-      ["Insert Mode", ["ANN_14"]],
-      ["Lurk Mode", ["ANN_15"]],
-      ["Regional Hints Mode", ["ANN_16"]],
+      ["Help", ["ANN_help"]],
+      ["Mouse Click", ["ANN_mouseClick"]],
+      ["Scroll Page / Element", ["ANN_scroll"]],
+      ["Tabs", ["ANN_tabs"]],
+      ["Page Navigation", ["ANN_pageNavigation"]],
+      ["Sessions", ["ANN_sessions"]],
+      ["Search selected with", ["ANN_searchSelectedWith"]],
+      ["Clipboard", ["ANN_clipboard"]],
+      ["Omnibar", ["ANN_omnibar"]],
+      ["Visual Mode", ["ANN_visualMode"]],
+      ["vim-like marks", ["ANN_marks"]],
+      ["Settings", ["ANN_settings"]],
+      ["Chrome URLs", ["ANN_chromeUrls"]],
+      ["Misc", ["ANN_misc"]],
+      ["Insert Mode", ["ANN_insertMode"]],
+      ["Lurk Mode", ["ANN_lurkMode"]],
+      ["Regional Hints Mode", ["ANN_regionalHintsMode"]],
     ]);
   });
 
   it("omits a section whose feature group has no mappings", () => {
     const sections = sectionsOf(
-      renderUsage([{ word: "k", feature_group: 3, annotation: "ANN_3" }]),
+      renderUsage([{ word: "k", group: "tabs", annotation: "ANN_tabs" }]),
     ).filter((s) => s.annotations.some((a) => a.startsWith("ANN_")));
 
     expect(sections.map((s) => s.title)).toEqual(["Tabs"]);
   });
 
-  it("drops a mapping whose feature group number has no section", () => {
+  it("drops a mapping whose feature group names no section", () => {
     const html = renderUsage([
-      { word: "k", feature_group: 3, annotation: "ANN_3" },
-      { word: "u", feature_group: 99, annotation: "ANN_99" },
+      { word: "k", group: "tabs", annotation: "ANN_tabs" },
+      { word: "u", group: "nosuchgroup", annotation: "ANN_unknown" },
     ]);
 
-    expect(html).not.toContain("ANN_99");
-    expect(html).toContain("ANN_3");
+    expect(html).not.toContain("ANN_unknown");
+    expect(html).toContain("ANN_tabs");
   });
 });
