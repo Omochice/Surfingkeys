@@ -5,7 +5,6 @@ import { captureUncaught } from "@sk/log/uncaught";
 
 import { addLogSink, LOG } from "./log";
 
-/** Sink forwarding each record to the background under {@link DEV_LOG_ACTION}. */
 function relaySink(context: string): LogSink {
   return (level, ...args) => {
     const record: RelayedLogRecord = {
@@ -29,14 +28,12 @@ function relaySink(context: string): LogSink {
 }
 
 /**
- * Start relaying this context's log records and uncaught errors to the background.
+ * Start relaying this context's log records and uncaught errors to the background, returning a
+ * disposer.
  *
  * Content scripts cannot reach the collector themselves: their fetches carry the page's origin and
  * are refused by CORS and the private-network checks a localhost endpoint triggers. The background
  * is the one context with an unrestricted fetch, so it owns the single exit point.
- *
- * @param context - Value reported as `sk.context`, e.g. "content" or "frontend".
- * @returns A disposer detaching the relay sink and the uncaught-error listeners.
  */
 function enableDevLogging(context: string): () => void {
   const removeSink = addLogSink(relaySink(context));
