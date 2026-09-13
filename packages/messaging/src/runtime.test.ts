@@ -5,25 +5,20 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { RUNTIME, runtime } from "./runtime";
 
-// `reportError` is the presentation pipeline for chrome-runtime failures; async
-// lastError failures (which Result.try's synchronous catch cannot see) must be
-// routed through it instead of reaching the user callback with undefined.
 vi.mock("@sk/core/report", () => ({ reportError: vi.fn() }));
 
 const reportErrorMock = vi.mocked(reportError);
 
 // @types/chrome types lastError as a read-only getter and sendMessage as a
-// promise-returning overload set; the test stub deliberately mutates lastError
-// and supplies a synchronous callback-invoking mock, so it accesses the runtime
-// through a loosened view rather than fighting the production types.
+// promise-returning overload set, neither of which the stub below can satisfy,
+// so the runtime is reached through a loosened view.
 const runtimeStub = chrome.runtime as unknown as {
   lastError: { message: string } | undefined;
   sendMessage: (msg: unknown, cb?: (response: unknown) => void) => void;
 };
 
 afterEach(() => {
-  // setup.ts seeds lastError as undefined; restore it so a failing test does
-  // not leak the error state into sibling tests sharing the chrome stub.
+  // Sibling tests share one chrome stub, so a failing test must not leak lastError.
   runtimeStub.lastError = undefined;
   vi.restoreAllMocks();
   vi.clearAllMocks();
@@ -86,8 +81,6 @@ describe("RUNTIME", () => {
 
     RUNTIME("closeTab");
 
-    // The background-repeat branch copies repeats into the message then resets
-    // the foreground counter to 1.
     expect(sent.repeats).toBe(5);
     expect(repeatCount.value).toBe(1);
   });
@@ -101,8 +94,6 @@ describe("RUNTIME", () => {
 
     RUNTIME("getTabs");
 
-    // 'getTabs' is not in actionsRepeatBackground, so the index === -1 arm runs
-    // and repeats is left untouched on both the message and the counter.
     expect(sent.repeats).toBeUndefined();
     expect(repeatCount.value).toBe(3);
     repeatCount.value = 1;
@@ -131,8 +122,6 @@ describe("RUNTIME", () => {
 
     RUNTIME("getTabs", null, vi.fn());
 
-    // lastError.message is undefined → the `?? "unknown error"` arm supplies the
-    // fallback cause string.
     expect(reportErrorMock).toHaveBeenCalledWith(
       expect.objectContaining({ cause: "unknown error" }),
     );
@@ -143,10 +132,8 @@ describe("runtime.bookMessage / releaseMessage", () => {
   it("books a fresh message name and refuses to overwrite an existing booking", () => {
     runtime.releaseMessage("wave2-probe");
     expect(runtime.bookMessage("wave2-probe", vi.fn())).toBe(true);
-    // Second booking of the same name hits the `if (handlers[message])` arm.
     expect(runtime.bookMessage("wave2-probe", vi.fn())).toBe(false);
     runtime.releaseMessage("wave2-probe");
-    // After release the name is free to book again.
     expect(runtime.bookMessage("wave2-probe", vi.fn())).toBe(true);
     runtime.releaseMessage("wave2-probe");
   });
@@ -156,9 +143,8 @@ describe("runtime.postTopMessage", () => {
   it("posts the message to the top window using the top origin", async () => {
     const postSpy = vi.spyOn(window.top!, "postMessage").mockImplementation(() => {});
     runtime.postTopMessage({ subject: "wave2" });
-    // getTopURLPromise resolves on a microtask; in jsdom window === top, so the
-    // origin is window.location.origin and the URL is a normal https one (the
-    // `=== "null" || file://` arm stays false).
+    // The top URL is resolved asynchronously, so the post happens after a turn.
+    // In jsdom window === top, which makes the origin window.location.origin.
     await new Promise((r) => setTimeout(r, 0));
 
     expect(postSpy).toHaveBeenCalledWith({ subject: "wave2" }, window.location.origin);
