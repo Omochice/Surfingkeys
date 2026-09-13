@@ -27,10 +27,6 @@ type RuntimeFn = {
  *   RUNTIME("getTabs", { queryInfo: { currentWindow: true } }, (response) => {
  *     console.log(response);
  *   });
- *
- * @param {string} action A background action to be called.
- * @param {object} args The parameters to be passed to the background action.
- * @param {function} callback A function to be executed with the result from the background action.
  */
 const RUNTIME: RuntimeFn = function <R = unknown>(
   action: string,
