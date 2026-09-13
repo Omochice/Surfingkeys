@@ -59,6 +59,14 @@ const makeEnv = (): EngineEnv => ({
   },
 });
 
+// The shared setup installs globalThis.chrome once; tests below swap it for their own stub, so the
+// original is restored rather than deleted, which would strand every later test without it.
+const installedChrome: unknown = Reflect.get(globalThis, "chrome");
+
+afterEach(() => {
+  Reflect.set(globalThis, "chrome", installedChrome);
+});
+
 type Registration = {
   mode: string;
   annotation: string | string[];
@@ -1351,7 +1359,6 @@ describe(";t translates selected text or current page", () => {
     (globalThis as any).chrome = { surfingkeys: { translateCurrentPage } };
     fire(";t");
     expect(translateCurrentPage).toHaveBeenCalled();
-    delete (globalThis as any).chrome;
   });
 
   it("calls searchSelectedWith when selection is non-empty and chrome.surfingkeys is absent", () => {
@@ -1365,7 +1372,6 @@ describe(";t translates selected text or current page", () => {
       false,
       "",
     );
-    delete (globalThis as any).chrome;
   });
 
   it("opens translate URL for the current page when selection is empty and chrome.surfingkeys is absent", () => {
@@ -1376,7 +1382,6 @@ describe(";t translates selected text or current page", () => {
     expect(seam.tabOpenLink).toHaveBeenCalledWith(
       expect.stringContaining("https://translate.google.com/translate"),
     );
-    delete (globalThis as any).chrome;
   });
 });
 
@@ -1393,7 +1398,6 @@ describe("<Ctrl-h> mouse-over hint callback uses sendMouseEvent when chrome.surf
     cb(fakeEl);
     expect(sendMouseEvent).toHaveBeenCalledWith(2, 60, 40, 0);
     expect(ctx.hints.dispatchMouseClick).not.toHaveBeenCalled();
-    delete (globalThis as any).chrome;
   });
 });
 
