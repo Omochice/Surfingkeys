@@ -230,7 +230,6 @@ describe("addSearchAlias (via api returned by factory)", () => {
 
     const evt = events.find((e) => Array.isArray(e.detail) && e.detail[0] === "addSearchAlias");
     expect(evt).not.toBeUndefined();
-    // detail[6] is the source string "user"
     expect((evt as CustomEvent).detail[6]).toBe("user");
   });
 
@@ -483,10 +482,6 @@ describe("default export factory", () => {
   });
 });
 
-// surfingkeys:user listener — the capture-phase interface registered at module
-// load. initSKFunctionListener shifts the action name off detail and, because
-// capture is true, appends evt.target as the final arg.
-
 function fireUser(detail: unknown[], target: EventTarget = document): void {
   target.dispatchEvent(new CustomEvent("surfingkeys:user", { detail, bubbles: true }));
 }
@@ -512,8 +507,6 @@ describe("surfingkeys:user — callUserFunction", () => {
 
   it("does not register the user function when the mapkey domain does not match", () => {
     const jscode = vi.fn();
-    // domain mismatch → the !options || domain-match guard is false, so the
-    // function is never stored under normal:gz.
     capturedApi.mapkey("gz", "run", jscode, { domain: /never-match\.example/ });
 
     fireUser(["callUserFunction", "normal:gz", {}]);
@@ -556,7 +549,6 @@ describe("surfingkeys:user — onClipboardRead", () => {
 describe("surfingkeys:user — onHintClicked", () => {
   it("calls the hints callback with (element, shiftKey) when one was registered via Hints.create", () => {
     const onHintKey = vi.fn();
-    // Hints.create with a string selector registers hintsFunction = onHintKey.
     capturedApi.Hints.create("a", onHintKey);
     const element = document.createElement("a");
     // The listener is registered capture-phase on document, so the target must be
