@@ -1,7 +1,6 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { isNewlyCreated, markSurfingKeysElement } from "./domFlags";
-import { dispatchSKEvent } from "./events";
 import startScrollNodeObserver from "./observer";
 
 const stubNormal = { addScrollableElement: () => {} };
@@ -11,13 +10,9 @@ async function flushObserver(): Promise<void> {
 }
 
 describe("startScrollNodeObserver — flags newly inserted nodes", () => {
-  afterEach(() => {
-    dispatchSKEvent("observer", ["turnOff"]);
-  });
-
   it("flags a normal page-inserted element as newly-created", async () => {
-    startScrollNodeObserver(stubNormal);
-    dispatchSKEvent("observer", ["turnOn"]);
+    const fire = startObserverWithOwnListener();
+    fire("turnOn");
 
     const div = document.createElement("div");
     document.body.appendChild(div);
@@ -26,11 +21,12 @@ describe("startScrollNodeObserver — flags newly inserted nodes", () => {
     expect(isNewlyCreated(div)).toBe(true);
 
     div.remove();
+    fire("turnOff");
   });
 
   it("skips a SurfingKeys-injected element", async () => {
-    startScrollNodeObserver(stubNormal);
-    dispatchSKEvent("observer", ["turnOn"]);
+    const fire = startObserverWithOwnListener();
+    fire("turnOn");
 
     const injected = document.createElement("div");
     markSurfingKeysElement(injected);
@@ -40,13 +36,33 @@ describe("startScrollNodeObserver — flags newly inserted nodes", () => {
     expect(isNewlyCreated(injected)).toBe(false);
 
     injected.remove();
+    fire("turnOff");
   });
 });
 
-// startScrollNodeObserver leaves a permanent surfingkeys:observer listener on the
-// document with no teardown, so dispatchSKEvent would also fire every observer
-// registered by earlier tests. Stubbing MutationObserver and invoking this
-// observer's own listener directly keeps one observer under assertion.
+// startScrollNodeObserver leaves a permanent surfingkeys:observer listener on the document with no
+// teardown, and initSKFunctionListener shifts the action off the event's shared detail array, so a
+// dispatched event reaches only the earliest-registered listener. Capturing this observer's own
+// listener and invoking it directly is what puts the observer under test in charge.
+function startObserverWithOwnListener(): (action: string) => void {
+  let listener: EventListener | undefined;
+  const addSpy = vi.spyOn(document, "addEventListener").mockImplementation((type, l, opts) => {
+    if (type === "surfingkeys:observer") {
+      listener = l as EventListener;
+    }
+    return EventTarget.prototype.addEventListener.call(document, type, l, opts);
+  });
+
+  startScrollNodeObserver(stubNormal);
+
+  addSpy.mockRestore();
+  if (listener == null) {
+    throw new Error("startScrollNodeObserver registered no surfingkeys:observer listener");
+  }
+  const own = listener;
+  return (action: string) => own(new CustomEvent("surfingkeys:observer", { detail: [action] }));
+}
+
 function startIsolatedObserver(): {
   observe: ReturnType<typeof vi.fn>;
   disconnect: ReturnType<typeof vi.fn>;
@@ -68,25 +84,19 @@ function startIsolatedObserver(): {
   }
   globalThis.MutationObserver = Tracking as unknown as typeof MutationObserver;
 
-  let listener: EventListener | undefined;
-  const addSpy = vi.spyOn(document, "addEventListener").mockImplementation((type, l, opts) => {
-    if (type === "surfingkeys:observer") {
-      listener = l as EventListener;
-    }
-    return EventTarget.prototype.addEventListener.call(document, type, l, opts);
-  });
+  const fire = startObserverWithOwnListener();
 
-  startScrollNodeObserver(stubNormal);
-
-  addSpy.mockRestore();
   globalThis.MutationObserver = OriginalMO;
+
+  if (mutationCallback == null) {
+    throw new Error("the stubbed MutationObserver was never constructed");
+  }
 
   return {
     observe,
     disconnect,
-    mutationCallback: mutationCallback!,
-    fire: (action: string) =>
-      listener!(new CustomEvent("surfingkeys:observer", { detail: [action] })),
+    mutationCallback,
+    fire,
     restore: () => {},
   };
 }
