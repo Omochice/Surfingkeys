@@ -22,15 +22,13 @@ import {
   toggleQuote,
 } from "./utils";
 
-// Parse JSON without throwing: malformed input becomes undefined so callers can
-// route it through schema validation and a graceful fallback.
 /**
- * A text-anchor / clickable-text hint match: the text node, the offset within it, and the matched
- * text. `offset === 0` means the whole node's data is the match; otherwise element[2] holds the
- * text.
+ * A text-anchor hint match: the text node, the offset within it, and the matched text. An offset of
+ * 0 means the whole node's data is the match; otherwise the third element holds the text.
  */
 type TextAnchorMatch = [CharacterData, number, string];
 
+/** Parse JSON, yielding `undefined` instead of throwing on malformed input. */
 export const parseJsonSafe = (text: string): unknown => {
   try {
     return JSON.parse(text);
@@ -39,9 +37,8 @@ export const parseJsonSafe = (text: string): unknown => {
   }
 };
 
-// Clipboard restore reads back JSON the user previously copied; only the
-// top-level object shape is constrained, individual values stay unknown and are
-// narrowed at the use sites.
+// Clipboard restore reads back JSON the user previously copied, so only the top-level object shape
+// is constrained; individual values stay unknown and are narrowed at the use sites.
 const clipboardSettingsSchema = v.record(v.string(), v.unknown());
 const clipboardFormsSchema = v.record(v.string(), v.record(v.string(), v.unknown()));
 
@@ -54,12 +51,7 @@ export type MappingDef = {
   options?: MapOptions;
 };
 
-/**
- * The default key map as data, keyed by mode (`nmap`/`vmap`/`imap`) then by key sequence. Returned
- * by {@link createDefaultMappings} so the registration is separated from the definition: callers
- * apply it via {@link applyDefaultMappings}, and consumers can read or recombine entries (e.g. bind
- * `f` to `p`'s default action) before applying.
- */
+/** The default key map as data, keyed by mode (`nmap`/`vmap`/`imap`) then by key sequence. */
 export type DefaultMappings = {
   nmap: Record<string, MappingDef>;
   vmap: Record<string, MappingDef>;
@@ -92,8 +84,8 @@ function getFormData(
 
     formData.forEach((value, key) => {
       if (Object.hasOwn(obj, key)) {
-        // Only non-empty string values collapse a repeated field into an array (file
-        // entries have no length and were skipped here historically).
+        // Only non-empty string values collapse a repeated field into an array; file entries are
+        // skipped.
         if (typeof value === "string" && value.length) {
           const p = obj[key];
           if (Array.isArray(p)) {
@@ -407,7 +399,7 @@ function defineSwitchFrames(ctx: ModeContext): ModalMappingDef {
     def: {
       annotation: "#2Switch frames",
       code: () => {
-        // ensure frontend ready so that ui related actions can be available in iframes.
+        // ui related actions are only available in iframes once the frontend is ready.
         dispatchSKEvent("ensureFrontEnd");
         if (window === top) {
           ctx.hints
@@ -2050,12 +2042,7 @@ function defineRemoveBookmark(env: EngineEnv): ModalMappingDef {
   };
 }
 
-/**
- * Build the default key map as data, keyed by mode then by key sequence. Pure: it captures `ctx`,
- * `env`, and `searchSelectedWith` in each handler but performs no registration. Apply the result
- * with {@link applyDefaultMappings}; register the non-mapkey defaults (remaps, search aliases) with
- * {@link registerDefaultExtras}.
- */
+/** Build the default key map as data, keyed by mode then by key sequence, registering nothing. */
 export default function createDefaultMappings(
   ctx: ModeContext,
   env: EngineEnv,

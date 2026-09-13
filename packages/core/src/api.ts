@@ -722,10 +722,8 @@ function createAPI(ctx: ModeContext, env: EngineEnv) {
 }
 
 /**
- * The user-script / default-mapping API surface returned by {@link createAPI}: the key-mapping
- * helpers (`mapkey`/`map`/`unmap`/…), search-alias management, and the
- * `Clipboard`/`Normal`/`Hints`/`Visual`/`Front` namespaces. This is the single source of truth for
- * the shape — `default.ts` consumes it directly instead of re-declaring a structural subset.
+ * The user-script / default-mapping API surface: key-mapping helpers, search-alias management, and
+ * the `Clipboard`/`Normal`/`Hints`/`Visual`/`Front` namespaces.
  */
 export type SurfingkeysApi = ReturnType<typeof createAPI>;
 

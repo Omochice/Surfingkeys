@@ -29,15 +29,8 @@ import {
   setSanitizedContent,
 } from "./utils";
 
-// Browser-extension global. The typed BrowserAdapter (task #13) will replace
-// this narrow declaration once cross-browser API access is centralized.
-
-// Color index per hinted element, kept off the element so the hint node need
-// not carry it as an expando.
+// Kept off the element so the hint node need not carry these as expandos.
 const skColorIndices = new WeakMap<Element, number>();
-
-// Saved z-index per hinted element (the value before flip() rewrites style),
-// likewise kept off the element.
 const zIndices = new WeakMap<HTMLElement, string>();
 
 type InsertLike = { enter(elm: HTMLElement, keepCursor?: boolean): void; exit(): void };
@@ -66,18 +59,11 @@ type Behaviours = {
   [key: string]: unknown;
 };
 
-/**
- * The regional-hints controller. It wraps a private {@link ModeHandle}; callers only ever invoke
- * `attach`, so that is the whole public surface. The scroll hooks live in the module-level
- * {@link scrollHooks} table, keyed by the private handle, rather than on the controller.
- */
 type RegionalHintsMode = { attach(elm: HTMLElement): void };
 
 /**
- * The hints controller. It wraps a private {@link ModeHandle} rather than being one: Hints does its
- * own prefix matching in its keydown listener and never assigns `mappings`, and no caller touches
- * the base mode members, so the public surface is just the hint operations below. Scroll hooks live
- * in the module-level {@link scrollHooks} table, keyed by the private handle.
+ * The hints controller wraps a private {@link ModeHandle} rather than being one: it does its own
+ * prefix matching in its keydown listener and never assigns `mappings`.
  */
 type HintsMode = {
   setNumeric(): void;
@@ -276,15 +262,12 @@ div.hint-scrollable {
     background: rgba(0, 0, 255, 0.25);
 }`,
   );
-  /* When the <style> loaded, set hints host's size */
   hintsStyle.onload = () => {
-    /* Get height and width in integers */
     const height =
       Math.floor(document.documentElement.scrollTop + document.documentElement.clientHeight) - 1;
     const width =
       Math.floor(document.documentElement.scrollLeft + document.documentElement.clientWidth) - 1;
 
-    /* Set height and width */
     hintsHost.style.height = `${height}px`;
     hintsHost.style.width = `${width}px`;
   };
@@ -395,7 +378,6 @@ div.hint-scrollable {
               // pass on the key to normal mode to scroll page.
               event.sk_stopPropagation = false;
             } else {
-              // quit hints if user presses non-hint key and no keys for scrolling
               hide();
             }
           }
@@ -569,7 +551,6 @@ div.hint-scrollable {
     } else if (hintState.candidates === 0) {
       hide();
     }
-    // suppress future key handler since the event has been treated as a hint
     if (evt) {
       suppressKeyUp(evt.keyCode!);
       evt.stopImmediatePropagation();
@@ -604,7 +585,6 @@ div.hint-scrollable {
     behaviours = {
       mouseEvents: MOUSE_EVENTS,
     };
-    // Clean up temporary class added for array-based hint creation
     document.querySelectorAll(".surfingkeys--hints--creating").forEach((el) => {
       el.classList.remove("surfingkeys--hints--creating");
     });
@@ -776,7 +756,6 @@ div.hint-scrollable {
   };
 
   const coordinate = (): { top: number; left: number } => {
-    // a hack to get co-ordinate
     const link = createElementWithContent("div", "A", { style: "top: 0; left: 0;" });
     holder.prepend(link);
     hintsHost.shadowRoot!.appendChild(holder);

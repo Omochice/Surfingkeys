@@ -1,8 +1,5 @@
-/**
- * Custom-event channels dispatched as `surfingkeys:<type>` for content↔frontend communication.
- * `front`/`api`/`user`/`hints`/`observer` are the registered {@link initSKFunctionListener}
- * namespaces; the rest are one-off lifecycle events listened to directly.
- */
+// `front`/`api`/`user`/`hints`/`observer` are function-listener namespaces; the rest are one-off
+// lifecycle events listened to directly.
 type SKEventType =
   | "front"
   | "api"

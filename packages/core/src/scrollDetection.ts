@@ -2,10 +2,8 @@ import { suppressNextScrollEvent } from "./mode";
 import { listElements } from "./utils";
 
 /**
- * Detect whether `el` can scroll by at least `barSize` pixels along `direction` — elements that
- * scroll only a smaller amount report false. When the current offset is below the threshold the
- * element is probed by writing a scroll offset and reading it back; the probe can fire a real
- * scroll event, which the mode event hub is told to swallow via {@link suppressNextScrollEvent}.
+ * Detect whether `el` can scroll by at least `barSize` pixels along `direction`. Below that
+ * threshold the element is probed by writing a scroll offset, which can fire a real scroll event.
  */
 function hasScroll(el: HTMLElement, direction: "x" | "y", barSize: number): boolean {
   const offset =
@@ -13,13 +11,11 @@ function hasScroll(el: HTMLElement, direction: "x" | "y", barSize: number): bool
   let result = el[offset[0]];
 
   if (result < barSize) {
-    // probe: write the element's client-rect size as the scroll offset and read back how far it
-    // actually moved
+    // Write the element's client-rect size as the scroll offset and read back how far it moved.
     const originOffset = el[offset[0]];
     el[offset[0]] = el.getBoundingClientRect()[offset[1]];
     result = el[offset[0]];
     if (result !== originOffset) {
-      // this is valid for some site such as http://mail.live.com/
       suppressNextScrollEvent();
     }
     el[offset[0]] = originOffset;

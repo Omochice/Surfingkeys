@@ -6,18 +6,13 @@ import type { EngineEnv } from "./engineEnv";
 import { dispatchSKEvent } from "./events";
 import KeyboardUtils from "./keyboardUtils";
 
-// The WebExtension-facing capabilities the mode hub needs (isInUIFrame / reportIssue). The hub is
-// module-level (showModeStatus is an exported free function called from ~10 sites), so unlike the
-// factories it receives its env once via initModeHub rather than a constructor argument.
+// The hub is module-level rather than a factory, so it receives its env once via initModeHub
+// instead of as a constructor argument.
 let engineEnv: EngineEnv | undefined;
 
 type StackEvent = Event & { keyCode?: number };
 
-/**
- * Tell the event hub to swallow the next scroll event. scrollDetection's probe writes a scroll
- * offset to test scrollability, which fires a real scroll event; the counter it increments here is
- * consumed by the global scroll listener below.
- */
+/** Tell the event hub to swallow the next scroll event. */
 export function suppressNextScrollEvent(): void {
   suppressScrollEvent++;
 }
@@ -30,9 +25,7 @@ const keysNeedKeyupSuppressed: number[] = [];
 
 // Until the user's settings are applied, key events are buffered rather than handled. Otherwise a
 // key pressed during the async settings fetch fires the built-in default mapping instead of the
-// user's (possibly overridden) one. Buffering is opt-in via beginBufferingKeyEvents (the content
-// script enables it; the UI frame, which never loads user settings, leaves it off) and the buffer
-// is released on the userSettingsLoaded event.
+// user's (possibly overridden) one.
 let settingsReady = true;
 let bufferedKeyEvents: { name: "keydown" | "keyup"; event: StackEvent }[] = [];
 let bufferReleaseTimer: ReturnType<typeof setTimeout> | undefined;
@@ -103,9 +96,6 @@ function handleStack(eventName: string, event: StackEvent, cb?: (mode: ModeHandl
   }
 }
 
-// Handle a keyup including the suppression of keyups whose keydown was already swallowed. Shared
-// by the live keyup listener and the buffered-event replay so a replayed keyup is suppressed and
-// cleaned up identically to a live one.
 function handleKeyup(event: StackEvent): void {
   handleStack("keyup", event, () => {
     const i = keysNeedKeyupSuppressed.indexOf(event.keyCode ?? -1);
@@ -123,10 +113,7 @@ function bufferKeyEvent(name: "keydown" | "keyup", event: StackEvent): void {
   bufferedKeyEvents.push({ name, event });
 }
 
-/**
- * Stop buffering and replay the held key events in press order. Called on userSettingsLoaded, and
- * also directly by the content script when the settings fetch fails so keys never deadlock.
- */
+/** Stop buffering and replay the held key events in press order. */
 export function releaseBufferedKeyEvents(): void {
   if (settingsReady) {
     return;
@@ -135,8 +122,8 @@ export function releaseBufferedKeyEvents(): void {
     clearTimeout(bufferReleaseTimer);
     bufferReleaseTimer = undefined;
   }
-  // When released via the safety timeout or a direct call, the once-listener never fired and so
-  // is still registered; detach it so no stale listener lingers on document.
+  // When released via the safety timeout or a direct call, the once-listener never fired and so is
+  // still registered.
   document.removeEventListener("surfingkeys:userSettingsLoaded", releaseBufferedKeyEvents);
   settingsReady = true;
   const buffered = bufferedKeyEvents;
@@ -151,9 +138,8 @@ export function releaseBufferedKeyEvents(): void {
 }
 
 /**
- * Start buffering key events until the user's settings are applied. The content script calls this
- * once per frame as the settings fetch begins; the UI frame does not (it never applies user
- * settings). The buffer is released on the userSettingsLoaded event or the safety timeout.
+ * Start buffering key events until the user's settings are applied; the buffer is released on the
+ * userSettingsLoaded event or the safety timeout.
  */
 export function beginBufferingKeyEvents(): void {
   settingsReady = false;
@@ -206,11 +192,9 @@ export class ModeHandle {
     }
 
     if (pos === -1) {
-      // push this mode into stack
       modeStack.unshift(this);
     } else if (pos > 0) {
       if (reentrant) {
-        // pop up all the modes over this
         modeStack = modeStack.slice(pos);
       } else {
         const modeList = modeStack.map((u) => u.name).join(",");
@@ -240,10 +224,9 @@ export class ModeHandle {
     if (pos !== -1) {
       this.priority = 0;
       if (peek) {
-        // for peek exit, we need push modes above this back to the stack.
+        // A peek exit leaves the modes stacked above this one in place.
         modeStack.splice(pos, 1);
       } else {
-        // otherwise, we just pop all modes above this inclusively.
         modeStack = modeStack.slice(pos + 1);
       }
     }
@@ -266,8 +249,7 @@ export function suppressKeyUp(keyCode: number): void {
 
 /**
  * Inject the engine env and install the global window listeners that drive the mode hub. The env is
- * stored synchronously so showModeStatus / ModeHandle.enter can reach it even when init itself is
- * deferred (the about:blank iframe case below).
+ * stored synchronously so it is reachable even when init itself is deferred.
  */
 export function initModeHub(env: EngineEnv, cb?: () => void): void {
   engineEnv = env;

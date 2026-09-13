@@ -3,9 +3,8 @@ import * as v from "valibot";
 import type { SurfingkeysApi } from "./api";
 import { type DefaultMappings, parseJsonSafe } from "./default";
 
-// External suggestion endpoints return untrusted data validated below; the
-// leading element echoes the query (sometimes null), so only the suggestion
-// list at index 1 is constrained.
+// The leading element echoes the query (sometimes null), so only the suggestion list at index 1
+// is constrained.
 const openSearchSuggestSchema = v.tupleWithRest([v.unknown(), v.array(v.string())], v.unknown());
 const duckduckgoSuggestSchema = v.array(v.object({ phrase: v.string() }));
 const githubRepoSuggestSchema = v.object({
@@ -16,10 +15,7 @@ const youtubeSuggestSchema = v.tupleWithRest(
   v.unknown(),
 );
 
-/**
- * Register the data-driven default mappings produced by `createDefaultMappings` onto `api`. Each
- * mode owns a separate Trie, so the registration order across modes carries no runtime meaning.
- */
+/** Register the data-driven default mappings onto `api`. */
 export function applyDefaultMappings(api: SurfingkeysApi, mappings: DefaultMappings): void {
   for (const [keys, def] of Object.entries(mappings.vmap)) {
     api.vmapkey(keys, def.annotation, def.code, def.options);
@@ -165,9 +161,8 @@ function registerYoutubeSearchAlias(api: SurfingkeysApi): void {
 }
 
 /**
- * Register the default mappings that are not mapkey-style data: the `map`/`cmap` remaps and the
- * built-in search-alias engines. These delegate to `api` methods with their own side effects, so
- * they stay imperative rather than being modeled as `DefaultMappings` data.
+ * Register the `map`/`cmap` remaps and built-in search-alias engines, which stay imperative because
+ * they delegate to `api` methods with their own side effects.
  */
 export function registerDefaultExtras(api: SurfingkeysApi): void {
   registerGoToFirstTab(api);

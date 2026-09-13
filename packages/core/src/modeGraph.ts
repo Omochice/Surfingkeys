@@ -5,10 +5,6 @@ import createInsert from "./insert";
 import createNormal from "./normal";
 import createVisual from "./visual";
 
-/**
- * Front members implemented by both site-specific fronts: content.ts's messaging stub (createFront)
- * and the iframe's own Front mode. These act on the overlay UI, which exists in both contexts.
- */
 type SharedFront = {
   openOmnibar(args: unknown): void;
   chooseTab(): void;
@@ -17,9 +13,8 @@ type SharedFront = {
 };
 
 /**
- * Front members that only the content-script front implements. They operate on the hosting web page
- * (its selection, dictionary bubble, search aliases, commands), which the iframe front — running
- * inside the extension's own UI page — has no access to, so the iframe front omits them.
+ * Front members operating on the hosting web page, which the iframe front — running inside the
+ * extension's own UI page — has no access to, so it omits them.
  */
 type ContentOnlyFront = {
   executeCommand(cmd: string): void;
@@ -44,21 +39,9 @@ type ContentOnlyFront = {
   ): void;
 };
 
-/**
- * The front surface consumed by {@link createAPI} and createDefaultMappings. The concrete front
- * differs per site — content.ts wires the messaging stub from createFront, the iframe wires its own
- * Front mode. Only {@link SharedFront} is guaranteed; the {@link ContentOnlyFront} members are
- * optional because the iframe front omits them, so both consumers guard each call before invoking
- * it.
- */
 type FrontLike = SharedFront & Partial<ContentOnlyFront>;
 
-/**
- * The set of modes wired together for one content/frontend context. This is the single object
- * passed to {@link createAPI} and createDefaultMappings, replacing the positional god-function
- * argument lists. The mode members are the concrete factory return types; only `front` is
- * structural for the reason above.
- */
+/** The set of modes wired together for one content/frontend context. */
 export type ModeContext = {
   clipboard: ReturnType<typeof createClipboard>;
   insert: ReturnType<typeof createInsert>;
@@ -68,14 +51,11 @@ export type ModeContext = {
   front: FrontLike;
 };
 
-/** The modes shared by both sites, before the site-specific front is attached. */
 type BaseModes = Omit<ModeContext, "front">;
 
 /**
- * Build the modes shared by content.ts and the iframe — clipboard, insert, normal (entered onto the
- * mode stack), hints, visual — in the one canonical order, replacing the wiring that was duplicated
- * across the two entry points. The caller supplies the site-specific front to complete a
- * {@link ModeContext}: content wires createFront, the iframe wires its own Front mode.
+ * Build every mode of a {@link ModeContext} except the site-specific front, with normal entered onto
+ * the mode stack.
  */
 function createModeGraph(env: EngineEnv): BaseModes {
   const clipboard = createClipboard(env);

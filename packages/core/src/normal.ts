@@ -20,8 +20,6 @@ import {
   showPopup,
 } from "./utils";
 
-// Per-element scroll helpers and cached scroll positions Surfingkeys used to
-// store as DOM expandos are kept in a WeakMap side-table instead.
 type ScrollHelpers = {
   skScrollBy: (x: number, y: number) => unknown;
   smoothScrollBy: (x: number, y: number, d: number) => void;
@@ -32,23 +30,12 @@ type ScrollHelpers = {
 
 type InsertLike = { enter(elm: HTMLElement, keepCursor?: boolean): void; exit(): void };
 
-/**
- * The Disabled-mode controller wrapping a private {@link ModeHandle}. createNormal's disable()
- * drives it: `enter` / `exit` push and pop the mode, and `activatedOnElement` records whether
- * disabling was scoped to the focused element.
- */
 type DisabledMode = {
   activatedOnElement: boolean;
   enter(priority?: number, reentrant?: boolean): void;
   exit(): void;
 };
 
-/**
- * The Lurk-mode controller wrapping a private {@link ModeHandle}. `name` / `mappings` feed
- * mapInMode, `enter` pushes the mode, and `isCurrent` answers whether the handle is the top of the
- * mode stack (createNormal's startLurk asks this, since the controller is no longer its own
- * handle).
- */
 type LurkMode = {
   name: string;
   mappings: Trie;
@@ -56,11 +43,6 @@ type LurkMode = {
   isCurrent(): boolean;
 };
 
-/**
- * The PassThrough-mode controller wrapping a private {@link ModeHandle}. `setTimeout` arms the
- * auto-exit, `enter` pushes the mode, `statusLine` is a read-only view of the handle's, and
- * `eventListeners` lets the hub (and tests) dispatch its key / mouse / focus events.
- */
 type PassThroughMode = {
   eventListeners: ModeHandle["eventListeners"];
   name: string;
@@ -69,13 +51,6 @@ type PassThroughMode = {
   enter(): void;
 };
 
-/**
- * The Normal-mode controller wrapping a private {@link ModeHandle}. `name` / `mappings` feed api.ts
- * and the frontend registry, `keymap` is exposed because api.ts unmapAllExcept replaces `mappings`
- * wholesale and re-roots the keymap, `eventListeners` drives the hub's event dispatch, `statusLine`
- * is a read-only view of the handle's, and `enter` / `onExit` are part of the mode lifecycle. The
- * rest are the normal-mode operations callers invoke.
- */
 type NormalMode = {
   eventListeners: ModeHandle["eventListeners"];
   name: string;
@@ -108,9 +83,8 @@ type NormalMode = {
   enable(): void;
 };
 
-// document.scrollingElement is usually <html>, but is null for a frameset body and could be a
-// non-HTML root in an XML document. It belongs to this script's own document, so instanceof is
-// realm-safe here.
+// document.scrollingElement is null for a frameset body and could be a non-HTML root in an XML
+// document. It belongs to this script's own document, so instanceof is realm-safe here.
 function htmlScrollingElement(): HTMLElement | null {
   const el = document.scrollingElement;
   return el instanceof HTMLElement ? el : null;
@@ -118,13 +92,10 @@ function htmlScrollingElement(): HTMLElement | null {
 
 function createDisabled(normal: NormalMode): DisabledMode {
   const mode = new ModeHandle("Disabled");
-  // hide status line for Disabled mode
   mode.statusLine = "";
-  // Disabled has higher priority than others.
   mode.priority = 99;
 
   const self: DisabledMode = {
-    // exposed as a property because createNormal's disable() sets it from outside
     activatedOnElement: false,
     enter(priority?: number, reentrant?: boolean): void {
       mode.enter(priority, reentrant);
@@ -135,7 +106,6 @@ function createDisabled(normal: NormalMode): DisabledMode {
   };
 
   mode.addEventListener("keydown", (event) => {
-    // prevent this event to be handled by Surfingkeys' other listeners
     event.sk_suppressed = true;
     const keyName = event.sk_keyName ?? "";
     if (
@@ -187,13 +157,11 @@ function createLurk(normal: NormalMode, RUNTIME: EngineEnv["RUNTIME"]): LurkMode
     },
   });
 
-  // Lurk and Disabled should be mutually exclusive.
   mode.addEventListener("keydown", (event) => {
     const realTarget = getRealEdit(event);
     if (!isEditable(realTarget) && event.sk_keyName?.length) {
       keymap.handleKey(event);
       if (event.sk_stopPropagation) {
-        // keyup event also needs to be suppressed for the key whose keydown has been suppressed.
         suppressKeyUp(event.keyCode!);
       }
     }
@@ -234,7 +202,6 @@ function createPassThrough(): PassThroughMode {
 
   mode
     .addEventListener("keydown", (event) => {
-      // prevent this event to be handled by Surfingkeys' other listeners
       event.sk_suppressed = true;
       if (isSpecialKeyOf("<Esc>", event.sk_keyName ?? "")) {
         mode.exit();
@@ -285,7 +252,6 @@ function createNormal(insert: InsertLike, env: EngineEnv): NormalMode {
   const mode = new ModeHandle("Normal");
   const mappings = new Trie();
 
-  // let next focus event pass
   let passFocusFlag = false;
   let lurk: LurkMode | undefined = undefined;
   let lurkMaps: [string, string][] | undefined = [];
@@ -374,7 +340,6 @@ function createNormal(insert: InsertLike, env: EngineEnv): NormalMode {
             stealFocus = n != null && n !== document.documentElement && isNewlyCreated(n);
           }
           if (stealFocus) {
-            // steal focus from dynamically created input widget
             realTarget.blur();
             unmarkNewlyCreated(realTarget);
             keymap.handleKey(event);
@@ -390,7 +355,6 @@ function createNormal(insert: InsertLike, env: EngineEnv): NormalMode {
       event.sk_stopPropagation = true;
     } else if (keyName.length) {
       const done = keymap.handleKey(event, () => {
-        // revert to lurk only when Esc is not handled and lurk mode available.
         if (isSpecialKeyOf("<Esc>", keyName) && lurk) {
           self.revertToLurk();
         }
@@ -401,7 +365,6 @@ function createNormal(insert: InsertLike, env: EngineEnv): NormalMode {
       }
     }
     if (event.sk_stopPropagation) {
-      // keyup event also needs to be suppressed for the key whose keydown has been suppressed.
       suppressKeyUp(event.keyCode!);
     }
   });
@@ -431,11 +394,7 @@ function createNormal(insert: InsertLike, env: EngineEnv): NormalMode {
     }, 0);
   });
   mode.addEventListener("mousedown", (event) => {
-    // The isTrusted read-only property of the Event interface is a boolean
-    // that is true when the event was generated by a user action, and false
-    // when the event was created or modified by a script or dispatched via dispatchEvent.
-
-    // enable only mouse click from human being to focus input
+    // only a click from a human being may focus an input
     if (conf.enableAutoFocus) {
       self.passFocus(true);
     } else {
@@ -580,7 +539,6 @@ function createNormal(insert: InsertLike, env: EngineEnv): NormalMode {
           keyHeld = 1;
           const step = (t: number): void => {
             if (previousTimestamp === 0) {
-              // init previousTimestamp in first step
               previousTimestamp = t;
               dispatchSKEvent("hints", ["scrollStarted"]);
               window.requestAnimationFrame(step);
@@ -604,10 +562,7 @@ function createNormal(insert: InsertLike, env: EngineEnv): NormalMode {
             }
             previousTimestamp = t;
 
-            if (
-              !keyHeld &&
-              (boundaryHit || stepCompleted) // distance completed
-            ) {
+            if (!keyHeld && (boundaryHit || stepCompleted)) {
               elm.style.scrollBehavior = "";
               dispatchSKEvent("hints", ["scrollDone"]);
             } else {
@@ -622,7 +577,6 @@ function createNormal(insert: InsertLike, env: EngineEnv): NormalMode {
     scrollHelpers.set(elm, helpers);
   }
 
-  // set scrollIndex to the highest node
   function initScrollIndex(): void {
     if (!scrollNodes || scrollNodes.length === 0) {
       scrollNodes = getScrollableElements();
@@ -745,7 +699,6 @@ function createNormal(insert: InsertLike, env: EngineEnv): NormalMode {
           !isElementPartiallyInViewport(scrollNode) ||
           (!hasScroll(scrollNode, "x", 16) && !hasScroll(scrollNode, "y", 16))
         ) {
-          // Recompute scrollable elements, the webpage has changed.
           self.refreshScrollableElements();
           scrollNode = scrollNodes![scrollIndex]!;
         }
@@ -762,7 +715,6 @@ function createNormal(insert: InsertLike, env: EngineEnv): NormalMode {
       return;
     }
 
-    // Fall back to document scrolling if enabled and current element can't scroll in requested direction
     if (
       conf.scrollFallback &&
       scrollNode !== document.scrollingElement &&
@@ -907,7 +859,6 @@ function createNormal(insert: InsertLike, env: EngineEnv): NormalMode {
 
   const appendKeysForRepeat = (modeName: string, keys: string): void => {
     if (lastKeys && lastKeys.length > 0) {
-      // keys for normal mode must be pushed.
       lastKeys.push(`${modeName}\t${keys}`);
       saveLastKeys();
     }
@@ -968,12 +919,10 @@ function createNormal(insert: InsertLike, env: EngineEnv): NormalMode {
       elm.scrollLeft = 0;
       let lastScrollTop = -1;
       let lastScrollLeft = -1;
-      // hide scrollbars
       const overflowY = elm.style.overflowY;
       elm.style.overflowY = "hidden";
       const overflowX = elm.style.overflowX;
       elm.style.overflowX = "hidden";
-      // hide borders
       const borderStyle = elm.style.borderStyle;
       elm.style.borderStyle = "none";
       dispatchSKEvent("front", ["toggleStatus", false]);
@@ -993,7 +942,6 @@ function createNormal(insert: InsertLike, env: EngineEnv): NormalMode {
         sy = 0;
       } else {
         const br = elm.getBoundingClientRect();
-        // visible rectangle
         const rc: [number, number, number, number] = [
           Math.max(br.left, 0),
           Math.max(br.top, 0),
@@ -1019,13 +967,10 @@ function createNormal(insert: InsertLike, env: EngineEnv): NormalMode {
         ctx.drawImage(img, sx, sy, sw, sh, dx, dy, sw, sh);
         if (lastScrollTop === elm.scrollTop) {
           if (lastScrollLeft === elm.scrollLeft) {
-            // done
             dispatchSKEvent("front", ["toggleStatus", true]);
             showPopup(`<img src='${canvas.toDataURL("image/png")}' />`);
-            // restore overflow
             elm.style.overflowY = overflowY;
             elm.style.overflowX = overflowX;
-            // restore borders
             elm.style.borderStyle = borderStyle;
           } else {
             lastScrollTop = -1;
@@ -1111,8 +1056,7 @@ function createNormal(insert: InsertLike, env: EngineEnv): NormalMode {
     },
   });
 
-  // Bound scroll actions that may also be used to scroll in Hints mode, tracked in a side table
-  // instead of an expando flag on the function.
+  // Bound scroll actions that may also be used to scroll in Hints mode.
   const hintScrollCodes = new WeakSet<(...args: string[]) => void>();
   const bindScrollForHints = (action: string): (() => void) => {
     const f = () => scroll(action);
@@ -1275,15 +1219,10 @@ function createNormal(insert: InsertLike, env: EngineEnv): NormalMode {
 
   mode.onExit = () => {
     dispatchSKEvent("observer", ["turnOff"]);
-    // Drop all cached scroll helpers so the next activation re-initializes them.
     scrollHelpers = new WeakMap();
   };
 
   const self: NormalMode = {
-    // The hub dispatches events through the private handle's listener map; sharing the reference
-    // keeps the focus/keydown/mousedown listeners registered above observable through the
-    // controller. `statusLine` is read-only because the handle owns it and the hub reads it off the
-    // stacked handle; `onExit` mirrors the handle's lifecycle hook.
     eventListeners: mode.eventListeners,
     name: mode.name,
     get statusLine() {

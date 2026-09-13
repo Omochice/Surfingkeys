@@ -13,7 +13,6 @@ type Renderer = (choice: string) => string;
 type Picker = (selected: Element) => string;
 type Fetcher = () => Promise<string[]>;
 
-// The prompt attaches to either a native input/textarea or a contenteditable node.
 type InputLike = HTMLInputElement | HTMLTextAreaElement;
 
 class CursorPrompt {
@@ -79,8 +78,8 @@ class CursorPrompt {
     this.insertOffset = insertOffset || 0;
     this.threshold = threshold || 0;
     this.parentElement = parentElement;
-    // A native input/textarea exposes a non-null selectionStart and value; a
-    // contenteditable node lacks them. Detect by probing the properties directly.
+    // A native input/textarea exposes a non-null selectionStart and value; a contenteditable node
+    // lacks them.
     this.isNativeInput =
       "selectionStart" in parentElement &&
       "value" in parentElement &&
@@ -137,7 +136,6 @@ class CursorPrompt {
         val.slice(input.selectionStart ?? 0);
       input.setSelectionRange(newPos, newPos);
     } else {
-      // for contenteditable div
       const selection = document.getSelection()!;
       const focus = this.#requireTextFocus(selection);
       const val = focus.data;
@@ -155,14 +153,13 @@ class CursorPrompt {
       const input = this.#requireNativeInput();
       return [input.value, input.selectionStart ?? 0];
     }
-    // for contenteditable div
     const selection = document.getSelection()!;
     const focus = this.#requireTextFocus(selection);
     return [focus.data, selection.focusOffset];
   }
 
-  // `isNativeInput` is set from a duck-typed probe; these helpers re-narrow the
-  // stored HTMLElement to the concrete type that the probe already guaranteed.
+  // `isNativeInput` comes from a duck-typed probe, so these helpers re-narrow to the concrete type
+  // the probe already guaranteed.
   #requireNativeInput(): InputLike {
     const el = this.parentElement;
     if (el instanceof HTMLInputElement || el instanceof HTMLTextAreaElement) {
@@ -202,7 +199,6 @@ class CursorPrompt {
       const input = this.#requireNativeInput();
       query = input.value.slice(this.matchStart, input.selectionStart ?? 0);
     } else {
-      // for contenteditable div
       const selection = document.getSelection()!;
       const focus = this.#requireTextFocus(selection);
       query = focus.data.slice(this.matchStart, selection.focusOffset);

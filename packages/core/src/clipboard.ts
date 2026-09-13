@@ -16,8 +16,6 @@ function createClipboard(env: EngineEnv): Clipboard {
   const { RUNTIME } = env;
   const holder = document.createElement("textarea");
   holder.contentEditable = "true";
-  // Exempt the holder from normal mode's auto-focus suppression so focusing it
-  // for copy/paste is not blurred away.
   markAutoFocus(holder);
   holder.id = "sk_clipboard";
 
@@ -41,7 +39,6 @@ function createClipboard(env: EngineEnv): Clipboard {
      *     console.log(response.data);
      *   });
      *
-     * @param {function} onReady A callback function to handle text read from clipboard.
      * @name Clipboard.read
      */
     read(onReady) {
@@ -78,7 +75,6 @@ function createClipboard(env: EngineEnv): Clipboard {
      * @example
      *   Clipboard.write(window.location.href);
      *
-     * @param {string} text The text to be written to clipboard.
      * @name Clipboard.write
      */
     write(text) {
@@ -95,7 +91,6 @@ function createClipboard(env: EngineEnv): Clipboard {
         });
         cb();
       } else {
-        // works for Firefox and Safari now.
         RUNTIME("writeClipboard", { text });
         cb();
       }
