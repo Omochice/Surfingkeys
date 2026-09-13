@@ -52,7 +52,7 @@
     "solid-js": "catalog:",
     "sort-package-json": "catalog:",
     "typescript": "catalog:",
-    "vite": "8.2.2",
+    "vite": "8.3.0",
     "vitest": "catalog:",
     "wxt": "catalog:"
   }
