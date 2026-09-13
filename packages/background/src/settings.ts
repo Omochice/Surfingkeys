@@ -52,7 +52,6 @@ export function getSubSettings(
   keys: string | readonly string[] | null | undefined,
 ): Record<string, unknown> {
   if (!keys) {
-    // if null/undefined/""
     return set;
   }
   const keyList = Array.isArray(keys) ? keys : [keys];
@@ -72,13 +71,9 @@ export async function save(
   storage: { set: (items: Record<string, unknown>) => Promise<void> },
   data: Record<string, unknown>,
 ): Promise<void> {
-  // Persist a shallow copy so the caller's object is never stripped or
-  // reassigned. `updateSettings` reads `message.settings.snippets` right after
-  // this returns; mutating it in place dropped the snippets and unregistered
-  // the user script.
+  // Persist a shallow copy so the caller's object is never stripped or reassigned.
   const toSave: Record<string, unknown> = { ...data };
   if (storage === chrome.storage.sync) {
-    // don't store snippets from localPath into sync storage, since sync storage has its quota.
     if (toSave["localPath"]) {
       delete toSave["snippets"];
       delete toSave["localPath"];
@@ -91,7 +86,6 @@ export async function save(
     // resolve to background.js itself and get installed as the user's snippets.
     const localPath = toSave["localPath"];
     delete toSave["snippets"];
-    // try to fetch snippets from localPath and cache it in local storage.
     const r = await request(localPath);
     if (Result.isSuccess(r)) {
       toSave["snippets"] = r.value;
@@ -113,13 +107,7 @@ export async function save(
   }
 }
 
-/**
- * Dependencies the settings subsystem cannot own: the per-browser glue from the composition root,
- * the shared mutable `conf` (also read by the tab handlers), and the tab-core primitives a few
- * settings actions reach into — `sendTabMessage` to broadcast updates, plus `tabMessages`,
- * `setScrollPos`, the shared `handlers` registry, `newTabUrl` and `quit` for the marks/session
- * actions that drive tab navigation.
- */
+/** Cross-concern dependencies the settings subsystem takes by injection rather than importing. */
 export type SettingsDeps = {
   conf: BackgroundConf;
   browser: Pick<BrowserAdapter, "loadRawSettings">;
@@ -131,11 +119,7 @@ export type SettingsDeps = {
   quit: () => void;
 };
 
-/**
- * What the composition root needs back from the settings subsystem: the handler map to register,
- * plus the three infra functions still called by misc handlers that stay in start.ts (`removeURL`'s
- * mark-deletion branch and `localData`).
- */
+/** The settings subsystem's handler map, plus the settings functions other handlers reuse. */
 export type SettingsUnit = {
   handlers: Record<string, MessageHandler>;
   loadSettings: (
@@ -146,11 +130,8 @@ export type SettingsUnit = {
 };
 
 /**
- * Settings subsystem: load/save/sync of settings, the blocklist/mouse-query state toggles, the
- * enable/disable state computation, VIM marks, and sessions. Owns the settings storage logic and
- * the user-script registration; takes its cross-concern dependencies by injection so it never
- * imports the tab core back. Handlers resolve to their response payload; the dispatcher in `start`
- * settles the sender.
+ * Settings subsystem: load/save/sync of settings, the blocklist/mouse-query toggles, the
+ * enable/disable state computation, user-script registration, VIM marks, and sessions.
  */
 export function createSettings(deps: SettingsDeps): SettingsUnit {
   const { conf, browser, sendTabMessage, tabMessages, handlers, newTabUrl } = deps;
@@ -213,7 +194,6 @@ export function createSettings(deps: SettingsDeps): SettingsUnit {
   }
 
   function getSenderUrl(sender: chrome.runtime.MessageSender): string | undefined {
-    // use the tab's url if sender is a frame with blank url.
     return sender.frameId !== 0 && sender.url === "about:blank" ? sender.tab?.url : sender.url;
   }
   function getState(

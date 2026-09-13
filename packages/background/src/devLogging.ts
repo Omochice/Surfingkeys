@@ -18,24 +18,16 @@ const relayedLogSchema = v.object({
 
 /** The two entry points of development logging, bound to one collector. */
 type DevLogging = {
-  /**
-   * Emit a log record relayed by another extension context. A message that is not a relayed record
-   * is ignored.
-   */
+  /** Emit a log record relayed by another extension context, ignoring anything else. */
   handleRelayedLog: (message: unknown) => void;
   /**
-   * Start reporting the background's own records and uncaught errors to the collector, listening
-   * for the latter on `target`. Returns a disposer detaching both.
+   * Start reporting the background's own records and uncaught errors to the collector, returning a
+   * disposer.
    */
   enableDevLogging: (target: UncaughtEventTarget) => () => void;
 };
 
-/**
- * Bind development logging to an OTLP/HTTP collector.
- *
- * @param url - Collector base URL; the caller decides where records go.
- * @returns The relay handler and the switch for the background's own records.
- */
+/** Bind development logging to the OTLP/HTTP collector at the given base URL. */
 function createDevLogging(url: string): DevLogging {
   return {
     handleRelayedLog: (message) => {

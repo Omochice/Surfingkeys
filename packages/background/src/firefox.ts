@@ -45,7 +45,7 @@ function getLatestHistoryItem(
   });
 }
 
-/** Firefox-specific background glue, composed by the WXT background entrypoint. */
+/** Firefox-specific background glue. */
 export const firefoxSpecifics = {
   name: "Firefox",
   detectTabTitleChange: true,

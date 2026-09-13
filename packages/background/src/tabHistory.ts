@@ -1,17 +1,12 @@
 /**
- * Most-recently-used tab navigation ring. Tracks the order tabs were activated in (capped at the
- * last 10) plus a cursor for stepping back and forth through that order, so
- * `historyTab`/`goToLastTab` can walk it. A `programmaticSwitch` flag lets the unit ignore the
- * `onActivated` event that its own navigation triggers, so stepping through history does not itself
- * rewrite the ring.
- *
- * Owns no chrome state and performs no I/O; the background listeners feed it activations/removals
- * and act on the tab id it returns.
+ * Most-recently-used tab navigation ring: the order tabs were activated in (capped at the last 10)
+ * plus a cursor for stepping back and forth through it. Navigating sets a flag so the activation it
+ * triggers is ignored rather than rewriting the ring.
  */
 export type TabHistory = {
-  /** Record an external tab activation (from `chrome.tabs.onActivated`). */
+  /** Record an external tab activation. */
   record(tabId: number): void;
-  /** Drop a closed tab (from `chrome.tabs.onRemoved`). */
+  /** Drop a closed tab. */
   remove(tabId: number): void;
   /** The tab activated just before the current one, or undefined if none. */
   previousTab(): number | undefined;

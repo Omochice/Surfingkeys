@@ -94,11 +94,7 @@ export function roundBase(base: number, repeats: number, length: number) {
   return base;
 }
 
-/**
- * Dependencies the tab core takes from the composition root: the shared mutable `conf` (written by
- * settings, read here), the per-browser glue, and the shared `handlers` registry for the two
- * intra-tab cross-calls (viewSource → openLink, closeTab → historyTab).
- */
+/** Cross-concern dependencies the tab core takes by injection rather than importing. */
 export type TabsDeps = {
   conf: BackgroundConf;
   browser: Pick<BrowserAdapter, "setNewTabUrl"> &
@@ -106,11 +102,7 @@ export type TabsDeps = {
   handlers: Record<string, MessageHandler>;
 };
 
-/**
- * What the composition root needs back from the tab core: the handler map to register, plus the
- * primitives other units depend on — `sendTabMessage` and `tabMessages`/`setScrollPos`/`newTabUrl`
- * injected into settings, and `filterByTitleOrUrl` injected into the history unit.
- */
+/** The tab core's handler map, plus the tab primitives other units reuse. */
 export type TabsUnit = {
   handlers: Record<string, MessageHandler>;
   sendTabMessage: (tabId: number, frameId: number, message: unknown) => void;
@@ -124,11 +116,8 @@ export type TabsUnit = {
 };
 
 /**
- * Tab and window core: the MRU/index/url bookkeeping maps and the tab lifecycle listeners, the
- * navigation/close/move helpers, and every tab- and window-oriented message handler. Owns the
- * queued-URL list because the onRemoved handler drains it. Reads the shared `conf` by reference and
- * reaches the rest of the registry through the injected `handlers` for two cross-calls. Handlers
- * resolve to their response payload; the dispatcher in `start` settles the sender.
+ * Tab and window core: the MRU/index/url bookkeeping, the tab lifecycle listeners, and every tab-
+ * and window-oriented message handler.
  */
 export function createTabs(deps: TabsDeps): TabsUnit {
   const { conf, browser, handlers } = deps;
@@ -136,7 +125,6 @@ export function createTabs(deps: TabsDeps): TabsUnit {
   const tabHistory = createTabHistory();
   let chromelikeNewTabPosition = 0;
 
-  // data by tab id
   const tabActivated: Record<number, number> = {};
   const tabMessages: Record<
     string,
@@ -423,7 +411,6 @@ export function createTabs(deps: TabsDeps): TabsUnit {
       let tabs: readonly chrome.tabs.Tab[] = await chrome.tabs.query(queryInfo ?? {});
       tabs = filterTabs(tabs, filter ?? "");
       if (tabsThreshold != null && tabs.length > tabsThreshold && conf["tabsMRUOrder"]) {
-        // only remove current tab when tabsMRUOrder is enabled.
         tabs = tabs.filter((b) => {
           return b.id !== senderTabId;
         });

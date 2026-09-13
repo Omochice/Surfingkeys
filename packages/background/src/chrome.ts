@@ -28,7 +28,6 @@ async function loadRawSettings(
     return subset;
   }
   if (localSavedAt < syncSavedAt) {
-    // don't sync local path
     delete syncSet["localPath"];
     extendObject(rawSet, syncSet);
     // The local write is fire-and-forget (sync is the source of truth in this
@@ -69,14 +68,13 @@ async function getLatestHistoryItem(
     const filtered = filterByTitleOrUrl(items, text, false);
     results = [...results, ...filtered];
     if (items.length < maxResults || results.length >= maxResults) {
-      // all items are scanned or we have got what we want
       return results.slice(0, maxResults);
     }
     endTime = items.at(-1)!.lastVisitTime! - 0.01;
   }
 }
 
-/** Chrome-specific background glue, composed by the WXT background entrypoint. */
+/** Chrome-specific background glue. */
 export const chromeSpecifics = {
   name: "Chrome",
   detectTabTitleChange: true,
