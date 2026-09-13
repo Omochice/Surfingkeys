@@ -1,6 +1,6 @@
 {
   "name": "@sk/common",
-  "version": "0.0.0",
+  "version": "1.18.0",
   "private": true,
   "type": "module",
   "exports": {
