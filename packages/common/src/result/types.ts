@@ -1,8 +1,4 @@
-/**
- * Tagged union covering every failure mode we currently catch across the extension. Lower layers
- * return `Result<T, SkError>`; the presentation layer decides whether and how to surface each
- * variant to the user.
- */
+/** Tagged union covering every failure mode caught across the extension. */
 export type SkError = ChromeRuntimeError | UserCodeError | DecodeError | HttpError | DomApiError;
 
 export type ChromeRuntimeError = {
