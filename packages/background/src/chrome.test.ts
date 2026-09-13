@@ -57,9 +57,7 @@ describe("chromeSpecifics.loadRawSettings", () => {
 
       const result = await chromeSpecifics.loadRawSettings(["theme"]);
 
-      // The load must complete successfully with the sync-sourced value.
       expect(result["theme"]).toBe("dark");
-      // The local write failure must be caught and logged, not left unhandled.
       await vi.waitFor(() => expect(errorSpy).toHaveBeenCalled());
     } finally {
       errorSpy.mockRestore();

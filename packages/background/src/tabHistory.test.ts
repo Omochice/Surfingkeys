@@ -15,7 +15,6 @@ describe("createTabHistory", () => {
     const h = createTabHistory();
     h.record(1);
     h.record(1);
-    // Only one entry, so there is no previous tab.
     expect(h.previousTab()).toBeUndefined();
   });
 
@@ -40,7 +39,7 @@ describe("createTabHistory", () => {
     const h = createTabHistory();
     h.record(1);
     h.record(2);
-    h.record(3); // cursor at the newest (3)
+    h.record(3);
     expect(h.navigate({ backward: true })).toBe(2);
     expect(h.navigate({ backward: true })).toBe(1);
     expect(h.navigate({ backward: true })).toBe(1); // clamped at the oldest
@@ -61,7 +60,6 @@ describe("createTabHistory", () => {
     // causes must not rewrite the ring.
     expect(h.navigate({ index: 0 })).toBe(1);
     h.record(99); // the programmatic activation — must be ignored
-    // The ring is still [1, 2]: index 1 is the second tab, not 99.
     expect(h.navigate({ index: 1 })).toBe(2);
   });
 
@@ -71,7 +69,6 @@ describe("createTabHistory", () => {
     h.record(2);
     h.record(3);
     h.remove(2);
-    // [1, 3] now, so the tab before the head is 1.
     expect(h.previousTab()).toBe(1);
   });
 
@@ -80,7 +77,6 @@ describe("createTabHistory", () => {
     for (let i = 1; i <= 12; i++) {
       h.record(i);
     }
-    // The two newest are 11 and 12 regardless of the cap trimming the oldest.
     expect(h.previousTab()).toBe(11);
   });
 });

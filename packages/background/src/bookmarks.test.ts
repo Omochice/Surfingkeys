@@ -89,7 +89,6 @@ describe("createBookmarkHandlers", () => {
       vi.fn(),
     );
 
-    // Two folders (A under root, B under the new A) then the leaf bookmark.
     expect(created.map((n) => n.title)).toEqual(["A", "B", "X"]);
     expect(created[1].parentId).toBe("10");
     expect(created[2]).toMatchObject({ title: "X", url: "https://x" });
@@ -129,7 +128,6 @@ describe("createBookmarkHandlers", () => {
 
     resolvers.forEach((resolve) => resolve());
     await handled;
-    // Creation runs only after every removal has settled.
     expect(order.at(-1)).toBe("create:X");
     expect(order.filter((o) => o.startsWith("remove:"))).toHaveLength(2);
   });

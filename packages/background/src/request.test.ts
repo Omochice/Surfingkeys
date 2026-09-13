@@ -8,7 +8,6 @@ afterEach(() => {
   vi.unstubAllGlobals();
 });
 
-/** Builds a minimal `Response`-like object so tests stay decoupled from a real fetch. */
 function fakeResponse(
   body: string,
   { ok, status, contentType }: { ok: boolean; status: number; contentType?: string },

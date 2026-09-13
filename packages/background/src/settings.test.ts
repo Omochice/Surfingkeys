@@ -38,7 +38,6 @@ afterEach(() => {
   mockRequest.mockReset();
 });
 
-/** Builds a settings unit with inert defaults; override only what a test needs. */
 function makeUnit(over: Partial<SettingsDeps> = {}) {
   const deps: SettingsDeps = {
     conf: {},
@@ -155,7 +154,6 @@ describe("save", () => {
     await save(local, data);
 
     expect(set).toHaveBeenCalledWith({ localPath: "/snips.js" });
-    // The caller's object is left intact; only the persisted copy drops snippets.
     expect(data).toEqual({ localPath: "/snips.js", snippets: "stale" });
   });
 
@@ -174,7 +172,6 @@ describe("save", () => {
 });
 
 describe("createSettings — getState", () => {
-  /** Drives the getState handler and returns the computed state string. */
   async function stateFor(
     blocklist: Record<string, number>,
     message: Record<string, unknown> = {},
@@ -289,7 +286,7 @@ describe("createSettings — updateSettings", () => {
   });
 
   it("returns an error when showAdvanced is requested but userScripts API is unavailable", async () => {
-    // userScripts is absent from chrome stub → isUserScriptsAvailable() returns false
+    // userScripts is absent from the chrome stub, so isUserScriptsAvailable() is false.
     const { unit } = makeUnit();
 
     const updateSettings = unit.handlers["updateSettings"];
@@ -399,7 +396,6 @@ describe("createSettings — loadSettings (via getSettings handler)", () => {
     expectDefined(getSettings);
     const result = await getSettings({ key: "RAW" }, {}, vi.fn());
 
-    // loadRawSettings must have been called with the key cleared to ""
     expect(loadRawSettings).toHaveBeenCalledWith("");
     expect(result.settings).toEqual({ raw: true });
   });
@@ -530,7 +526,6 @@ describe("createSettings — toggleMouseQuery", () => {
 
     const toggleMouseQuery = unit.handlers["toggleMouseQuery"];
     expectDefined(toggleMouseQuery);
-    // sender has no tab property
     await toggleMouseQuery({ origin: "https://example.com" }, {}, vi.fn());
 
     expect(localSet).not.toHaveBeenCalled();
@@ -586,7 +581,6 @@ describe("createSettings — jumpVIMark", () => {
     await jumpVIMark({ mark: "x" }, { tab: { id: 1, url: "https://current.com" } }, vi.fn());
 
     expect(openLink).toHaveBeenCalled();
-    // The mark's tab property is set to open a new tabbed window
     const calledMarkInfo = openLink.mock.calls.at(-1)?.[0];
     expect(calledMarkInfo.tab).toEqual({ tabbed: true, active: true });
   });
@@ -607,7 +601,6 @@ describe("createSettings — jumpVIMark", () => {
 
     const jumpVIMark = unit.handlers["jumpVIMark"];
     expectDefined(jumpVIMark);
-    // The sender tab.id matches the found tab's id
     await jumpVIMark({ mark: "y" }, { tab: { id: 5 } }, vi.fn());
 
     expect(setScrollPos).toHaveBeenCalledWith(5);
@@ -629,7 +622,6 @@ describe("createSettings — jumpVIMark", () => {
 
     const jumpVIMark = unit.handlers["jumpVIMark"];
     expectDefined(jumpVIMark);
-    // Sender tab.id is different from the found tab
     await jumpVIMark({ mark: "z" }, { tab: { id: 99 } }, vi.fn());
 
     expect(tabsUpdate).toHaveBeenCalledWith(7, { active: true });
@@ -802,13 +794,11 @@ describe("createSettings — updateInputHistory", () => {
 
     const updateInputHistory = unit.handlers["updateInputHistory"];
     expectDefined(updateInputHistory);
-    // "search term" is already in history; should be deduped and moved to front
     const result = await updateInputHistory({ cmd: "search term" }, {}, vi.fn());
 
     expect(localSet).toHaveBeenCalledWith(
       expect.objectContaining({ cmdHistory: ["search term", "other"] }),
     );
-    // The response reports the deduplicated list
     expect(result).toEqual(expect.objectContaining({ history: ["search term", "other"] }));
   });
 
@@ -824,9 +814,7 @@ describe("createSettings — updateInputHistory", () => {
     expectDefined(updateInputHistory);
     const result = await updateInputHistory({ find: "." }, {}, vi.fn());
 
-    // Storage should not be written for a "." entry
     expect(localSet).not.toHaveBeenCalled();
-    // But the response still reports the unchanged history
     expect(result).toEqual(expect.objectContaining({ history: ["existing"] }));
   });
 });
@@ -912,7 +900,6 @@ describe("createSettings — getState with no sender tab", () => {
     });
     const getState = unit.handlers["getState"];
     expectDefined(getState);
-    // sender has no tab → the handler returns nothing
     const result = await getState({}, { url: "https://example.com/", frameId: 0 }, vi.fn());
     expect(result).toBeUndefined();
   });
@@ -931,7 +918,6 @@ describe("createSettings — getSenderUrl via toggleBlocklist", () => {
 
     const toggleBlocklist = unit.handlers["toggleBlocklist"];
     expectDefined(toggleBlocklist);
-    // frameId !== 0 and url === "about:blank" → getSenderUrl returns tab.url
     const result = await toggleBlocklist(
       {},
       {
@@ -1044,10 +1030,8 @@ describe("createSettings — openSession", () => {
     expectDefined(openSession);
     await openSession({ name: "work" }, {}, vi.fn());
 
-    // First window tabs are created directly (no callback)
     expect(tabCreate).toHaveBeenCalledWith(expect.objectContaining({ url: "https://a.com" }));
     expect(tabCreate).toHaveBeenCalledWith(expect.objectContaining({ url: "https://b.com" }));
-    // Second window: windowCreate is called and then a tab is created in it
     expect(windowCreate).toHaveBeenCalled();
     expect(tabCreate).toHaveBeenCalledWith(
       expect.objectContaining({ url: "https://c.com", windowId: 99 }),
@@ -1089,7 +1073,8 @@ describe("createSettings — registerUserScript branch: existing script same cod
     mockRequest.mockResolvedValue(Result.succeed("LOADED_SNIPPETS"));
     const register = vi.fn();
     const unregister = vi.fn();
-    // Build the expected code so we can put it in the stub
+    // The stub has to hold the exact code the implementation builds, or the
+    // identical-code branch is never taken.
     const snippets = "LOADED_SNIPPETS";
     const codeBuilt = `import('./api.js').then((module) => {module.default("chrome-extension://abc/", (api, settings) => {${snippets}\n})});`;
     g.chrome.userScripts = {
@@ -1112,7 +1097,6 @@ describe("createSettings — registerUserScript branch: existing script same cod
     expectDefined(loadSettingsFromUrl);
     await loadSettingsFromUrl({ url: "http://example.com/settings.js" }, {}, vi.fn());
 
-    // register should NOT be called because the code is already identical
     expect(register).not.toHaveBeenCalled();
   });
 });
@@ -1129,7 +1113,6 @@ describe("createSettings — toggleMouseQuery skips extension pages", () => {
 
     const toggleMouseQuery = unit.handlers["toggleMouseQuery"];
     expectDefined(toggleMouseQuery);
-    // The tab URL begins with chrome.runtime.getURL("/") which is "chrome-extension://..."
     const extUrl = g.chrome.runtime?.getURL?.("/") ?? "chrome-extension://abc/";
     await toggleMouseQuery(
       { origin: "https://example.com" },
@@ -1205,7 +1188,6 @@ describe("createSettings — appendNonce leaves a non-http URL unchanged", () =>
     expectDefined(loadSettingsFromUrl);
     await loadSettingsFromUrl({ url: "file:///settings.js" }, {}, vi.fn());
 
-    // No nonce is appended for a non-http(s) URL.
     expect(mockRequest).toHaveBeenCalledWith("file:///settings.js");
   });
 });
@@ -1229,7 +1211,6 @@ describe("createSettings — registerUserScript register/unregister branches", (
   }
 
   it("unregisters then re-registers when the stored script code differs", async () => {
-    // getScripts returns a script whose code does not match the freshly built one.
     const { register, unregister } = chromeWithUserScripts(
       vi.fn().mockResolvedValue([{ js: [{ code: "/* stale code */" }] }]),
     );
