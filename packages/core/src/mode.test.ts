@@ -1,6 +1,6 @@
 import { Result } from "@praha/byethrow";
 import * as fc from "fast-check";
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import type { EngineEnv } from "./engineEnv";
 import {
@@ -31,6 +31,13 @@ function makeTestEnv(overrides: Partial<EngineEnv> = {}): EngineEnv {
 function makeMode(name = "Test"): ModeHandle {
   return new ModeHandle(name);
 }
+
+// The mode stack, the window listeners and the settings-ready flag are module-level state that a
+// test would otherwise inherit from whichever test happened to run before it.
+beforeEach(() => {
+  initModeHub(makeTestEnv());
+  releaseBufferedKeyEvents();
+});
 
 describe("suppressKeyUp", () => {
   it("adds a keyCode to the suppressed list", () => {
