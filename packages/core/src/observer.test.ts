@@ -1,7 +1,6 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { isNewlyCreated, markSurfingKeysElement } from "./domFlags";
-import { dispatchSKEvent } from "./events";
 import startScrollNodeObserver from "./observer";
 
 const stubNormal = { addScrollableElement: () => {} };
@@ -11,13 +10,9 @@ async function flushObserver(): Promise<void> {
 }
 
 describe("startScrollNodeObserver — flags newly inserted nodes", () => {
-  afterEach(() => {
-    dispatchSKEvent("observer", ["turnOff"]);
-  });
-
   it("flags a normal page-inserted element as newly-created", async () => {
-    startScrollNodeObserver(stubNormal);
-    dispatchSKEvent("observer", ["turnOn"]);
+    const fire = startObserverWithOwnListener();
+    fire("turnOn");
 
     const div = document.createElement("div");
     document.body.appendChild(div);
@@ -26,11 +21,12 @@ describe("startScrollNodeObserver — flags newly inserted nodes", () => {
     expect(isNewlyCreated(div)).toBe(true);
 
     div.remove();
+    fire("turnOff");
   });
 
   it("skips a SurfingKeys-injected element", async () => {
-    startScrollNodeObserver(stubNormal);
-    dispatchSKEvent("observer", ["turnOn"]);
+    const fire = startObserverWithOwnListener();
+    fire("turnOn");
 
     const injected = document.createElement("div");
     markSurfingKeysElement(injected);
@@ -40,6 +36,7 @@ describe("startScrollNodeObserver — flags newly inserted nodes", () => {
     expect(isNewlyCreated(injected)).toBe(false);
 
     injected.remove();
+    fire("turnOff");
   });
 });
 
