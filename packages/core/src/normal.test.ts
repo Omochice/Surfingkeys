@@ -984,8 +984,10 @@ describe("createPassThrough auto-exit via timeout", () => {
 
 describe("createPassThrough keydown handler", () => {
   beforeEach(() => {
-    for (let i = 0; i < 5; i++) {
-      getCurrentMode()?.exit();
+    let leftover = getCurrentMode();
+    while (leftover != null) {
+      leftover.exit();
+      leftover = getCurrentMode();
     }
   });
 
