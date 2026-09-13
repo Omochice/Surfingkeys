@@ -589,3 +589,78 @@ describe("Find — ArrowUp/ArrowDown history recall", () => {
     expect(findInput.value).toBe("recalled query");
   });
 });
+
+describe("actions['getUsage'] feature group placement", () => {
+  function renderUsage(metas: Record<string, unknown>[]): string {
+    Front.topOrigin = "https://usage-test.example.com";
+    let html = "";
+    vi.spyOn(window.top!, "postMessage").mockImplementation((data: any) => {
+      html = data?.surfingkeys_uihost_data?.data ?? "";
+    });
+    Front.actions["getUsage"]({ metas, id: 1 });
+    return html;
+  }
+
+  function sectionsOf(html: string): { title: string; annotations: string[] }[] {
+    const host = document.createElement("div");
+    host.innerHTML = html;
+    return [...host.querySelectorAll(".feature_name")].map((heading) => {
+      const section = heading.parentElement!;
+      return {
+        title: heading.textContent ?? "",
+        annotations: [...section.querySelectorAll(".annotation")].map((a) => a.textContent ?? ""),
+      };
+    });
+  }
+
+  it("renders each feature group number under its own section title", () => {
+    const metas = Array.from({ length: 17 }, (_, group) => ({
+      word: `k${group}`,
+      feature_group: group,
+      annotation: `ANN_${group}`,
+    }));
+
+    const titled = sectionsOf(renderUsage(metas)).map((s) => [
+      s.title,
+      s.annotations.filter((a) => a.startsWith("ANN_")),
+    ]);
+
+    expect(titled).toEqual([
+      ["Help", ["ANN_0"]],
+      ["Mouse Click", ["ANN_1"]],
+      ["Scroll Page / Element", ["ANN_2"]],
+      ["Tabs", ["ANN_3"]],
+      ["Page Navigation", ["ANN_4"]],
+      ["Sessions", ["ANN_5"]],
+      ["Search selected with", ["ANN_6"]],
+      ["Clipboard", ["ANN_7"]],
+      ["Omnibar", ["ANN_8"]],
+      ["Visual Mode", ["ANN_9"]],
+      ["vim-like marks", ["ANN_10"]],
+      ["Settings", ["ANN_11"]],
+      ["Chrome URLs", ["ANN_12"]],
+      ["Misc", ["ANN_13"]],
+      ["Insert Mode", ["ANN_14"]],
+      ["Lurk Mode", ["ANN_15"]],
+      ["Regional Hints Mode", ["ANN_16"]],
+    ]);
+  });
+
+  it("omits a section whose feature group has no mappings", () => {
+    const sections = sectionsOf(
+      renderUsage([{ word: "k", feature_group: 3, annotation: "ANN_3" }]),
+    ).filter((s) => s.annotations.some((a) => a.startsWith("ANN_")));
+
+    expect(sections.map((s) => s.title)).toEqual(["Tabs"]);
+  });
+
+  it("drops a mapping whose feature group number has no section", () => {
+    const html = renderUsage([
+      { word: "k", feature_group: 3, annotation: "ANN_3" },
+      { word: "u", feature_group: 99, annotation: "ANN_99" },
+    ]);
+
+    expect(html).not.toContain("ANN_99");
+    expect(html).toContain("ANN_3");
+  });
+});
