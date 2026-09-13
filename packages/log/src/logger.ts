@@ -32,13 +32,8 @@ type LoggerOptions = {
 /**
  * Build a logging function forwarding enabled records to every sink.
  *
- * The returned function is fire-and-forget: an asynchronous gate is awaited internally, a rejected
- * gate drops the record, and a throwing sink is skipped so the remaining sinks still receive the
- * record. Nothing surfaces as an unhandled rejection, which the uncaught-error capture would only
- * feed back into this logger.
- *
- * @param options - Sinks to write to and the level gate to consult.
- * @returns A function emitting one record per call, taking the console-style argument list.
+ * A rejected gate drops the record and a throwing sink is skipped, so nothing surfaces as an
+ * unhandled rejection that the uncaught-error capture would feed back into this logger.
  */
 function createLogger(options: LoggerOptions): Logger {
   return (level, ...args) => {
@@ -63,13 +58,8 @@ const LOG_LEVELS_KEY = "logLevels";
 const DEFAULT_LEVELS: readonly LogLevel[] = ["error"];
 
 /**
- * Build a level gate deciding from a stored list of level names.
- *
- * A stored value that is not an array (absent, or written by hand as a string) is treated as unset
- * and falls back to errors only.
- *
- * @param read - Returns the raw stored value, leaving the storage API to the caller.
- * @returns A gate answering whether the given level is currently enabled.
+ * Build a level gate deciding from a stored list of level names, treating a stored value that is
+ * not an array as unset.
  */
 function storedLevelGate(read: () => Promise<unknown>): (level: LogLevel) => Promise<boolean> {
   return async (level) => {
@@ -92,9 +82,6 @@ type HostLogger = {
  *
  * The sink list is owned here and mutated rather than passed at construction, so destinations can
  * be attached after the logger has been handed out.
- *
- * @param read - Returns the raw stored list of enabled levels; the storage API stays with the host.
- * @returns The logger and the function attaching further destinations to it.
  */
 function createHostLogger(read: () => Promise<unknown>): HostLogger {
   const sinks: LogSink[] = [consoleSink];

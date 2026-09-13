@@ -20,7 +20,7 @@ function extractStack(value: unknown): string | undefined {
   return Error.isError(value) ? value.stack : undefined;
 }
 
-/** Reads the event's filename; Chrome leaves it empty for a script it refuses to attribute. */
+/** Chrome leaves the filename empty for a script it refuses to attribute, hence the "" check. */
 function extractFilename(event: Event): string | undefined {
   const filename: unknown = "filename" in event ? event.filename : undefined;
   return typeof filename === "string" && filename !== "" ? filename : undefined;
@@ -32,10 +32,7 @@ function extractFilename(event: Event): string | undefined {
  * Both events are read by property rather than narrowed with `instanceof`, which an event from
  * another realm fails while still carrying the fields that are read.
  *
- * @param target - Global object to listen on, e.g. `window` or a worker's `self`.
- * @param log - Logger receiving one "error" record per uncaught error or rejection.
- * @param options - Narrows what is reported; see {@link CaptureOptions}.
- * @returns A disposer removing both listeners.
+ * Returns a disposer removing both listeners.
  */
 function captureUncaught(
   target: UncaughtEventTarget,

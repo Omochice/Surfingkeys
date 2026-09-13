@@ -16,9 +16,6 @@ type RelayedLogRecord = {
  *
  * An Error arrives on the other side as an empty object, so it travels as its plain name, message
  * and stack fields instead.
- *
- * @param arg - One argument of a log record.
- * @returns The argument itself, or the plain fields of an error.
  */
 function toTransferable(arg: unknown): unknown {
   if (!Error.isError(arg)) return arg;
