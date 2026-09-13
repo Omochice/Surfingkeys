@@ -9,14 +9,14 @@ services:
     volumes:
       - ./.otel:/out
     ports:
-      - "4318:4318"
+      - "127.0.0.1:4318:4318"
     depends_on:
       - lgtm
 
   lgtm:
     image: grafana/otel-lgtm:0.33.0@sha256:475319e883b66594d1a2f22ef168c2459802bb94548e6f25d9782bd5f5c19a3a
     ports:
-      - "3000:3000"
+      - "127.0.0.1:3000:3000"
 
   mcp-grafana:
     image: grafana/mcp-grafana:1.4.1@sha256:cfcf06863c23b2db64c41b0379d1efe95703aca4ba5434d90674f72ec0b7d810
