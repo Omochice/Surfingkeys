@@ -1,4 +1,5 @@
 import { Result } from "@praha/byethrow";
+import * as fc from "fast-check";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { conf } from "./conf";
@@ -43,6 +44,26 @@ function captureFrontEvents(run: () => void): unknown[] {
   return details;
 }
 
+// Percent-escape fragments that decodeURI rejects, plus surrogate halves, so the generated strings
+// hit the throwing paths far more often than an unconstrained string arbitrary would.
+const hostileUriString = fc
+  .array(
+    fc.oneof(
+      fc.constantFrom("%", "%E0%A4%A", "%FF", "\uD800", "\uDC00", "#", "?", "/", " ", "+"),
+      fc.string({ unit: "grapheme-ascii", maxLength: 4 }),
+    ),
+    { maxLength: 12 },
+  )
+  .map((parts) => parts.join(""));
+
+const validRegExp = fc
+  .tuple(fc.string(), fc.subarray(["d", "g", "i", "m", "s", "u", "y"]))
+  .map(([source, flags]) =>
+    Result.try({ try: () => new RegExp(source, flags.join("")), catch: (cause) => cause }),
+  )
+  .filter(Result.isSuccess)
+  .map((result) => result.value);
+
 describe("format", () => {
   it("substitutes positional placeholders", () => {
     expect(format("{0} and {1}", "a", "b")).toBe("a and b");
@@ -50,6 +71,26 @@ describe("format", () => {
 
   it("treats $ sequences in arguments as literal text", () => {
     expect(format("q={0}", "a$&b")).toBe("q=a$&b");
+  });
+
+  it("returns a string for any template and any arguments", () => {
+    fc.assert(
+      fc.property(fc.string(), fc.array(fc.anything()), (template, args) => {
+        expect(typeof format(template, ...args)).toBe("string");
+      }),
+    );
+  });
+
+  it("leaves a template without positional placeholders unchanged", () => {
+    fc.assert(
+      fc.property(
+        fc.string().filter((template) => !/\{\d+\}/.test(template)),
+        fc.array(fc.anything()),
+        (template, args) => {
+          expect(format(template, ...args)).toBe(template);
+        },
+      ),
+    );
   });
 });
 
@@ -86,6 +127,20 @@ describe("normalizeAnnotation", () => {
 
   it("returns an empty annotation when the array is empty", () => {
     expect(normalizeAnnotation([])).toBe("");
+  });
+
+  it("returns either an empty string or an array headed by a non-empty string", () => {
+    fc.assert(
+      fc.property(fc.oneof(fc.string(), fc.array(fc.string())), (annotation) => {
+        const normalized = normalizeAnnotation(annotation);
+        if (typeof normalized === "string") {
+          expect(normalized).toBe("");
+        } else {
+          expect(typeof normalized[0]).toBe("string");
+          expect(normalized[0]).not.toBe("");
+        }
+      }),
+    );
   });
 });
 
@@ -150,6 +205,32 @@ describe("RegExp settings serialization", () => {
     expect(restored.source).toBe(original.source);
     expect(restored.flags).toBe(original.flags);
   });
+
+  it("passes any non-RegExp value through untouched", () => {
+    fc.assert(
+      fc.property(
+        fc.string(),
+        fc.anything().filter((value) => !(value instanceof RegExp)),
+        (key, value) => {
+          expect(regExpReplacer(key, value)).toBe(value);
+        },
+      ),
+    );
+  });
+
+  it("serializes any RegExp into a shape that rebuilds an equivalent RegExp", () => {
+    fc.assert(
+      fc.property(fc.string(), validRegExp, (key, regexp) => {
+        const replaced = regExpReplacer(key, regexp);
+        expect(replaced).toEqual({ source: regexp.source, flags: regexp.flags });
+        if (replaced instanceof Object && "source" in replaced && "flags" in replaced) {
+          const rehydrated = new RegExp(String(replaced.source), String(replaced.flags));
+          expect(rehydrated.source).toBe(regexp.source);
+          expect(rehydrated.flags).toBe(regexp.flags);
+        }
+      }),
+    );
+  });
 });
 
 describe("removeAttributes", () => {
@@ -202,6 +283,19 @@ describe("getNearestWord", () => {
     const [start, length] = getNearestWord("foo bar", 100);
     expect("foo bar".slice(start, start + length)).toBe("bar");
   });
+
+  it("returns a start and length that stay inside the text for any offset", () => {
+    fc.assert(
+      fc.property(fc.string({ unit: "grapheme" }), fc.integer(), (text, offset) => {
+        const [start, length] = getNearestWord(text, offset);
+        expect(Number.isInteger(start)).toBe(true);
+        expect(Number.isInteger(length)).toBe(true);
+        expect(start).toBeGreaterThanOrEqual(0);
+        expect(length).toBeGreaterThanOrEqual(0);
+        expect(start + length).toBeLessThanOrEqual(text.length);
+      }),
+    );
+  });
 });
 
 describe("rotateInput", () => {
@@ -235,6 +329,26 @@ describe("constructSearchURL", () => {
 
   it("appends the word when the engine has no placeholder", () => {
     expect(constructSearchURL("https://x/?q=", "cat")).toBe("https://x/?q=cat");
+  });
+
+  it("keeps the search word in the resulting URL for any engine string", () => {
+    fc.assert(
+      fc.property(fc.string(), fc.string(), (se, word) => {
+        expect(constructSearchURL(se, word).includes(word)).toBe(true);
+      }),
+    );
+  });
+
+  it("appends the word when no placeholder appears past the first character", () => {
+    fc.assert(
+      fc.property(
+        fc.string().filter((se) => se.indexOf("{0}") <= 0 && se.indexOf("%s") <= 0),
+        fc.string(),
+        (se, word) => {
+          expect(constructSearchURL(se, word)).toBe(se + word);
+        },
+      ),
+    );
   });
 });
 
@@ -313,6 +427,31 @@ describe("tryDecodeURI", () => {
       expect(result.error.kind).toBe("decode");
     }
   });
+
+  it("returns a Result instead of throwing for any input", () => {
+    fc.assert(
+      fc.property(hostileUriString, (url) => {
+        const result = tryDecodeURI(url);
+        if (Result.isSuccess(result)) {
+          expect(typeof result.value).toBe("string");
+        } else {
+          expect(result.error.input).toBe(url);
+        }
+      }),
+    );
+  });
+
+  it("round-trips any string that encodeURI accepts", () => {
+    fc.assert(
+      fc.property(fc.string({ unit: "grapheme" }), (text) => {
+        const result = tryDecodeURI(encodeURI(text));
+        expect(Result.isSuccess(result)).toBe(true);
+        if (Result.isSuccess(result)) {
+          expect(result.value).toBe(text);
+        }
+      }),
+    );
+  });
 });
 
 describe("tryDecodeURIComponent", () => {
@@ -327,6 +466,31 @@ describe("tryDecodeURIComponent", () => {
   it("fails on a malformed sequence", () => {
     const result = tryDecodeURIComponent("%");
     expect(Result.isFailure(result)).toBe(true);
+  });
+
+  it("returns a Result instead of throwing for any input", () => {
+    fc.assert(
+      fc.property(hostileUriString, (url) => {
+        const result = tryDecodeURIComponent(url);
+        if (Result.isSuccess(result)) {
+          expect(typeof result.value).toBe("string");
+        } else {
+          expect(result.error.input).toBe(url);
+        }
+      }),
+    );
+  });
+
+  it("round-trips any string that encodeURIComponent accepts", () => {
+    fc.assert(
+      fc.property(fc.string({ unit: "grapheme" }), (text) => {
+        const result = tryDecodeURIComponent(encodeURIComponent(text));
+        expect(Result.isSuccess(result)).toBe(true);
+        if (Result.isSuccess(result)) {
+          expect(result.value).toBe(text);
+        }
+      }),
+    );
   });
 });
 
