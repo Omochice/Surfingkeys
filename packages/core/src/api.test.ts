@@ -907,3 +907,28 @@ describe("createAPI search-alias defensive arms", () => {
     expect(node?.meta).toBeUndefined();
   });
 });
+
+describe("createAPI map feature group inheritance", () => {
+  it("keeps the source mapping's feature group when aliasing a key", () => {
+    const ctx = makeCtx();
+    const api = createAPI(ctx as any, env);
+    api.mapkey("p", "#3Choose a tab", vi.fn());
+
+    api.map("f", "p");
+
+    const node = ctx.normal.mappings.find(KeyboardUtils.encodeKeystroke("f"));
+    expect(node?.meta?.feature_group).toBe(3);
+  });
+
+  it("keeps the source mapping's feature group when the alias renames the annotation", () => {
+    const ctx = makeCtx();
+    const api = createAPI(ctx as any, env);
+    api.mapkey("p", "#3Choose a tab", vi.fn());
+
+    api.map("f", "p", undefined, "Pick a tab");
+
+    const node = ctx.normal.mappings.find(KeyboardUtils.encodeKeystroke("f"));
+    expect(node?.meta?.annotation).toContain("Pick a tab");
+    expect(node?.meta?.feature_group).toBe(3);
+  });
+});
