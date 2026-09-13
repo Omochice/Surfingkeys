@@ -41,7 +41,6 @@ beforeEach(() => {
 
 describe("suppressKeyUp", () => {
   it("swallows the next keyup for the keyCode exactly once, however often it was suppressed", () => {
-    initModeHub(makeTestEnv());
     const mode = makeMode("Normal");
     mode.enter(1);
 
