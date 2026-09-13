@@ -983,14 +983,6 @@ describe("createPassThrough auto-exit via timeout", () => {
 });
 
 describe("createPassThrough keydown handler", () => {
-  beforeEach(() => {
-    let leftover = getCurrentMode();
-    while (leftover != null) {
-      leftover.exit();
-      leftover = getCurrentMode();
-    }
-  });
-
   afterEach(() => {
     vi.useRealTimers();
   });
