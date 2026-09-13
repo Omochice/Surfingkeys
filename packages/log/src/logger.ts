@@ -32,9 +32,10 @@ type LoggerOptions = {
 /**
  * Build a logging function forwarding enabled records to every sink.
  *
- * The returned function is fire-and-forget: an asynchronous gate is awaited internally and a
- * rejected gate drops the record instead of surfacing an unhandled rejection. A throwing sink is
- * not swallowed.
+ * The returned function is fire-and-forget: an asynchronous gate is awaited internally, a rejected
+ * gate drops the record, and a throwing sink is skipped so the remaining sinks still receive the
+ * record. Nothing surfaces as an unhandled rejection, which the uncaught-error capture would only
+ * feed back into this logger.
  *
  * @param options - Sinks to write to and the level gate to consult.
  * @returns A function emitting one record per call, taking the console-style argument list.
@@ -45,7 +46,11 @@ function createLogger(options: LoggerOptions): Logger {
       (enabled) => {
         if (!enabled) return;
         for (const sink of options.sinks) {
-          sink(level, ...args);
+          try {
+            sink(level, ...args);
+          } catch {
+            // A sink has no one to report to but this logger; dropping is the only non-looping option.
+          }
         }
       },
       () => {},

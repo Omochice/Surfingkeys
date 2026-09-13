@@ -50,6 +50,32 @@ describe("createLogger", () => {
     expect(sink).toHaveBeenCalledExactlyOnceWith("error", "Failed to save:", cause);
   });
 
+  it("skips a throwing sink and still writes to the others, without an unhandled rejection", async () => {
+    const rejections: unknown[] = [];
+    const onRejection = (reason: unknown) => {
+      rejections.push(reason);
+    };
+    process.on("unhandledRejection", onRejection);
+    const healthy = vi.fn();
+    const log = createLogger({
+      sinks: [
+        () => {
+          throw new Error("sink boom");
+        },
+        healthy,
+      ],
+      isEnabled: () => true,
+    });
+
+    log("error", "x");
+    await flush();
+    await flush();
+    process.off("unhandledRejection", onRejection);
+
+    expect(healthy).toHaveBeenCalledWith("error", "x");
+    expect(rejections).toEqual([]);
+  });
+
   it("writes to a sink appended to the caller's array after construction", async () => {
     const sinks: LogSink[] = [];
     const log = createLogger({ sinks, isEnabled: () => true });
