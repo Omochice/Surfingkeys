@@ -14,9 +14,6 @@ export default defineConfig({
     // *.browser.test.ts runs in real browsers via vitest.browser.config.ts; keep it out of the
     // jsdom run, whose DOMPurify setHTML shim would mask what those tests verify.
     exclude: [...configDefaults.exclude, "**/*.browser.test.{ts,tsx}"],
-    // Every other package shuffles its tests to catch order dependence. src/ui/frontend.test.ts
-    // shares a Front singleton and its popup visibility across cases and fails under a shuffled
-    // order, so this project stays in file order until that is fixed.
-    sequence: { shuffle: { tests: false } },
+    sequence: { shuffle: { tests: true } },
   },
 });
