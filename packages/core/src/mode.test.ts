@@ -40,9 +40,26 @@ beforeEach(() => {
 });
 
 describe("suppressKeyUp", () => {
-  it("adds a keyCode to the suppressed list", () => {
-    suppressKeyUp(65);
-    suppressKeyUp(65); // dedup — no assertion error
+  it("swallows the next keyup for the keyCode exactly once, however often it was suppressed", () => {
+    const mode = makeMode("Normal");
+    mode.enter(1);
+
+    suppressKeyUp(90);
+    suppressKeyUp(90);
+
+    const first = new Event("keyup");
+    Object.defineProperty(first, "keyCode", { value: 90 });
+    const firstStop = vi.spyOn(first, "stopImmediatePropagation");
+    window.dispatchEvent(first);
+    expect(firstStop).toHaveBeenCalled();
+
+    const second = new Event("keyup");
+    Object.defineProperty(second, "keyCode", { value: 90 });
+    const secondStop = vi.spyOn(second, "stopImmediatePropagation");
+    window.dispatchEvent(second);
+    expect(secondStop).not.toHaveBeenCalled();
+
+    mode.exit();
   });
 });
 

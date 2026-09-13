@@ -704,36 +704,48 @@ describe("createFront actions[getBackFocus] — calls window.focus", () => {
 });
 
 describe("createFront addSearchAlias — without suggestionURL skips listSuggestions", () => {
-  it("queues addSearchAlias command but does not register a suggestion handler", () => {
+  it("leaves no suggestion handler for the alias URL, so nothing is sent back", async () => {
     const { handler, restore } = captureMessageHandler();
     const front = createFront(makeInsert(), makeNormal(), null, makeVisual(), makeBrowser());
     restore();
     const messageHandler = handler()!;
+    const postSpy = vi.spyOn(runtime, "postTopMessage").mockImplementation(() => {});
 
     front.addSearchAlias("d", "DuckDuckGo", "https://duckduckgo.com/?q=");
-
-    // The sentinel alias is the only registered listSuggestion fn, so a call to it
-    // would mean the "d" url resolved to some handler rather than to none.
-    const suggestionFn = vi.fn();
     front.addSearchAlias(
-      "sentinel",
+      "s",
       "Sentinel",
       "https://sentinel.example.com/",
       "https://sentinel.example.com/suggest",
-      suggestionFn,
+      vi.fn(() => ["suggested"]),
     );
 
-    messageHandler(
-      makeContentEvent({
-        action: "getSearchSuggestions",
-        url: "https://duckduckgo.com/?q=",
-        response: "raw",
-        requestUrl: "https://duckduckgo.com/?q=test",
-        query: "test",
-      }),
-    );
+    const askFor = (url: string) =>
+      messageHandler(
+        makeContentEvent({
+          action: "getSearchSuggestions",
+          url,
+          response: "raw",
+          requestUrl: `${url}test`,
+          query: "test",
+          ack: true,
+          id: 1,
+        }),
+      );
 
-    expect(suggestionFn).not.toHaveBeenCalled();
+    askFor("https://sentinel.example.com/suggest");
+    await Promise.resolve();
+    expect(postSpy).toHaveBeenCalledOnce();
+
+    postSpy.mockClear();
+    const userEvents = listenForSKEvent("user");
+    askFor("https://duckduckgo.com/?q=");
+    await Promise.resolve();
+    expect(postSpy).not.toHaveBeenCalled();
+    expect(userEvents.detail).toHaveLength(0);
+
+    userEvents.cleanup();
+    postSpy.mockRestore();
   });
 });
 
