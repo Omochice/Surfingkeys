@@ -29,22 +29,14 @@ function isStorageGetHost(value: unknown): value is StorageGetHost {
 /**
  * Build a `chrome.storage.local.get` stub answering the given items.
  *
- * Both call forms are answered the way the real API answers them: a callback receives the items and
- * nothing is returned, while the callback-less call returns a promise. Serving both from one spy
- * keeps a mixed test file on a single stub; returning a promise in the callback form too would let
- * "callback and await" code pass here and fail in the browser.
+ * Only the promise form is answered: no call site uses the callback form, and a stub that also
+ * answered it would keep a call shape alive that the browser would run differently.
  *
  * @param items - Stored result every read resolves to.
  * @returns A spy usable wherever a `get` implementation is expected.
  */
 export function storageGetStub(items: StoredItems) {
-  return vi.fn((_keys?: unknown, callback?: (items: StoredItems) => void) => {
-    if (callback != null) {
-      callback(items);
-      return undefined;
-    }
-    return Promise.resolve(items);
-  });
+  return vi.fn((_keys?: unknown) => Promise.resolve(items));
 }
 
 /**
