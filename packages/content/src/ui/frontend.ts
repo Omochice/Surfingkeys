@@ -2,6 +2,7 @@ import { attachFaviconToImgSrc, initL10n, isInUIFrame } from "@sk/adapter/platfo
 import createAPI from "@sk/core/api";
 import { applyDefaultMappings, registerDefaultExtras } from "@sk/core/applyDefaultMappings";
 import createDefaultMappings from "@sk/core/default";
+import { type FeatureGroup, featureGroups, isFeatureGroup } from "@sk/core/featureGroup";
 import KeyboardUtils from "@sk/core/keyboardUtils";
 import { ModeHandle, initModeHub } from "@sk/core/mode";
 import createModeGraph, { type ModeContext } from "@sk/core/modeGraph";
@@ -461,7 +462,7 @@ const Front = (() => {
   // The annotation is either a plain string or a [format, ...args] tuple localizeAnnotation expands.
   type UsageMeta = {
     word: string;
-    feature_group?: number | undefined;
+    group?: string | undefined;
     annotation?: string | string[] | undefined;
   };
 
@@ -480,38 +481,23 @@ const Front = (() => {
     metas: UsageMeta[],
     cb: (result: { groups: string[]; moreHelp: string }) => void,
   ) {
-    const feature_groups = [
-      "Help", // 0
-      "Mouse Click", // 1
-      "Scroll Page / Element", // 2
-      "Tabs", // 3
-      "Page Navigation", // 4
-      "Sessions", // 5
-      "Search selected with", // 6
-      "Clipboard", // 7
-      "Omnibar", // 8
-      "Visual Mode", // 9
-      "vim-like marks", // 10
-      "Settings", // 11
-      "Chrome URLs", // 12
-      "Misc", // 13
-      "Insert Mode", // 14
-      "Lurk Mode", // 15
-      "Regional Hints Mode", // 16
-    ];
-
     initL10n((locale) => {
-      const help_groups: string[][] = feature_groups.map(() => []);
-      const altSKeys = specialKeys["<Alt-s>"];
-      const lh = altSKeys?.length ?? 0;
-      const firstGroup = help_groups[0];
-      if (lh > 0 && altSKeys != null && firstGroup != null) {
-        const last = altSKeys[lh - 1];
-        if (last != null) {
-          firstGroup.push(
-            `<div><span class=kbd-span><kbd>${htmlEncode(last)}</kbd></span><span class=annotation>${locale("Toggle SurfingKeys on current site")}</span></div>`,
-          );
+      const itemsByGroup = new Map<FeatureGroup, string[]>();
+      const addItem = (group: FeatureGroup, item: string): void => {
+        const items = itemsByGroup.get(group);
+        if (items != null) {
+          items.push(item);
+        } else {
+          itemsByGroup.set(group, [item]);
         }
+      };
+
+      const toggleKey = specialKeys["<Alt-s>"]?.at(-1);
+      if (toggleKey != null) {
+        addItem(
+          "help",
+          `<div><span class=kbd-span><kbd>${htmlEncode(toggleKey)}</kbd></span><span class=annotation>${locale("Toggle SurfingKeys on current site")}</span></div>`,
+        );
       }
 
       metas = metas.concat(getAnnotations(omnibar.mappings));
@@ -519,18 +505,20 @@ const Front = (() => {
         const w = KeyboardUtils.decodeKeystroke(meta.word);
         const annotation = localizeAnnotation(locale, meta.annotation);
         const item = `<div><span class=kbd-span><kbd>${htmlEncode(w)}</kbd></span><span class=annotation>${annotation}</span></div>`;
-        const group = meta.feature_group != null ? help_groups[meta.feature_group] : undefined;
-        if (group != null) {
-          group.push(item);
+        // The metas arrive over the message boundary, so a key naming no section is dropped rather
+        // than given a heading of its own.
+        if (isFeatureGroup(meta.group)) {
+          addItem(meta.group, item);
         }
       });
       // <Usage> wraps each of these in its own <div> and renders the footer link itself.
-      const groups = help_groups
-        .map((g, i) =>
-          g.length
-            ? `<div class=feature_name><span>${locale(feature_groups[i] ?? "")}</span></div>${g.join("")}`
-            : "",
-        )
+      const groups = featureGroups
+        .map(({ key, title }) => {
+          const items = itemsByGroup.get(key);
+          return items == null
+            ? ""
+            : `<div class=feature_name><span>${locale(title)}</span></div>${items.join("")}`;
+        })
         .filter((s) => s.length);
       cb({ groups, moreHelp: locale("More help") });
     });
@@ -554,7 +542,7 @@ const Front = (() => {
   );
   const usageMetaSchema = v.object({
     word: v.string(),
-    feature_group: v.optional(v.number()),
+    group: v.optional(v.string()),
     annotation: v.optional(v.union([v.string(), v.array(v.string())])),
   });
   actions["showUsage"] = (message: unknown) => {

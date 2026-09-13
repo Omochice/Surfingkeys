@@ -144,7 +144,7 @@ kbd {
 
   mappings.add(KeyboardUtils.encodeKeystroke("<Esc>"), {
     annotation: "Exit regional hints mode",
-    feature_group: 16,
+    group: "regionalHintsMode",
     code: () => {
       mode.exit();
     },
@@ -152,7 +152,7 @@ kbd {
 
   mappings.add("ct", {
     annotation: "copy text from target element",
-    feature_group: 16,
+    group: "regionalHintsMode",
     code: () => {
       clipboard.write(hintLink.get(overlay!).innerText);
     },
@@ -160,7 +160,7 @@ kbd {
 
   mappings.add("ch", {
     annotation: "copy html from target element",
-    feature_group: 16,
+    group: "regionalHintsMode",
     code: () => {
       clipboard.write(hintLink.get(overlay!).innerHTML);
     },
@@ -168,7 +168,7 @@ kbd {
 
   mappings.add("d", {
     annotation: "delete target element",
-    feature_group: 16,
+    group: "regionalHintsMode",
     code: () => {
       hintLink.get(overlay!).remove();
       mode.exit();
@@ -1107,11 +1107,16 @@ div.hint-scrollable {
    * Create hints for elements to click.
    *
    * @example
-   *   mapkey("yA", "#7Copy a link URL to the clipboard", function () {
-   *     Hints.create("*[href]", function (element) {
-   *       Clipboard.write("[" + element.innerText + "](" + element.href + ")");
-   *     });
-   *   });
+   *   mapkey(
+   *     "yA",
+   *     "Copy a link URL to the clipboard",
+   *     function () {
+   *       Hints.create("*[href]", function (element) {
+   *         Clipboard.write("[" + element.innerText + "](" + element.href + ")");
+   *       });
+   *     },
+   *     { group: "clipboard" },
+   *   );
    *
    * @param cssSelector `string or array of HTMLElement`, if `links` is a string, it will be used as
    *   css selector.

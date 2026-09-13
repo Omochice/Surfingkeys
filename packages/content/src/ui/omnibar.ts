@@ -4,6 +4,7 @@ import { decodeError, reportOnFail, unwrapOr } from "@sk/common/result";
 import { filterByTitleOrUrl, regexFromString } from "@sk/common/utils";
 import { debounce } from "@sk/core/debounce";
 import type { DebouncedFunction } from "@sk/core/debounce";
+import type { FeatureGroup } from "@sk/core/featureGroup";
 import KeyboardUtils from "@sk/core/keyboardUtils";
 import { createKeymap } from "@sk/core/keymap";
 import { ModeHandle } from "@sk/core/mode";
@@ -15,7 +16,7 @@ import {
   createElementWithContent,
   getBrowserName,
   htmlEncode,
-  parseAnnotation,
+  normalizeAnnotation,
   requireElement,
   scrollIntoViewIfNeeded,
   showBanner,
@@ -71,7 +72,7 @@ type SearchSuggestion = string | { html: string } | { url: string };
 
 type CommandMeta = {
   code: (args: string[]) => void;
-  feature_group?: number | undefined;
+  group?: FeatureGroup | undefined;
   annotation?: string | string[] | undefined;
 };
 
@@ -267,7 +268,7 @@ function createOmnibar(front: OmnibarFront, clipboard: { write(text: string): vo
   let savedFocused = -1;
   mappings.add(KeyboardUtils.encodeKeystroke("<Ctrl-d>"), {
     annotation: "Delete focused item from bookmark or history",
-    feature_group: 8,
+    group: "omnibar",
     code: function () {
       const fi = focusedResult();
       const idx = focusedIndex();
@@ -302,7 +303,7 @@ function createOmnibar(front: OmnibarFront, clipboard: { write(text: string): vo
 
   mappings.add(KeyboardUtils.encodeKeystroke("<Ctrl-j>"), {
     annotation: "Toggle Omnibar's position",
-    feature_group: 8,
+    group: "omnibar",
     code: function () {
       const savedInput = self.input.value;
       runtime.conf.omnibarPosition =
@@ -316,7 +317,7 @@ function createOmnibar(front: OmnibarFront, clipboard: { write(text: string): vo
 
   mappings.add(KeyboardUtils.encodeKeystroke("<Ctrl-.>"), {
     annotation: "Show results of next page",
-    feature_group: 8,
+    group: "omnibar",
     code: function () {
       if (urlItems) {
         if (start * runtime.conf.omnibarMaxResults < urlItems.length) {
@@ -331,7 +332,7 @@ function createOmnibar(front: OmnibarFront, clipboard: { write(text: string): vo
 
   mappings.add(KeyboardUtils.encodeKeystroke("<Ctrl-,>"), {
     annotation: "Show results of previous page",
-    feature_group: 8,
+    group: "omnibar",
     code: function () {
       if (urlItems) {
         if (start > 1) {
@@ -346,7 +347,7 @@ function createOmnibar(front: OmnibarFront, clipboard: { write(text: string): vo
 
   mappings.add(KeyboardUtils.encodeKeystroke("<Ctrl-c>"), {
     annotation: "Copy selected item url or all listed item urls",
-    feature_group: 8,
+    group: "omnibar",
     code: function () {
       // hide Omnibar.input, so that we could use clipboard_holder to make copy
       setInputVisible(false);
@@ -372,7 +373,7 @@ function createOmnibar(front: OmnibarFront, clipboard: { write(text: string): vo
 
   mappings.add(KeyboardUtils.encodeKeystroke("<Ctrl-D>"), {
     annotation: "Delete all listed items from bookmark or history",
-    feature_group: 8,
+    group: "omnibar",
     code: function () {
       const uids = results()
         .map((r) => r.data.uid)
@@ -395,7 +396,7 @@ function createOmnibar(front: OmnibarFront, clipboard: { write(text: string): vo
 
   mappings.add(KeyboardUtils.encodeKeystroke("<Ctrl-r>"), {
     annotation: "Re-sort history by visitCount or lastVisitTime",
-    feature_group: 8,
+    group: "omnibar",
     code: function () {
       if (handler && handler.onReset) {
         handler.onReset();
@@ -405,7 +406,7 @@ function createOmnibar(front: OmnibarFront, clipboard: { write(text: string): vo
 
   mappings.add(KeyboardUtils.encodeKeystroke("<Esc>"), {
     annotation: "Close Omnibar",
-    feature_group: 8,
+    group: "omnibar",
     code: function () {
       front.hidePopup();
     },
@@ -413,7 +414,7 @@ function createOmnibar(front: OmnibarFront, clipboard: { write(text: string): vo
 
   mappings.add(KeyboardUtils.encodeKeystroke("<Ctrl-m>"), {
     annotation: "Create vim-like mark for selected item",
-    feature_group: 8,
+    group: "omnibar",
     code: function (mark: string) {
       const fi = focusedResult();
       if (fi && fi.data.url) {
@@ -623,21 +624,21 @@ function createOmnibar(front: OmnibarFront, clipboard: { write(text: string): vo
 
   mappings.add(KeyboardUtils.encodeKeystroke("<Tab>"), {
     annotation: "Forward cycle through the candidates.",
-    feature_group: 8,
+    group: "omnibar",
     code: function () {
       rotateResult(getPosition() === "bottom");
     },
   });
   mappings.add(KeyboardUtils.encodeKeystroke("<Shift-Tab>"), {
     annotation: "Backward cycle through the candidates.",
-    feature_group: 8,
+    group: "omnibar",
     code: function () {
       rotateResult(getPosition() !== "bottom");
     },
   });
   mappings.add(KeyboardUtils.encodeKeystroke("<Ctrl-n>"), {
     annotation: "Forward cycle through the input history.",
-    feature_group: 8,
+    group: "omnibar",
     code: function () {
       if (handler && handler.rotateInput) {
         handler.rotateInput(getPosition() === "bottom");
@@ -648,7 +649,7 @@ function createOmnibar(front: OmnibarFront, clipboard: { write(text: string): vo
   });
   mappings.add(KeyboardUtils.encodeKeystroke("<Ctrl-p>"), {
     annotation: "Backward cycle through the input history.",
-    feature_group: 8,
+    group: "omnibar",
     code: function () {
       if (handler && handler.rotateInput) {
         handler.rotateInput(getPosition() !== "bottom");
@@ -659,7 +660,7 @@ function createOmnibar(front: OmnibarFront, clipboard: { write(text: string): vo
   });
   mappings.add(KeyboardUtils.encodeKeystroke("<Ctrl-'>"), {
     annotation: "Toggle quotes in an input element",
-    feature_group: 8,
+    group: "omnibar",
     code: toggleQuote,
   });
 
@@ -2017,12 +2018,16 @@ function Commands(omnibar: Omnibar, front: OmnibarFront): OmnibarHandler {
     execute(message.cmdline);
   };
 
-  omnibar.command = (cmd: string, annotation: string, jscode: (args: string[]) => void) => {
-    const ag = parseAnnotation({ annotation: annotation, feature_group: 13 });
+  omnibar.command = (
+    cmd: string,
+    annotation: string,
+    jscode: (args: string[]) => void,
+    group: FeatureGroup = "misc",
+  ) => {
     items[cmd] = {
       code: jscode,
-      feature_group: ag.feature_group,
-      annotation: ag.annotation,
+      group,
+      annotation: normalizeAnnotation(annotation),
     };
   };
 

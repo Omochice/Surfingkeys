@@ -22,7 +22,7 @@ import {
   isElementClickable,
   listElements,
   mapInMode,
-  parseAnnotation,
+  normalizeAnnotation,
   refreshHints,
   regExpReplacer,
   removeAttributes,
@@ -64,31 +64,28 @@ describe("getColor", () => {
   });
 });
 
-describe("parseAnnotation", () => {
-  it("splits a leading #N from a string annotation into feature_group", () => {
-    const result = parseAnnotation({ annotation: "#5Quit chrome" });
-    expect(result.feature_group).toBe(5);
-    expect(result.annotation).toEqual(["Quit chrome"]);
+describe("normalizeAnnotation", () => {
+  it("wraps a string annotation in an array", () => {
+    expect(normalizeAnnotation("Quit chrome")).toEqual(["Quit chrome"]);
   });
 
-  it("returns an empty annotation when only the #N marker is present", () => {
-    const result = parseAnnotation({ annotation: "#5" });
-    expect(result.feature_group).toBe(5);
-    expect(result.annotation).toBe("");
+  it("leaves an array annotation and its format arguments intact", () => {
+    expect(normalizeAnnotation(["Search selected with {0}", "Google"])).toEqual([
+      "Search selected with {0}",
+      "Google",
+    ]);
   });
 
-  it("leaves a string annotation without #N wrapped in an array", () => {
-    const result = parseAnnotation({ annotation: "Plain text" });
-    expect(result.feature_group).toBeUndefined();
-    expect(result.annotation).toEqual(["Plain text"]);
+  it("returns an empty annotation when the text is empty", () => {
+    expect(normalizeAnnotation("")).toBe("");
   });
 
-  it("returns the array form when given an array annotation with a #N marker", () => {
-    const result = parseAnnotation({
-      annotation: ["#6Search selected with {0}", "Google"],
-    });
-    expect(result.feature_group).toBe(6);
-    expect(result.annotation).toEqual(["Search selected with {0}", "Google"]);
+  it("returns an empty annotation when the first element is empty", () => {
+    expect(normalizeAnnotation(["", "ignored"])).toBe("");
+  });
+
+  it("returns an empty annotation when the array is empty", () => {
+    expect(normalizeAnnotation([])).toBe("");
   });
 });
 
@@ -420,14 +417,14 @@ describe("toggleQuote", () => {
 describe("getAnnotations", () => {
   it("collects words with non-empty annotations and their feature groups", () => {
     const trie = new Trie();
-    trie.add("x", { annotation: "do x", feature_group: 1 });
-    trie.add("y", { annotation: "", feature_group: 2 });
-    trie.add("z", { annotation: ["a", "b"], feature_group: 3 });
+    trie.add("x", { annotation: "do x", group: "mouseClick" });
+    trie.add("y", { annotation: "", group: "scroll" });
+    trie.add("z", { annotation: ["a", "b"], group: "tabs" });
 
     const result = getAnnotations(trie);
 
-    expect(result).toContainEqual({ word: "x", feature_group: 1, annotation: "do x" });
-    expect(result).toContainEqual({ word: "z", feature_group: 3, annotation: ["a", "b"] });
+    expect(result).toContainEqual({ word: "x", group: "mouseClick", annotation: "do x" });
+    expect(result).toContainEqual({ word: "z", group: "tabs", annotation: ["a", "b"] });
     expect(result.some((m) => m.word === "y")).toBe(false);
   });
 });
@@ -446,14 +443,17 @@ describe("mapInMode", () => {
     expect(rebound?.meta?.code).toBe(code);
   });
 
-  it("applies a replacement annotation when given one", () => {
+  it("applies a replacement annotation while keeping the source group", () => {
     const mode = { name: "normal", mappings: new Trie() };
-    mode.mappings.add(KeyboardUtils.encodeKeystroke("j"), { annotation: "down" });
+    mode.mappings.add(KeyboardUtils.encodeKeystroke("j"), {
+      annotation: "down",
+      group: "sessions",
+    });
 
-    mapInMode(mode, "x", "j", false, "#5Custom");
+    mapInMode(mode, "x", "j", false, "Custom");
 
     const rebound = mode.mappings.find(KeyboardUtils.encodeKeystroke("x"));
-    expect(rebound?.meta?.feature_group).toBe(5);
+    expect(rebound?.meta?.group).toBe("sessions");
     expect(rebound?.meta?.annotation).toEqual(["Custom"]);
   });
 
@@ -517,28 +517,6 @@ describe("regExpReplacer — non-RegExp value passthrough", () => {
     expect(replacer("key", 42)).toBe(42);
     expect(replacer("key", "hello")).toBe("hello");
     expect(replacer("key", null)).toBeNull();
-  });
-});
-
-describe("parseAnnotation — additional branches", () => {
-  it("returns ag immediately when the annotation array is empty (first == null)", () => {
-    const emptyAnnotation: string[] = [];
-    const ag = { annotation: emptyAnnotation, feature_group: 7 };
-    const result = parseAnnotation(ag);
-    expect(result).toBe(ag);
-    expect(result.feature_group).toBe(7);
-  });
-
-  it("leaves an array annotation with no #N marker intact", () => {
-    const result = parseAnnotation({ annotation: ["plain text", "arg"] });
-    expect(result.feature_group).toBeUndefined();
-    expect(result.annotation).toEqual(["plain text", "arg"]);
-  });
-
-  it("collapses to empty string when the #N marker has nothing after it and rest is empty", () => {
-    const result = parseAnnotation({ annotation: ["#3", "ignored"] });
-    expect(result.feature_group).toBe(3);
-    expect(result.annotation).toBe("");
   });
 });
 
@@ -730,8 +708,8 @@ describe("mapInMode — additional branches", () => {
 describe("getAnnotations — filtering of empty annotations", () => {
   it("excludes entries whose annotation is an empty string", () => {
     const trie = new Trie();
-    trie.add("a", { annotation: "", feature_group: 1 });
-    trie.add("b", { annotation: "keep", feature_group: 2 });
+    trie.add("a", { annotation: "", group: "mouseClick" });
+    trie.add("b", { annotation: "keep", group: "scroll" });
     const result = getAnnotations(trie);
     expect(result.some((m) => m.word === "a")).toBe(false);
     expect(result.some((m) => m.word === "b")).toBe(true);

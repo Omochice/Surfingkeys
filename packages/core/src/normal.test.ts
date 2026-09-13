@@ -1287,7 +1287,7 @@ describe("createNormal feedkeys", () => {
     const normal = createNormal(insertStub, env);
     normal.mappings.add("z", {
       annotation: "test",
-      feature_group: 0,
+      group: "help",
       code: () => {
         executed = true;
       },
@@ -1303,7 +1303,7 @@ describe("createNormal feedkeys", () => {
     const normal = createNormal(insertStub, env);
     normal.mappings.add("z", {
       annotation: "test",
-      feature_group: 0,
+      group: "help",
       code: () => {
         executed = true;
       },
@@ -1808,7 +1808,7 @@ describe("createNormal once", () => {
     let ran = 0;
     normal.mappings.add("z", {
       annotation: "once-test",
-      feature_group: 0,
+      group: "help",
       code: () => {
         ran++;
       },

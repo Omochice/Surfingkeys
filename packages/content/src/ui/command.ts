@@ -1,3 +1,4 @@
+import type { FeatureGroup } from "@sk/core/featureGroup";
 import { createElementWithContent } from "@sk/core/utils";
 import { RUNTIME } from "@sk/messaging/runtime";
 
@@ -9,6 +10,7 @@ type CommandFn = (
   name: string,
   annotation: string,
   handler: (args: string[]) => void | boolean,
+  group?: FeatureGroup,
 ) => void;
 type OmnibarLike = {
   listResults<T>(
@@ -22,9 +24,14 @@ const createCommands = (normal: NormalLike, command: CommandFn, omnibar: Omnibar
   command("feedkeys", "feed mapkeys", (args) => {
     normal.feedkeys(args[0] ?? "");
   });
-  command("quit", "#5quit chrome", () => {
-    RUNTIME("quit");
-  });
+  command(
+    "quit",
+    "quit chrome",
+    () => {
+      RUNTIME("quit");
+    },
+    "sessions",
+  );
   command("clearHistory", "clearHistory <find|cmd|...>", (args) => {
     const key = args[0];
     if (key == null) {

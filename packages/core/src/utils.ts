@@ -10,6 +10,7 @@ import {
 import { conf } from "./conf";
 import type { EngineEnv } from "./engineEnv";
 import { dispatchSKEvent } from "./events";
+import type { FeatureGroup } from "./featureGroup";
 import KeyboardUtils from "./keyboardUtils";
 import type Trie from "./trie";
 import type { TrieMeta } from "./trie";
@@ -867,33 +868,16 @@ function regExpReplacer(_key: string, value: unknown): unknown {
   return value instanceof RegExp ? { source: value.source, flags: value.flags } : value;
 }
 
-function parseAnnotation(ag: { annotation: string | string[]; feature_group?: number }): {
-  annotation: string | string[];
-  feature_group?: number;
-} {
-  let an: string | string[] = ag.annotation;
-  if (typeof an === "string") {
-    // for parameterized annotations such as ["#6Search selected with {0}", "Google"]
-    an = [an];
-  }
-  const arr = an;
+/**
+ * Put an annotation into the shape the help renderer expects: an array whose first element is the
+ * format string, or `""` when there is no text to show.
+ */
+function normalizeAnnotation(annotation: string | string[]): string | string[] {
+  // a string is wrapped so parameterized annotations such as ["Search selected with {0}", "Google"]
+  // take the same path
+  const arr = typeof annotation === "string" ? [annotation] : annotation;
   const first = arr[0];
-  if (first == null) {
-    return ag;
-  }
-  const annotations = first.match(/^#(\d+)(.*)/);
-  if (annotations !== null) {
-    const featureGroup = annotations[1];
-    const rest = annotations[2];
-    if (featureGroup != null && rest != null) {
-      ag.feature_group = Number.parseInt(featureGroup);
-      arr[0] = rest;
-    }
-  }
-  // first element must not be ""
-  const head = arr[0] ?? "";
-  ag.annotation = head.length === 0 ? "" : arr;
-  return ag;
+  return first == null || first.length === 0 ? "" : arr;
 }
 
 function mapInMode(
@@ -913,7 +897,7 @@ function mapInMode(
   // meta.word need to be new
   let meta: Omit<TrieMeta, "word"> = { ...old_map.meta };
   if (new_annotation) {
-    meta = { ...meta, ...parseAnnotation({ annotation: new_annotation }) };
+    meta = { ...meta, annotation: normalizeAnnotation(new_annotation) };
   }
   mode.mappings.add(nks, meta);
   if (!inUIFrame) {
@@ -924,7 +908,7 @@ function mapInMode(
 
 function getAnnotations(mappings: Trie): {
   word: string;
-  feature_group: number | undefined;
+  group: FeatureGroup | undefined;
   annotation: string | string[] | undefined;
 }[] {
   return mappings
@@ -933,7 +917,7 @@ function getAnnotations(mappings: Trie): {
       const meta = mappings.find(w)!.meta!;
       return {
         word: w,
-        feature_group: meta.feature_group,
+        group: meta.group,
         annotation: meta.annotation,
       };
     })
@@ -1168,7 +1152,7 @@ export {
   listElements,
   locateFocusNode,
   mapInMode,
-  parseAnnotation,
+  normalizeAnnotation,
   refreshHints,
   regExpReplacer,
   removeAttributes,

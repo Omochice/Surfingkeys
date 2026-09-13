@@ -10,6 +10,7 @@
  * timer, in the richHintsForKeystroke range only, is hard to drive reliably.
  */
 
+import { featureGroups } from "@sk/core/featureGroup";
 import { specialKeys } from "@sk/core/specialKeys";
 import { RUNTIME, runtime } from "@sk/messaging/runtime";
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
@@ -587,5 +588,80 @@ describe("Find — ArrowUp/ArrowDown history recall", () => {
     expect(updateMsg).toBeDefined();
     expect(updateMsg.surfingkeys_uihost_data.query).toBe("recalled query");
     expect(findInput.value).toBe("recalled query");
+  });
+});
+
+describe("actions['getUsage'] feature group placement", () => {
+  function renderUsage(metas: Record<string, unknown>[]): string {
+    Front.topOrigin = "https://usage-test.example.com";
+    let html = "";
+    vi.spyOn(window.top!, "postMessage").mockImplementation((data: any) => {
+      html = data?.surfingkeys_uihost_data?.data ?? "";
+    });
+    Front.actions["getUsage"]({ metas, id: 1 });
+    return html;
+  }
+
+  function sectionsOf(html: string): { title: string; annotations: string[] }[] {
+    const host = document.createElement("div");
+    host.innerHTML = html;
+    return [...host.querySelectorAll(".feature_name")].map((heading) => {
+      const section = heading.parentElement!;
+      return {
+        title: heading.textContent ?? "",
+        annotations: [...section.querySelectorAll(".annotation")].map((a) => a.textContent ?? ""),
+      };
+    });
+  }
+
+  it("renders each feature group under its own section title, in declared order", () => {
+    const metas = featureGroups.map(({ key }) => ({
+      word: `k_${key}`,
+      group: key,
+      annotation: `ANN_${key}`,
+    }));
+
+    const titled = sectionsOf(renderUsage(metas)).map((s) => [
+      s.title,
+      s.annotations.filter((a) => a.startsWith("ANN_")),
+    ]);
+
+    expect(titled).toEqual([
+      ["Help", ["ANN_help"]],
+      ["Mouse Click", ["ANN_mouseClick"]],
+      ["Scroll Page / Element", ["ANN_scroll"]],
+      ["Tabs", ["ANN_tabs"]],
+      ["Page Navigation", ["ANN_pageNavigation"]],
+      ["Sessions", ["ANN_sessions"]],
+      ["Search selected with", ["ANN_searchSelectedWith"]],
+      ["Clipboard", ["ANN_clipboard"]],
+      ["Omnibar", ["ANN_omnibar"]],
+      ["Visual Mode", ["ANN_visualMode"]],
+      ["vim-like marks", ["ANN_marks"]],
+      ["Settings", ["ANN_settings"]],
+      ["Chrome URLs", ["ANN_chromeUrls"]],
+      ["Misc", ["ANN_misc"]],
+      ["Insert Mode", ["ANN_insertMode"]],
+      ["Lurk Mode", ["ANN_lurkMode"]],
+      ["Regional Hints Mode", ["ANN_regionalHintsMode"]],
+    ]);
+  });
+
+  it("omits a section whose feature group has no mappings", () => {
+    const sections = sectionsOf(
+      renderUsage([{ word: "k", group: "tabs", annotation: "ANN_tabs" }]),
+    ).filter((s) => s.annotations.some((a) => a.startsWith("ANN_")));
+
+    expect(sections.map((s) => s.title)).toEqual(["Tabs"]);
+  });
+
+  it("drops a mapping whose feature group names no section", () => {
+    const html = renderUsage([
+      { word: "k", group: "tabs", annotation: "ANN_tabs" },
+      { word: "u", group: "nosuchgroup", annotation: "ANN_unknown" },
+    ]);
+
+    expect(html).not.toContain("ANN_unknown");
+    expect(html).toContain("ANN_tabs");
   });
 });

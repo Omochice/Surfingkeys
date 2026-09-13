@@ -192,72 +192,72 @@ function createVisual(clipboard: ClipboardLike, hints: HintsLike, env: EngineEnv
 
   mappings.add("l", {
     annotation: "forward character",
-    feature_group: 9,
+    group: "visualMode",
     code: modifySelection,
   });
   mappings.add("h", {
     annotation: "backward character",
-    feature_group: 9,
+    group: "visualMode",
     code: modifySelection,
   });
   mappings.add("j", {
     annotation: "forward line",
-    feature_group: 9,
+    group: "visualMode",
     code: modifySelection,
   });
   mappings.add("k", {
     annotation: "backward line",
-    feature_group: 9,
+    group: "visualMode",
     code: modifySelection,
   });
   mappings.add("w", {
     annotation: "forward word",
-    feature_group: 9,
+    group: "visualMode",
     code: modifySelection,
   });
   mappings.add("e", {
     annotation: "forward word",
-    feature_group: 9,
+    group: "visualMode",
     code: modifySelection,
   });
   mappings.add("b", {
     annotation: "backward word",
-    feature_group: 9,
+    group: "visualMode",
     code: modifySelection,
   });
   mappings.add(")", {
     annotation: "forward sentence",
-    feature_group: 9,
+    group: "visualMode",
     code: modifySelection,
   });
   mappings.add("(", {
     annotation: "backward sentence",
-    feature_group: 9,
+    group: "visualMode",
     code: modifySelection,
   });
   mappings.add("}", {
     annotation: "forward paragraphboundary",
-    feature_group: 9,
+    group: "visualMode",
     code: modifySelection,
   });
   mappings.add("{", {
     annotation: "backward paragraphboundary",
-    feature_group: 9,
+    group: "visualMode",
     code: modifySelection,
   });
   mappings.add("0", {
     annotation: "backward lineboundary",
-    feature_group: 9,
+    group: "visualMode",
     code: modifySelection,
   });
   mappings.add("$", {
     annotation: "forward lineboundary",
-    feature_group: 9,
+    group: "visualMode",
     code: modifySelection,
   });
   mappings.add("G", {
     annotation: "forward documentboundary",
-    feature_group: 9,
+    group: "visualMode",
     code: () => {
       document.scrollingElement!.scrollTop = document.scrollingElement!.scrollHeight;
       if (getBrowserName() !== "Firefox") {
@@ -278,7 +278,7 @@ function createVisual(clipboard: ClipboardLike, hints: HintsLike, env: EngineEnv
   });
   mappings.add("gg", {
     annotation: "backward documentboundary",
-    feature_group: 9,
+    group: "visualMode",
     code: () => {
       // there may be some fixed-position div for navbar on top on some pages.
       // so scrollIntoView can not send us top, as it's already in view.
@@ -304,7 +304,7 @@ function createVisual(clipboard: ClipboardLike, hints: HintsLike, env: EngineEnv
 
   mappings.add("o", {
     annotation: "Go to Other end of highlighted text",
-    feature_group: 9,
+    group: "visualMode",
     code: () => {
       self.hideCursor();
       const pos: [Node | null, number] = [selection.anchorNode, selection.anchorOffset];
@@ -332,7 +332,7 @@ function createVisual(clipboard: ClipboardLike, hints: HintsLike, env: EngineEnv
     {},
     {
       annotation: "Yank a word(w) or line(l) or sentence(s) or paragraph(p)",
-      feature_group: 9,
+      group: "visualMode",
       code: (w: string) => {
         const pos: [Node | null, number] = [selection.focusNode, selection.focusOffset];
         self.hideCursor();
@@ -345,7 +345,7 @@ function createVisual(clipboard: ClipboardLike, hints: HintsLike, env: EngineEnv
     },
     {
       annotation: "Copy selected text",
-      feature_group: 9,
+      group: "visualMode",
       code: () => {
         const pos: [Node | null, number] = [selection.focusNode, selection.focusOffset];
         clipboard.write(selection.toString());
@@ -363,7 +363,7 @@ function createVisual(clipboard: ClipboardLike, hints: HintsLike, env: EngineEnv
   ];
   mappings.add("*", {
     annotation: "Search word under the cursor",
-    feature_group: 9,
+    group: "visualMode",
     code: () => {
       self.star();
     },
@@ -375,7 +375,7 @@ function createVisual(clipboard: ClipboardLike, hints: HintsLike, env: EngineEnv
   }
   mappings.add(KeyboardUtils.encodeKeystroke("<Enter>"), {
     annotation: "Click on node under cursor.",
-    feature_group: 9,
+    group: "visualMode",
     code: () => {
       const parent = selection.focusNode?.parentElement;
       if (parent) {
@@ -385,7 +385,7 @@ function createVisual(clipboard: ClipboardLike, hints: HintsLike, env: EngineEnv
   });
   mappings.add(KeyboardUtils.encodeKeystroke("<Shift-Enter>"), {
     annotation: "Click on node under cursor.",
-    feature_group: 9,
+    group: "visualMode",
     code: () => {
       const parent = selection.focusNode?.parentElement;
       if (parent) {
@@ -395,7 +395,7 @@ function createVisual(clipboard: ClipboardLike, hints: HintsLike, env: EngineEnv
   });
   mappings.add("zt", {
     annotation: "make cursor at top of window.",
-    feature_group: 9,
+    group: "visualMode",
     code: () => {
       const offset = cursor.getBoundingClientRect().top;
       self.hideCursor();
@@ -405,7 +405,7 @@ function createVisual(clipboard: ClipboardLike, hints: HintsLike, env: EngineEnv
   });
   mappings.add("zz", {
     annotation: "make cursor at center of window.",
-    feature_group: 9,
+    group: "visualMode",
     code: () => {
       const offset = cursor.getBoundingClientRect().top - window.innerHeight / 2;
       self.hideCursor();
@@ -415,7 +415,7 @@ function createVisual(clipboard: ClipboardLike, hints: HintsLike, env: EngineEnv
   });
   mappings.add("zb", {
     annotation: "make cursor at bottom of window.",
-    feature_group: 9,
+    group: "visualMode",
     code: () => {
       const offset = window.innerHeight - cursor.getBoundingClientRect().bottom;
       self.hideCursor();
@@ -425,7 +425,7 @@ function createVisual(clipboard: ClipboardLike, hints: HintsLike, env: EngineEnv
   });
   mappings.add("f", {
     annotation: "Forward to next char.",
-    feature_group: 9,
+    group: "visualMode",
     code: () => {
       mode.statusLine = mode.name + " - " + status[state] + " - forward";
       showModeStatus();
@@ -434,7 +434,7 @@ function createVisual(clipboard: ClipboardLike, hints: HintsLike, env: EngineEnv
   });
   mappings.add("F", {
     annotation: "Backward to next char.",
-    feature_group: 9,
+    group: "visualMode",
     code: () => {
       mode.statusLine = mode.name + " - " + status[state] + " - backward";
       showModeStatus();
@@ -443,7 +443,7 @@ function createVisual(clipboard: ClipboardLike, hints: HintsLike, env: EngineEnv
   });
   mappings.add(";", {
     annotation: "Repeat latest f, F",
-    feature_group: 9,
+    group: "visualMode",
     code: () => {
       if (lastF) {
         visualSeek(lastF[0], lastF[1]);
@@ -452,7 +452,7 @@ function createVisual(clipboard: ClipboardLike, hints: HintsLike, env: EngineEnv
   });
   mappings.add(",", {
     annotation: "Repeat latest f, F in opposite direction",
-    feature_group: 9,
+    group: "visualMode",
     code: () => {
       if (lastF) {
         visualSeek(-lastF[0], lastF[1]);
@@ -462,7 +462,7 @@ function createVisual(clipboard: ClipboardLike, hints: HintsLike, env: EngineEnv
 
   mappings.add("p", {
     annotation: "Expand selection to parent element",
-    feature_group: 9,
+    group: "visualMode",
     code: () => {
       let p: Node | null = selection.focusNode;
       while (p && p !== document.body) {
@@ -491,7 +491,7 @@ function createVisual(clipboard: ClipboardLike, hints: HintsLike, env: EngineEnv
 
   mappings.add("V", {
     annotation: "Select a word(w) or line(l) or sentence(s) or paragraph(p)",
-    feature_group: 9,
+    group: "visualMode",
     code: (w: string) => {
       self.hideCursor();
       state = 2;

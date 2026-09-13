@@ -4,6 +4,7 @@ import type { MapOptions, SurfingkeysApi } from "./api";
 import { conf } from "./conf";
 import type { EngineEnv } from "./engineEnv";
 import { dispatchSKEvent } from "./events";
+import type { FeatureGroup } from "./featureGroup";
 import KeyboardUtils from "./keyboardUtils";
 import type { ModeContext } from "./modeGraph";
 import { repeatCount } from "./repeatCount";
@@ -44,6 +45,8 @@ const clipboardFormsSchema = v.record(v.string(), v.record(v.string(), v.unknown
 
 /** The action bound to a single default key: its help text, handler, and per-mapping options. */
 export type MappingDef = {
+  /** The help section this mapping is listed under. */
+  group: FeatureGroup;
   annotation: string | string[];
   // User keypress handler of arbitrary signature (same rationale as api.ts's jscode).
   // eslint-disable-next-line typescript/no-explicit-any
@@ -133,7 +136,8 @@ function definePreviousPage(ctx: ModeContext): ModalMappingDef {
     mode: "nmap",
     keys: "[[",
     def: {
-      annotation: "#1Click on the previous link on current page",
+      group: "mouseClick",
+      annotation: "Click on the previous link on current page",
       code: ctx.hints.previousPage,
     },
   };
@@ -143,7 +147,11 @@ function defineNextPage(ctx: ModeContext): ModalMappingDef {
   return {
     mode: "nmap",
     keys: "]]",
-    def: { annotation: "#1Click on the next link on current page", code: ctx.hints.nextPage },
+    def: {
+      group: "mouseClick",
+      annotation: "Click on the next link on current page",
+      code: ctx.hints.nextPage,
+    },
   };
 }
 
@@ -152,7 +160,8 @@ function defineChooseTab(ctx: ModeContext): ModalMappingDef {
     mode: "nmap",
     keys: "T",
     def: {
-      annotation: "#3Choose a tab",
+      group: "tabs",
+      annotation: "Choose a tab",
       code: () => {
         ctx.front.chooseTab();
       },
@@ -165,7 +174,8 @@ function defineShowUsage(ctx: ModeContext): ModalMappingDef {
     mode: "nmap",
     keys: "?",
     def: {
-      annotation: "#0Show usage",
+      group: "help",
+      annotation: "Show usage",
       code: () => {
         ctx.front.showUsage();
       },
@@ -178,7 +188,8 @@ function defineOpenWordTranslation(ctx: ModeContext): ModalMappingDef {
     mode: "nmap",
     keys: "Q",
     def: {
-      annotation: "#8Open omnibar for word translation",
+      group: "omnibar",
+      annotation: "Open omnibar for word translation",
       code: () => {
         // Built here rather than behind a front helper, because openOmnibar is the only member
         // both the content front and the UI iframe front implement.
@@ -196,7 +207,11 @@ function defineToggleQuotes(): ModalMappingDef {
   return {
     mode: "imap",
     keys: "<Ctrl-'>",
-    def: { annotation: "#14Toggle quotes in an input element", code: toggleQuote },
+    def: {
+      group: "insertMode",
+      annotation: "Toggle quotes in an input element",
+      code: toggleQuote,
+    },
   };
 }
 
@@ -205,7 +220,8 @@ function defineShowLastAction(): ModalMappingDef {
     mode: "nmap",
     keys: ";ql",
     def: {
-      annotation: "#0Show last action",
+      group: "help",
+      annotation: "Show last action",
       code: () => {
         showPopup(
           htmlEncode(
@@ -227,7 +243,8 @@ function defineGoToFirstEditBox(ctx: ModeContext): ModalMappingDef {
     mode: "nmap",
     keys: "gi",
     def: {
-      annotation: "#1Go to the first edit box",
+      group: "mouseClick",
+      annotation: "Go to the first edit box",
       code: () => {
         ctx.hints.createInputLayer();
       },
@@ -240,7 +257,8 @@ function defineGoToEditBox(ctx: ModeContext): ModalMappingDef {
     mode: "nmap",
     keys: "i",
     def: {
-      annotation: "#1Go to edit box",
+      group: "mouseClick",
+      annotation: "Go to edit box",
       code: () => {
         ctx.hints.create(getCssSelectorsOfEditable(), ctx.hints.dispatchMouseClick);
       },
@@ -253,7 +271,8 @@ function defineRegionalHints(ctx: ModeContext): ModalMappingDef {
     mode: "nmap",
     keys: "L",
     def: {
-      annotation: "#1Enter regional Hints mode",
+      group: "mouseClick",
+      annotation: "Enter regional Hints mode",
       code: () => {
         ctx.hints.create(getLargeElements(), () => {}, { regionalHints: true });
       },
@@ -266,7 +285,8 @@ function defineVisualWholeElement(ctx: ModeContext): ModalMappingDef {
     mode: "nmap",
     keys: "zv",
     def: {
-      annotation: "#9Enter visual mode, and select whole element",
+      group: "visualMode",
+      annotation: "Enter visual mode, and select whole element",
       code: () => {
         ctx.visual.toggle("z");
       },
@@ -279,7 +299,8 @@ function defineYankElementText(ctx: ModeContext): ModalMappingDef {
     mode: "nmap",
     keys: "yv",
     def: {
-      annotation: "#7Yank text of an element",
+      group: "clipboard",
+      annotation: "Yank text of an element",
       code: () => {
         ctx.hints.create(conf.textAnchorPat, (element: TextAnchorMatch) => {
           ctx.clipboard.write(element[1] === 0 ? element[0].data.trim() : element[2].trim());
@@ -294,7 +315,8 @@ function defineYankMultipleElementsText(ctx: ModeContext): ModalMappingDef {
     mode: "nmap",
     keys: "ymv",
     def: {
-      annotation: "#7Yank text of multiple elements",
+      group: "clipboard",
+      annotation: "Yank text of multiple elements",
       code: () => {
         const textToYank: string[] = [];
         ctx.hints.create(
@@ -315,7 +337,8 @@ function defineRestoreVisualMode(ctx: ModeContext): ModalMappingDef {
     mode: "nmap",
     keys: "V",
     def: {
-      annotation: "#9Restore visual mode",
+      group: "visualMode",
+      annotation: "Restore visual mode",
       code: () => {
         ctx.visual.restore();
       },
@@ -328,7 +351,8 @@ function defineFindSelectedText(ctx: ModeContext): ModalMappingDef {
     mode: "nmap",
     keys: "*",
     def: {
-      annotation: "#9Find selected text in current page",
+      group: "visualMode",
+      annotation: "Find selected text in current page",
       code: () => {
         ctx.visual.star();
         ctx.visual.toggle();
@@ -342,7 +366,8 @@ function defineVisualBackward20Lines(ctx: ModeContext): ModalMappingDef {
     mode: "vmap",
     keys: "<Ctrl-u>",
     def: {
-      annotation: "#9Backward 20 lines",
+      group: "visualMode",
+      annotation: "Backward 20 lines",
       code: () => {
         ctx.visual.feedkeys("20k");
       },
@@ -355,7 +380,8 @@ function defineVisualForward20Lines(ctx: ModeContext): ModalMappingDef {
     mode: "vmap",
     keys: "<Ctrl-d>",
     def: {
-      annotation: "#9Forward 20 lines",
+      group: "visualMode",
+      annotation: "Forward 20 lines",
       code: () => {
         ctx.visual.feedkeys("20j");
       },
@@ -367,7 +393,11 @@ function defineAddVIMark(ctx: ModeContext): ModalMappingDef {
   return {
     mode: "nmap",
     keys: "m",
-    def: { annotation: "#10Add current URL to vim-like marks", code: ctx.normal.addVIMark },
+    def: {
+      group: "marks",
+      annotation: "Add current URL to vim-like marks",
+      code: ctx.normal.addVIMark,
+    },
   };
 }
 
@@ -375,7 +405,7 @@ function defineJumpVIMark(ctx: ModeContext): ModalMappingDef {
   return {
     mode: "nmap",
     keys: "'",
-    def: { annotation: "#10Jump to vim-like mark", code: ctx.normal.jumpVIMark },
+    def: { group: "marks", annotation: "Jump to vim-like mark", code: ctx.normal.jumpVIMark },
   };
 }
 
@@ -384,7 +414,8 @@ function defineJumpVIMarkNewTab(ctx: ModeContext): ModalMappingDef {
     mode: "nmap",
     keys: "<Ctrl-'>",
     def: {
-      annotation: "#10Jump to vim-like mark in new tab.",
+      group: "marks",
+      annotation: "Jump to vim-like mark in new tab.",
       code: (mark: string) => {
         ctx.normal.jumpVIMark(mark);
       },
@@ -397,7 +428,8 @@ function defineSwitchFrames(ctx: ModeContext): ModalMappingDef {
     mode: "nmap",
     keys: "w",
     def: {
-      annotation: "#2Switch frames",
+      group: "scroll",
+      annotation: "Switch frames",
       code: () => {
         // ui related actions are only available in iframes once the frontend is ready.
         dispatchSKEvent("ensureFrontEnd");
@@ -430,7 +462,8 @@ function defineCapturePage(ctx: ModeContext, env: EngineEnv): ModalMappingDef {
     mode: "nmap",
     keys: "yg",
     def: {
-      annotation: "#7Capture current page",
+      group: "clipboard",
+      annotation: "Capture current page",
       code: () => {
         ctx.front.toggleStatus(false);
         setTimeout(() => {
@@ -449,7 +482,8 @@ function defineGoUpUrlPath(): ModalMappingDef {
     mode: "nmap",
     keys: "gu",
     def: {
-      annotation: "#4Go up one path in the URL",
+      group: "pageNavigation",
+      annotation: "Go up one path in the URL",
       code: () => {
         let pathname = location.pathname;
         if (pathname.length > 1) {
@@ -478,7 +512,8 @@ function defineMouseOutLastElement(ctx: ModeContext): ModalMappingDef {
     mode: "nmap",
     keys: ";m",
     def: {
-      annotation: "#1mouse out last element",
+      group: "mouseClick",
+      annotation: "mouse out last element",
       code: () => {
         ctx.hints.mouseoutLastElement();
       },
@@ -491,7 +526,8 @@ function definePasteHtml(ctx: ModeContext): ModalMappingDef {
     mode: "nmap",
     keys: ";pp",
     def: {
-      annotation: "#7Paste html on current page",
+      group: "clipboard",
+      annotation: "Paste html on current page",
       code: () => {
         ctx.clipboard.read((response) => {
           removeAttributes(document.documentElement);
@@ -515,6 +551,9 @@ function defineTranslateSelectedText(
     mode: "nmap",
     keys: ";t",
     def: {
+      // The only built-in that never carried a `#N`, so Misc is where the mode default already put
+      // it; picking a better section is a separate decision.
+      group: "misc",
       annotation: "Translate selected text with google",
       code: () => {
         if (env.surfingkeys) {
@@ -535,7 +574,8 @@ function defineVisualTranslateSelectedText(
     mode: "vmap",
     keys: "t",
     def: {
-      annotation: "#9Translate selected text with google",
+      group: "visualMode",
+      annotation: "Translate selected text with google",
       code: () => {
         openGoogleTranslate(env, searchSelectedWith);
       },
@@ -548,7 +588,8 @@ function defineOpenDetectedLinks(ctx: ModeContext): ModalMappingDef {
     mode: "nmap",
     keys: "O",
     def: {
-      annotation: "#1Open detected links from text",
+      group: "mouseClick",
+      annotation: "Open detected links from text",
       code: () => {
         ctx.hints.create(
           conf.clickablePat,
@@ -567,7 +608,8 @@ function defineRepeatLastAction(ctx: ModeContext): ModalMappingDef {
     mode: "nmap",
     keys: ".",
     def: {
-      annotation: "#0Repeat last action",
+      group: "help",
+      annotation: "Repeat last action",
       code: () => {
         // lastKeys in format: <keys in normal mode>[,(<mode name>\t<keys in this mode>)*], examples
         // ['se']
@@ -607,7 +649,8 @@ function defineOpenLink(ctx: ModeContext): ModalMappingDef {
     mode: "nmap",
     keys: "f",
     def: {
-      annotation: "#1Open a link, press SHIFT to flip overlapped hints, hold SPACE to hide hints",
+      group: "mouseClick",
+      annotation: "Open a link, press SHIFT to flip overlapped hints, hold SPACE to hide hints",
       code: () => {
         ctx.hints.create("", ctx.hints.dispatchMouseClick);
       },
@@ -621,7 +664,8 @@ function defineToggleVisualMode(ctx: ModeContext): ModalMappingDef {
     mode: "nmap",
     keys: "v",
     def: {
-      annotation: "#9Toggle visual mode",
+      group: "visualMode",
+      annotation: "Toggle visual mode",
       code: () => {
         ctx.visual.toggle();
       },
@@ -635,7 +679,8 @@ function defineNextFoundText(ctx: ModeContext): ModalMappingDef {
     mode: "nmap",
     keys: "n",
     def: {
-      annotation: "#9Next found text",
+      group: "visualMode",
+      annotation: "Next found text",
       code: () => {
         ctx.visual.next(false);
       },
@@ -649,7 +694,8 @@ function definePreviousFoundText(ctx: ModeContext): ModalMappingDef {
     mode: "nmap",
     keys: "N",
     def: {
-      annotation: "#9Previous found text",
+      group: "visualMode",
+      annotation: "Previous found text",
       code: () => {
         ctx.visual.next(true);
       },
@@ -663,7 +709,8 @@ function defineFocusScrollableElements(ctx: ModeContext): ModalMappingDef {
     mode: "nmap",
     keys: ";fs",
     def: {
-      annotation: "#1Display hints to focus scrollable elements",
+      group: "mouseClick",
+      annotation: "Display hints to focus scrollable elements",
       code: () => {
         ctx.hints.create(ctx.normal.refreshScrollableElements(), ctx.hints.dispatchMouseClick);
       },
@@ -676,7 +723,8 @@ function defineVisualTranslateWord(ctx: ModeContext): ModalMappingDef {
     mode: "vmap",
     keys: "q",
     def: {
-      annotation: "#9Translate word under cursor",
+      group: "visualMode",
+      annotation: "Translate word under cursor",
       code: () => {
         const w = getWordUnderCursor();
         const b = ctx.visual.getCursorPixelPos();
@@ -702,7 +750,8 @@ function defineQueryWordWithHints(ctx: ModeContext): ModalMappingDef {
     mode: "nmap",
     keys: "cq",
     def: {
-      annotation: "#7Query word with Hints",
+      group: "clipboard",
+      annotation: "Query word with Hints",
       code: () => {
         // Bail out before creating hints, so a front without the member gets a clean no-op key
         // instead of hint labels whose selection could never do anything.
@@ -736,7 +785,8 @@ function defineZoomReset(env: EngineEnv): ModalMappingDef {
     mode: "nmap",
     keys: "zr",
     def: {
-      annotation: "#3zoom reset",
+      group: "tabs",
+      annotation: "zoom reset",
       code: () => {
         env.RUNTIME("setZoom", {
           zoomFactor: 0,
@@ -751,7 +801,8 @@ function defineZoomIn(env: EngineEnv): ModalMappingDef {
     mode: "nmap",
     keys: "zi",
     def: {
-      annotation: "#3zoom in",
+      group: "tabs",
+      annotation: "zoom in",
       code: () => {
         env.RUNTIME("setZoom", {
           zoomFactor: 0.1,
@@ -766,7 +817,8 @@ function defineZoomOut(env: EngineEnv): ModalMappingDef {
     mode: "nmap",
     keys: "zo",
     def: {
-      annotation: "#3zoom out",
+      group: "tabs",
+      annotation: "zoom out",
       code: () => {
         env.RUNTIME("setZoom", {
           zoomFactor: -0.1,
@@ -781,7 +833,8 @@ function defineSaveSessionAndQuit(env: EngineEnv): ModalMappingDef {
     mode: "nmap",
     keys: "ZZ",
     def: {
-      annotation: "#5Save session and quit",
+      group: "sessions",
+      annotation: "Save session and quit",
       code: () => {
         env.RUNTIME("createSession", {
           name: "LAST",
@@ -797,7 +850,8 @@ function defineRestoreLastSession(env: EngineEnv): ModalMappingDef {
     mode: "nmap",
     keys: "ZR",
     def: {
-      annotation: "#5Restore last session",
+      group: "sessions",
+      annotation: "Restore last session",
       code: () => {
         env.RUNTIME("openSession", {
           name: "LAST",
@@ -812,7 +866,8 @@ function defineOpenLinkActiveNewTab(ctx: ModeContext): ModalMappingDef {
     mode: "nmap",
     keys: "af",
     def: {
-      annotation: "#1Open a link in active new tab",
+      group: "mouseClick",
+      annotation: "Open a link in active new tab",
       code: () => {
         ctx.hints.create("", ctx.hints.dispatchMouseClick, { tabbed: true, active: true });
       },
@@ -825,7 +880,8 @@ function defineOpenLinkBackgroundNewTab(ctx: ModeContext): ModalMappingDef {
     mode: "nmap",
     keys: "gf",
     def: {
-      annotation: "#1Open a link in non-active new tab",
+      group: "mouseClick",
+      annotation: "Open a link in non-active new tab",
       code: () => {
         ctx.hints.create("", ctx.hints.dispatchMouseClick, { tabbed: true, active: false });
       },
@@ -838,7 +894,8 @@ function defineOpenMultipleLinksNewTab(ctx: ModeContext): ModalMappingDef {
     mode: "nmap",
     keys: "cf",
     def: {
-      annotation: "#1Open multiple links in a new tab",
+      group: "mouseClick",
+      annotation: "Open multiple links in a new tab",
       code: () => {
         ctx.hints.create("", ctx.hints.dispatchMouseClick, { multipleHits: true });
       },
@@ -851,7 +908,8 @@ function defineMouseOverElements(ctx: ModeContext, env: EngineEnv): ModalMapping
     mode: "nmap",
     keys: "<Ctrl-h>",
     def: {
-      annotation: "#1Mouse over elements.",
+      group: "mouseClick",
+      annotation: "Mouse over elements.",
       code: () => {
         ctx.hints.create(
           "",
@@ -882,7 +940,8 @@ function defineMouseOutElements(ctx: ModeContext): ModalMappingDef {
     mode: "nmap",
     keys: "<Ctrl-j>",
     def: {
-      annotation: "#1Mouse out elements.",
+      group: "mouseClick",
+      annotation: "Mouse out elements.",
       code: () => {
         ctx.hints.create("", ctx.hints.dispatchMouseClick, { mouseEvents: ["mouseout"] });
       },
@@ -895,7 +954,8 @@ function defineCopyLinkUrl(ctx: ModeContext): ModalMappingDef {
     mode: "nmap",
     keys: "ya",
     def: {
-      annotation: "#7Copy a link URL to the clipboard",
+      group: "clipboard",
+      annotation: "Copy a link URL to the clipboard",
       code: () => {
         ctx.hints.create("*[href]", (element: HTMLAnchorElement) => {
           ctx.clipboard.write(element.href);
@@ -910,7 +970,8 @@ function defineCopyMultipleLinkUrls(ctx: ModeContext): ModalMappingDef {
     mode: "nmap",
     keys: "yma",
     def: {
-      annotation: "#7Copy multiple link URLs to the clipboard",
+      group: "clipboard",
+      annotation: "Copy multiple link URLs to the clipboard",
       code: () => {
         const linksToYank: string[] = [];
         ctx.hints.create(
@@ -931,7 +992,8 @@ function defineCopyTableColumn(ctx: ModeContext): ModalMappingDef {
     mode: "nmap",
     keys: "yc",
     def: {
-      annotation: "#7Copy a column of a table",
+      group: "clipboard",
+      annotation: "Copy a column of a table",
       code: () => {
         ctx.hints.create(getTableColumnHeads(), (element: HTMLTableCellElement) => {
           const table = element.closest("table");
@@ -952,7 +1014,8 @@ function defineCopyMultipleTableColumns(ctx: ModeContext): ModalMappingDef {
     mode: "nmap",
     keys: "ymc",
     def: {
-      annotation: "#7Copy multiple columns of a table",
+      group: "clipboard",
+      annotation: "Copy multiple columns of a table",
       code: () => {
         let rows: string[] | null = null;
         ctx.hints.create(
@@ -985,7 +1048,8 @@ function defineCopyPreText(ctx: ModeContext): ModalMappingDef {
     mode: "nmap",
     keys: "yq",
     def: {
-      annotation: "#7Copy pre text",
+      group: "clipboard",
+      annotation: "Copy pre text",
       code: () => {
         ctx.hints.create("pre", (element: HTMLElement) => {
           ctx.clipboard.write(element.innerText);
@@ -1000,7 +1064,8 @@ function defineClickImageOrButton(ctx: ModeContext): ModalMappingDef {
     mode: "nmap",
     keys: "q",
     def: {
-      annotation: "#1Click on an Image or a button",
+      group: "mouseClick",
+      annotation: "Click on an Image or a button",
       code: () => {
         ctx.hints.create("img, button", ctx.hints.dispatchMouseClick);
       },
@@ -1013,7 +1078,8 @@ function defineTogglePinTab(env: EngineEnv): ModalMappingDef {
     mode: "nmap",
     keys: "<Alt-p>",
     def: {
-      annotation: "#3pin/unpin current tab",
+      group: "tabs",
+      annotation: "pin/unpin current tab",
       code: () => {
         env.RUNTIME("togglePinTab");
       },
@@ -1026,7 +1092,8 @@ function defineToggleMuteTab(env: EngineEnv): ModalMappingDef {
     mode: "nmap",
     keys: "<Alt-m>",
     def: {
-      annotation: "#3mute/unmute current tab",
+      group: "tabs",
+      annotation: "mute/unmute current tab",
       code: () => {
         env.RUNTIME("muteTab");
       },
@@ -1039,7 +1106,8 @@ function defineTabHistoryBack(env: EngineEnv): ModalMappingDef {
     mode: "nmap",
     keys: "B",
     def: {
-      annotation: "#4Go one tab history back",
+      group: "pageNavigation",
+      annotation: "Go one tab history back",
       code: () => {
         env.RUNTIME("historyTab", { backward: true });
       },
@@ -1053,7 +1121,8 @@ function defineTabHistoryForward(env: EngineEnv): ModalMappingDef {
     mode: "nmap",
     keys: "F",
     def: {
-      annotation: "#4Go one tab history forward",
+      group: "pageNavigation",
+      annotation: "Go one tab history forward",
       code: () => {
         env.RUNTIME("historyTab", { backward: false });
       },
@@ -1067,7 +1136,8 @@ function defineGoToLastUsedTab(env: EngineEnv): ModalMappingDef {
     mode: "nmap",
     keys: "<Ctrl-6>",
     def: {
-      annotation: "#4Go to last used tab",
+      group: "pageNavigation",
+      annotation: "Go to last used tab",
       code: () => {
         env.RUNTIME("goToLastTab");
       },
@@ -1080,7 +1150,8 @@ function defineGoToFirstActivatedTab(env: EngineEnv): ModalMappingDef {
     mode: "nmap",
     keys: "gT",
     def: {
-      annotation: "#4Go to first activated tab",
+      group: "pageNavigation",
+      annotation: "Go to first activated tab",
       code: () => {
         env.RUNTIME("historyTab", { index: 0 });
       },
@@ -1094,7 +1165,8 @@ function defineGoToLastActivatedTab(env: EngineEnv): ModalMappingDef {
     mode: "nmap",
     keys: "gt",
     def: {
-      annotation: "#4Go to last activated tab",
+      group: "pageNavigation",
+      annotation: "Go to last activated tab",
       code: () => {
         env.RUNTIME("historyTab", { index: -1 });
       },
@@ -1108,7 +1180,8 @@ function defineGoToPlayingTab(env: EngineEnv): ModalMappingDef {
     mode: "nmap",
     keys: "gp",
     def: {
-      annotation: "#4Go to the playing tab",
+      group: "pageNavigation",
+      annotation: "Go to the playing tab",
       code: () => {
         env.RUNTIME(
           "getTabs",
@@ -1134,7 +1207,8 @@ function defineGoBackInHistory(): ModalMappingDef {
     mode: "nmap",
     keys: "S",
     def: {
-      annotation: "#4Go back in history",
+      group: "pageNavigation",
+      annotation: "Go back in history",
       code: () => {
         history.go(-1);
       },
@@ -1148,7 +1222,8 @@ function defineGoForwardInHistory(): ModalMappingDef {
     mode: "nmap",
     keys: "D",
     def: {
-      annotation: "#4Go forward in history",
+      group: "pageNavigation",
+      annotation: "Go forward in history",
       code: () => {
         history.go(1);
       },
@@ -1162,7 +1237,8 @@ function defineReloadPage(env: EngineEnv): ModalMappingDef {
     mode: "nmap",
     keys: "r",
     def: {
-      annotation: "#4Reload the page",
+      group: "pageNavigation",
+      annotation: "Reload the page",
       code: () => {
         env.RUNTIME("reloadTab", { nocache: false });
       },
@@ -1175,7 +1251,8 @@ function defineOpenIncognitoWindow(env: EngineEnv): ModalMappingDef {
     mode: "nmap",
     keys: "oi",
     def: {
-      annotation: "#8Open incognito window",
+      group: "omnibar",
+      annotation: "Open incognito window",
       code: () => {
         env.RUNTIME("openIncognito", {
           url: window.location.href,
@@ -1190,7 +1267,8 @@ function defineOpenTabUrlsOmnibar(ctx: ModeContext): ModalMappingDef {
     mode: "nmap",
     keys: "H",
     def: {
-      annotation: "#8Open opened URL in current tab",
+      group: "omnibar",
+      annotation: "Open opened URL in current tab",
       code: () => {
         ctx.front.openOmnibar({ type: "TabURLs" });
       },
@@ -1203,7 +1281,8 @@ function defineOpenVIMarksOmnibar(ctx: ModeContext): ModalMappingDef {
     mode: "nmap",
     keys: "om",
     def: {
-      annotation: "#8Open URL from vim-like marks",
+      group: "omnibar",
+      annotation: "Open URL from vim-like marks",
       code: () => {
         ctx.front.openOmnibar({ type: "VIMarks" });
       },
@@ -1216,7 +1295,8 @@ function defineOpenCommandsOmnibar(ctx: ModeContext): ModalMappingDef {
     mode: "nmap",
     keys: ":",
     def: {
-      annotation: "#8Open commands",
+      group: "omnibar",
+      annotation: "Open commands",
       code: () => {
         ctx.front.openOmnibar({ type: "Commands" });
       },
@@ -1229,7 +1309,8 @@ function defineYankInputText(ctx: ModeContext): ModalMappingDef {
     mode: "nmap",
     keys: "yi",
     def: {
-      annotation: "#7Yank text of an input",
+      group: "clipboard",
+      annotation: "Yank text of an input",
       code: () => {
         ctx.hints.create(
           "input, textarea, select",
@@ -1247,7 +1328,8 @@ function defineCloseTab(env: EngineEnv): ModalMappingDef {
     mode: "nmap",
     keys: "x",
     def: {
-      annotation: "#3Close current tab",
+      group: "tabs",
+      annotation: "Close current tab",
       code: () => {
         env.RUNTIME("closeTab");
       },
@@ -1260,7 +1342,8 @@ function defineFocusTopWindow(): ModalMappingDef {
     mode: "nmap",
     keys: ";w",
     def: {
-      annotation: "#2Focus top window",
+      group: "scroll",
+      annotation: "Focus top window",
       code: () => {
         top!.focus();
       },
@@ -1273,7 +1356,8 @@ function defineOpenSelectedOrClipboardLink(ctx: ModeContext, env: EngineEnv): Mo
     mode: "nmap",
     keys: "cc",
     def: {
-      annotation: "#7Open selected link or link from clipboard",
+      group: "clipboard",
+      annotation: "Open selected link or link from clipboard",
       code: () => {
         if (window.getSelection()!.toString()) {
           env.tabOpenLink(window.getSelection()!.toString());
@@ -1292,7 +1376,8 @@ function defineClearQueueUrls(env: EngineEnv): ModalMappingDef {
     mode: "nmap",
     keys: ";cq",
     def: {
-      annotation: "#7Clear all URLs in queue to be opened",
+      group: "clipboard",
+      annotation: "Clear all URLs in queue to be opened",
       code: () => {
         env.RUNTIME("clearQueueURLs");
       },
@@ -1305,7 +1390,8 @@ function defineCopyPageSource(ctx: ModeContext): ModalMappingDef {
     mode: "nmap",
     keys: "ys",
     def: {
-      annotation: "#7Copy current page's source",
+      group: "clipboard",
+      annotation: "Copy current page's source",
       code: () => {
         const aa = document.documentElement.cloneNode(true);
         if (aa instanceof Element) {
@@ -1321,7 +1407,8 @@ function defineCopySettings(ctx: ModeContext, env: EngineEnv): ModalMappingDef {
     mode: "nmap",
     keys: "yj",
     def: {
-      annotation: "#7Copy current settings",
+      group: "clipboard",
+      annotation: "Copy current settings",
       code: () => {
         env.RUNTIME(
           "getSettings",
@@ -1342,7 +1429,8 @@ function defineRestoreSettings(ctx: ModeContext, env: EngineEnv): ModalMappingDe
     mode: "nmap",
     keys: ";pj",
     def: {
-      annotation: "#7Restore settings data from clipboard",
+      group: "clipboard",
+      annotation: "Restore settings data from clipboard",
       code: () => {
         ctx.clipboard.read((response) => {
           const result = v.safeParse(clipboardSettingsSchema, parseJsonSafe(response.data.trim()));
@@ -1362,7 +1450,8 @@ function defineDuplicateTab(env: EngineEnv): ModalMappingDef {
     mode: "nmap",
     keys: "yt",
     def: {
-      annotation: "#3Duplicate current tab",
+      group: "tabs",
+      annotation: "Duplicate current tab",
       code: () => {
         env.RUNTIME("duplicateTab");
       },
@@ -1375,7 +1464,8 @@ function defineDuplicateTabBackground(env: EngineEnv): ModalMappingDef {
     mode: "nmap",
     keys: "yT",
     def: {
-      annotation: "#3Duplicate current tab in background",
+      group: "tabs",
+      annotation: "Duplicate current tab in background",
       code: () => {
         env.RUNTIME("duplicateTab", { active: false });
       },
@@ -1388,7 +1478,8 @@ function defineCopyPageUrl(ctx: ModeContext): ModalMappingDef {
     mode: "nmap",
     keys: "yy",
     def: {
-      annotation: "#7Copy current page's URL",
+      group: "clipboard",
+      annotation: "Copy current page's URL",
       code: () => {
         ctx.clipboard.write(window.location.href);
       },
@@ -1401,7 +1492,8 @@ function defineCopyAllTabUrls(ctx: ModeContext, env: EngineEnv): ModalMappingDef
     mode: "nmap",
     keys: "yY",
     def: {
-      annotation: "#7Copy all tabs's url",
+      group: "clipboard",
+      annotation: "Copy all tabs's url",
       code: () => {
         env.RUNTIME("getTabs", null, (response) => {
           const { tabs } = v.parse(
@@ -1420,7 +1512,8 @@ function defineCopyPageHost(ctx: ModeContext): ModalMappingDef {
     mode: "nmap",
     keys: "yh",
     def: {
-      annotation: "#7Copy current page's host",
+      group: "clipboard",
+      annotation: "Copy current page's host",
       code: () => {
         const url = new URL(window.location.href);
         ctx.clipboard.write(url.host);
@@ -1434,7 +1527,8 @@ function defineCopyPageTitle(ctx: ModeContext): ModalMappingDef {
     mode: "nmap",
     keys: "yl",
     def: {
-      annotation: "#7Copy current page's title",
+      group: "clipboard",
+      annotation: "Copy current page's title",
       code: () => {
         ctx.clipboard.write(document.title);
       },
@@ -1447,7 +1541,8 @@ function defineCopyOmniQueryHistory(ctx: ModeContext, env: EngineEnv): ModalMapp
     mode: "nmap",
     keys: "yQ",
     def: {
-      annotation: "#7Copy all query history of OmniQuery.",
+      group: "clipboard",
+      annotation: "Copy all query history of OmniQuery.",
       code: () => {
         env.RUNTIME(
           "getSettings",
@@ -1468,7 +1563,8 @@ function defineCopyFormData(ctx: ModeContext): ModalMappingDef {
     mode: "nmap",
     keys: "yf",
     def: {
-      annotation: "#7Copy form data in JSON on current page",
+      group: "clipboard",
+      annotation: "Copy form data in JSON on current page",
       code: () => {
         const fd: Record<string, unknown> = {};
         document.querySelectorAll("form").forEach((form) => {
@@ -1485,7 +1581,8 @@ function defineFillForm(ctx: ModeContext): ModalMappingDef {
     mode: "nmap",
     keys: ";pf",
     def: {
-      annotation: "#7Fill form with data from yf",
+      group: "clipboard",
+      annotation: "Fill form with data from yf",
       code: () => {
         ctx.hints.create("form", (element: HTMLFormElement) => {
           const formKey = generateFormKey(element);
@@ -1540,7 +1637,8 @@ function defineCopyFormDataForPost(ctx: ModeContext): ModalMappingDef {
     mode: "nmap",
     keys: "yp",
     def: {
-      annotation: "#7Copy form data for POST on current page",
+      group: "clipboard",
+      annotation: "Copy form data for POST on current page",
       code: () => {
         const aa: Record<string, unknown>[] = [];
         document.querySelectorAll("form").forEach((form) => {
@@ -1560,7 +1658,8 @@ function defineReloadWithoutQueryString(): ModalMappingDef {
     mode: "nmap",
     keys: "g?",
     def: {
-      annotation: "#4Reload current page without query string(all parts after question mark)",
+      group: "pageNavigation",
+      annotation: "Reload current page without query string(all parts after question mark)",
       code: () => {
         window.location.href = window.location.href.replace(/\?[^?]*$/, "");
       },
@@ -1573,7 +1672,8 @@ function defineReloadWithoutHash(): ModalMappingDef {
     mode: "nmap",
     keys: "g#",
     def: {
-      annotation: "#4Reload current page without hash fragment",
+      group: "pageNavigation",
+      annotation: "Reload current page without hash fragment",
       code: () => {
         window.location.href = window.location.href.replace(/#[^#]*$/, "");
       },
@@ -1586,7 +1686,8 @@ function defineGoToUrlRoot(): ModalMappingDef {
     mode: "nmap",
     keys: "gU",
     def: {
-      annotation: "#4Go to root of current URL hierarchy",
+      group: "pageNavigation",
+      annotation: "Go to root of current URL hierarchy",
       code: () => {
         window.location.href = window.location.origin;
       },
@@ -1599,7 +1700,8 @@ function defineCloseTabLeft(env: EngineEnv): ModalMappingDef {
     mode: "nmap",
     keys: "gxt",
     def: {
-      annotation: "#3Close tab on left",
+      group: "tabs",
+      annotation: "Close tab on left",
       code: () => {
         env.RUNTIME("closeTabLeft");
       },
@@ -1612,7 +1714,8 @@ function defineCloseTabRight(env: EngineEnv): ModalMappingDef {
     mode: "nmap",
     keys: "gxT",
     def: {
-      annotation: "#3Close tab on right",
+      group: "tabs",
+      annotation: "Close tab on right",
       code: () => {
         env.RUNTIME("closeTabRight");
       },
@@ -1625,7 +1728,8 @@ function defineCloseAllTabsLeft(env: EngineEnv): ModalMappingDef {
     mode: "nmap",
     keys: "gx0",
     def: {
-      annotation: "#3Close all tabs on left",
+      group: "tabs",
+      annotation: "Close all tabs on left",
       code: () => {
         env.RUNTIME("closeTabsToLeft");
       },
@@ -1638,7 +1742,8 @@ function defineCloseAllTabsRight(env: EngineEnv): ModalMappingDef {
     mode: "nmap",
     keys: "gx$",
     def: {
-      annotation: "#3Close all tabs on right",
+      group: "tabs",
+      annotation: "Close all tabs on right",
       code: () => {
         env.RUNTIME("closeTabsToRight");
       },
@@ -1651,7 +1756,8 @@ function defineCloseOtherTabs(env: EngineEnv): ModalMappingDef {
     mode: "nmap",
     keys: "gxx",
     def: {
-      annotation: "#3Close all tabs except current one",
+      group: "tabs",
+      annotation: "Close all tabs except current one",
       code: () => {
         env.RUNTIME("tabOnly");
       },
@@ -1664,7 +1770,8 @@ function defineClosePlayingTab(env: EngineEnv): ModalMappingDef {
     mode: "nmap",
     keys: "gxp",
     def: {
-      annotation: "#3Close playing tab",
+      group: "tabs",
+      annotation: "Close playing tab",
       code: () => {
         env.RUNTIME("closeAudibleTab");
       },
@@ -1677,7 +1784,8 @@ function defineEditSettings(env: EngineEnv): ModalMappingDef {
     mode: "nmap",
     keys: ";e",
     def: {
-      annotation: "#11Edit Settings",
+      group: "settings",
+      annotation: "Edit Settings",
       code: () => {
         env.tabOpenLink("/options.html");
       },
@@ -1693,7 +1801,8 @@ function defineBrowserSpecificMappings(env: EngineEnv): ModalMappingDef[] {
         mode: "nmap",
         keys: "on",
         def: {
-          annotation: "#3Open newtab",
+          group: "tabs",
+          annotation: "Open newtab",
           code: () => {
             env.tabOpenLink("about:blank");
           },
@@ -1702,10 +1811,16 @@ function defineBrowserSpecificMappings(env: EngineEnv): ModalMappingDef[] {
     ];
   }
   if (bn === "Chrome") {
-    const openChromePage = (keys: string, annotation: string, url: string): ModalMappingDef => ({
+    const openChromePage = (
+      keys: string,
+      group: FeatureGroup,
+      annotation: string,
+      url: string,
+    ): ModalMappingDef => ({
       mode: "nmap",
       keys,
       def: {
+        group,
         annotation,
         code: () => {
           env.tabOpenLink(url);
@@ -1713,15 +1828,15 @@ function defineBrowserSpecificMappings(env: EngineEnv): ModalMappingDef[] {
       },
     });
     return [
-      openChromePage("on", "#3Open newtab", "chrome://newtab/"),
-      openChromePage("ga", "#12Open Chrome About", "chrome://help/"),
-      openChromePage("gb", "#12Open Chrome Bookmarks", "chrome://bookmarks/"),
-      openChromePage("gc", "#12Open Chrome Cache", "chrome://cache/"),
-      openChromePage("gd", "#12Open Chrome Downloads", "chrome://downloads/"),
-      openChromePage("gh", "#12Open Chrome History", "chrome://history/"),
-      openChromePage("gk", "#12Open Chrome Cookies", "chrome://settings/cookies"),
-      openChromePage("ge", "#12Open Chrome Extensions", "chrome://extensions/"),
-      openChromePage(";i", "#12Open Chrome Inspect", "chrome://inspect/#devices"),
+      openChromePage("on", "tabs", "Open newtab", "chrome://newtab/"),
+      openChromePage("ga", "chromeUrls", "Open Chrome About", "chrome://help/"),
+      openChromePage("gb", "chromeUrls", "Open Chrome Bookmarks", "chrome://bookmarks/"),
+      openChromePage("gc", "chromeUrls", "Open Chrome Cache", "chrome://cache/"),
+      openChromePage("gd", "chromeUrls", "Open Chrome Downloads", "chrome://downloads/"),
+      openChromePage("gh", "chromeUrls", "Open Chrome History", "chrome://history/"),
+      openChromePage("gk", "chromeUrls", "Open Chrome Cookies", "chrome://settings/cookies"),
+      openChromePage("ge", "chromeUrls", "Open Chrome Extensions", "chrome://extensions/"),
+      openChromePage(";i", "chromeUrls", "Open Chrome Inspect", "chrome://inspect/#devices"),
     ];
   }
   return [];
@@ -1732,7 +1847,8 @@ function defineRestoreClosedTab(env: EngineEnv): ModalMappingDef {
     mode: "nmap",
     keys: "X",
     def: {
-      annotation: "#3Restore closed tab",
+      group: "tabs",
+      annotation: "Restore closed tab",
       code: () => {
         env.RUNTIME("openLast");
       },
@@ -1745,7 +1861,8 @@ function defineOpenUrlOmnibar(ctx: ModeContext): ModalMappingDef {
     mode: "nmap",
     keys: "t",
     def: {
-      annotation: "#8Open a URL",
+      group: "omnibar",
+      annotation: "Open a URL",
       code: () => {
         ctx.front.openOmnibar({ type: "URLs" });
       },
@@ -1758,7 +1875,8 @@ function defineOpenUrlCurrentTab(ctx: ModeContext): ModalMappingDef {
     mode: "nmap",
     keys: "go",
     def: {
-      annotation: "#8Open a URL in current tab",
+      group: "omnibar",
+      annotation: "Open a URL in current tab",
       code: () => {
         ctx.front.openOmnibar({ type: "URLs", tabbed: false });
       },
@@ -1771,7 +1889,8 @@ function defineOpenRecentlyClosed(ctx: ModeContext): ModalMappingDef {
     mode: "nmap",
     keys: "ox",
     def: {
-      annotation: "#8Open recently closed URL",
+      group: "omnibar",
+      annotation: "Open recently closed URL",
       code: () => {
         ctx.front.openOmnibar({ type: "RecentlyClosed" });
       },
@@ -1784,7 +1903,8 @@ function defineOpenBookmark(ctx: ModeContext): ModalMappingDef {
     mode: "nmap",
     keys: "b",
     def: {
-      annotation: "#8Open a bookmark",
+      group: "omnibar",
+      annotation: "Open a bookmark",
       code: () => {
         ctx.front.openOmnibar({ type: "Bookmarks" });
       },
@@ -1797,7 +1917,8 @@ function defineCloseTabsByUrl(ctx: ModeContext): ModalMappingDef {
     mode: "nmap",
     keys: ";x",
     def: {
-      annotation: "#3Close tabs by URL",
+      group: "tabs",
+      annotation: "Close tabs by URL",
       code: () => {
         ctx.front.openOmnibar({ type: "CloseTabs" });
       },
@@ -1810,7 +1931,8 @@ function defineBookmarkCurrentPage(ctx: ModeContext): ModalMappingDef {
     mode: "nmap",
     keys: "ab",
     def: {
-      annotation: "#8Bookmark current page to selected folder",
+      group: "omnibar",
+      annotation: "Bookmark current page to selected folder",
       code: () => {
         const page = {
           url: window.location.href,
@@ -1827,7 +1949,8 @@ function defineOpenHistoryOmnibar(ctx: ModeContext): ModalMappingDef {
     mode: "nmap",
     keys: "oh",
     def: {
-      annotation: "#8Open URL from history",
+      group: "omnibar",
+      annotation: "Open URL from history",
       code: () => {
         ctx.front.openOmnibar({ type: "History" });
       },
@@ -1840,7 +1963,8 @@ function defineMoveTabToWindow(ctx: ModeContext): ModalMappingDef {
     mode: "nmap",
     keys: "W",
     def: {
-      annotation: "#3Move current tab to another window",
+      group: "tabs",
+      annotation: "Move current tab to another window",
       code: () => {
         ctx.front.openOmnibar({ type: "Windows" });
       },
@@ -1853,7 +1977,8 @@ function defineGatherFilteredTabs(ctx: ModeContext): ModalMappingDef {
     mode: "nmap",
     keys: ";gt",
     def: {
-      annotation: "#3Gather filtered tabs into current window",
+      group: "tabs",
+      annotation: "Gather filtered tabs into current window",
       code: () => {
         ctx.front.openOmnibar({
           type: "Tabs",
@@ -1871,7 +1996,8 @@ function defineGatherAllTabs(env: EngineEnv): ModalMappingDef {
     mode: "nmap",
     keys: ";gw",
     def: {
-      annotation: "#3Gather all tabs into current window",
+      group: "tabs",
+      annotation: "Gather all tabs into current window",
       code: () => {
         env.RUNTIME("gatherWindows");
       },
@@ -1884,7 +2010,8 @@ function defineMoveTabLeft(env: EngineEnv): ModalMappingDef {
     mode: "nmap",
     keys: "<<",
     def: {
-      annotation: "#3Move current tab to left",
+      group: "tabs",
+      annotation: "Move current tab to left",
       code: () => {
         env.RUNTIME("moveTab", {
           step: -1,
@@ -1899,7 +2026,8 @@ function defineMoveTabRight(env: EngineEnv): ModalMappingDef {
     mode: "nmap",
     keys: ">>",
     def: {
-      annotation: "#3Move current tab to right",
+      group: "tabs",
+      annotation: "Move current tab to right",
       code: () => {
         env.RUNTIME("moveTab", {
           step: 1,
@@ -1914,7 +2042,8 @@ function defineCopyDownloadingUrl(ctx: ModeContext, env: EngineEnv): ModalMappin
     mode: "nmap",
     keys: "yd",
     def: {
-      annotation: "#7Copy current downloading URL",
+      group: "clipboard",
+      annotation: "Copy current downloading URL",
       code: () => {
         env.RUNTIME(
           "getDownloads",
@@ -1942,7 +2071,8 @@ function defineViewPageSource(env: EngineEnv): ModalMappingDef {
     mode: "nmap",
     keys: "gs",
     def: {
-      annotation: "#12View page source",
+      group: "chromeUrls",
+      annotation: "View page source",
       code: () => {
         env.RUNTIME("viewSource", { tab: { tabbed: true } });
       },
@@ -1955,7 +2085,8 @@ function defineDownloadImage(ctx: ModeContext, env: EngineEnv): ModalMappingDef 
     mode: "nmap",
     keys: ";di",
     def: {
-      annotation: "#1Download image",
+      group: "mouseClick",
+      annotation: "Download image",
       code: () => {
         ctx.hints.create("img", (element: HTMLImageElement) => {
           env.RUNTIME("download", {
@@ -1972,7 +2103,8 @@ function defineCloseDownloadsShelf(env: EngineEnv): ModalMappingDef {
     mode: "nmap",
     keys: ";j",
     def: {
-      annotation: "#12Close Downloads Shelf",
+      group: "chromeUrls",
+      annotation: "Close Downloads Shelf",
       code: () => {
         env.RUNTIME("closeDownloadsShelf", { clearHistory: true });
       },
@@ -1985,7 +2117,8 @@ function defineDeleteOldHistory(env: EngineEnv): ModalMappingDef {
     mode: "nmap",
     keys: ";dh",
     def: {
-      annotation: "#13Delete history older than 30 days",
+      group: "misc",
+      annotation: "Delete history older than 30 days",
       code: () => {
         env.RUNTIME("deleteHistoryOlderThan", {
           days: 30,
@@ -2000,7 +2133,8 @@ function defineYankHistories(ctx: ModeContext, env: EngineEnv): ModalMappingDef 
     mode: "nmap",
     keys: ";yh",
     def: {
-      annotation: "#13Yank histories",
+      group: "misc",
+      annotation: "Yank histories",
       code: () => {
         env.RUNTIME("getHistory", {}, (response) => {
           const { history } = v.parse(
@@ -2019,7 +2153,8 @@ function definePutHistories(ctx: ModeContext, env: EngineEnv): ModalMappingDef {
     mode: "nmap",
     keys: ";ph",
     def: {
-      annotation: "#13Put histories from clipboard",
+      group: "misc",
+      annotation: "Put histories from clipboard",
       code: () => {
         ctx.clipboard.read((response) => {
           env.RUNTIME("addHistories", { history: response.data.split("\n") });
@@ -2034,7 +2169,8 @@ function defineRemoveBookmark(env: EngineEnv): ModalMappingDef {
     mode: "nmap",
     keys: ";db",
     def: {
-      annotation: "#13Remove bookmark for current page",
+      group: "misc",
+      annotation: "Remove bookmark for current page",
       code: () => {
         env.RUNTIME("removeBookmark");
       },

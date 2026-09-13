@@ -443,11 +443,11 @@ All keystrokes in normal mode are repeatable by dot, except those keystrokes map
 ```javascript
 api.mapkey(
   "se",
-  "#2My magic se",
+  "My magic se",
   function () {
     // your code here
   },
-  { repeatIgnore: true },
+  { repeatIgnore: true, group: "scroll" },
 );
 ```
 

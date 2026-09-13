@@ -1,5 +1,6 @@
 import type { EngineEnv } from "./engineEnv";
 import { dispatchSKEvent } from "./events";
+import { type FeatureGroup, isFeatureGroup } from "./featureGroup";
 import KeyboardUtils from "./keyboardUtils";
 import type { Keymap } from "./keymap";
 import type { ModeContext } from "./modeGraph";
@@ -12,7 +13,7 @@ import {
   initSKFunctionListener,
   isElementPartiallyInViewport,
   mapInMode,
-  parseAnnotation,
+  normalizeAnnotation,
   showBanner,
   showPopup,
 } from "./utils";
@@ -24,11 +25,16 @@ type KeyTarget = {
   // eslint-disable-next-line typescript/no-explicit-any
   code: (...args: any[]) => void;
   repeatIgnore?: boolean;
-  feature_group?: number;
+  group?: FeatureGroup;
   annotation?: string | string[];
 };
-type Annotation = { annotation: string | string[]; feature_group?: number };
-export type MapOptions = { domain?: RegExp; repeatIgnore?: boolean; codeHasParameter?: boolean };
+export type MapOptions = {
+  domain?: RegExp;
+  repeatIgnore?: boolean;
+  codeHasParameter?: boolean;
+  /** The help section this mapping is listed under; defaults by mode, and Misc for normal mode. */
+  group?: FeatureGroup;
+};
 
 function createAPI(ctx: ModeContext, env: EngineEnv) {
   const { clipboard, insert, normal, hints, visual, front } = ctx;
@@ -41,7 +47,8 @@ function createAPI(ctx: ModeContext, env: EngineEnv) {
     // User keypress handler of arbitrary signature (see mapkey's jscode).
     // eslint-disable-next-line typescript/no-explicit-any
     code: (...args: any[]) => void,
-    ag: Annotation | null,
+    annotation: string | string[] | null,
+    group: FeatureGroup | undefined,
     repeatIgnore?: boolean,
   ): KeyTarget {
     const keybound: KeyTarget = {
@@ -50,12 +57,11 @@ function createAPI(ctx: ModeContext, env: EngineEnv) {
     if (repeatIgnore) {
       keybound.repeatIgnore = repeatIgnore;
     }
-    if (ag) {
-      ag = parseAnnotation(ag);
-      if (ag.feature_group != null) {
-        keybound.feature_group = ag.feature_group;
-      }
-      keybound.annotation = ag.annotation;
+    if (group != null) {
+      keybound.group = group;
+    }
+    if (annotation != null) {
+      keybound.annotation = normalizeAnnotation(annotation);
     }
 
     return keybound;
@@ -71,6 +77,10 @@ function createAPI(ctx: ModeContext, env: EngineEnv) {
 
   function mapkeyInMode(
     mode: ModeWithMappings,
+    // The section a mapping of this mode gets when it names none. Visual and Insert each own one,
+    // while Normal has no section of its own, because the built-in normal mappings are filed by
+    // topic, so its mappings land in Misc rather than under a heading that would misdescribe them.
+    defaultGroup: FeatureGroup,
     keys: string,
     annotation: string | string[],
     // User keypress handler of arbitrary signature; `unknown[]` would reject user callbacks that
@@ -106,11 +116,14 @@ function createAPI(ctx: ModeContext, env: EngineEnv) {
           p = p.slice(0, -1);
         }
       }
-      const keybound = createKeyTarget(
-        jscode,
-        { annotation: annotation, feature_group: mode === visual ? 9 : 14 },
-        options.repeatIgnore,
-      );
+      // A user snippet is plain JavaScript, so a mistyped group reaches here as an ordinary string.
+      // Saying so and falling back beats dropping the mapping out of the help without a word.
+      const requested = options.group;
+      const group = isFeatureGroup(requested) ? requested : defaultGroup;
+      if (requested != null && group !== requested) {
+        LOG("warn", `${keys} names no help section [${requested}]; listing it under ${group}.`);
+      }
+      const keybound = createKeyTarget(jscode, annotation, group, options.repeatIgnore);
       mode.mappings.add(keys, keybound);
     }
   }
@@ -132,7 +145,8 @@ function createAPI(ctx: ModeContext, env: EngineEnv) {
    * @param {object} [options=null] `domain`: regex, a Javascript regex pattern to identify the
    *   domains that this mapping works, for example, `/github\.com/i` says that this mapping works
    *   only for github.com, `repeatIgnore`: boolean, whether this action can be repeated by dot
-   *   command. Default is `null`
+   *   command, `group`: string, the section of the help opened by `?` that lists this mapping, such
+   *   as `"tabs"` or `"clipboard"`. Default is `null`
    */
   function mapkey(
     keys: string,
@@ -143,7 +157,7 @@ function createAPI(ctx: ModeContext, env: EngineEnv) {
     jscode: (...args: any[]) => void,
     options?: MapOptions,
   ): void {
-    mapkeyInMode(normal, keys, annotation, jscode, options);
+    mapkeyInMode(normal, "misc", keys, annotation, jscode, options);
   }
 
   /**
@@ -157,7 +171,8 @@ function createAPI(ctx: ModeContext, env: EngineEnv) {
    * @param {object} [options=null] `domain`: regex, a Javascript regex pattern to identify the
    *   domains that this mapping works, for example, `/github\.com/i` says that this mapping works
    *   only for github.com, `repeatIgnore`: boolean, whether this action can be repeated by dot
-   *   command. Default is `null`
+   *   command, `group`: string, the section of the help opened by `?` that lists this mapping, such
+   *   as `"tabs"` or `"clipboard"`. Default is `null`
    * @see mapkey
    */
   function vmapkey(
@@ -169,7 +184,7 @@ function createAPI(ctx: ModeContext, env: EngineEnv) {
     jscode: (...args: any[]) => void,
     options?: MapOptions,
   ): void {
-    mapkeyInMode(visual, keys, annotation, jscode, options);
+    mapkeyInMode(visual, "visualMode", keys, annotation, jscode, options);
   }
 
   /**
@@ -183,7 +198,8 @@ function createAPI(ctx: ModeContext, env: EngineEnv) {
    * @param {object} [options=null] `domain`: regex, a Javascript regex pattern to identify the
    *   domains that this mapping works, for example, `/github\.com/i` says that this mapping works
    *   only for github.com, `repeatIgnore`: boolean, whether this action can be repeated by dot
-   *   command. Default is `null`
+   *   command, `group`: string, the section of the help opened by `?` that lists this mapping, such
+   *   as `"tabs"` or `"clipboard"`. Default is `null`
    * @see mapkey
    */
   function imapkey(
@@ -195,7 +211,7 @@ function createAPI(ctx: ModeContext, env: EngineEnv) {
     jscode: (...args: any[]) => void,
     options?: MapOptions,
   ): void {
-    mapkeyInMode(insert, keys, annotation, jscode, options);
+    mapkeyInMode(insert, "insertMode", keys, annotation, jscode, options);
   }
 
   /**
@@ -210,12 +226,16 @@ function createAPI(ctx: ModeContext, env: EngineEnv) {
    *   mapping works. Default is `null`
    * @param {string} [new_annotation=null] Use it instead of the annotation from old_keystroke if
    *   provided. Default is `null`
+   * @param {string} [group=null] The section of the help opened by `?` that lists this mapping,
+   *   such as `"tabs"`. Only read when old_keystroke is a `:command`, since a key alias takes the
+   *   section of the key it replaces. Default is `null`
    */
   function map(
     new_keystroke: string,
     old_keystroke: string,
     domain?: RegExp | number,
     new_annotation?: string,
+    group?: FeatureGroup,
   ): void {
     if (isDomainApplicable(domain)) {
       if (old_keystroke[0] === ":" && old_keystroke.length > 1) {
@@ -228,7 +248,9 @@ function createAPI(ctx: ModeContext, env: EngineEnv) {
             }
             front.executeCommand(cmdline);
           },
-          new_annotation ? parseAnnotation({ annotation: new_annotation }) : null,
+          // There is no source mapping to take a section from, unlike the alias branch below.
+          new_annotation ?? null,
+          group ?? "misc",
           false,
         );
         normal.mappings.add(KeyboardUtils.encodeKeystroke(new_keystroke), keybound);
@@ -499,10 +521,17 @@ function createAPI(ctx: ModeContext, env: EngineEnv) {
     function ssw() {
       searchSelectedWith(search_url);
     }
-    mapkey((search_leader_key || "s") + alias, ["#6Search selected with {0}", prompt], ssw);
-    mapkey("o" + alias, ["#8Open Omnibar for {0} Search", prompt], () => {
-      front.openOmnibar({ type: "SearchEngine", extra: alias });
+    mapkey((search_leader_key || "s") + alias, ["Search selected with {0}", prompt], ssw, {
+      group: "searchSelectedWith",
     });
+    mapkey(
+      "o" + alias,
+      ["Open Omnibar for {0} Search", prompt],
+      () => {
+        front.openOmnibar({ type: "SearchEngine", extra: alias });
+      },
+      { group: "omnibar" },
+    );
     vmapkey((search_leader_key || "s") + alias, "", ssw);
     function ssw2() {
       searchSelectedWith(search_url, true);
