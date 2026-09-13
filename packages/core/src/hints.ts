@@ -289,6 +289,7 @@ div.hint-scrollable {
     numeric = true;
   };
   let characters = "asdfgqwertzxcvb";
+  const excludedScrollKeys: string[] = [];
   /**
    * Set characters for generating hints, this API is to replace original setting like
    * `Hints.characters = "asdgqwertzxcvb";`.
@@ -299,7 +300,6 @@ div.hint-scrollable {
    * @param {string} characters The characters for generating hints.
    * @name Hints.setCharacters
    */
-  const excludedScrollKeys: string[] = [];
   const setCharacters = (chars: string): void => {
     characters = chars;
     for (const c of chars) {
