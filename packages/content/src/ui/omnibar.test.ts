@@ -1596,8 +1596,8 @@ describe("OpenURLs (History) handler — onOpen calls RUNTIME getHistory and lis
     expect(urls).toContain("https://hist2.com");
   });
 
-  it("onReset toggles historyMUOrder and re-queries", async () => {
-    const { ui } = makeOmnibar();
+  it("Ctrl-r sends a second getHistory carrying the toggled sortByMostUsed", async () => {
+    const { omnibar, ui } = makeOmnibar();
     runtime.conf.omnibarHistoryCacheSize = 100;
     runtime.conf.historyMUOrder = false;
 
@@ -1617,9 +1617,14 @@ describe("OpenURLs (History) handler — onOpen calls RUNTIME getHistory and lis
     await Promise.resolve();
     await Promise.resolve();
 
-    const initialMUOrder = runtime.conf.historyMUOrder;
-    runtime.conf.historyMUOrder = !runtime.conf.historyMUOrder;
-    expect(runtime.conf.historyMUOrder).toBe(!initialMUOrder);
+    getMappingByAnnotation(omnibar, "Re-sort history by visitCount or lastVisitTime")?.();
+    await Promise.resolve();
+    await Promise.resolve();
+
+    const historyQueries = mockRUNTIME.mock.calls.filter((c: any[]) => c[0] === "getHistory");
+    expect(historyQueries).toHaveLength(2);
+    expect(historyQueries[0]?.[1]).toMatchObject({ sortByMostUsed: false });
+    expect(historyQueries[1]?.[1]).toMatchObject({ sortByMostUsed: true });
   });
 });
 
