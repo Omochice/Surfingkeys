@@ -983,6 +983,16 @@ describe("createPassThrough auto-exit via timeout", () => {
 });
 
 describe("createPassThrough keydown handler", () => {
+  beforeEach(() => {
+    for (let i = 0; i < 5; i++) {
+      getCurrentMode()?.exit();
+    }
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
   it("marks the event as sk_suppressed for any key", () => {
     const normal = createNormal(insertStub, env);
     const pt = normal.passThrough();
@@ -1018,11 +1028,12 @@ describe("createPassThrough keydown handler", () => {
     expect(event.sk_suppressed).toBe(true);
   });
 
-  it("resets the auto-exit timer on non-Esc key when a timeout is active", () => {
+  it("stays in PassThrough past the original timeout after a non-Esc key re-arms it", () => {
     vi.useFakeTimers();
     const normal = createNormal(insertStub, env);
     const pt = normal.passThrough(1000);
-    const handler = pt.eventListeners["keydown"]!;
+    const handler = pt.eventListeners["keydown"];
+    if (handler == null) throw new Error("PassThrough has no keydown handler");
 
     vi.advanceTimersByTime(800);
 
@@ -1031,9 +1042,10 @@ describe("createPassThrough keydown handler", () => {
     handler(event);
 
     vi.advanceTimersByTime(800);
-    vi.advanceTimersByTime(300);
+    expect(getCurrentMode()?.name).toBe("PassThrough");
 
-    vi.useRealTimers();
+    vi.advanceTimersByTime(300);
+    expect(getCurrentMode()?.name).not.toBe("PassThrough");
   });
 });
 
