@@ -46,11 +46,9 @@ function createLogger(options: LoggerOptions): Logger {
       (enabled) => {
         if (!enabled) return;
         for (const sink of options.sinks) {
-          try {
-            sink(level, ...args);
-          } catch {
-            // A sink has no one to report to but this logger; dropping is the only non-looping option.
-          }
+          // Promise.try rather than try/catch: a sink typed as returning void may still be an async
+          // function, and its rejection has no one to report to but this logger.
+          void Promise.try(() => sink(level, ...args)).catch(() => {});
         }
       },
       () => {},

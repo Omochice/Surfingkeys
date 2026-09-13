@@ -76,6 +76,29 @@ describe("createLogger", () => {
     expect(rejections).toEqual([]);
   });
 
+  it("contains the rejection of a sink that returns a promise", async () => {
+    const rejections: unknown[] = [];
+    const onRejection = (reason: unknown) => {
+      rejections.push(reason);
+    };
+    process.on("unhandledRejection", onRejection);
+    const log = createLogger({
+      sinks: [
+        async () => {
+          throw new Error("async sink boom");
+        },
+      ],
+      isEnabled: () => true,
+    });
+
+    log("error", "x");
+    await flush();
+    await flush();
+    process.off("unhandledRejection", onRejection);
+
+    expect(rejections).toEqual([]);
+  });
+
   it("writes to a sink appended to the caller's array after construction", async () => {
     const sinks: LogSink[] = [];
     const log = createLogger({ sinks, isEnabled: () => true });
