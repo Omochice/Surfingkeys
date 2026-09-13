@@ -54,6 +54,16 @@ function dispatchFocus(normal: ReturnType<typeof createNormal>, target: Element)
   return event;
 }
 
+// The mode stack is module-level state, and the PassThrough cases below identify their session by
+// whichever mode is on top, so a mode a previous case left behind would stand in for it.
+beforeEach(() => {
+  let leftover = getCurrentMode();
+  while (leftover != null) {
+    leftover.exit();
+    leftover = getCurrentMode();
+  }
+});
+
 describe("createNormal focus handler — auto-focus suppression", () => {
   let savedStealFocusOnLoad: boolean;
   let savedEnableAutoFocus: boolean;
