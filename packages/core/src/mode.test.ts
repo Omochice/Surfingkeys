@@ -159,9 +159,7 @@ describe("initModeHub", () => {
 });
 
 describe("checkEventListener", () => {
-  it("calls onMissing when the sentinel event is not dispatched", () => {
-    // In tests the listeners are installed at module load, so the sentinel
-    // WILL fire and eventListenerBeats WILL change — onMissing is NOT called.
+  it("does not call onMissing while the hub's sentinel listener is installed", () => {
     const onMissing = vi.fn();
     checkEventListener(onMissing);
     expect(onMissing).not.toHaveBeenCalled();
