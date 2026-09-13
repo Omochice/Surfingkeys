@@ -37,25 +37,19 @@ import { SearchInput } from "./components/SearchInput";
 import { buildFolderResult, buildOmnibarResult, orderItemsForDisplay } from "./omnibarResult";
 import type { OmnibarResult } from "./omnibarResult";
 
-/** A bookmark folder row as returned by the background `getBookmarkFolders`/`listBookmarkFolders`. */
 type BookmarkFolder = { id: string; title?: string };
 
-/** A configured search engine alias. */
 type SearchAlias = { prompt: PromptValue; url: string; suggestionURL: string };
 
-/** A tab row as returned by the background `getTabs`; only title/url are read by the omnibar. */
 type TabItem = { title?: string; url?: string };
 
-/** A window row as returned by the background `getWindows`. */
 type WindowItem = { id: string; isPreviousChoice?: boolean; tabs: TabItem[] };
 
-/** A history row as returned by the history query functions feeding OpenURLs. */
 type HistoryItem = { title?: string; url?: string; visitCount?: number; lastVisitTime?: number };
 
 /**
- * The broad shape `createURLItem`/`listURLs` accept: a bookmark, history entry, tab or folder row.
- * Every field is optional because the source determines which are present; the renderer branches on
- * `Object.hasOwn` to decide the row type.
+ * A bookmark, history entry, tab or folder row. Every field is optional because the source decides
+ * which are present, and the renderer branches on `Object.hasOwn` to decide the row type.
  */
 type URLItem = {
   title?: string;
@@ -73,10 +67,8 @@ type URLItem = {
   html?: string;
 };
 
-/** A search-engine suggestion: a raw-HTML row, a URL row, or a bare query string. */
 type SearchSuggestion = string | { html: string } | { url: string };
 
-/** A registered `:`-command: its callback plus the help metadata parseAnnotation derives. */
 type CommandMeta = {
   code: (args: string[]) => void;
   feature_group?: number | undefined;
@@ -84,9 +76,8 @@ type CommandMeta = {
 };
 
 /**
- * A per-type omnibar handler (OpenBookmarks, OpenTabs, SearchEngine, …). Every hook is optional —
- * the controller probes each before calling — and handlers carry their own extra state on top of
- * this shared shape. `activeTab`/`tabbed` are written by the controller right before `onEnter`.
+ * A per-type omnibar handler (OpenBookmarks, OpenTabs, SearchEngine, …). Every hook is optional and
+ * probed before being called; handlers carry their own extra state on top of this shared shape.
  */
 type OmnibarHandler = {
   prompt?: PromptValue | undefined;
@@ -107,17 +98,12 @@ type OmnibarHandler = {
   rotateInput?(backward: boolean): void;
 };
 
-/** The SearchEngine handler additionally exposes its alias registry and the active alias' urls. */
 type SearchEngineHandler = OmnibarHandler & {
   aliases: Record<string, SearchAlias>;
   url?: string | undefined;
   suggestionURL?: string | undefined;
 };
 
-/**
- * OpenBookmarks tracks the folder breadcrumb it descended through and a typed getBookmarks
- * callback.
- */
 type OpenBookmarksHandler = OmnibarHandler & {
   inFolder: {
     prompt?: PromptValue | undefined;
@@ -127,7 +113,6 @@ type OpenBookmarksHandler = OmnibarHandler & {
   onResponse?(response: { bookmarks: { url?: string }[] }): void;
 };
 
-/** The bookmark page AddBookmark builds up before creating the bookmark. */
 type BookmarkPage = {
   url?: string | undefined;
   title?: string | undefined;
@@ -135,16 +120,14 @@ type BookmarkPage = {
   path?: string[] | undefined;
 };
 
-/** AddBookmark carries the page being edited. */
 type AddBookmarkHandler = OmnibarHandler & { page?: BookmarkPage };
 
-/** OpenURLs debounces its onInput, so it keeps the cancelable variant. */
+/** Debounced onInput, so the cancelable variant is kept. */
 type OpenURLsHandler = OmnibarHandler & { onInput?: DebouncedFunction };
 
 /**
- * The omnibar API surface the per-type handlers drive (a subset of the controller `self`). Handlers
- * receive this as their `omnibar` argument. `cachedPromise` is a shared slot the controller clears
- * on close; each handler resolves it with its own type and reads it back through a local typed
+ * The omnibar API surface the per-type handlers drive. `cachedPromise` is a shared slot cleared on
+ * close; each handler resolves it with its own type and reads it back through a local typed
  * promise.
  */
 type Omnibar = {
@@ -188,11 +171,10 @@ type Omnibar = {
 };
 
 /**
- * The slice of the front the omnibar talks to. `actions` is assignment-only here (the front
- * dispatches them), so a `never` parameter accepts handlers of any message shape without `any`;
- * contentCommand is generic over its response so each caller types its own callback. It is declared
- * as a method so its callback parameter is checked bivariantly, which lets the front's
- * unknown-typed implementation satisfy it.
+ * The slice of the front the omnibar talks to. `actions` is assignment-only here, so a `never`
+ * parameter accepts handlers of any message shape without `any`. `contentCommand` is declared as a
+ * method so its callback parameter is checked bivariantly, which lets the front's unknown-typed
+ * implementation satisfy it.
  */
 type OmnibarFront = {
   hidePopup: () => void;
@@ -203,7 +185,6 @@ type OmnibarFront = {
   contentCommand<R = unknown>(args: Record<string, unknown>, successById?: (msg: R) => void): void;
 };
 
-/** The open spec the front passes through `ui.onShow`: which handler to use plus its open options. */
 type OmnibarShowArgs = {
   type: string;
   tabbed?: boolean;
@@ -211,17 +192,14 @@ type OmnibarShowArgs = {
   extra?: unknown;
 };
 
-/** The omnibar root element, carrying the onShow/onHide expandos the front drives it through. */
 type OmnibarElement = HTMLElement & {
   onShow: (args: OmnibarShowArgs) => void;
   onHide: () => void;
 };
 
 /**
- * The full omnibar controller. It wraps a private {@link ModeHandle} rather than being one, exposing
- * the handler-facing {@link Omnibar} surface plus the members the front and the command registry
- * reach. `name` / `mappings` feed the frontend modes registry; the handle's stack-push and event
- * dispatch stay internal to createOmnibar.
+ * The full omnibar controller. It wraps a private {@link ModeHandle} rather than being one, so the
+ * handle's stack-push and event dispatch stay internal to createOmnibar.
  */
 type OmnibarMode = Omnibar & {
   name: string;
@@ -237,10 +215,9 @@ type OmnibarMode = Omnibar & {
 /**
  * Persist a vim-like mark for a URL selected in the omnibar.
  *
- * The omnibar lives in the frontend UI iframe, which has no `Normal` mode instance to call; the
- * mark is instead written through the same `addVIMark` runtime channel that `Normal.addVIMark` uses
- * from the content script. The target is a bookmark/history URL rather than a live page, so no
- * scroll position is captured.
+ * The frontend UI iframe has no `Normal` mode instance to call, so the mark goes through the
+ * `addVIMark` runtime channel directly. The target is a bookmark or history URL rather than a live
+ * page, so no scroll position is captured.
  */
 function addVIMark(mark: string, url: string): void {
   RUNTIME("addVIMark", { mark: { [mark]: { url, scrollLeft: 0, scrollTop: 0 } } });
@@ -267,9 +244,6 @@ function createOmnibar(front: OmnibarFront, clipboard: { write(text: string): vo
   const mappings = new Trie();
   const keymap = createKeymap(() => mappings);
 
-  // The result list is a reactive store driven by a Solid <ResultList>; the
-  // focused row is an index rather than a `.focused` DOM class, and the
-  // per-row data the handlers read lives on the store item, not on the <li>.
   const [results, setResults] = createSignal<OmnibarResult[]>([]);
   const [focusedIndex, setFocusedIndex] = createSignal(-1);
   const [resultPage, setResultPage] = createSignal("");
@@ -277,8 +251,6 @@ function createOmnibar(front: OmnibarFront, clipboard: { write(text: string): vo
   const [query, setQuery] = createSignal("");
   const [inputVisible, setInputVisible] = createSignal(true);
   const [placeholder, setPlaceholder] = createSignal("");
-  // Exposed (through the assembled mode below) so the per-type handlers can
-  // read the focused row from the store instead of querying the DOM.
   const focusedResult = (): OmnibarResult | undefined => {
     const i = focusedIndex();
     return i >= 0 ? results()[i] : undefined;
@@ -454,9 +426,7 @@ function createOmnibar(front: OmnibarFront, clipboard: { write(text: string): vo
   let bookmarkFolders: Record<string, BookmarkFolder> | null;
 
   let lastInput = "";
-  // Initialised to an empty object so that listResults can safely read
-  // handler.focusFirstCandidate before onShow assigns the real handler. The
-  // value is always overwritten by ui.onShow before any user-facing operation.
+  // An empty object rather than null so a read before the first show is a harmless no-op.
   let handler: OmnibarHandler = {};
   let lastHandler: OmnibarHandler | null = null;
   // Whether Enter should open in a new tab, taken from the open spec on each show.
@@ -551,12 +521,8 @@ function createOmnibar(front: OmnibarFront, clipboard: { write(text: string): vo
     resultPageSpan,
   );
 
-  // The search input is created via createRoot so the rendered <input> element
-  // can be inserted at the exact position the layout (the `#sk_omnibarSearchArea>input`
-  // CSS selector) requires: between span.prompt and span.resultPage. The ref
-  // captures the DOM node, exposed below as the mode's `input`, so the
-  // controller's imperative ops (focus, selectionStart, setSelectionRange,
-  // dispatchEvent) keep working.
+  // createRoot rather than render so the <input> can be inserted at the exact position the
+  // `#sk_omnibarSearchArea>input` CSS selector requires: between span.prompt and span.resultPage.
   let inputElement: HTMLInputElement | undefined;
   createRoot(() => {
     const inputEl = SearchInput({
@@ -759,8 +725,6 @@ function createOmnibar(front: OmnibarFront, clipboard: { write(text: string): vo
     props?: Partial<OmnibarResult["data"]>;
   }): OmnibarResult => {
     const li = createElementWithContent("li", html);
-    // User suggestion handlers pass their data fields (url, copy, ...) via `props`; route them
-    // into the result's data instead of assigning them as expandos on the <li>.
     return buildOmnibarResult(li, typeof props === "object" ? props : {});
   };
 
@@ -884,10 +848,8 @@ function createOmnibar(front: OmnibarFront, clipboard: { write(text: string): vo
   };
 
   ui.onHide = () => {
-    // clear cache
     delete self.cachedPromise;
-    // delete only deletes properties of an object and
-    // cannot normally delete a variable declared using var, whatever the scope.
+    // `delete` only removes object properties, so these locals are nulled instead.
     urlItems = null;
     bookmarkFolders = null;
 
@@ -899,9 +861,8 @@ function createOmnibar(front: OmnibarFront, clipboard: { write(text: string): vo
     lastHandler = null;
     handler?.onClose?.();
     mode.exit();
-    // Reset to an empty object (not null) so a late async callback reading
-    // handler.* after the popup closes hits a harmless no-op rather than a
-    // null-deref. onShow always reassigns the real handler before next use.
+    // An empty object rather than null so a late async callback reading handler.* after the popup
+    // closes hits a no-op instead of a null-deref.
     handler = {};
   };
 
@@ -972,9 +933,6 @@ function createOmnibar(front: OmnibarFront, clipboard: { write(text: string): vo
       return;
     }
     const displayItems = orderItemsForDisplay(items, getPosition() === "bottom");
-    // Each renderItem returns a fully-formed OmnibarResult (display HTML plus the data the
-    // handlers and key bindings read from the store); collect them for <ResultList> to render
-    // reactively. No data is read back off the <li> any more.
     const built: OmnibarResult[] = [];
     displayItems.forEach((b) => {
       const result = renderItem(b);
@@ -1005,8 +963,8 @@ function createOmnibar(front: OmnibarFront, clipboard: { write(text: string): vo
   };
 
   const html = (content: string): void => {
-    // Show a single raw-HTML row through the store so the Solid mount that
-    // owns resultsDiv is not clobbered by a direct innerHTML write.
+    // Through the store, so the Solid mount owning resultsDiv is not clobbered by a direct
+    // innerHTML write.
     setResults([{ html: content, data: { text: "" } }]);
     setFocusedIndex(-1);
   };
@@ -1041,16 +999,13 @@ function createOmnibar(front: OmnibarFront, clipboard: { write(text: string): vo
     );
   };
 
-  // The Solid mounts above run synchronously, so the search input ref has
-  // fired by now; fail loudly if the layout changed underneath us.
+  // The Solid mounts above run synchronously, so the search input ref has fired by now.
   if (inputElement == null) {
     throw new Error("omnibar search input failed to render");
   }
 
   const self: OmnibarMode = {
-    // `mode` stays private: createOmnibar drives it through ui.onShow / ui.onHide (mode.enter /
-    // mode.exit) and the listeners registered above. `name` is copied so the frontend modes registry
-    // can read it without the controller being a ModeHandle.
+    // `name` is copied rather than exposing `mode`, which stays private.
     name: mode.name,
     mappings,
     input: inputElement,
@@ -1418,16 +1373,13 @@ function AddBookmark(omnibar: Omnibar): AddBookmarkHandler {
             }
           }
 
-          //restore the last used bookmark folder input
           const lastBookmarkFolder = localStorage.getItem("surfingkeys.lastAddedBookmark");
           if (lastBookmarkFolder) {
             omnibar.setQuery(lastBookmarkFolder);
 
-            //make the input selected, so if user don't want to use it,
-            //just input to overwrite the previous value
+            // Select it, so typing overwrites the restored value for a user who does not want it.
             omnibar.input.select();
 
-            // trigger omnibar input matching
             self.onInput?.();
           }
         }),
@@ -1812,7 +1764,7 @@ function OpenVIMarks(omnibar: Omnibar): OmnibarHandler {
 function SearchEngine(omnibar: Omnibar, front: OmnibarFront): SearchEngineHandler {
   const self: SearchEngineHandler = { aliases: {} };
 
-  let pendingRequest: ReturnType<typeof setTimeout> | undefined = undefined; // timeout ID
+  let pendingRequest: ReturnType<typeof setTimeout> | undefined = undefined;
   function clearPendingRequest() {
     if (pendingRequest) {
       clearTimeout(pendingRequest);

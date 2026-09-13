@@ -55,7 +55,6 @@ const frontendMessageEnvelopeSchema = v.looseObject({
 // eslint-disable-next-line typescript/no-explicit-any
 type FrontActionFn = (message?: any) => any;
 
-/** The iframe-side front controller carrying the messaging and overlay surface. */
 type FrontMode = {
   actions: Record<string, FrontActionFn>;
   topSize: [number, number];
@@ -86,12 +85,11 @@ const Front = (() => {
   const destroyListeners: (() => void)[] = [];
   const topSize: [number, number] = [0, 0];
 
-  // The stack handle stays private: the front pushes and pops it for popups, but no caller reads
-  // ModeHandle members off the controller, so they are kept out of the public surface.
+  // Deliberately kept off FrontMode: nothing outside reads ModeHandle members off the controller.
   const mode = new ModeHandle("Front");
 
-  // The function members are declarations below, so hoisting lets the controller be assembled
-  // here, before createOmnibar and the API wiring receive it, keeping the original setup order.
+  // The function members are declarations below, so hoisting lets the controller be assembled here,
+  // before createOmnibar and the API wiring receive it.
   const self: FrontMode = {
     actions,
     topSize,
@@ -112,8 +110,8 @@ const Front = (() => {
 
   const omnibar = createOmnibar(self, clipboard);
 
-  // The Commands handler registers `command` while createOmnibar runs, so it is always present
-  // here; the guard states that instead of a non-null assertion.
+  // Always present: the Commands handler registers `command` while createOmnibar runs. The guard
+  // states that instead of a non-null assertion.
   const omnibarCommand = omnibar.command;
   if (omnibarCommand == null) {
     throw new Error("omnibar did not register its command handler");
@@ -162,16 +160,13 @@ const Front = (() => {
   }
 
   let pressedHintKeys = "";
-  // The active overlay element carries onHide/onHit expandos the front sets on it.
   type DisplayElement = HTMLElement & {
     onHide?: () => void;
     onHit?: ((matched: unknown) => void) | undefined;
   };
-  // The omnibar overlay exposes onShow, set by its Solid component, to (re)render for a given open spec.
   type OmnibarElement = DisplayElement & {
     onShow: (message: Record<string, unknown>) => void;
   };
-  // The bubble overlay carries a noPointerEvents flag the positioning code toggles per message.
   type BubbleElement = DisplayElement & {
     noPointerEvents?: boolean | undefined;
   };
@@ -241,13 +236,10 @@ const Front = (() => {
           const id = d.id;
           const divNoPointerEvents = ["sk_keystroke", "sk_banner"];
           if (divNoPointerEvents.includes(id)) {
-            // no pointerEvents for bubble
             return false;
           } else if (id === "sk_status") {
-            // only pointerEvents when input in statusBar
             return self.statusBar.querySelector("input") !== null;
           } else {
-            // with pointerEvents for all other DIVs except that noPointerEvents is set.
             return !d.noPointerEvents;
           }
         });
@@ -279,8 +271,7 @@ const Front = (() => {
   }
   function visualCommand(args: { action: string; query?: string | undefined }): void {
     if (usageElement.style.display !== "none") {
-      // visual mode in frontend.html, such as help: only the in-frame find dispatches here, so the
-      // three find actions are exhaustive (other actions are forwarded to content below).
+      // Only the in-frame find dispatches here, so the three find actions are exhaustive.
       switch (args.action) {
         case "visualClear": {
           visual.visualClear();
@@ -296,7 +287,6 @@ const Front = (() => {
         }
       }
     } else {
-      // visual mode for all content windows
       self.contentCommand(args);
     }
   }
@@ -419,9 +409,8 @@ const Front = (() => {
 
   function renderTabs(tabs: TabsTab[]) {
     const verticalTabs = runtime.conf.verticalTabs;
-    // The container class drives the layout; the per-tab styling lives in the
-    // component. The inline fallback below depends on the rendered height, so
-    // it relies on Solid rendering synchronously when the signal is set.
+    // The inline fallback below depends on the rendered height, so it relies on Solid rendering
+    // synchronously when the signal is set.
     tabsElement.className = verticalTabs ? "vertical" : "horizontal";
     setTabsState({
       tabs,
@@ -469,8 +458,7 @@ const Front = (() => {
   }
   actions["chooseTab"] = chooseTab;
 
-  // A single help entry: the keystroke plus its annotation, which may be a plain string or a
-  // [format, ...args] tuple that localizeAnnotation expands. Matches getAnnotations' return shape.
+  // The annotation is either a plain string or a [format, ...args] tuple localizeAnnotation expands.
   type UsageMeta = {
     word: string;
     feature_group?: number | undefined;
@@ -536,10 +524,7 @@ const Front = (() => {
           group.push(item);
         }
       });
-      // Each non-empty group becomes one <div> child of #sk_usage (the
-      // <Usage> component wraps the string below in that div); the footer
-      // link is rendered by the component, so only the localized text is
-      // returned here.
+      // <Usage> wraps each of these in its own <div> and renders the footer link itself.
       const groups = help_groups
         .map((g, i) =>
           g.length
@@ -633,8 +618,8 @@ const Front = (() => {
       message,
     );
     buildUsage(metas, ({ groups, moreHelp }) => {
-      // Content gets the help as one HTML string; reassemble the per-group
-      // <div> wrappers and the footer link (kept in sync with <Usage>).
+      // Content wants the help as one HTML string, so the wrappers <Usage> renders are reassembled
+      // here and must stay in sync with it.
       const usageHtml =
         groups.map((g) => `<div>${g}</div>`).join("") +
         `<p style='float:right; width:100%; text-align:right'><a href='https://github.com/brookhong/surfingkeys' target='_blank' style='color:#0095dd'>${moreHelp}</a></p>`;
@@ -676,8 +661,7 @@ const Front = (() => {
       popup,
       () => {
         const hintLabels = hints.genLabels(2);
-        // setPopupHtml renders synchronously, so the tab-hint nodes exist
-        // for the expando query below, matching the legacy ordering.
+        // setPopupHtml renders synchronously, so the tab-hint nodes exist for the query below.
         setPopupHtml(
           `<div>${message.question}</div><div><div class=sk_tab_hint>${hintLabels[0]}</div><span class=sk_tab_group_title>Ok</span><div class=sk_tab_hint>${hintLabels[1]}</div><span class=sk_tab_group_title>Cancel</span></div>`,
         );
@@ -867,8 +851,6 @@ const Front = (() => {
     }
   };
 
-  // The keystroke hint payload: the key just pressed, the keys accumulated so far, and the candidate
-  // continuations keyed by full keystroke, each carrying the annotation localizeAnnotation expands.
   type KeyHints = {
     key: string;
     accumulated: string;
@@ -977,7 +959,6 @@ const Front = (() => {
     }
   }
 
-  // for mouseSelectToQuery
   document.onmouseup = (e) => {
     if (!(e.target instanceof Node) || !bubble.contains(e.target)) {
       bubble.style.display = "none";
@@ -1024,21 +1005,15 @@ const Front = (() => {
   return self;
 })();
 
-/**
- * The status bar displays the status of Surfingkeys current mode: Normal, visual, etc.
- *
- * @param {Object} ui
- * @returns {StatusBar} StatusBar instance
- * @kind function
- */
+/** The status bar displays the status of Surfingkeys current mode: Normal, visual, etc. */
 const StatusBar = (() => {
   let timerHide: ReturnType<typeof setTimeout> | null = null;
   const ui = Front.statusBar;
 
   // mode: 0, search: 1, searchResult: 2
   const [cells, setCells] = createSignal<StatusCell[]>(["", "", ""]);
-  // frontend.ts is plain TS (no JSX), so the component is invoked through a
-  // getter prop that keeps `cells` reactive across the postMessage boundary.
+  // No JSX in this file, so the component is invoked through a getter prop, which is what keeps
+  // `cells` reactive.
   render(
     () =>
       StatusBarView({
@@ -1054,8 +1029,7 @@ const StatusBar = (() => {
       clearTimeout(timerHide);
       timerHide = null;
     }
-    // An undefined entry leaves that cell untouched; a shorter array leaves
-    // the trailing cells (e.g. find clears mode+search but keeps results).
+    // An undefined entry leaves that cell untouched, and a shorter array leaves the trailing cells.
     const next = cells().slice();
     for (let i = 0; i < contents.length; i++) {
       const cell = contents[i];
@@ -1080,12 +1054,10 @@ const Find = (() => {
 
   mode
     .addEventListener("keydown", (event) => {
-      // prevent this event to be handled by Surfingkeys' other listeners
       event.sk_suppressed = true;
     })
     .addEventListener("mousedown", (event) => {
       if (event.target !== input) {
-        // user clicks on somewhere else
         reset();
       }
       event.sk_suppressed = true;
@@ -1100,13 +1072,6 @@ const Find = (() => {
     mode.exit();
   }
 
-  /**
-   * Opens the status bar
-   *
-   * @memberof StatusBar
-   * @returns {undefined}
-   * @instance
-   */
   const open = () => {
     StatusBar.show(["/", { html: '<input id="sk_find" class="sk_theme"/>' }]);
     const inputEl: HTMLInputElement | null = Front.statusBar.querySelector("input");
@@ -1120,8 +1085,7 @@ const Find = (() => {
           action: "visualUpdate",
           query: inputEl.value,
         });
-        // To find in usage popup will set focus and selection elsewhere
-        // we need bring it back
+        // Finding in the usage popup moves focus and selection elsewhere; bring them back.
         inputEl.focus();
         inputEl.setSelectionRange(inputEl.value.length, inputEl.value.length);
       }
@@ -1169,7 +1133,7 @@ const Find = (() => {
             userInput,
           );
           // rotateInput only yields undefined for an out-of-range index, which the length guard
-          // above rules out; keep the current value in that impossible case rather than "undefined".
+          // above rules out; the fallback just avoids rendering "undefined".
           inputEl.value = rotated ?? inputEl.value;
           historyInc = nextInc;
           Front.visualCommand({

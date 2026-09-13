@@ -24,12 +24,8 @@ export type TabsProps = {
 };
 
 /**
- * The tab-chooser overlay (#sk_tabs). Renders one .sk_tab per tab with the active one flagged; each
- * non-active tab carries a .sk_tab_hint whose label/link are stored in the hintLabel/hintLink
- * WeakMaps that the frontend keydown handler and refreshHints read to resolve the pressed hint.
- * Favicon attachment is injected (async, extension-bound). The container's
- * vertical/horizontal/inline class and the post-render height-overflow check stay with the
- * controller.
+ * The tab-chooser overlay (#sk_tabs), one .sk_tab per tab. Each non-active tab carries a
+ * .sk_tab_hint whose label and link go into the hintLabel/hintLink WeakMaps.
  */
 export const Tabs: Component<TabsProps> = (props) => {
   const hintLabelFor = (index: number): string | undefined => {

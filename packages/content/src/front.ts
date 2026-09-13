@@ -60,10 +60,8 @@ type BrowserLike = {
   focusFrontend?: (ifr: HTMLIFrameElement) => void;
 };
 
-/** The anchor rectangle an inline-query bubble is positioned against. */
 type QueryPos = { top: number; left: number; height: number; width: number };
 
-/** A user-registered search-suggestion parser: turns a raw response into suggestion rows. */
 type ListSuggestionFn = (response: unknown, opts: { url: string; query: string }) => unknown;
 
 function createFront(
@@ -465,7 +463,6 @@ function createFront(
       });
       const cloneUS: Record<string, unknown> = JSON.parse(JSON.stringify(us, regExpReplacer));
       const conf: Record<string, unknown> = runtime.conf;
-      // overrides local settings from snippets
       for (const k in cloneUS) {
         if (Object.hasOwn(runtime.conf, k)) {
           conf[k] = cloneUS[k];

@@ -3,13 +3,12 @@ import { createElementWithContent } from "@sk/core/utils";
 import type { ResultListItem } from "./components/ResultList";
 
 /**
- * A harvested omnibar row: the fields {@link ResultListItem} renders, plus the data the handlers
- * and key bindings read back from the store instead of reaching into the DOM (the legacy code
- * stored these as expandos on each `<li>`).
+ * An omnibar row: the fields {@link ResultListItem} renders, plus the data handlers and key bindings
+ * read back from the store instead of reaching into the DOM.
  */
 export type OmnibarResult = {
-  // Optional fields explicitly admit `undefined`: handlers build the data bag from item shapes whose
-  // fields may be absent, so an explicit `undefined` must be assignable under exactOptionalPropertyTypes.
+  // Optional fields explicitly admit `undefined` because handlers build the data bag from item
+  // shapes whose fields may be absent, and exactOptionalPropertyTypes is on.
   data: {
     uid?: string | undefined;
     url?: string | undefined;
@@ -27,12 +26,8 @@ export type OmnibarResult = {
 /**
  * Build an {@link OmnibarResult} from a rendered `<li>` plus an explicit data object.
  *
- * WHY: each handler used to assign its data fields (uid/url/query/...) as expandos on the `<li>`,
- * which `listResults` then harvested back off the DOM node. Passing the data explicitly removes
- * that DOM round-trip while keeping the proven HTML-generation path. The display fields (`html`,
- * `className`, `faviconSrc`, `text`, `folder`) are still derived from the `<li>` because that is
- * where the handlers compose them; the explicit `data` overrides those defaults, which is what the
- * `createItemFromRawHtml` props path relies on (user suggestion handlers may carry such fields).
+ * The display fields are derived from the `<li>`, since that is where the handlers compose them;
+ * the explicit `data` overrides those defaults.
  */
 export function buildOmnibarResult(
   li: HTMLElement,
@@ -42,7 +37,7 @@ export function buildOmnibarResult(
   const className = li.className || undefined;
   const faviconSrc = img?.getAttribute("src") ?? undefined;
   const folder = li.getAttribute("folder");
-  // Each optional field is spread in only when it has a value: exactOptionalPropertyTypes forbids
+  // Spread each optional field only when it has a value: exactOptionalPropertyTypes forbids
   // assigning an explicit `undefined` to an optional property.
   return {
     html: li.innerHTML,
@@ -60,23 +55,14 @@ export function buildOmnibarResult(
  * Order the items the omnibar will render: bottom-positioned omnibars list results in reverse so
  * the first match sits next to the input at the screen bottom.
  *
- * WHY non-destructive: `listResults` is sometimes handed a shared, cached array by reference (e.g.
- * `OpenWindows` passes its cache verbatim on an empty query, and that cache is reused across
- * keystrokes). `toReversed` builds a new array, so reordering for display never mutates the
- * caller's; the non-bottom path returns the array untouched.
+ * Non-destructive on purpose: the items may be a shared cache reused across keystrokes, so
+ * `toReversed` builds a new array rather than reordering in place.
  */
 export function orderItemsForDisplay<T>(items: readonly T[], bottom: boolean): readonly T[] {
   return bottom ? items.toReversed() : items;
 }
 
-/**
- * Build the omnibar row for a bookmark folder.
- *
- * WHY: `AddBookmark` lists folders from two entry points (initial open and on every keystroke).
- * Sharing one builder keeps both producing an {@link OmnibarResult} (with the folder id read back
- * off the `folder` attribute), so neither path can regress to returning a bare `<li>` that
- * `<ResultList>` cannot render.
- */
+/** Build the omnibar row for a bookmark folder, carrying the folder id in the `folder` attribute. */
 export function buildFolderResult(title: string, folderId: string): OmnibarResult {
   return buildOmnibarResult(createElementWithContent("li", `▷ ${title}`, { folder: folderId }), {});
 }

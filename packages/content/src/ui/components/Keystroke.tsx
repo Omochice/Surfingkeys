@@ -8,19 +8,15 @@ export type KeystrokeProps = {
   text: string;
   /** The annotated candidate list shown once rich hints expand. Sanitized HTML, used when `rich`. */
   html: string;
-  /** Whether the expanded rich-hint layout (annotations) is active. */
   rich: boolean;
 };
 
 /**
- * Keystroke hint shown at the bottom-right of the frontend iframe. The legacy code set
- * #sk_keystroke's innerHTML directly and toggled `expandRichHints` on the container; here the class
- * sits on the rendered child instead. The CSS rules are descendant selectors, so the styling is
- * unchanged, and the controller in frontend.ts keeps owning the container's display, the chord
- * accumulation, and the rich-hint delay timer.
+ * Keystroke hint shown at the bottom-right of the frontend iframe.
  *
- * The plain chord keys are rendered as a text node so they never reach `innerHTML`; only the rich
- * hint layout carries markup and is sanitized.
+ * `expandRichHints` sits on the rendered child rather than the container; the CSS rules are
+ * descendant selectors, so either position styles identically. The plain chord keys are rendered as
+ * a text node so they never reach `innerHTML`; only the rich hint layout is sanitized.
  */
 export const Keystroke: Component<KeystrokeProps> = (props) => {
   return (
