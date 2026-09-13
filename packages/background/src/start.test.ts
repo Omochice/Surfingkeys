@@ -1,6 +1,6 @@
 import { Result } from "@praha/byethrow";
 import { httpError } from "@sk/common/result";
-import { expectDefined } from "@sk/test-support/helpers";
+import { expectDefined, storageGetStub } from "@sk/test-support/helpers";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { start, type MessageHandler } from "./start";
@@ -375,7 +375,10 @@ describe("start — requestImage", () => {
  * other chrome.* access falls back to the deep noop), and returns the captured dispatcher. Lets a
  * test assert the chrome API a message handler delegates to.
  */
-function bootWith(namespaces: Record<string, any>): MessageHandler {
+function bootWith(
+  namespaces: Record<string, any>,
+  extraHandlers?: Record<string, MessageHandler>,
+): MessageHandler {
   let dispatch: MessageHandler | undefined;
   const base = deepNoop();
   g.chrome = new Proxy(base, {
@@ -410,7 +413,7 @@ function bootWith(namespaces: Record<string, any>): MessageHandler {
     detectTabTitleChange: false,
     getLatestHistoryItem: () => Promise.resolve([]),
   };
-  start(browser);
+  start(browser, extraHandlers);
   expectDefined(dispatch);
   return dispatch;
 }
@@ -546,11 +549,24 @@ describe("start — tab/window/download handlers delegate to chrome", () => {
 });
 
 describe("start — handleMessage dispatch", () => {
-  it("logs a message for an unrecognized action", () => {
+  it("logs a message for an unrecognized action", async () => {
     const consoleSpy = vi.spyOn(console, "log").mockImplementation(() => {});
-    const dispatch = bootDispatch();
+    // The logger keeps "log" records behind the stored logLevels setting, so the level has to be
+    // enabled for the message to reach the console at all.
+    const dispatch = bootWith({
+      storage: {
+        local: {
+          get: storageGetStub({ logLevels: ["log"] }),
+        },
+      },
+    });
     dispatch({ action: "unknownAction42" }, {}, vi.fn());
-    expect(consoleSpy).toHaveBeenCalledWith(expect.stringContaining("unknownAction42"));
+    await vi.waitFor(() =>
+      expect(consoleSpy).toHaveBeenCalledWith(
+        "[unexpected runtime message]",
+        expect.objectContaining({ action: "unknownAction42" }),
+      ),
+    );
     consoleSpy.mockRestore();
   });
 
@@ -567,6 +583,48 @@ describe("start — handleMessage dispatch", () => {
     const dispatch = bootDispatch();
     const ret = dispatch({ action: "openIncognito", url: "https://x.com" }, {}, vi.fn());
     expect(ret).toBeUndefined();
+  });
+
+  it("dispatches to an extra handler without reporting the message as unexpected", async () => {
+    const consoleSpy = vi.spyOn(console, "log").mockImplementation(() => {});
+    const extra = vi.fn();
+    const dispatch = bootWith(
+      {
+        storage: {
+          local: {
+            get: storageGetStub({ logLevels: ["log"] }),
+          },
+        },
+      },
+      { relayedThing: extra },
+    );
+
+    const message = { action: "relayedThing", payload: 1 };
+    dispatch(message, {}, vi.fn());
+    // The unexpected-message record is written behind an asynchronous storage read, so a second
+    // dispatch that is genuinely unexpected marks the point by which the first one would have
+    // surfaced had it been rejected.
+    dispatch({ action: "unknownAction42" }, {}, vi.fn());
+    await vi.waitFor(() =>
+      expect(consoleSpy).toHaveBeenCalledWith(
+        "[unexpected runtime message]",
+        expect.objectContaining({ action: "unknownAction42" }),
+      ),
+    );
+
+    expect(extra).toHaveBeenCalledWith(message, expect.anything(), expect.anything());
+    expect(consoleSpy).not.toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({ action: "relayedThing" }),
+    );
+    consoleSpy.mockRestore();
+  });
+
+  it("keeps a built-in action when an extra handler claims the same name", () => {
+    const extra = vi.fn();
+    const dispatch = bootWith({}, { openIncognito: extra });
+    dispatch({ action: "openIncognito", url: "https://x.com" }, {}, vi.fn());
+    expect(extra).not.toHaveBeenCalled();
   });
 });
 
