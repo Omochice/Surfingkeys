@@ -16,7 +16,7 @@ import {
   createElementWithContent,
   getBrowserName,
   htmlEncode,
-  parseAnnotation,
+  normalizeAnnotation,
   requireElement,
   scrollIntoViewIfNeeded,
   showBanner,
@@ -2024,11 +2024,10 @@ function Commands(omnibar: Omnibar, front: OmnibarFront): OmnibarHandler {
     jscode: (args: string[]) => void,
     group: FeatureGroup = "misc",
   ) => {
-    const ag = parseAnnotation({ annotation: annotation, group });
     items[cmd] = {
       code: jscode,
-      group: ag.group,
-      annotation: ag.annotation,
+      group,
+      annotation: normalizeAnnotation(annotation),
     };
   };
 

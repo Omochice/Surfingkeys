@@ -22,7 +22,7 @@ import {
   isElementClickable,
   listElements,
   mapInMode,
-  parseAnnotation,
+  normalizeAnnotation,
   refreshHints,
   regExpReplacer,
   removeAttributes,
@@ -64,29 +64,28 @@ describe("getColor", () => {
   });
 });
 
-describe("parseAnnotation", () => {
+describe("normalizeAnnotation", () => {
   it("wraps a string annotation in an array", () => {
-    const result = parseAnnotation({ annotation: "Quit chrome" });
-    expect(result.annotation).toEqual(["Quit chrome"]);
-  });
-
-  it("returns an empty annotation when the text is empty", () => {
-    const result = parseAnnotation({ annotation: "" });
-    expect(result.annotation).toBe("");
-  });
-
-  it("carries the group through untouched", () => {
-    const result = parseAnnotation({ annotation: "Plain text", group: "sessions" });
-    expect(result.group).toBe("sessions");
+    expect(normalizeAnnotation("Quit chrome")).toEqual(["Quit chrome"]);
   });
 
   it("leaves an array annotation and its format arguments intact", () => {
-    const result = parseAnnotation({
-      annotation: ["Search selected with {0}", "Google"],
-      group: "searchSelectedWith",
-    });
-    expect(result.group).toBe("searchSelectedWith");
-    expect(result.annotation).toEqual(["Search selected with {0}", "Google"]);
+    expect(normalizeAnnotation(["Search selected with {0}", "Google"])).toEqual([
+      "Search selected with {0}",
+      "Google",
+    ]);
+  });
+
+  it("returns an empty annotation when the text is empty", () => {
+    expect(normalizeAnnotation("")).toBe("");
+  });
+
+  it("returns an empty annotation when the first element is empty", () => {
+    expect(normalizeAnnotation(["", "ignored"])).toBe("");
+  });
+
+  it("returns an empty annotation when the array is empty", () => {
+    expect(normalizeAnnotation([])).toBe("");
   });
 });
 
@@ -518,27 +517,6 @@ describe("regExpReplacer — non-RegExp value passthrough", () => {
     expect(replacer("key", 42)).toBe(42);
     expect(replacer("key", "hello")).toBe("hello");
     expect(replacer("key", null)).toBeNull();
-  });
-});
-
-describe("parseAnnotation — additional branches", () => {
-  it("returns ag immediately when the annotation array is empty (first == null)", () => {
-    const emptyAnnotation: string[] = [];
-    const ag = { annotation: emptyAnnotation, group: "clipboard" };
-    const result = parseAnnotation(ag);
-    expect(result).toBe(ag);
-    expect(result.group).toBe("clipboard");
-  });
-
-  it("leaves an array annotation intact", () => {
-    const result = parseAnnotation({ annotation: ["plain text", "arg"] });
-    expect(result.group).toBeUndefined();
-    expect(result.annotation).toEqual(["plain text", "arg"]);
-  });
-
-  it("collapses to an empty string when the first element is empty", () => {
-    const result = parseAnnotation({ annotation: ["", "ignored"] });
-    expect(result.annotation).toBe("");
   });
 });
 

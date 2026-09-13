@@ -492,16 +492,12 @@ const Front = (() => {
         }
       };
 
-      const altSKeys = specialKeys["<Alt-s>"];
-      const lh = altSKeys?.length ?? 0;
-      if (lh > 0 && altSKeys != null) {
-        const last = altSKeys[lh - 1];
-        if (last != null) {
-          addItem(
-            "help",
-            `<div><span class=kbd-span><kbd>${htmlEncode(last)}</kbd></span><span class=annotation>${locale("Toggle SurfingKeys on current site")}</span></div>`,
-          );
-        }
+      const toggleKey = specialKeys["<Alt-s>"]?.at(-1);
+      if (toggleKey != null) {
+        addItem(
+          "help",
+          `<div><span class=kbd-span><kbd>${htmlEncode(toggleKey)}</kbd></span><span class=annotation>${locale("Toggle SurfingKeys on current site")}</span></div>`,
+        );
       }
 
       metas = metas.concat(getAnnotations(omnibar.mappings));
