@@ -97,6 +97,55 @@ describe("createUiHost window message handler — activeContent origin", () => {
       "https://example.com",
     );
   });
+
+  it.each(["", "not a url"])(
+    "does not activate the content window for the unusable origin %o",
+    (origin) => {
+      const onMessage = bootMessageHandler();
+      const source = { postMessage: vi.fn() };
+
+      onMessage(
+        fakeEvent(
+          { surfingkeys_uihost_data: { toFrontend: true, action: "showStatus", origin } },
+          source,
+        ),
+      );
+
+      expect(source.postMessage).not.toHaveBeenCalled();
+    },
+  );
+
+  it("still activates a page that asks after a frame sent an unusable origin", () => {
+    const onMessage = bootMessageHandler();
+    const hostile = { postMessage: vi.fn() };
+    const page = { postMessage: vi.fn() };
+
+    onMessage(
+      fakeEvent(
+        { surfingkeys_uihost_data: { toFrontend: true, action: "showStatus", origin: "" } },
+        hostile,
+      ),
+    );
+    onMessage(
+      fakeEvent(
+        {
+          surfingkeys_uihost_data: {
+            toFrontend: true,
+            action: "showStatus",
+            origin: "https://example.com",
+          },
+        },
+        page,
+      ),
+    );
+
+    expect(page.postMessage).toHaveBeenCalledWith(
+      expect.objectContaining({
+        surfingkeys_content_data: expect.objectContaining({ action: "activated" }),
+      }),
+      "https://example.com",
+    );
+  });
 });
 
 const ACTIVATION_ACTIONS = ["showStatus", "openOmnibar", "openFinder", "chooseTab"];
@@ -307,6 +356,27 @@ describe("createUiHost window message handler — fuzzed window messages", () =>
             source.posts.some((record) => contentPayload(record.payload)?.["probeId"] === "probe"),
           );
           expect(reached.length).toBeLessThanOrEqual(1);
+        } finally {
+          removeHosts();
+        }
+      }),
+    );
+  });
+
+  /** `postMessage` rejects any target origin that is neither a wildcard nor an absolute URL. */
+  const isUsableTargetOrigin = (target: unknown): boolean =>
+    target === "*" || target === "/" || (typeof target === "string" && URL.canParse(target));
+
+  it("only ever posts to a content window with a usable target origin", () => {
+    fc.assert(
+      fc.property(fc.array(envelopeArb, { maxLength: 8 }), (envelopes) => {
+        const { onMessage } = bootWithFrameRecorder();
+        const log: PostRecord[] = [];
+        try {
+          envelopes.forEach((data) => {
+            onMessage(fakeEvent(data, newSource(log).stub));
+          });
+          expect(log.filter((record) => !isUsableTargetOrigin(record.target))).toEqual([]);
         } finally {
           removeHosts();
         }
