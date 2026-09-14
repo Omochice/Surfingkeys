@@ -280,6 +280,40 @@ describe("KeyboardUtils.encodeKeystroke / decodeKeystroke — properties", () =>
   });
 });
 
+// An encoding is an ordinary character of the string it lives in, so a character the encoder writes
+// into cannot be told apart from one it produced. Text holding one of those is what neither
+// direction can carry, and every property below draws its characters from outside the block.
+const ENCODED_BLOCK_START = 8192;
+const ENCODED_BLOCK_END = ENCODED_BLOCK_START + ((256 + KeyboardUtils.specialKeys.length) << 4);
+const outsideEncodedBlock = fc
+  .integer({ min: 0, max: 0xff_ff })
+  .filter((code) => code < ENCODED_BLOCK_START || code >= ENCODED_BLOCK_END);
+
+describe("KeyboardUtils.encodeKeystroke / decodeKeystroke — keys outside the encodable range", () => {
+  // Only 8 bits are reserved for the key, and the code points above them are what the special-key
+  // and flag bits occupy, so these are the keys the packed form cannot hold.
+  it.each(["<Ģ>", "<Ȁ>", "<𝔘>", "<\uD800>", "<NotASpecialKey>"])(
+    "leaves %o unencoded rather than packing it into another key",
+    (token) => {
+      expect(KeyboardUtils.encodeKeystroke(token)).toBe(token);
+    },
+  );
+
+  it.each(["㈠", "\u{1D518}", "\uD800"])("leaves the unencoded character %o alone", (text) => {
+    expect(KeyboardUtils.decodeKeystroke(text)).toBe(text);
+  });
+
+  it("round-trips a token for every BMP code point the encoder does not write into", () => {
+    fc.assert(
+      fc.property(outsideEncodedBlock, (code) => {
+        const token = `<${String.fromCharCode(code)}>`;
+        expect(KeyboardUtils.decodeKeystroke(KeyboardUtils.encodeKeystroke(token))).toBe(token);
+      }),
+      { numRuns: 2000 },
+    );
+  });
+});
+
 describe("KeyboardUtils — fuzz properties over arbitrary input", () => {
   const asciiString = fc.string();
   const unicodeString = fc.string({ unit: "binary" });
@@ -316,21 +350,17 @@ describe("KeyboardUtils — fuzz properties over arbitrary input", () => {
     );
   });
 
-  it("re-encoding a decoded keystroke reproduces the same encoding for Latin-1 input", () => {
-    // Latin-1 is the domain, because encodeOne takes k.charCodeAt(0) without a
-    // range check and only 8 bits are reserved for the key. A key with charCode
-    // >= 290 bleeds into the special-key range, so "<Ģ>" decodes to the literal
-    // "<undefined>"; charCode >= 512 overflows the flag bit, so "<Ȁ>" decodes
-    // to "<Esc>". Decoding is lossy in the same way from the other side, where
-    // "㈠" decodes to "<undefined>". Once encodeOne bounds the key, widen this
-    // domain to match.
-    const latin1Input = fc.oneof(
+  it("re-encoding a decoded keystroke reproduces the same encoding", () => {
+    const unicodeChar = outsideEncodedBlock.map((code) => String.fromCharCode(code));
+    const carriableInput = fc.oneof(
       asciiString,
       fc.string({ unit: latin1Char }),
+      fc.string({ unit: unicodeChar }),
       noiseOver(latin1Char),
+      noiseOver(unicodeChar),
     );
     fc.assert(
-      fc.property(latin1Input, (s) => {
+      fc.property(carriableInput, (s) => {
         const encoded = KeyboardUtils.encodeKeystroke(s);
         expect(KeyboardUtils.encodeKeystroke(KeyboardUtils.decodeKeystroke(encoded))).toBe(encoded);
       }),

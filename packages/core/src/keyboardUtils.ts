@@ -135,6 +135,33 @@ const keyIdentifierCorrectionMap = new Map<string, [string, string]>([
 ]);
 
 // <flag: always 1><flag: 1 bit, 0 for visible keys, 1 for invisible keys><key: 8 bits><mod: 4 bits>
+const ENCODED_BASE = 8192;
+const KEY_LIMIT = 256;
+// A special key is stored as its position in specialKeys, so that array is the only way back from a
+// code and this map is derived from it rather than written out beside it.
+const specialKeyCodes = new Map(specialKeys.map((key, at) => [key, KEY_LIMIT + at]));
+
+/**
+ * The packed code for a key, or undefined for a character past the 256 single-character codes and
+ * for a name that is not a special key.
+ */
+function encodeKey(k: string): number | undefined {
+  if (k.length > 1) {
+    return specialKeyCodes.get(k);
+  }
+  const code = k.charCodeAt(0);
+  return code < KEY_LIMIT ? code : undefined;
+}
+
+/** The key a packed code stands for, or undefined when the code is not one {@link encodeKey} makes. */
+function decodeKey(packed: number): string | undefined {
+  if (packed < 0) {
+    return undefined;
+  }
+  const key = packed >> 4;
+  return key < KEY_LIMIT ? String.fromCharCode(key) : specialKeys[key - KEY_LIMIT];
+}
+
 function encodeOne(s: string, k: string): string {
   let mod = 0;
   if (s.includes("Ctrl-")) mod |= 1;
@@ -142,10 +169,13 @@ function encodeOne(s: string, k: string): string {
   if (s.includes("Meta-")) mod |= 4;
   if (s.includes("Shift-")) mod |= 8;
 
-  let code: number;
-  code = k.length > 1 ? 256 + specialKeys.indexOf(k) : k.charCodeAt(0);
-  code = 8192 + (code << 4) + mod;
-  return String.fromCharCode(code);
+  const code = encodeKey(k);
+  // Packing a key that does not fit would name some other key, so an unencodable token is left as
+  // it was written; both ends of this pair then treat it as ordinary text.
+  if (code == null) {
+    return s;
+  }
+  return String.fromCharCode(ENCODED_BASE + (code << 4) + mod);
 }
 
 function encodeKeystroke(s: string): string {
@@ -169,21 +199,18 @@ function encodeKeystroke(s: string): string {
 function decodeKeystroke(s: string): string {
   let ret = "";
   for (const ch of s) {
-    let r = ch.charCodeAt(0);
-    if (r > 8192) {
-      r = r - 8192;
-      const flag = r >> 12;
-      const key = (r % 4096) >> 4;
-      const mod = r & 15;
-      let decoded = flag ? specialKeys[key % 256] : String.fromCharCode(key);
-      if (mod & 8) decoded = "Shift-" + decoded;
-      if (mod & 4) decoded = "Meta-" + decoded;
-      if (mod & 2) decoded = "Alt-" + decoded;
-      if (mod & 1) decoded = "Ctrl-" + decoded;
-      ret += "<" + decoded + ">";
-    } else {
+    const packed = ch.charCodeAt(0) - ENCODED_BASE;
+    let decoded = decodeKey(packed);
+    if (decoded == null) {
       ret += ch;
+      continue;
     }
+    const mod = packed & 15;
+    if (mod & 8) decoded = "Shift-" + decoded;
+    if (mod & 4) decoded = "Meta-" + decoded;
+    if (mod & 2) decoded = "Alt-" + decoded;
+    if (mod & 1) decoded = "Ctrl-" + decoded;
+    ret += "<" + decoded + ">";
   }
   return ret;
 }
