@@ -15,6 +15,16 @@ const uihostMessageEnvelopeSchema = v.looseObject({
   }),
 });
 
+/**
+ * `origin` is kept as `activeContent.origin` and used as a `postMessage` targetOrigin, which throws
+ * for anything but the wildcard or an absolute URL. Activating on an unusable one is unrecoverable,
+ * because `activeContent` is assigned before the post that would throw, after which no page can
+ * take activation back. `getDocumentOrigin` already maps `file://` and `"null"` to `"*"`, so no
+ * honest sender is turned away.
+ */
+const isUsableTargetOrigin = (origin: string | undefined): origin is string =>
+  origin === "*" || (origin != null && URL.canParse(origin));
+
 type BrowserLike = {
   getBackFocusFromFrontend?: () => void;
   focusFrontend?: (ifr: HTMLIFrameElement) => void;
@@ -60,10 +70,7 @@ function createUiHost(adapter: BrowserLike, onload: (uiHost: UiHost) => void): v
         message.toFrontend &&
         event.source &&
         message.action != null &&
-        // origin becomes activeContent.origin, used as a postMessage targetOrigin;
-        // an absent origin (e.g. an untrusted page's message) would make a later
-        // postMessage throw a DOMException, so require it before activating.
-        message.origin != null &&
+        isUsableTargetOrigin(message.origin) &&
         ["showStatus", "openOmnibar", "openFinder", "chooseTab"].includes(message.action) &&
         (!activeContent || activeContent.window !== event.source)
       ) {
