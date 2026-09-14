@@ -280,6 +280,15 @@ describe("KeyboardUtils.encodeKeystroke / decodeKeystroke — properties", () =>
   });
 });
 
+// An encoding is an ordinary character of the string it lives in, so a character the encoder writes
+// into cannot be told apart from one it produced. Text holding one of those is what neither
+// direction can carry, and every property below draws its characters from outside the block.
+const ENCODED_BLOCK_START = 8192;
+const ENCODED_BLOCK_END = ENCODED_BLOCK_START + ((256 + KeyboardUtils.specialKeys.length) << 4);
+const outsideEncodedBlock = fc
+  .integer({ min: 0, max: 0xff_ff })
+  .filter((code) => code < ENCODED_BLOCK_START || code >= ENCODED_BLOCK_END);
+
 describe("KeyboardUtils.encodeKeystroke / decodeKeystroke — keys outside the encodable range", () => {
   // Only 8 bits are reserved for the key, and the code points above them are what the special-key
   // and flag bits occupy, so these are the keys the packed form cannot hold.
@@ -294,9 +303,9 @@ describe("KeyboardUtils.encodeKeystroke / decodeKeystroke — keys outside the e
     expect(KeyboardUtils.decodeKeystroke(text)).toBe(text);
   });
 
-  it("round-trips a token for every BMP code point", () => {
+  it("round-trips a token for every BMP code point the encoder does not write into", () => {
     fc.assert(
-      fc.property(fc.integer({ min: 0, max: 0xff_ff }), (code) => {
+      fc.property(outsideEncodedBlock, (code) => {
         const token = `<${String.fromCharCode(code)}>`;
         expect(KeyboardUtils.decodeKeystroke(KeyboardUtils.encodeKeystroke(token))).toBe(token);
       }),
@@ -342,15 +351,16 @@ describe("KeyboardUtils — fuzz properties over arbitrary input", () => {
   });
 
   it("re-encoding a decoded keystroke reproduces the same encoding", () => {
-    const anyUnicodeInput = fc.oneof(
+    const unicodeChar = outsideEncodedBlock.map((code) => String.fromCharCode(code));
+    const carriableInput = fc.oneof(
       asciiString,
-      unicodeString,
       fc.string({ unit: latin1Char }),
+      fc.string({ unit: unicodeChar }),
       noiseOver(latin1Char),
-      noiseOver(fc.string({ unit: "binary", maxLength: 3 })),
+      noiseOver(unicodeChar),
     );
     fc.assert(
-      fc.property(anyUnicodeInput, (s) => {
+      fc.property(carriableInput, (s) => {
         const encoded = KeyboardUtils.encodeKeystroke(s);
         expect(KeyboardUtils.encodeKeystroke(KeyboardUtils.decodeKeystroke(encoded))).toBe(encoded);
       }),
