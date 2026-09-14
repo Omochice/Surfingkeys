@@ -279,3 +279,102 @@ describe("KeyboardUtils.encodeKeystroke / decodeKeystroke — properties", () =>
     );
   });
 });
+
+describe("KeyboardUtils — fuzz properties over arbitrary input", () => {
+  const asciiString = fc.string();
+  const unicodeString = fc.string({ unit: "binary" });
+  const latin1Char = fc.integer({ min: 0, max: 255 }).map((c) => String.fromCharCode(c));
+  const syntaxFragment = fc.constantFrom(
+    "<",
+    ">",
+    "-",
+    "Ctrl-",
+    "Alt-",
+    "Meta-",
+    "Shift-",
+    ...KeyboardUtils.specialKeys,
+  );
+  // Interleaving syntax fragments with filler makes malformed tokens such as
+  // "<Ctrl-", "<>", "<Ctrl-Esc" or an unknown key name actually appear.
+  const noiseOver = (filler: fc.Arbitrary<string>) =>
+    fc.array(fc.oneof(syntaxFragment, filler)).map((parts) => parts.join(""));
+  const anyInput = fc.oneof(asciiString, unicodeString, noiseOver(fc.string({ maxLength: 3 })));
+
+  it("encodeKeystroke returns a string without throwing for any input", () => {
+    fc.assert(
+      fc.property(anyInput, (s) => {
+        expect(typeof KeyboardUtils.encodeKeystroke(s)).toBe("string");
+      }),
+    );
+  });
+
+  it("decodeKeystroke returns a string without throwing for any input", () => {
+    fc.assert(
+      fc.property(anyInput, (s) => {
+        expect(typeof KeyboardUtils.decodeKeystroke(s)).toBe("string");
+      }),
+    );
+  });
+
+  it("re-encoding a decoded keystroke reproduces the same encoding for Latin-1 input", () => {
+    // Latin-1 is the domain, because encodeOne takes k.charCodeAt(0) without a
+    // range check and only 8 bits are reserved for the key. A key with charCode
+    // >= 290 bleeds into the special-key range, so "<Ģ>" decodes to the literal
+    // "<undefined>"; charCode >= 512 overflows the flag bit, so "<Ȁ>" decodes
+    // to "<Esc>". Decoding is lossy in the same way from the other side, where
+    // "㈠" decodes to "<undefined>". Once encodeOne bounds the key, widen this
+    // domain to match.
+    const latin1Input = fc.oneof(
+      asciiString,
+      fc.string({ unit: latin1Char }),
+      noiseOver(latin1Char),
+    );
+    fc.assert(
+      fc.property(latin1Input, (s) => {
+        const encoded = KeyboardUtils.encodeKeystroke(s);
+        expect(KeyboardUtils.encodeKeystroke(KeyboardUtils.decodeKeystroke(encoded))).toBe(encoded);
+      }),
+    );
+  });
+
+  const keyEvent = fc.record(
+    {
+      keyCode: fc.oneof(
+        fc.integer(),
+        fc.double(),
+        fc.constantFrom(-1, 0, 127, 255, 65_536, 1.5, Number.MAX_SAFE_INTEGER),
+      ),
+      key: fc.oneof(
+        unicodeString,
+        fc.constantFrom("Shift", "Meta", "Alt", "Ctrl", "Dead", "Unidentified", "ß", "÷"),
+      ),
+      code: fc.oneof(asciiString, fc.constantFrom(...KeyboardUtils.keyCodesMac.keys())),
+      keyIdentifier: fc.oneof(
+        asciiString,
+        fc.constantFrom(...KeyboardUtils.keyIdentifierCorrectionMap.keys()),
+        fc.integer({ min: 0, max: 0xff_ff }).map((c) => `U+${c.toString(16).toUpperCase()}`),
+      ),
+      shiftKey: fc.boolean(),
+      metaKey: fc.boolean(),
+      altKey: fc.boolean(),
+      ctrlKey: fc.boolean(),
+    },
+    { requiredKeys: ["keyCode"] },
+  );
+
+  it("getKeyChar returns a string without throwing for any key event", () => {
+    fc.assert(
+      fc.property(keyEvent, (event) => {
+        expect(typeof KeyboardUtils.getKeyChar(event)).toBe("string");
+      }),
+    );
+  });
+
+  it("isWordChar returns a boolean without throwing for any keyCode", () => {
+    fc.assert(
+      fc.property(fc.oneof(fc.integer(), fc.double()), (keyCode) => {
+        expect(typeof KeyboardUtils.isWordChar({ keyCode })).toBe("boolean");
+      }),
+    );
+  });
+});
