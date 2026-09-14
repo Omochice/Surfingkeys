@@ -1,3 +1,4 @@
+import * as fc from "fast-check";
 import { describe, expect, it, vi } from "vitest";
 
 import createHints from "./hints";
@@ -119,6 +120,78 @@ describe("createHints — genLabels", () => {
     for (const label of labels) {
       expect(/^[0-9]$/.test(label)).toBe(true);
     }
+  });
+});
+
+// Single-character sets are excluded because genLabels never satisfies its exit
+// condition for them, and characters that collide once uppercased (such as "aA"
+// or "ß") would make duplicate labels: both are defects of their own rather than
+// of the properties below, which describe usable character sets.
+const hintCharset = fc
+  .uniqueArray(fc.constantFrom(..."abcdefghijklmnopqrstuvwxyz0123456789"), {
+    minLength: 2,
+    maxLength: 10,
+  })
+  .map((chars) => chars.join(""));
+
+const hintTotal = fc.nat({ max: 200 });
+
+describe("createHints — genLabels properties", () => {
+  // The harness is shared across runs because genLabels only reads the character
+  // set that setCharacters assigns, so no state survives one run into the next.
+  it("returns exactly as many labels as requested", () => {
+    const hints = createHints(makeInsert(), makeNormal(), makeClipboard());
+    fc.assert(
+      fc.property(hintCharset, hintTotal, (charset, total) => {
+        hints.setCharacters(charset);
+        expect(hints.genLabels(total)).toHaveLength(total);
+      }),
+    );
+  });
+
+  it("never repeats a label", () => {
+    const hints = createHints(makeInsert(), makeNormal(), makeClipboard());
+    fc.assert(
+      fc.property(hintCharset, hintTotal, (charset, total) => {
+        hints.setCharacters(charset);
+        const labels = hints.genLabels(total);
+        expect(new Set(labels).size).toBe(labels.length);
+      }),
+    );
+  });
+
+  it("never makes a label that is a proper prefix of another label", () => {
+    const hints = createHints(makeInsert(), makeNormal(), makeClipboard());
+    fc.assert(
+      fc.property(hintCharset, hintTotal, (charset, total) => {
+        hints.setCharacters(charset);
+        // A proper prefix sorts immediately before every string it prefixes, so
+        // adjacent pairs of the sorted labels cover all prefix relations.
+        let previous: string | undefined;
+        for (const label of hints.genLabels(total).toSorted()) {
+          if (previous != null) {
+            expect(label.startsWith(previous)).toBe(false);
+          }
+          previous = label;
+        }
+      }),
+    );
+  });
+
+  it("draws every label from the uppercased character set and leaves none empty", () => {
+    const hints = createHints(makeInsert(), makeNormal(), makeClipboard());
+    fc.assert(
+      fc.property(hintCharset, hintTotal, (charset, total) => {
+        hints.setCharacters(charset);
+        const upper = charset.toUpperCase();
+        for (const label of hints.genLabels(total)) {
+          expect(label.length).toBeGreaterThan(0);
+          for (const ch of label) {
+            expect(upper.includes(ch)).toBe(true);
+          }
+        }
+      }),
+    );
   });
 });
 
