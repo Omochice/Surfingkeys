@@ -15,6 +15,14 @@ const uihostMessageEnvelopeSchema = v.looseObject({
   }),
 });
 
+/**
+ * Whether an origin can be given to `postMessage` as a targetOrigin, which throws for anything but
+ * the wildcard or an absolute URL. `getDocumentOrigin` already maps `file://` and `"null"` to
+ * `"*"`, so no honest sender is turned away.
+ */
+const isUsableTargetOrigin = (origin: string | undefined): origin is string =>
+  origin === "*" || (origin != null && URL.canParse(origin));
+
 type BrowserLike = {
   getBackFocusFromFrontend?: () => void;
   focusFrontend?: (ifr: HTMLIFrameElement) => void;
@@ -60,10 +68,7 @@ function createUiHost(adapter: BrowserLike, onload: (uiHost: UiHost) => void): v
         message.toFrontend &&
         event.source &&
         message.action != null &&
-        // origin becomes activeContent.origin, used as a postMessage targetOrigin;
-        // an absent origin (e.g. an untrusted page's message) would make a later
-        // postMessage throw a DOMException, so require it before activating.
-        message.origin != null &&
+        isUsableTargetOrigin(message.origin) &&
         ["showStatus", "openOmnibar", "openFinder", "chooseTab"].includes(message.action) &&
         (!activeContent || activeContent.window !== event.source)
       ) {
