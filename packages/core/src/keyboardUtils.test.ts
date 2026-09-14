@@ -280,6 +280,31 @@ describe("KeyboardUtils.encodeKeystroke / decodeKeystroke — properties", () =>
   });
 });
 
+describe("KeyboardUtils.encodeKeystroke / decodeKeystroke — keys outside the encodable range", () => {
+  // Only 8 bits are reserved for the key, and the code points above them are what the special-key
+  // and flag bits occupy, so these are the keys the packed form cannot hold.
+  it.each(["<Ģ>", "<Ȁ>", "<𝔘>", "<\uD800>", "<NotASpecialKey>"])(
+    "leaves %o unencoded rather than packing it into another key",
+    (token) => {
+      expect(KeyboardUtils.encodeKeystroke(token)).toBe(token);
+    },
+  );
+
+  it.each(["㈠", "\u{1D518}", "\uD800"])("leaves the unencoded character %o alone", (text) => {
+    expect(KeyboardUtils.decodeKeystroke(text)).toBe(text);
+  });
+
+  it("round-trips a token for every BMP code point", () => {
+    fc.assert(
+      fc.property(fc.integer({ min: 0, max: 0xff_ff }), (code) => {
+        const token = `<${String.fromCharCode(code)}>`;
+        expect(KeyboardUtils.decodeKeystroke(KeyboardUtils.encodeKeystroke(token))).toBe(token);
+      }),
+      { numRuns: 2000 },
+    );
+  });
+});
+
 describe("KeyboardUtils — fuzz properties over arbitrary input", () => {
   const asciiString = fc.string();
   const unicodeString = fc.string({ unit: "binary" });
@@ -316,21 +341,16 @@ describe("KeyboardUtils — fuzz properties over arbitrary input", () => {
     );
   });
 
-  it("re-encoding a decoded keystroke reproduces the same encoding for Latin-1 input", () => {
-    // Latin-1 is the domain, because encodeOne takes k.charCodeAt(0) without a
-    // range check and only 8 bits are reserved for the key. A key with charCode
-    // >= 290 bleeds into the special-key range, so "<Ģ>" decodes to the literal
-    // "<undefined>"; charCode >= 512 overflows the flag bit, so "<Ȁ>" decodes
-    // to "<Esc>". Decoding is lossy in the same way from the other side, where
-    // "㈠" decodes to "<undefined>". Once encodeOne bounds the key, widen this
-    // domain to match.
-    const latin1Input = fc.oneof(
+  it("re-encoding a decoded keystroke reproduces the same encoding", () => {
+    const anyUnicodeInput = fc.oneof(
       asciiString,
+      unicodeString,
       fc.string({ unit: latin1Char }),
       noiseOver(latin1Char),
+      noiseOver(fc.string({ unit: "binary", maxLength: 3 })),
     );
     fc.assert(
-      fc.property(latin1Input, (s) => {
+      fc.property(anyUnicodeInput, (s) => {
         const encoded = KeyboardUtils.encodeKeystroke(s);
         expect(KeyboardUtils.encodeKeystroke(KeyboardUtils.decodeKeystroke(encoded))).toBe(encoded);
       }),
