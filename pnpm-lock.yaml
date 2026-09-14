@@ -218,8 +218,8 @@ catalogs:
       specifier: 3.4.15
       version: 3.4.15
     fast-check:
-      specifier: 4.9.0
-      version: 4.9.0
+      specifier: 4.10.0
+      version: 4.10.0
     jsdom:
       specifier: 30.0.1
       version: 30.0.1
@@ -468,7 +468,7 @@ importers:
         version: link:../types
       fast-check:
         specifier: 'catalog:'
-        version: 4.9.0
+        version: 4.10.0
       npm-run-all2:
         specifier: 'catalog:'
         version: 9.0.3
@@ -532,7 +532,7 @@ importers:
         version: 5.0.0(playwright@1.63.0)(vite@8.3.0(@types/node@25.9.6)(jiti@2.7.0)(yaml@2.9.1))(vitest@5.0.0)
       fast-check:
         specifier: 'catalog:'
-        version: 4.9.0
+        version: 4.10.0
       jsdom:
         specifier: 'catalog:'
         version: 30.0.1
@@ -581,7 +581,7 @@ importers:
         version: link:../types
       fast-check:
         specifier: 'catalog:'
-        version: 4.9.0
+        version: 4.10.0
       jsdom:
         specifier: 'catalog:'
         version: 30.0.1
@@ -2298,8 +2298,8 @@ packages:
   exsolve@1.1.1:
     resolution: {integrity: sha512-9U/jZUgjnSGyntRr6y5Muu1MJcwFl6kPu7k8qLF0IMNfLqvw0NZ4nnVDq0RVoZ0RvCyumib4Ez3KYrVfilrw+g==}
 
-  fast-check@4.9.0:
-    resolution: {integrity: sha512-7ms6T7SybUev/PQITciI0yLM2pOSFy5zpG8Ty7tQofcVaQUvrMXp6CBwqF6fThLCLOrfBtuHAtwq6Yu4XPCllg==}
+  fast-check@4.10.0:
+    resolution: {integrity: sha512-hhqQL+IJllZi3aM4TKvmCj3bywLEcycNTTLZeLhA9ttMxBrCqM07q7Di4kl+j9EWSTXvJH1+EpIgsDbF/+8H5Q==}
     engines: {node: '>=12.17.0'}
 
   fd-package-json@2.0.0:
@@ -4524,7 +4524,7 @@ snapshots:
 
   exsolve@1.1.1: {}
 
-  fast-check@4.9.0:
+  fast-check@4.10.0:
     dependencies:
       pure-rand: 8.4.2
 
