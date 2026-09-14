@@ -137,12 +137,14 @@ const keyIdentifierCorrectionMap = new Map<string, [string, string]>([
 // <flag: always 1><flag: 1 bit, 0 for visible keys, 1 for invisible keys><key: 8 bits><mod: 4 bits>
 const ENCODED_BASE = 8192;
 const KEY_LIMIT = 256;
+// A special key is stored as its position in specialKeys, so that array is the only way back from a
+// code and this map is derived from it rather than written out beside it.
+const specialKeyCodes = new Map(specialKeys.map((key, at) => [key, KEY_LIMIT + at]));
 
 /** The packed code for a key, or undefined when the 8 bits reserved for the key cannot hold it. */
 function encodeKey(k: string): number | undefined {
   if (k.length > 1) {
-    const special = specialKeys.indexOf(k);
-    return special === -1 ? undefined : KEY_LIMIT + special;
+    return specialKeyCodes.get(k);
   }
   const code = k.charCodeAt(0);
   return code < KEY_LIMIT ? code : undefined;
