@@ -16,11 +16,9 @@ const uihostMessageEnvelopeSchema = v.looseObject({
 });
 
 /**
- * `origin` is kept as `activeContent.origin` and used as a `postMessage` targetOrigin, which throws
- * for anything but the wildcard or an absolute URL. Activating on an unusable one is unrecoverable,
- * because `activeContent` is assigned before the post that would throw, after which no page can
- * take activation back. `getDocumentOrigin` already maps `file://` and `"null"` to `"*"`, so no
- * honest sender is turned away.
+ * Whether an origin can be given to `postMessage` as a targetOrigin, which throws for anything but
+ * the wildcard or an absolute URL. `getDocumentOrigin` already maps `file://` and `"null"` to
+ * `"*"`, so no honest sender is turned away.
  */
 const isUsableTargetOrigin = (origin: string | undefined): origin is string =>
   origin === "*" || (origin != null && URL.canParse(origin));
