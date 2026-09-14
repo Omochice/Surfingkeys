@@ -157,7 +157,7 @@ const actionArb = fc.oneof(
 
 /**
  * A uihost payload whose keys are each independently absent, because the handler branches on
- * absence (`message.origin != null`) and not merely on falsiness.
+ * absence and not merely on falsiness.
  *
  * `origin` is generated as a free string as well as a URL: the schema only requires a string, so an
  * unusable target origin is reachable from a page and must be covered.
