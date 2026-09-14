@@ -751,12 +751,12 @@ div.hint-scrollable {
   );
 
   const genLabels = (total: number): string[] => {
-    const chars = characters.toUpperCase();
+    const chars = [...characters.toUpperCase()];
     // One character extends the frontier by exactly the entry it consumes, so the loop below would
     // never reach `total`. setCharacters turns such a set away, and this keeps a hang out of reach
     // of anything that assigns `characters` without going through it.
     if (chars.length < 2) {
-      return [...chars].slice(0, total);
+      return chars.slice(0, total);
     }
     let hints = [""];
     let offset = 0;
