@@ -141,7 +141,10 @@ const KEY_LIMIT = 256;
 // code and this map is derived from it rather than written out beside it.
 const specialKeyCodes = new Map(specialKeys.map((key, at) => [key, KEY_LIMIT + at]));
 
-/** The packed code for a key, or undefined when the 8 bits reserved for the key cannot hold it. */
+/**
+ * The packed code for a key, or undefined for a character past the 256 single-character codes and
+ * for a name that is not a special key.
+ */
 function encodeKey(k: string): number | undefined {
   if (k.length > 1) {
     return specialKeyCodes.get(k);
