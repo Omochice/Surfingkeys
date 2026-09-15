@@ -38,6 +38,12 @@ function cmap(
   }
 }
 
+function cunmap(keystroke: string, domain?: RegExp) {
+  if (isDomainApplicable(domain)) {
+    dispatchSKEvent("front", ["removeMapkey", "Omnibar", keystroke]);
+  }
+}
+
 const userDefinedFunctions: Record<string, (...args: unknown[]) => void> = {};
 // eslint-disable-next-line typescript/no-explicit-any -- user keypress handler of arbitrary signature
 function mapkey(keys: string, annotation: string | string[], jscode: any, options?: MapkeyOptions) {
@@ -257,6 +263,7 @@ const api = {
   addSearchAlias,
   addCommand,
   cmap,
+  cunmap,
   imap,
   imapkey,
   isElementPartiallyInViewport,
