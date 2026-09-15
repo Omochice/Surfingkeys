@@ -493,6 +493,13 @@ function createFront(
         old_keystroke: old_keystroke,
       });
     },
+    removeMapkey: (mode: string, keystroke: string) => {
+      applyUICommand({
+        action: "removeMapkey",
+        mode: mode,
+        keystroke: keystroke,
+      });
+    },
     addVimMap: (lhs: string, rhs: string, ctx: unknown) => {
       applyUICommand({
         action: "addVimMap",

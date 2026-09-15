@@ -586,6 +586,19 @@ const Front = (() => {
       }
     }
   };
+  actions["removeMapkey"] = (message: unknown) => {
+    const { keystroke, mode } = v.parse(
+      v.object({
+        keystroke: v.string(),
+        mode: v.string(),
+      }),
+      message,
+    );
+    if (!Object.hasOwn(modes, mode)) {
+      return;
+    }
+    modes[mode]?.mappings.remove(KeyboardUtils.encodeKeystroke(keystroke));
+  };
   actions["addCommand"] = (message: { name: string; description: string }) => {
     // User command callback: forwards whatever arguments the user-defined command was invoked with.
     // eslint-disable-next-line typescript/no-explicit-any

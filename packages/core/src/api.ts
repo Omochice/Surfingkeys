@@ -387,6 +387,23 @@ function createAPI(ctx: ModeContext, env: EngineEnv) {
   }
 
   /**
+   * Unmap a key sequence in omnibar.
+   *
+   * @example
+   *   cunmap("<Ctrl-j>");
+   *
+   * @param {string} keystroke A key sequence to be removed.
+   * @param {regex} [domain=null] A Javascript regex pattern to identify the domains that this
+   *   mapping will be removed. Default is `null`
+   * @see unmap
+   */
+  function cunmap(keystroke: string, domain?: RegExp): void {
+    if (isDomainApplicable(domain)) {
+      dispatchSKEvent("front", ["removeMapkey", "Omnibar", keystroke]);
+    }
+  }
+
+  /**
    * Map a key sequence to another in visual mode.
    *
    * @param {string} new_keystroke A key sequence to replace
@@ -701,6 +718,7 @@ function createAPI(ctx: ModeContext, env: EngineEnv) {
     RUNTIME,
     addSearchAlias,
     cmap,
+    cunmap,
     imap,
     imapkey,
     isElementPartiallyInViewport,
