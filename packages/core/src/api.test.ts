@@ -310,7 +310,7 @@ describe("createAPI cunmap", () => {
     document.addEventListener("surfingkeys:front", handler);
 
     const api = createAPI(ctx as any, env);
-    api.cunmap("ctrl-j");
+    api.cunmap("<Ctrl-j>");
 
     document.removeEventListener("surfingkeys:front", handler);
 
@@ -319,7 +319,7 @@ describe("createAPI cunmap", () => {
         Array.isArray(e.detail) &&
         e.detail[0] === "removeMapkey" &&
         e.detail[1] === "Omnibar" &&
-        e.detail[2] === "ctrl-j",
+        e.detail[2] === "<Ctrl-j>",
     );
     expect(evt).not.toBeUndefined();
   });
@@ -331,7 +331,7 @@ describe("createAPI cunmap", () => {
     document.addEventListener("surfingkeys:front", handler);
 
     const api = createAPI(ctx as any, env);
-    api.cunmap("ctrl-j", /nomatch\.example\.com/);
+    api.cunmap("<Ctrl-j>", /nomatch\.example\.com/);
 
     document.removeEventListener("surfingkeys:front", handler);
 
