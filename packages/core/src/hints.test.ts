@@ -123,16 +123,18 @@ describe("createHints — genLabels", () => {
   });
 });
 
-// Single-character sets are excluded because genLabels never satisfies its exit
-// condition for them, and characters that collide once uppercased (such as "aA"
-// or "ß") would make duplicate labels: both are defects of their own rather than
-// of the properties below, which describe usable character sets.
+// A character set is usable as long as its characters stay distinct once uppercased, so the pool
+// draws unique characters and then raises an arbitrary subset of them.
 const hintCharset = fc
   .uniqueArray(fc.constantFrom(..."abcdefghijklmnopqrstuvwxyz0123456789"), {
     minLength: 2,
     maxLength: 10,
   })
-  .map((chars) => chars.join(""));
+  .chain((chars) =>
+    fc
+      .array(fc.boolean(), { minLength: chars.length, maxLength: chars.length })
+      .map((raised) => chars.map((c, at) => (raised[at] ? c.toUpperCase() : c)).join("")),
+  );
 
 const hintTotal = fc.nat({ max: 200 });
 
@@ -207,6 +209,27 @@ describe("createHints — getCharacters / setCharacters", () => {
     expect(hints.getCharacters()).toBe("jkl");
   });
 
+  it.each(["", "a", "aA", "Aa", "abcA", "ß", "aß"])(
+    "rejects %o, which cannot label more than one hint apiece",
+    (chars) => {
+      const hints = createHints(makeInsert(), makeNormal(), makeClipboard());
+      expect(() => hints.setCharacters(chars)).toThrow(RangeError);
+    },
+  );
+
+  it("keeps the previous character set after a rejected one", () => {
+    const hints = createHints(makeInsert(), makeNormal(), makeClipboard());
+    hints.setCharacters("jkl");
+    expect(() => hints.setCharacters("a")).toThrow(RangeError);
+    expect(hints.getCharacters()).toBe("jkl");
+  });
+
+  it("accepts a mixed-case set whose characters stay distinct once uppercased", () => {
+    const hints = createHints(makeInsert(), makeNormal(), makeClipboard());
+    hints.setCharacters("aB");
+    expect(hints.getCharacters()).toBe("aB");
+  });
+
   it("records scroll keys that overlap with the new character set", () => {
     const normal = makeNormal();
     normal.isScrollKeyInHints.mockImplementation((key: string) => key === "j" || key === "k");
@@ -215,6 +238,28 @@ describe("createHints — getCharacters / setCharacters", () => {
     expect(normal.isScrollKeyInHints).toHaveBeenCalledWith("j");
     expect(normal.isScrollKeyInHints).toHaveBeenCalledWith("k");
     expect(normal.isScrollKeyInHints).toHaveBeenCalledWith("l");
+  });
+});
+
+describe("createHints — setCharacters over arbitrary strings", () => {
+  // Every string a user config can pass goes through here, and a set genLabels cannot work with
+  // has to be turned away before it is stored, because genLabels grows its labels in a loop that
+  // no vitest timeout can interrupt.
+  it("either rejects a character set or generates that many distinct labels from it", () => {
+    const hints = createHints(makeInsert(), makeNormal(), makeClipboard());
+    fc.assert(
+      fc.property(fc.string({ maxLength: 8 }), hintTotal, (charset, total) => {
+        try {
+          hints.setCharacters(charset);
+        } catch (error) {
+          expect(error).toBeInstanceOf(RangeError);
+          return;
+        }
+        const labels = hints.genLabels(total);
+        expect(labels).toHaveLength(total);
+        expect(new Set(labels).size).toBe(total);
+      }),
+    );
   });
 });
 

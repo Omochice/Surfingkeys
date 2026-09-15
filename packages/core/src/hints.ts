@@ -298,9 +298,21 @@ div.hint-scrollable {
    *   Hints.setCharacters("asdgqwertzxcvb");
    *
    * @param {string} characters The characters for generating hints.
+   * @throws {RangeError} If the characters do not stay two or more distinct ones once uppercased,
+   *   which is what labels are drawn from.
    * @name Hints.setCharacters
    */
   const setCharacters = (chars: string): void => {
+    const labels = [...chars.toUpperCase()];
+    if (
+      labels.length !== [...chars].length ||
+      new Set(labels).size !== labels.length ||
+      labels.length < 2
+    ) {
+      throw new RangeError(
+        `Hints characters must be two or more that stay distinct once uppercased, got ${JSON.stringify(chars)}`,
+      );
+    }
     characters = chars;
     for (const c of chars) {
       if (normal.isScrollKeyInHints(c)) {
@@ -739,7 +751,13 @@ div.hint-scrollable {
   );
 
   const genLabels = (total: number): string[] => {
-    const chars = characters.toUpperCase();
+    const chars = [...characters.toUpperCase()];
+    // One character extends the frontier by exactly the entry it consumes, so the loop below would
+    // never reach `total`. setCharacters turns such a set away, and this keeps a hang out of reach
+    // of anything that assigns `characters` without going through it.
+    if (chars.length < 2) {
+      return chars.slice(0, total);
+    }
     let hints = [""];
     let offset = 0;
     while (hints.length - offset < total || offset == 0) {
