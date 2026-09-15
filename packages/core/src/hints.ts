@@ -289,7 +289,6 @@ div.hint-scrollable {
     numeric = true;
   };
   let characters = "asdfgqwertzxcvb";
-  const excludedScrollKeys: string[] = [];
   /**
    * Set characters for generating hints, this API is to replace original setting like
    * `Hints.characters = "asdgqwertzxcvb";`.
@@ -314,11 +313,6 @@ div.hint-scrollable {
       );
     }
     characters = chars;
-    for (const c of chars) {
-      if (normal.isScrollKeyInHints(c)) {
-        excludedScrollKeys.push(c);
-      }
-    }
   };
   const getCharacters = (): string => {
     return characters;
@@ -386,7 +380,7 @@ div.hint-scrollable {
             prefix = prefix + key.toUpperCase();
             handleHint(event);
           } else {
-            if (normal.isScrollKeyInHints(key) && !excludedScrollKeys.includes(key)) {
+            if (normal.isScrollKeyInHints(key)) {
               // pass on the key to normal mode to scroll page.
               event.sk_stopPropagation = false;
             } else {

@@ -232,16 +232,6 @@ describe("createHints — getCharacters / setCharacters", () => {
     hints.setCharacters("aB");
     expect(hints.getCharacters()).toBe("aB");
   });
-
-  it("records scroll keys that overlap with the new character set", () => {
-    const normal = makeNormal();
-    normal.isScrollKeyInHints.mockImplementation((key: string) => key === "j" || key === "k");
-    const hints = createHints(makeInsert(), normal, makeClipboard());
-    hints.setCharacters("jkl");
-    expect(normal.isScrollKeyInHints).toHaveBeenCalledWith("j");
-    expect(normal.isScrollKeyInHints).toHaveBeenCalledWith("k");
-    expect(normal.isScrollKeyInHints).toHaveBeenCalledWith("l");
-  });
 });
 
 describe("createHints — setCharacters over arbitrary strings", () => {
@@ -354,12 +344,20 @@ describe("createHints — scroll keys while hints are shown", () => {
     expect(pressKey("j").sk_stopPropagation).toBe(false);
   });
 
-  it.fails("hands a scroll key on to normal mode once it leaves the character set", async () => {
+  it("hands a scroll key on to normal mode once it leaves the character set", async () => {
     const hints = createHints(makeInsert(), makeScrollingNormal(), makeClipboard());
     hints.setCharacters("jkl");
     hints.setCharacters("asdf");
     await showHints(hints);
 
     expect(pressKey("j").sk_stopPropagation).toBe(false);
+  });
+
+  it("keeps a scroll key that is a hint character from scrolling the page", async () => {
+    const hints = createHints(makeInsert(), makeScrollingNormal(), makeClipboard());
+    hints.setCharacters("jkl");
+    await showHints(hints);
+
+    expect(pressKey("j").sk_stopPropagation).toBe(true);
   });
 });
