@@ -54,7 +54,7 @@ describe("cmap (via api returned by factory)", () => {
 describe("cunmap (via api returned by factory)", () => {
   it("dispatches a surfingkeys:front event with removeMapkey / Omnibar args", () => {
     const events = captureEvents("surfingkeys:front", () => {
-      capturedApi.cunmap("ctrl-j");
+      capturedApi.cunmap("<Ctrl-j>");
     });
 
     const evt = events.find(
@@ -62,14 +62,14 @@ describe("cunmap (via api returned by factory)", () => {
         Array.isArray(e.detail) &&
         e.detail[0] === "removeMapkey" &&
         e.detail[1] === "Omnibar" &&
-        e.detail[2] === "ctrl-j",
+        e.detail[2] === "<Ctrl-j>",
     );
     expect(evt).not.toBeUndefined();
   });
 
   it("does not dispatch when domain regex does not match", () => {
     const events = captureEvents("surfingkeys:front", () => {
-      capturedApi.cunmap("ctrl-j", /this-domain-will-never-match\.example/);
+      capturedApi.cunmap("<Ctrl-j>", /this-domain-will-never-match\.example/);
     });
 
     const removeMapkeyEvents = events.filter(
