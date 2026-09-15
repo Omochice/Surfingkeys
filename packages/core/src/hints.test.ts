@@ -1,7 +1,10 @@
+import { Result } from "@praha/byethrow";
 import * as fc from "fast-check";
-import { describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
+import type { EngineEnv } from "./engineEnv";
 import createHints from "./hints";
+import { getCurrentMode, initModeHub, releaseBufferedKeyEvents } from "./mode";
 
 function makeInsert() {
   return { enter: vi.fn(), exit: vi.fn() };
@@ -229,16 +232,6 @@ describe("createHints — getCharacters / setCharacters", () => {
     hints.setCharacters("aB");
     expect(hints.getCharacters()).toBe("aB");
   });
-
-  it("records scroll keys that overlap with the new character set", () => {
-    const normal = makeNormal();
-    normal.isScrollKeyInHints.mockImplementation((key: string) => key === "j" || key === "k");
-    const hints = createHints(makeInsert(), normal, makeClipboard());
-    hints.setCharacters("jkl");
-    expect(normal.isScrollKeyInHints).toHaveBeenCalledWith("j");
-    expect(normal.isScrollKeyInHints).toHaveBeenCalledWith("k");
-    expect(normal.isScrollKeyInHints).toHaveBeenCalledWith("l");
-  });
 });
 
 describe("createHints — setCharacters over arbitrary strings", () => {
@@ -267,5 +260,104 @@ describe("createHints — getSelector()", () => {
   it("returns an empty string before any create() call", () => {
     const hints = createHints(makeInsert(), makeNormal(), makeClipboard());
     expect(hints.getSelector()).toBe("");
+  });
+});
+
+function makeEngineEnv(): EngineEnv {
+  return {
+    RUNTIME: () => Result.succeed(undefined),
+    isInUIFrame: () => false,
+    reportIssue: vi.fn(),
+    tabOpenLink: () => {},
+    getExtensionURL: (path: string) => path,
+    log: () => {},
+    surfingkeys: undefined,
+  };
+}
+
+// jsdom lays nothing out, so the target carries the geometry filterInvisibleElements reads.
+function makeHintTarget(): HTMLElement {
+  const element = document.createElement("a");
+  document.body.append(element);
+  Object.defineProperty(element, "offsetWidth", { value: 50, configurable: true });
+  Object.defineProperty(element, "offsetHeight", { value: 20, configurable: true });
+  element.getBoundingClientRect = () => new DOMRect(10, 10, 50, 20);
+  return element;
+}
+
+describe("createHints — scroll keys while hints are shown", () => {
+  // The mode hub's stack and listeners are module-level, so they carry over between tests.
+  beforeEach(() => {
+    initModeHub(makeEngineEnv());
+    releaseBufferedKeyEvents();
+  });
+
+  // Only the Esc teardown detaches the host; exiting the mode leaves it on the document.
+  afterEach(() => {
+    pressKey("<Esc>");
+    document.body.replaceChildren();
+  });
+
+  function makeScrollingNormal() {
+    const normal = makeNormal();
+    normal.isScrollKeyInHints.mockImplementation((key: string) => key === "j");
+    return normal;
+  }
+
+  async function showHints(hints: ReturnType<typeof createHints>): Promise<void> {
+    const found = await hints.create([makeHintTarget(), makeHintTarget()], () => {});
+    expect(found).toBe(2);
+    expect(getCurrentMode()?.name).toBe("Hints");
+  }
+
+  function pressKey(key: string): { sk_stopPropagation?: boolean } {
+    const event = new Event("keydown") as Event & {
+      sk_keyName?: string;
+      sk_stopPropagation?: boolean;
+    };
+    event.sk_keyName = key;
+    window.dispatchEvent(event);
+    return event;
+  }
+
+  function hintHosts(): NodeListOf<Element> {
+    return document.querySelectorAll(".surfingkeys_hints_host");
+  }
+
+  it("takes the hints off the document and leaves hints mode on Esc", async () => {
+    const hints = createHints(makeInsert(), makeScrollingNormal(), makeClipboard());
+    hints.setCharacters("asdf");
+    await showHints(hints);
+    expect(hintHosts()).toHaveLength(1);
+
+    pressKey("<Esc>");
+
+    expect(hintHosts()).toHaveLength(0);
+    expect(getCurrentMode()).toBeUndefined();
+  });
+
+  it("hands a scroll key outside the character set to normal mode", async () => {
+    const hints = createHints(makeInsert(), makeScrollingNormal(), makeClipboard());
+    hints.setCharacters("asdf");
+    await showHints(hints);
+
+    expect(pressKey("j").sk_stopPropagation).toBe(false);
+  });
+
+  it("hands a scroll key on to normal mode once it leaves the character set", async () => {
+    const hints = createHints(makeInsert(), makeScrollingNormal(), makeClipboard());
+    hints.setCharacters("jkl");
+    hints.setCharacters("asdf");
+    await showHints(hints);
+
+    expect(pressKey("j").sk_stopPropagation).toBe(false);
+  });
+
+  it("keeps a scroll key that is a hint character from scrolling the page", async () => {
+    const hints = createHints(makeInsert(), makeScrollingNormal(), makeClipboard());
+    hints.setCharacters("jkl");
+    await showHints(hints);
+
+    expect(pressKey("j").sk_stopPropagation).toBe(true);
   });
 });
