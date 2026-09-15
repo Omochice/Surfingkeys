@@ -273,6 +273,12 @@ api.cmap("<Ctrl-n>", "<Tab>");
 api.cmap("<Ctrl-p>", "<Shift-Tab>");
 ```
 
+`cunmap` removes a mapping from Omnibar, so that the key is left to the page or to the input method:
+
+```javascript
+api.cunmap("<Ctrl-j>");
+```
+
 ### Add bookmark
 
 `ab` is a shortcut to bookmark current page. An Omnibar is displayed for you to choose a folder to place the new bookmark after you pressed `ab`. If you want to place the new bookmark into a new folder, you could input folder name -- **which must be ended with `/`** in Omnibar. For example, I choose folder `/Bookmarks Bar/tool/`, and append `abc/`, then current page will be bookmarked into `/Bookmarks Bar/tool/abc/`. If there is no `/` behind `abc`, `abc` will be used as title of the new bookmark.
