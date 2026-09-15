@@ -302,6 +302,43 @@ describe("createAPI cmap", () => {
   });
 });
 
+describe("createAPI cunmap", () => {
+  it("dispatches a surfingkeys:front event with Omnibar removeMapkey args", () => {
+    const ctx = makeCtx();
+    const captured: CustomEvent[] = [];
+    const handler = (e: Event) => captured.push(e as CustomEvent);
+    document.addEventListener("surfingkeys:front", handler);
+
+    const api = createAPI(ctx as any, env);
+    api.cunmap("ctrl-j");
+
+    document.removeEventListener("surfingkeys:front", handler);
+
+    const evt = captured.find(
+      (e) =>
+        Array.isArray(e.detail) &&
+        e.detail[0] === "removeMapkey" &&
+        e.detail[1] === "Omnibar" &&
+        e.detail[2] === "ctrl-j",
+    );
+    expect(evt).not.toBeUndefined();
+  });
+
+  it("dispatches nothing when the domain does not match", () => {
+    const ctx = makeCtx();
+    const dispatched: unknown[][] = [];
+    const handler = (e: Event) => dispatched.push((e as CustomEvent).detail);
+    document.addEventListener("surfingkeys:front", handler);
+
+    const api = createAPI(ctx as any, env);
+    api.cunmap("ctrl-j", /nomatch\.example\.com/);
+
+    document.removeEventListener("surfingkeys:front", handler);
+
+    expect(dispatched.filter((d) => Array.isArray(d) && d[0] === "removeMapkey")).toHaveLength(0);
+  });
+});
+
 describe("createAPI map with command-line prefix", () => {
   it("adds a normal mapping that calls front.executeCommand with the command", () => {
     const ctx = makeCtx();
