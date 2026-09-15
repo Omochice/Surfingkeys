@@ -463,6 +463,41 @@ describe("createFront SKEvent front channel — hideKeystroke / showKeystroke", 
   });
 });
 
+describe("createFront SKEvent front channel — removeMapkey", () => {
+  afterEach(() => {
+    (createUiHost as ReturnType<typeof vi.fn>).mockReset();
+  });
+
+  it("sends a removeMapkey command carrying the mode and the keystroke", async () => {
+    const mockCreateUiHost = createUiHost as ReturnType<typeof vi.fn>;
+    mockCreateUiHost.mockImplementation((_browser: unknown, onReady: (host: unknown) => void) => {
+      onReady({});
+    });
+
+    const { handler: skHandler, restore } = captureFrontSKHandler();
+    const front = createFront(makeInsert(), makeNormal(), null, makeVisual(), makeBrowser());
+    restore();
+    const frontHandler = skHandler()!;
+
+    // The command only reaches the frontend once the UI host exists, so open something first.
+    front.openOmnibar({ type: "OmniQuery", extra: "search term", style: "" });
+    const command = vi.fn();
+    front.command = command;
+
+    invokeFrontSK(frontHandler, ["removeMapkey", "Omnibar", "<Ctrl-j>"]);
+
+    await vi.waitFor(() => {
+      expect(command).toHaveBeenCalledWith(
+        expect.objectContaining({
+          action: "removeMapkey",
+          mode: "Omnibar",
+          keystroke: "<Ctrl-j>",
+        }),
+      );
+    });
+  });
+});
+
 describe("createFront applySettingsFromSnippets — enableEmojiInsertion propagates to insert", () => {
   let savedEmoji: boolean;
 

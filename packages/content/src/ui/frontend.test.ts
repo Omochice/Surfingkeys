@@ -11,6 +11,7 @@
  */
 
 import { featureGroups } from "@sk/core/featureGroup";
+import KeyboardUtils from "@sk/core/keyboardUtils";
 import { specialKeys } from "@sk/core/specialKeys";
 import { RUNTIME, runtime } from "@sk/messaging/runtime";
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
@@ -38,13 +39,16 @@ vi.mock("solid-js/web", async (importOriginal) => {
   return { ...actual, render: vi.fn() };
 });
 
-const { omnibarCommandSpy } = vi.hoisted(() => ({ omnibarCommandSpy: vi.fn() }));
+const { omnibarCommandSpy, omnibarMappingsRemove } = vi.hoisted(() => ({
+  omnibarCommandSpy: vi.fn(),
+  omnibarMappingsRemove: vi.fn(),
+}));
 
 // The real createOmnibar wires up Solid rendering and its own DOM queries.
 vi.mock("./omnibar", () => ({
   default: vi.fn(() => ({
     command: omnibarCommandSpy,
-    mappings: { getWords: () => [] },
+    mappings: { getWords: () => [], remove: omnibarMappingsRemove },
     onShow: vi.fn(),
   })),
 }));
@@ -227,6 +231,28 @@ describe("actions['addMapkey'] — specialKeys path", () => {
       mode: "UnknownMode",
     });
     expect(specialKeys["<Esc>"]).toEqual(before);
+  });
+});
+
+describe("actions['removeMapkey']", () => {
+  beforeEach(() => {
+    omnibarMappingsRemove.mockClear();
+  });
+
+  it("removes the encoded keystroke from the named mode's mappings", () => {
+    Front.actions["removeMapkey"]({
+      mode: "Omnibar",
+      keystroke: "<Ctrl-j>",
+    });
+    expect(omnibarMappingsRemove).toHaveBeenCalledWith(KeyboardUtils.encodeKeystroke("<Ctrl-j>"));
+  });
+
+  it("removes nothing when the mode name is unknown", () => {
+    Front.actions["removeMapkey"]({
+      mode: "UnknownMode",
+      keystroke: "<Ctrl-j>",
+    });
+    expect(omnibarMappingsRemove).not.toHaveBeenCalled();
   });
 });
 
