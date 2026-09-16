@@ -64,6 +64,20 @@ function initModules(): Modes {
     adapter.plugin({ front });
   }
 
+  // Whichever side came up first drives the other: an announcement made before this frame booted
+  // is gone, which the unconditional request covers, and a request made before the user script
+  // finished loading is gone, which its announcement covers.
+  function requestUserScript(): void {
+    document.addEventListener(
+      "surfingkeys:userScriptReady",
+      () => {
+        dispatchSKEvent("user", ["runUserScript"]);
+      },
+      { once: true },
+    );
+    dispatchSKEvent("user", ["runUserScript"]);
+  }
+
   dispatchSKEvent("defaultSettingsLoaded", { normal, api });
   reportOnFail(
     RUNTIME("getSettings", null, (response: { settings: StoredSettings }) => {
@@ -78,11 +92,16 @@ function initModules(): Modes {
         getUsage,
         frontCommand,
       });
+      // Requested only here, so that a snippet never overwrites its own conf values with the
+      // stored ones by running before they are applied.
+      requestUserScript();
     }),
     (error) => {
       // The settings fetch failed, so userSettingsApplied will never fire; release the buffered
-      // keys anyway so input is not held forever.
+      // keys anyway so input is not held forever. The snippet is still worth applying: it is the
+      // user's mappings, and only the stored settings are missing.
       releaseBufferedKeyEvents();
+      requestUserScript();
       reportError(error);
     },
   );
@@ -128,11 +147,6 @@ window.getFrameId = function () {
     // Focus can boot an iframe before any key is pressed.
     beginBufferingKeyEvents();
     initContent(initModules());
-
-    // Only used to load user script for iframes in MV3
-    setTimeout(() => {
-      dispatchSKEvent("user", ["runUserScript"]);
-    }, 100);
   }
   return window.frameId;
 };

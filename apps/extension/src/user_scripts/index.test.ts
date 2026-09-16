@@ -7,10 +7,16 @@ import createUserScript from "./index";
 // module-level and persist across tests, so cases use distinct keys rather than
 // relying on a per-test reset of that state.
 let capturedApi: any;
+
+function askToRunUserScript(): void {
+  document.dispatchEvent(new CustomEvent("surfingkeys:user", { detail: ["runUserScript"] }));
+}
+
 beforeEach(() => {
   createUserScript("chrome-extension://test/", (api) => {
     capturedApi = api;
   });
+  askToRunUserScript();
 });
 
 function captureEvents(type: string, fn: () => void): CustomEvent[] {
@@ -490,12 +496,6 @@ describe("default export factory", () => {
   // any chrome-extension:// URL, so isInUIFrame() always returns false in jsdom.
   // The user function is therefore always called when window === top (jsdom default).
 
-  it("calls the user function immediately when running in the top frame", () => {
-    const uf = vi.fn();
-    createUserScript("chrome-extension://abc/", uf);
-    expect(uf).toHaveBeenCalledOnce();
-  });
-
   it("passes api and settings objects to the user function", () => {
     let receivedApi: any;
     let receivedSettings: any;
@@ -503,6 +503,7 @@ describe("default export factory", () => {
       receivedApi = api;
       receivedSettings = settings;
     });
+    askToRunUserScript();
 
     expect(receivedApi).toBeDefined();
     expect(typeof receivedApi.mapkey).toBe("function");
@@ -589,5 +590,32 @@ describe("surfingkeys:user — onHintClicked", () => {
     expect(onHintKey).toHaveBeenCalledWith(element, true);
 
     element.remove();
+  });
+});
+
+describe("readiness handshake", () => {
+  it("announces itself when it loads", () => {
+    const announcements = captureEvents("surfingkeys:userScriptReady", () => {
+      createUserScript("chrome-extension://test/", () => {});
+    });
+
+    expect(announcements).toHaveLength(1);
+  });
+
+  it("leaves the snippet unapplied until the content script asks for it", () => {
+    const snippet = vi.fn();
+
+    createUserScript("chrome-extension://test/", snippet);
+
+    expect(snippet).not.toHaveBeenCalled();
+  });
+
+  it("applies the snippet when the content script asks for it", () => {
+    const snippet = vi.fn();
+    createUserScript("chrome-extension://test/", snippet);
+
+    askToRunUserScript();
+
+    expect(snippet).toHaveBeenCalledTimes(1);
   });
 });
