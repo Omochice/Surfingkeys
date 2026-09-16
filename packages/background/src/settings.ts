@@ -259,9 +259,13 @@ export function createSettings(deps: SettingsDeps): SettingsUnit {
         id: userScriptId,
         matches: ["*://*/*", "file:///*"],
         js: [{ code }],
+        // The default, document_idle, lets the page's first keystrokes reach the built-in
+        // mappings before the snippet has had a chance to override them.
+        runAt: "document_start" as const,
       };
       if (r.length > 0) {
-        if (r[0]!.js![0]!.code !== code) {
+        const registered = r[0];
+        if (registered?.js?.[0]?.code !== code || registered.runAt !== script.runAt) {
           await chrome.userScripts.unregister({ ids: [userScriptId] });
           await chrome.userScripts.register([script]);
         }

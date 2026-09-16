@@ -1079,7 +1079,9 @@ describe("createSettings — registerUserScript branch: existing script same cod
     const codeBuilt = `import('./api.js').then((module) => {module.default("chrome-extension://abc/", (api, settings) => {${snippets}\n})});`;
     g.chrome.userScripts = {
       configureWorld: vi.fn(),
-      getScripts: vi.fn().mockResolvedValue([{ js: [{ code: codeBuilt }] }]),
+      getScripts: vi
+        .fn()
+        .mockResolvedValue([{ js: [{ code: codeBuilt }], runAt: "document_start" }]),
       register,
       unregister,
     };
@@ -1098,6 +1100,51 @@ describe("createSettings — registerUserScript branch: existing script same cod
     await loadSettingsFromUrl({ url: "http://example.com/settings.js" }, {}, vi.fn());
 
     expect(register).not.toHaveBeenCalled();
+  });
+});
+
+describe("createSettings — registerUserScript runAt", () => {
+  function stubChrome(getScripts: ReturnType<typeof vi.fn>) {
+    const register = vi.fn();
+    const unregister = vi.fn();
+    g.chrome.userScripts = { configureWorld: vi.fn(), getScripts, register, unregister };
+    g.chrome.storage = { local: { set: vi.fn() }, sync: { set: vi.fn() } };
+    g.chrome.tabs = { query: vi.fn().mockResolvedValue([]) };
+    g.chrome.runtime = {
+      ...g.chrome.runtime,
+      getManifest: () => ({ manifest_version: 2 }),
+      getURL: () => "chrome-extension://abc/",
+    };
+    return { register, unregister };
+  }
+
+  async function loadSnippets(snippets: string) {
+    mockRequest.mockResolvedValue(Result.succeed(snippets));
+    const { unit } = makeUnit();
+    const loadSettingsFromUrl = unit.handlers["loadSettingsFromUrl"];
+    expectDefined(loadSettingsFromUrl);
+    await loadSettingsFromUrl({ url: "http://example.com/settings.js" }, {}, vi.fn());
+  }
+
+  it("registers the script to run at document_start", async () => {
+    const { register } = stubChrome(vi.fn().mockResolvedValue([]));
+
+    await loadSnippets("LOADED_SNIPPETS");
+
+    expect(register).toHaveBeenCalledWith([expect.objectContaining({ runAt: "document_start" })]);
+  });
+
+  it("re-registers a stored script whose code matches but which runs at another time", async () => {
+    const snippets = "LOADED_SNIPPETS";
+    const codeBuilt = `import('./api.js').then((module) => {module.default("chrome-extension://abc/", (api, settings) => {${snippets}\n})});`;
+    const { register, unregister } = stubChrome(
+      vi.fn().mockResolvedValue([{ js: [{ code: codeBuilt }], runAt: "document_idle" }]),
+    );
+
+    await loadSnippets(snippets);
+
+    expect(unregister).toHaveBeenCalled();
+    expect(register).toHaveBeenCalled();
   });
 });
 
