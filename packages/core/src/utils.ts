@@ -146,6 +146,9 @@ function applyUserSettings(
   if (!isEmptyObject(delta.settings)) {
     dispatchSKEvent("front", ["applySettingsFromSnippets", delta.settings]);
   }
+  // Announced even when the snippet produced no settings, so that everything waiting for the
+  // user's settings to be in place is released on every path.
+  dispatchSKEvent("userSettingsApplied");
 }
 
 /**

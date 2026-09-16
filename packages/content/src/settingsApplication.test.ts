@@ -247,3 +247,38 @@ describe("applySettings", () => {
     expect(api.removeSearchAlias).not.toHaveBeenCalled();
   });
 });
+
+describe("applySettings userSettingsApplied event", () => {
+  let applied: ReturnType<typeof vi.fn>;
+
+  beforeEach(() => {
+    applied = vi.fn();
+    document.addEventListener("surfingkeys:userSettingsApplied", applied);
+  });
+
+  afterEach(() => {
+    document.removeEventListener("surfingkeys:userSettingsApplied", applied);
+  });
+
+  it("announces completion when no snippet is involved", () => {
+    applySettings(makeFakeApi(), makeFakeNormal(), { showAdvanced: false });
+
+    expect(applied).toHaveBeenCalledTimes(1);
+  });
+
+  it("announces completion in advanced mode when there are no snippets to run", () => {
+    applySettings(makeFakeApi(), makeFakeNormal(), { showAdvanced: true, isMV3: true });
+
+    expect(applied).toHaveBeenCalledTimes(1);
+  });
+
+  it("stays silent while the MV3 user script still has snippets to apply", () => {
+    applySettings(makeFakeApi(), makeFakeNormal(), {
+      showAdvanced: true,
+      isMV3: true,
+      snippets: "api.map('H', 'S');",
+    });
+
+    expect(applied).not.toHaveBeenCalled();
+  });
+});

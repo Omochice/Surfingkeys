@@ -113,6 +113,21 @@ export function applySettings(api: Api, normal: Normal, rs: StoredSettings): voi
     const fh = Array.isArray(rs.findHistory) ? rs.findHistory : [];
     runtime.conf.lastQuery = fh[0] ?? "";
   }
+  // The MV3 user script's match patterns exclude the extension's own pages, and the inline path
+  // below skips them too.
+  const onExtensionPage = document.location.href.startsWith(chrome.runtime.getURL("/"));
+  const snippetsPending = Boolean(rs.showAdvanced && rs.snippets && !onExtensionPage);
+  if (snippetsPending) {
+    // A snippet can still change the conf the runtime state is derived from, so derive it again
+    // once the snippet has been applied.
+    document.addEventListener(
+      "surfingkeys:userSettingsApplied",
+      () => {
+        applyRuntimeConf(normal);
+      },
+      { once: true },
+    );
+  }
   if (!rs.showAdvanced) {
     if (rs.basicMappings) {
       applyBasicMappings(api, normal, rs.basicMappings);
@@ -122,11 +137,7 @@ export function applySettings(api: Api, normal: Normal, rs: StoredSettings): voi
         api.removeSearchAlias(key);
       }
     }
-  } else if (
-    !rs.isMV3 &&
-    rs.snippets &&
-    !document.location.href.startsWith(chrome.runtime.getURL("/"))
-  ) {
+  } else if (!rs.isMV3 && rs.snippets && !onExtensionPage) {
     const settings = {};
     const snippets = rs.snippets;
     const r = Result.try({
@@ -145,11 +156,7 @@ export function applySettings(api: Api, normal: Normal, rs: StoredSettings): voi
   }
 
   applyRuntimeConf(normal);
-  document.addEventListener(
-    "surfingkeys:userSettingsApplied",
-    () => {
-      applyRuntimeConf(normal);
-    },
-    { once: true },
-  );
+  if (!snippetsPending) {
+    dispatchSKEvent("userSettingsApplied");
+  }
 }
