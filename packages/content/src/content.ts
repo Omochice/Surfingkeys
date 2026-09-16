@@ -80,7 +80,7 @@ function initModules(): Modes {
       });
     }),
     (error) => {
-      // The settings fetch failed, so userSettingsLoaded will never fire; release the buffered
+      // The settings fetch failed, so userSettingsApplied will never fire; release the buffered
       // keys anyway so input is not held forever.
       releaseBufferedKeyEvents();
       reportError(error);
