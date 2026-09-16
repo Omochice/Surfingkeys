@@ -7,7 +7,7 @@ type SKEventType =
   | "hints"
   | "observer"
   | "userSettingsLoaded"
-  | "settingsFromSnippetsLoaded"
+  | "userSettingsApplied"
   | "iframeBoot"
   | "ensureFrontEnd"
   | "defaultSettingsLoaded";

@@ -482,7 +482,7 @@ function createFront(
           reportError,
         );
       }
-      dispatchSKEvent("settingsFromSnippetsLoaded");
+      dispatchSKEvent("userSettingsApplied");
     },
     querySelectedWord,
     addMapkey: (mode: string, new_keystroke: string, old_keystroke: string) => {

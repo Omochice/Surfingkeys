@@ -146,7 +146,7 @@ export function applySettings(api: Api, normal: Normal, rs: StoredSettings): voi
 
   applyRuntimeConf(normal);
   document.addEventListener(
-    "surfingkeys:settingsFromSnippetsLoaded",
+    "surfingkeys:userSettingsApplied",
     () => {
       applyRuntimeConf(normal);
     },

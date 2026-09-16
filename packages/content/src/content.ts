@@ -41,7 +41,7 @@ type Modes = { normal: Normal; front: Front; api: Api };
 
 const userConfPromise = new Promise<typeof runtime.conf>((resolve) => {
   document.addEventListener(
-    "surfingkeys:settingsFromSnippetsLoaded",
+    "surfingkeys:userSettingsApplied",
     () => {
       resolve(runtime.conf);
     },
