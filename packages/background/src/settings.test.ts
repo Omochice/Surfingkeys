@@ -979,6 +979,61 @@ describe("createSettings — getSettings with null key", () => {
   });
 });
 
+describe("createSettings — getSettings when user-script registration fails", () => {
+  function stubFailingRegistration(cause: Error) {
+    g.chrome.userScripts = {
+      configureWorld: vi.fn(),
+      getScripts: vi.fn().mockResolvedValue([{ js: [{ code: "/* stale code */" }] }]),
+      register: vi.fn(),
+      unregister: vi.fn().mockRejectedValue(cause),
+    };
+    // The logger reads its enabled levels from local storage, so the stub has to answer that
+    // read for the logged failure to reach the console spy.
+    g.chrome.storage = {
+      local: { get: storageGetStub({}), set: vi.fn() },
+      sync: { set: vi.fn() },
+    };
+    return makeUnit({
+      browser: {
+        loadRawSettings: vi.fn().mockResolvedValue({ showAdvanced: true, snippets: "SNIP" }),
+      },
+    });
+  }
+
+  it("still resolves with the stored settings", async () => {
+    const { unit } = stubFailingRegistration(
+      new Error("No changes to loaded scripts would result from this operation."),
+    );
+
+    const getSettings = unit.handlers["getSettings"];
+    expectDefined(getSettings);
+    const result = await getSettings({ key: null }, {}, vi.fn());
+
+    expect(g.chrome.userScripts.unregister).toHaveBeenCalled();
+    expect(result).toEqual({
+      settings: expect.objectContaining({
+        snippets: "SNIP",
+        showAdvanced: true,
+        isMV3: true,
+        isUserScriptsAvailable: true,
+      }),
+    });
+  });
+
+  it("logs the failure at the error level with its cause", async () => {
+    const errorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+    const cause = new Error("No changes to loaded scripts would result from this operation.");
+    const { unit } = stubFailingRegistration(cause);
+
+    const getSettings = unit.handlers["getSettings"];
+    expectDefined(getSettings);
+    await getSettings({ key: null }, {}, vi.fn());
+
+    await vi.waitFor(() => expect(errorSpy).toHaveBeenCalledWith(expect.any(String), cause));
+    errorSpy.mockRestore();
+  });
+});
+
 describe("createSettings — openSession", () => {
   it("does nothing when the named session does not exist", async () => {
     const tabCreate = vi.fn();
@@ -1283,5 +1338,21 @@ describe("createSettings — registerUserScript register/unregister branches", (
 
     expect(register).toHaveBeenCalledOnce();
     expect(unregister).not.toHaveBeenCalled();
+  });
+
+  it("rejects loadSettingsFromUrl when registration fails", async () => {
+    const { register } = chromeWithUserScripts(vi.fn().mockResolvedValue([]));
+    register.mockRejectedValue(
+      new Error("No changes to loaded scripts would result from this operation."),
+    );
+    const { unit } = makeUnit();
+
+    const loadSettingsFromUrl = unit.handlers["loadSettingsFromUrl"];
+    expectDefined(loadSettingsFromUrl);
+    mockRequest.mockResolvedValue(Result.succeed("FRESH_SNIPPETS"));
+
+    await expect(
+      loadSettingsFromUrl({ url: "http://example.com/settings.js" }, {}, vi.fn()),
+    ).rejects.toThrow("No changes to loaded scripts");
   });
 });
