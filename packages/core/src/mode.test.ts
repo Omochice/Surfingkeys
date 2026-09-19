@@ -275,7 +275,7 @@ describe("key buffering before user settings are applied", () => {
       getCurrentMode()?.exit();
     }
     // Release the buffer so a later test is not left in the buffering state.
-    document.dispatchEvent(new CustomEvent("surfingkeys:userSettingsLoaded"));
+    document.dispatchEvent(new CustomEvent("surfingkeys:userSettingsApplied"));
   });
 
   it("does not deliver a keydown to mode handlers before settings are applied", () => {
@@ -302,7 +302,26 @@ describe("key buffering before user settings are applied", () => {
     window.dispatchEvent(new Event("keydown"));
     expect(handler).not.toHaveBeenCalled();
 
+    document.dispatchEvent(new CustomEvent("surfingkeys:userSettingsApplied"));
+    expect(handler).toHaveBeenCalledTimes(1);
+  });
+
+  it("keeps buffering while a snippet has yet to be applied", () => {
+    initModeHub(makeTestEnv());
+    beginBufferingKeyEvents();
+    const mode = new ModeHandle("Normal");
+    const handler = vi.fn();
+    mode.addEventListener("keydown", handler);
+    mode.enter(1);
+
+    window.dispatchEvent(new Event("keydown"));
+
+    // The stored settings have arrived, but a snippet applied by the MV3 user script may still
+    // be about to override the built-in mapping this key would otherwise hit.
     document.dispatchEvent(new CustomEvent("surfingkeys:userSettingsLoaded"));
+    expect(handler).not.toHaveBeenCalled();
+
+    document.dispatchEvent(new CustomEvent("surfingkeys:userSettingsApplied"));
     expect(handler).toHaveBeenCalledTimes(1);
   });
 
@@ -321,14 +340,14 @@ describe("key buffering before user settings are applied", () => {
     window.dispatchEvent(first);
     window.dispatchEvent(second);
 
-    document.dispatchEvent(new CustomEvent("surfingkeys:userSettingsLoaded"));
+    document.dispatchEvent(new CustomEvent("surfingkeys:userSettingsApplied"));
     expect(seen).toEqual([first, second]);
   });
 
   it("delivers keydown immediately once settings have been applied", () => {
     initModeHub(makeTestEnv());
     beginBufferingKeyEvents();
-    document.dispatchEvent(new CustomEvent("surfingkeys:userSettingsLoaded"));
+    document.dispatchEvent(new CustomEvent("surfingkeys:userSettingsApplied"));
     const mode = new ModeHandle("Normal");
     const handler = vi.fn();
     mode.addEventListener("keydown", handler);
@@ -349,7 +368,7 @@ describe("key buffering before user settings are applied", () => {
     window.dispatchEvent(new Event("keyup"));
     expect(handler).not.toHaveBeenCalled();
 
-    document.dispatchEvent(new CustomEvent("surfingkeys:userSettingsLoaded"));
+    document.dispatchEvent(new CustomEvent("surfingkeys:userSettingsApplied"));
     expect(handler).toHaveBeenCalledTimes(1);
   });
 
@@ -383,13 +402,13 @@ describe("key buffering before user settings are applied", () => {
     mode.exit();
   });
 
-  it("removes the userSettingsLoaded listener when the buffer is released", () => {
+  it("removes the userSettingsApplied listener when the buffer is released", () => {
     initModeHub(makeTestEnv());
     const removeEventListener = vi.spyOn(document, "removeEventListener");
     beginBufferingKeyEvents();
     releaseBufferedKeyEvents();
     expect(removeEventListener).toHaveBeenCalledWith(
-      "surfingkeys:userSettingsLoaded",
+      "surfingkeys:userSettingsApplied",
       releaseBufferedKeyEvents,
     );
     removeEventListener.mockRestore();
@@ -480,7 +499,7 @@ describe("key buffering before user settings are applied", () => {
       expect(seen).toHaveLength(0);
 
       mode.enter(1);
-      document.dispatchEvent(new CustomEvent("surfingkeys:userSettingsLoaded"));
+      document.dispatchEvent(new CustomEvent("surfingkeys:userSettingsApplied"));
 
       expect(seen).toEqual([first, second]);
     } finally {
@@ -512,7 +531,7 @@ describe("key buffering before user settings are applied", () => {
       expect(preventDefault).toHaveBeenCalled();
 
       mode.enter(1);
-      document.dispatchEvent(new CustomEvent("surfingkeys:userSettingsLoaded"));
+      document.dispatchEvent(new CustomEvent("surfingkeys:userSettingsApplied"));
       expect(handler).toHaveBeenCalledTimes(1);
 
       mode.exit();

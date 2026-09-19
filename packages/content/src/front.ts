@@ -482,7 +482,6 @@ function createFront(
           reportError,
         );
       }
-      dispatchSKEvent("settingsFromSnippetsLoaded");
     },
     querySelectedWord,
     addMapkey: (mode: string, new_keystroke: string, old_keystroke: string) => {
