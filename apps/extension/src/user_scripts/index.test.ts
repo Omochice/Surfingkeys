@@ -494,7 +494,6 @@ describe("Front.openOmnibar (via api returned by factory)", () => {
 describe("default export factory", () => {
   // jsdom's document.location.href is "about:blank", which does not start with
   // any chrome-extension:// URL, so isInUIFrame() always returns false in jsdom.
-  // The user function is therefore always called when window === top (jsdom default).
 
   it("passes api and settings objects to the user function", () => {
     let receivedApi: any;

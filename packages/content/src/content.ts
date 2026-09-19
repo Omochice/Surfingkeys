@@ -92,8 +92,8 @@ function initModules(): Modes {
         getUsage,
         frontCommand,
       });
-      // Requested only here, so that a snippet never overwrites its own conf values with the
-      // stored ones by running before they are applied.
+      // Requested after the stored settings are applied; a snippet that ran before them would
+      // have its own conf values overwritten by the stored ones.
       requestUserScript();
     }),
     (error) => {
