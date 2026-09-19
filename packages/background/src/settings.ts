@@ -280,6 +280,22 @@ export function createSettings(deps: SettingsDeps): SettingsUnit {
     }
   }
 
+  // A settings read did not ask for the script to change, so a failed (un)registration is not the
+  // read's failure and is reported rather than propagated.
+  async function registerUserScriptBestEffort(snippets: unknown): Promise<void> {
+    const r = await Result.try({
+      try: () => registerUserScript(snippets),
+      catch: (cause) => chromeRuntimeError("registerUserScript", cause),
+    });
+    if (Result.isFailure(r)) {
+      LOG(
+        "error",
+        "Failed to register the snippets user script for a settings read:",
+        r.error.cause,
+      );
+    }
+  }
+
   async function onFullSettingsRequested(data: Record<string, unknown>): Promise<void> {
     data["isMV3"] = isMV3;
     data["isUserScriptsAvailable"] = isUserScriptsAvailable();
@@ -288,9 +304,9 @@ export function createSettings(deps: SettingsDeps): SettingsUnit {
     }
 
     if (data["isUserScriptsAvailable"] && data["showAdvanced"]) {
-      await registerUserScript(data["snippets"]);
+      await registerUserScriptBestEffort(data["snippets"]);
     } else if (data["isUserScriptsAvailable"]) {
-      await registerUserScript(null);
+      await registerUserScriptBestEffort(null);
     }
   }
 
