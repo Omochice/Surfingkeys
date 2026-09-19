@@ -412,9 +412,9 @@ const initUserScripts = (
       },
     );
   };
-  if (window === top) {
-    userScriptTask();
-  }
+  // A snippet's api calls only reach listeners the content script installs, so it decides when the
+  // snippet runs.
+  dispatchSKEvent("userScriptReady");
 };
 
 export default initUserScripts;

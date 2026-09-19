@@ -8,6 +8,7 @@ type SKEventType =
   | "observer"
   | "userSettingsLoaded"
   | "userSettingsApplied"
+  | "userScriptReady"
   | "iframeBoot"
   | "ensureFrontEnd"
   | "defaultSettingsLoaded";
