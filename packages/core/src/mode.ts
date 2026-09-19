@@ -115,10 +115,14 @@ function bufferKeyEvent(name: "keydown" | "keyup", event: StackEvent): void {
 
 type BufferReleaseReason = "userSettingsApplied" | "timeout" | "direct";
 
-function releaseBuffer(_reason: BufferReleaseReason): void {
+function releaseBuffer(reason: BufferReleaseReason): void {
   if (settingsReady) {
     return;
   }
+  engineEnv?.log(reason === "timeout" ? "warn" : "log", "snippet-lifecycle", "keyBufferReleased", {
+    reason,
+    bufferedKeys: bufferedKeyEvents.length,
+  });
   if (bufferReleaseTimer !== undefined) {
     clearTimeout(bufferReleaseTimer);
     bufferReleaseTimer = undefined;

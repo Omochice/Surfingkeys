@@ -21,7 +21,8 @@ import { RUNTIME, runtime } from "@sk/messaging/runtime";
 import { createEngineEnv } from "./common/createEngineEnv";
 import { hasLayoutOffsets } from "./common/dom";
 import createFront from "./front";
-import { applySettings } from "./settingsApplication";
+import { applySettings, snippetsPendingFor } from "./settingsApplication";
+import { logSnippetLifecycle } from "./snippetLifecycle";
 
 // The injected browser adapter (createFront / plugin hook) is untyped JS.
 type BrowserAdapter = {
@@ -43,6 +44,7 @@ const userConfPromise = new Promise<typeof runtime.conf>((resolve) => {
   document.addEventListener(
     "surfingkeys:userSettingsApplied",
     () => {
+      logSnippetLifecycle("userSettingsApplied", {});
       resolve(runtime.conf);
     },
     { once: true },
@@ -71,10 +73,15 @@ function initModules(): Modes {
     document.addEventListener(
       "surfingkeys:userScriptReady",
       () => {
+        logSnippetLifecycle("userScriptReadyReceived", {});
+        // Logged before the dispatch: the user script may answer it synchronously, and its own
+        // records would then precede the request that caused them.
+        logSnippetLifecycle("runUserScriptRequested", { trigger: "userScriptReady" });
         dispatchSKEvent("user", ["runUserScript"]);
       },
       { once: true },
     );
+    logSnippetLifecycle("runUserScriptRequested", { trigger: "initial" });
     dispatchSKEvent("user", ["runUserScript"]);
   }
 
@@ -82,6 +89,14 @@ function initModules(): Modes {
   reportOnFail(
     RUNTIME("getSettings", null, (response: { settings: StoredSettings }) => {
       const rs = response.settings;
+      // Logged before the settings are applied: applying them announces completion synchronously
+      // when no snippet is pending, and that announcement's records would come first otherwise.
+      logSnippetLifecycle("settingsReceived", {
+        showAdvanced: rs.showAdvanced ?? null,
+        isMV3: rs.isMV3 ?? null,
+        isUserScriptsAvailable: rs.isUserScriptsAvailable ?? null,
+        snippetsPending: snippetsPendingFor(rs),
+      });
       applySettings(api, normal, rs);
       const disabledSearchAliases = rs.disabledSearchAliases;
       const getUsage = front.getUsage;
@@ -97,6 +112,11 @@ function initModules(): Modes {
       requestUserScript();
     }),
     (error) => {
+      logSnippetLifecycle("settingsFetchFailed", {
+        kind: error.kind,
+        op: error.op,
+        cause: String(error.cause),
+      });
       // The settings fetch failed, so userSettingsApplied will never fire; release the buffered
       // keys anyway so input is not held forever. The snippet is still worth applying: it is the
       // user's mappings, and only the stored settings are missing.

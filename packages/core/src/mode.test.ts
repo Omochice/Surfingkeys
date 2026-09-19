@@ -601,3 +601,78 @@ describe("key buffering before user settings are applied", () => {
     );
   });
 });
+
+describe("key buffer release logging", () => {
+  it("records the release caused by the userSettingsApplied event", () => {
+    const log = vi.fn();
+    initModeHub(makeTestEnv({ log }));
+    beginBufferingKeyEvents();
+
+    document.dispatchEvent(new CustomEvent("surfingkeys:userSettingsApplied"));
+
+    expect(log).toHaveBeenCalledWith("log", "snippet-lifecycle", "keyBufferReleased", {
+      reason: "userSettingsApplied",
+      bufferedKeys: 0,
+    });
+  });
+
+  it("records the release caused by a direct call", () => {
+    const log = vi.fn();
+    initModeHub(makeTestEnv({ log }));
+    beginBufferingKeyEvents();
+
+    releaseBufferedKeyEvents();
+
+    expect(log).toHaveBeenCalledWith("log", "snippet-lifecycle", "keyBufferReleased", {
+      reason: "direct",
+      bufferedKeys: 0,
+    });
+  });
+
+  it("records the release caused by the safety timeout as a warning", () => {
+    vi.useFakeTimers();
+    try {
+      const log = vi.fn();
+      initModeHub(makeTestEnv({ log }));
+      beginBufferingKeyEvents();
+
+      vi.advanceTimersByTime(3000);
+
+      expect(log).toHaveBeenCalledWith("warn", "snippet-lifecycle", "keyBufferReleased", {
+        reason: "timeout",
+        bufferedKeys: 0,
+      });
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it("reports how many key events were held when the buffer was released", () => {
+    const log = vi.fn();
+    initModeHub(makeTestEnv({ log }));
+    beginBufferingKeyEvents();
+    window.dispatchEvent(new Event("keydown"));
+    window.dispatchEvent(new Event("keyup"));
+
+    releaseBufferedKeyEvents();
+
+    expect(log).toHaveBeenCalledWith(
+      "log",
+      "snippet-lifecycle",
+      "keyBufferReleased",
+      expect.objectContaining({ bufferedKeys: 2 }),
+    );
+  });
+
+  it("records nothing when the buffer was already released", () => {
+    initModeHub(makeTestEnv());
+    beginBufferingKeyEvents();
+    releaseBufferedKeyEvents();
+    const log = vi.fn();
+    initModeHub(makeTestEnv({ log }));
+
+    releaseBufferedKeyEvents();
+
+    expect(log).not.toHaveBeenCalled();
+  });
+});
