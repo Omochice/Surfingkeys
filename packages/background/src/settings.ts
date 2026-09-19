@@ -286,11 +286,22 @@ export function createSettings(deps: SettingsDeps): SettingsUnit {
     if (isMV3) {
       data["showAdvanced"] = data["isUserScriptsAvailable"] && data["showAdvanced"];
     }
+    if (!data["isUserScriptsAvailable"]) {
+      return;
+    }
 
-    if (data["isUserScriptsAvailable"] && data["showAdvanced"]) {
-      await registerUserScript(data["snippets"]);
-    } else if (data["isUserScriptsAvailable"]) {
-      await registerUserScript(null);
+    // Propagating this failure would answer the read with an error instead of the stored settings,
+    // although the read never asked for the script to change.
+    const r = await Result.try({
+      try: () => registerUserScript(data["showAdvanced"] ? data["snippets"] : null),
+      catch: (cause) => chromeRuntimeError("registerUserScript", cause),
+    });
+    if (Result.isFailure(r)) {
+      LOG(
+        "error",
+        "Failed to register the snippets user script for a settings read:",
+        r.error.cause,
+      );
     }
   }
 
