@@ -47,7 +47,7 @@ spec:
   features:
     issues: true
     projects: true
-    wiki: true
+    wiki: false
     discussions: false
     pull_requests: true
   merge_strategy:
