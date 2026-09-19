@@ -1,4 +1,5 @@
 import { Result } from "@praha/byethrow";
+import { expectDefined } from "@sk/test-support/helpers";
 import * as fc from "fast-check";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -404,13 +405,16 @@ describe("key buffering before user settings are applied", () => {
 
   it("removes the userSettingsApplied listener when the buffer is released", () => {
     initModeHub(makeTestEnv());
+    const addEventListener = vi.spyOn(document, "addEventListener");
     const removeEventListener = vi.spyOn(document, "removeEventListener");
     beginBufferingKeyEvents();
-    releaseBufferedKeyEvents();
-    expect(removeEventListener).toHaveBeenCalledWith(
-      "surfingkeys:userSettingsApplied",
-      releaseBufferedKeyEvents,
+    const added = addEventListener.mock.calls.find(
+      ([name]) => name === "surfingkeys:userSettingsApplied",
     );
+    expectDefined(added);
+    releaseBufferedKeyEvents();
+    expect(removeEventListener).toHaveBeenCalledWith("surfingkeys:userSettingsApplied", added[1]);
+    addEventListener.mockRestore();
     removeEventListener.mockRestore();
   });
 
@@ -595,5 +599,80 @@ describe("key buffering before user settings are applied", () => {
         mode.exit();
       }),
     );
+  });
+});
+
+describe("key buffer release logging", () => {
+  it("records the release caused by the userSettingsApplied event", () => {
+    const log = vi.fn();
+    initModeHub(makeTestEnv({ log }));
+    beginBufferingKeyEvents();
+
+    document.dispatchEvent(new CustomEvent("surfingkeys:userSettingsApplied"));
+
+    expect(log).toHaveBeenCalledWith("log", "snippet-lifecycle", "keyBufferReleased", {
+      reason: "userSettingsApplied",
+      bufferedKeys: 0,
+    });
+  });
+
+  it("records the release caused by a direct call", () => {
+    const log = vi.fn();
+    initModeHub(makeTestEnv({ log }));
+    beginBufferingKeyEvents();
+
+    releaseBufferedKeyEvents();
+
+    expect(log).toHaveBeenCalledWith("log", "snippet-lifecycle", "keyBufferReleased", {
+      reason: "direct",
+      bufferedKeys: 0,
+    });
+  });
+
+  it("records the release caused by the safety timeout as a warning", () => {
+    vi.useFakeTimers();
+    try {
+      const log = vi.fn();
+      initModeHub(makeTestEnv({ log }));
+      beginBufferingKeyEvents();
+
+      vi.advanceTimersByTime(3000);
+
+      expect(log).toHaveBeenCalledWith("warn", "snippet-lifecycle", "keyBufferReleased", {
+        reason: "timeout",
+        bufferedKeys: 0,
+      });
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it("reports how many key events were held when the buffer was released", () => {
+    const log = vi.fn();
+    initModeHub(makeTestEnv({ log }));
+    beginBufferingKeyEvents();
+    window.dispatchEvent(new Event("keydown"));
+    window.dispatchEvent(new Event("keyup"));
+
+    releaseBufferedKeyEvents();
+
+    expect(log).toHaveBeenCalledWith(
+      "log",
+      "snippet-lifecycle",
+      "keyBufferReleased",
+      expect.objectContaining({ bufferedKeys: 2 }),
+    );
+  });
+
+  it("records nothing when the buffer was already released", () => {
+    initModeHub(makeTestEnv());
+    beginBufferingKeyEvents();
+    releaseBufferedKeyEvents();
+    const log = vi.fn();
+    initModeHub(makeTestEnv({ log }));
+
+    releaseBufferedKeyEvents();
+
+    expect(log).not.toHaveBeenCalled();
   });
 });

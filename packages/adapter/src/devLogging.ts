@@ -1,9 +1,10 @@
 import type { LogSink } from "@sk/log";
+import { LOG_LEVELS } from "@sk/log";
 import type { RelayedLogRecord } from "@sk/log/relay";
 import { DEV_LOG_ACTION, toTransferable } from "@sk/log/relay";
 import { captureUncaught } from "@sk/log/uncaught";
 
-import { addLogSink, LOG } from "./log";
+import { addLogSink, LOG, setDefaultLevels } from "./log";
 
 function relaySink(context: string): LogSink {
   return (level, ...args) => {
@@ -28,14 +29,17 @@ function relaySink(context: string): LogSink {
 }
 
 /**
- * Start relaying this context's log records and uncaught errors to the background, returning a
- * disposer.
+ * Start relaying this context's log records and uncaught errors to the background with every level
+ * enabled unless the stored level list says otherwise, returning a disposer.
  *
  * Content scripts cannot reach the collector themselves: their fetches carry the page's origin and
  * are refused by CORS and the private-network checks a localhost endpoint triggers. The background
  * is the one context with an unrestricted fetch, so it owns the single exit point.
  */
 function enableDevLogging(context: string): () => void {
+  // This module is reached only from a development build, so its presence is what decides that the
+  // quiet production default does not apply; no package can read the build mode itself.
+  const restoreLevels = setDefaultLevels(LOG_LEVELS);
   const removeSink = addLogSink(relaySink(context));
   // The isolated world receives the page's error events too, so only errors attributable to a
   // script served from the extension itself are reported.
@@ -43,6 +47,7 @@ function enableDevLogging(context: string): () => void {
   return () => {
     removeSink();
     stopCapture();
+    restoreLevels();
   };
 }
 

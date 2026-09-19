@@ -246,8 +246,21 @@ export function createSettings(deps: SettingsDeps): SettingsUnit {
     return { status: "Failed" };
   }
 
+  function logRegistration(
+    outcome:
+      | "registered"
+      | "reregistered"
+      | "unchanged"
+      | "unregistered"
+      | "absent"
+      | "unavailable",
+  ): void {
+    LOG("log", "snippet-lifecycle", "userScriptRegistration", { outcome });
+  }
+
   async function registerUserScript(snippets: unknown): Promise<void> {
     if (!isUserScriptsAvailable()) {
+      logRegistration("unavailable");
       return;
     }
     const userScriptId = "settingsSnippets";
@@ -268,14 +281,21 @@ export function createSettings(deps: SettingsDeps): SettingsUnit {
         if (registered?.js?.[0]?.code !== code || registered.runAt !== script.runAt) {
           await chrome.userScripts.unregister({ ids: [userScriptId] });
           await chrome.userScripts.register([script]);
+          logRegistration("reregistered");
+        } else {
+          logRegistration("unchanged");
         }
       } else {
         await chrome.userScripts.register([script]);
+        logRegistration("registered");
       }
     } else {
       const r = await chrome.userScripts.getScripts({ ids: [userScriptId] });
       if (r.length > 0) {
         await chrome.userScripts.unregister({ ids: [userScriptId] });
+        logRegistration("unregistered");
+      } else {
+        logRegistration("absent");
       }
     }
   }
@@ -299,8 +319,14 @@ export function createSettings(deps: SettingsDeps): SettingsUnit {
   async function onFullSettingsRequested(data: Record<string, unknown>): Promise<void> {
     data["isMV3"] = isMV3;
     data["isUserScriptsAvailable"] = isUserScriptsAvailable();
+    const wasAdvanced = Boolean(data["showAdvanced"]);
     if (isMV3) {
       data["showAdvanced"] = data["isUserScriptsAvailable"] && data["showAdvanced"];
+    }
+    if (wasAdvanced && !data["showAdvanced"]) {
+      LOG("log", "snippet-lifecycle", "advancedModeForcedOff", {
+        isUserScriptsAvailable: data["isUserScriptsAvailable"],
+      });
     }
 
     if (data["isUserScriptsAvailable"] && data["showAdvanced"]) {

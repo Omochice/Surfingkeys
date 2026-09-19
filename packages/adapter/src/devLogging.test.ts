@@ -131,3 +131,34 @@ describe("enableDevLogging", () => {
     expect(sendMessage).not.toHaveBeenCalled();
   });
 });
+
+describe("enableDevLogging default log levels", () => {
+  beforeEach(() => {
+    restoreStorage();
+    restoreStorage = stubStorageGet({});
+  });
+
+  it("relays a record of every level while nothing is stored", async () => {
+    const dispose = enableDevLogging("content");
+
+    const { LOG } = await import("./log");
+    LOG("log", "chatter");
+    await flush();
+
+    expect(relayed()?.level).toBe("log");
+    dispose();
+  });
+
+  it("enables errors only again once the returned disposer has run", async () => {
+    enableDevLogging("content")();
+
+    const { LOG, addLogSink } = await import("./log");
+    const sink = vi.fn();
+    const removeSink = addLogSink(sink);
+    LOG("log", "chatter");
+    await flush();
+
+    expect(sink).not.toHaveBeenCalled();
+    removeSink();
+  });
+});

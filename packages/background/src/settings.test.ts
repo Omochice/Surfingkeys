@@ -11,6 +11,11 @@ import { save, createSettings, extendObject, getSubSettings } from "./settings";
 const { mockRequest } = vi.hoisted(() => ({ mockRequest: vi.fn() }));
 vi.mock("./request.js", () => ({ request: mockRequest }));
 
+// The logger gates on chrome.storage and writes to the console; mock it so the emitted records are
+// observable synchronously.
+const { mockLog } = vi.hoisted(() => ({ mockLog: vi.fn() }));
+vi.mock("./log.js", () => ({ LOG: mockLog }));
+
 type AnyChrome = { runtime?: any; storage?: any; tabs?: any; userScripts?: any; windows?: any };
 const g = globalThis as unknown as { chrome: AnyChrome };
 const defaultStorage = g.chrome.storage;
@@ -36,6 +41,7 @@ afterEach(() => {
   delete g.chrome.userScripts;
   delete g.chrome.windows;
   mockRequest.mockReset();
+  mockLog.mockReset();
 });
 
 function makeUnit(over: Partial<SettingsDeps> = {}) {
@@ -303,11 +309,8 @@ describe("createSettings — updateSettings", () => {
     // sync write can reject (e.g. sync quota). That rejection must be caught and
     // logged rather than surfacing as an unhandled rejection that can terminate
     // the service worker.
-    const errorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
     const localSet = vi.fn().mockResolvedValue(undefined);
     const syncSet = vi.fn().mockRejectedValue(new Error("QUOTA_BYTES quota exceeded"));
-    // The logger reads its enabled levels from local storage, so the replacement stub has to
-    // answer that read for the logged failure to reach the console spy.
     g.chrome.storage = {
       local: { set: localSet, get: storageGetStub({}) },
       sync: { set: syncSet },
@@ -320,8 +323,9 @@ describe("createSettings — updateSettings", () => {
     const result = await updateSettings({ settings: { theme: "dark" } }, {}, vi.fn());
 
     expect(result).toEqual({ error: "" });
-    await vi.waitFor(() => expect(errorSpy).toHaveBeenCalled());
-    errorSpy.mockRestore();
+    await vi.waitFor(() =>
+      expect(mockLog).toHaveBeenCalledWith("error", "Failed to sync settings:", expect.any(Error)),
+    );
   });
 });
 
@@ -1021,7 +1025,6 @@ describe("createSettings — getSettings when user-script registration fails", (
   });
 
   it("logs the failure at the error level with its cause", async () => {
-    const errorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
     const cause = new Error("No changes to loaded scripts would result from this operation.");
     const { unit } = stubFailingRegistration(cause);
 
@@ -1029,8 +1032,7 @@ describe("createSettings — getSettings when user-script registration fails", (
     expectDefined(getSettings);
     await getSettings({ key: null }, {}, vi.fn());
 
-    await vi.waitFor(() => expect(errorSpy).toHaveBeenCalledWith(expect.any(String), cause));
-    errorSpy.mockRestore();
+    expect(mockLog).toHaveBeenCalledWith("error", expect.any(String), cause);
   });
 });
 
@@ -1354,5 +1356,141 @@ describe("createSettings — registerUserScript register/unregister branches", (
     await expect(
       loadSettingsFromUrl({ url: "http://example.com/settings.js" }, {}, vi.fn()),
     ).rejects.toThrow("No changes to loaded scripts");
+  });
+});
+
+describe("createSettings — snippet lifecycle logging", () => {
+  function stubChromeForRegistration(getScripts: ReturnType<typeof vi.fn>) {
+    g.chrome.userScripts = {
+      configureWorld: vi.fn(),
+      getScripts,
+      register: vi.fn(),
+      unregister: vi.fn(),
+    };
+    g.chrome.storage = { local: { set: vi.fn() }, sync: { set: vi.fn() } };
+    g.chrome.tabs = { query: vi.fn().mockResolvedValue([]) };
+    g.chrome.runtime = {
+      ...g.chrome.runtime,
+      getManifest: () => ({ manifest_version: 2 }),
+      getURL: () => "chrome-extension://abc/",
+    };
+  }
+
+  async function loadSnippetsFromUrl(snippets: string) {
+    mockRequest.mockResolvedValue(Result.succeed(snippets));
+    const { unit } = makeUnit();
+    const loadSettingsFromUrl = unit.handlers["loadSettingsFromUrl"];
+    expectDefined(loadSettingsFromUrl);
+    await loadSettingsFromUrl({ url: "http://example.com/settings.js" }, {}, vi.fn());
+  }
+
+  async function requestFullSettings(stored: Record<string, unknown>) {
+    const { unit } = makeUnit({
+      browser: { loadRawSettings: vi.fn().mockResolvedValue({ ...stored }) },
+    });
+    const getSettings = unit.handlers["getSettings"];
+    expectDefined(getSettings);
+    await getSettings({}, {}, vi.fn());
+  }
+
+  function registrationOutcomes() {
+    return mockLog.mock.calls
+      .filter(([, prefix, milestone]) => {
+        return prefix === "snippet-lifecycle" && milestone === "userScriptRegistration";
+      })
+      .map(([, , , details]) => details.outcome);
+  }
+
+  it("records a first-time registration", async () => {
+    stubChromeForRegistration(vi.fn().mockResolvedValue([]));
+
+    await loadSnippetsFromUrl("FRESH_SNIPPETS");
+
+    expect(registrationOutcomes()).toEqual(["registered"]);
+  });
+
+  it("records a re-registration when the stored script code differs", async () => {
+    stubChromeForRegistration(vi.fn().mockResolvedValue([{ js: [{ code: "/* stale */" }] }]));
+
+    await loadSnippetsFromUrl("NEW_SNIPPETS");
+
+    expect(registrationOutcomes()).toEqual(["reregistered"]);
+  });
+
+  it("records that an identical stored script was left alone", async () => {
+    const snippets = "SAME_SNIPPETS";
+    const code = `import('./api.js').then((module) => {module.default("chrome-extension://abc/", (api, settings) => {${snippets}\n})});`;
+    stubChromeForRegistration(
+      vi.fn().mockResolvedValue([{ js: [{ code }], runAt: "document_start" }]),
+    );
+
+    await loadSnippetsFromUrl(snippets);
+
+    expect(registrationOutcomes()).toEqual(["unchanged"]);
+  });
+
+  it("records an unregistration when there are no snippets but a script is stored", async () => {
+    stubChromeForRegistration(vi.fn().mockResolvedValue([{ js: [{ code: "/* old */" }] }]));
+
+    await requestFullSettings({ showAdvanced: false });
+
+    expect(registrationOutcomes()).toEqual(["unregistered"]);
+  });
+
+  it("records that there was nothing to unregister", async () => {
+    stubChromeForRegistration(vi.fn().mockResolvedValue([]));
+
+    await requestFullSettings({ showAdvanced: false });
+
+    expect(registrationOutcomes()).toEqual(["absent"]);
+  });
+
+  it("records that the userScripts API was unavailable", async () => {
+    g.chrome.storage = { local: { set: vi.fn() }, sync: { set: vi.fn() } };
+    g.chrome.tabs = { query: vi.fn().mockResolvedValue([]) };
+
+    await loadSnippetsFromUrl("SNIPPETS");
+
+    expect(registrationOutcomes()).toEqual(["unavailable"]);
+  });
+
+  function forcedOffRecords() {
+    return mockLog.mock.calls.filter(([, prefix, milestone]) => {
+      return prefix === "snippet-lifecycle" && milestone === "advancedModeForcedOff";
+    });
+  }
+
+  it("records advanced mode being forced off when user scripts are unavailable", async () => {
+    g.chrome.storage = { local: { set: vi.fn() }, sync: { set: vi.fn() } };
+
+    await requestFullSettings({ showAdvanced: true });
+
+    expect(forcedOffRecords()).toHaveLength(1);
+  });
+
+  it("stays silent when advanced mode was already off", async () => {
+    g.chrome.storage = { local: { set: vi.fn() }, sync: { set: vi.fn() } };
+
+    await requestFullSettings({ showAdvanced: false });
+
+    expect(forcedOffRecords()).toHaveLength(0);
+  });
+
+  it("stays silent under MV2, where advanced mode is never forced off", async () => {
+    g.chrome.storage = { local: { set: vi.fn() }, sync: { set: vi.fn() } };
+    g.chrome.runtime = { ...g.chrome.runtime, getManifest: () => ({ manifest_version: 2 }) };
+
+    await requestFullSettings({ showAdvanced: true });
+
+    expect(forcedOffRecords()).toHaveLength(0);
+  });
+
+  it("stays silent when advanced mode survives because user scripts are available", async () => {
+    stubChromeForRegistration(vi.fn().mockResolvedValue([]));
+    g.chrome.runtime = { ...g.chrome.runtime, getManifest: () => ({ manifest_version: 3 }) };
+
+    await requestFullSettings({ showAdvanced: true, snippets: "SNIPPET" });
+
+    expect(forcedOffRecords()).toHaveLength(0);
   });
 });

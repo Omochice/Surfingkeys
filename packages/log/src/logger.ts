@@ -59,12 +59,18 @@ const DEFAULT_LEVELS: readonly LogLevel[] = ["error"];
 
 /**
  * Build a level gate deciding from a stored list of level names, treating a stored value that is
- * not an array as unset.
+ * not an array as unset and falling back to the levels `readFallback` reports.
+ *
+ * The fallback is a getter rather than a value so a host that lowers it later is honoured on the
+ * next record instead of only by gates built afterwards.
  */
-function storedLevelGate(read: () => Promise<unknown>): (level: LogLevel) => Promise<boolean> {
+function storedLevelGate(
+  read: () => Promise<unknown>,
+  readFallback: () => readonly LogLevel[] = () => DEFAULT_LEVELS,
+): (level: LogLevel) => Promise<boolean> {
   return async (level) => {
     const raw = await read();
-    const levels: readonly unknown[] = Array.isArray(raw) ? raw : DEFAULT_LEVELS;
+    const levels: readonly unknown[] = Array.isArray(raw) ? raw : readFallback();
     return levels.includes(level);
   };
 }
@@ -75,18 +81,31 @@ type HostLogger = {
   log: Logger;
   /** Attaches a destination, returning a disposer that detaches it again. */
   addLogSink: (sink: LogSink) => () => void;
+  /**
+   * Replaces the levels enabled while nothing is stored, returning a disposer that puts the
+   * previous ones back. A stored list still wins over them.
+   */
+  setDefaultLevels: (levels: readonly LogLevel[]) => () => void;
 };
 
 /**
  * Build a console-writing logger together with the registry of its sinks.
  *
- * The sink list is owned here and mutated rather than passed at construction, so destinations can
- * be attached after the logger has been handed out.
+ * The sink list and the fallback levels are owned here and mutated rather than passed at
+ * construction, so both can be changed after the logger has been handed out.
  */
 function createHostLogger(read: () => Promise<unknown>): HostLogger {
   const sinks: LogSink[] = [consoleSink];
+  let defaultLevels = DEFAULT_LEVELS;
   return {
-    log: createLogger({ sinks, isEnabled: storedLevelGate(read) }),
+    log: createLogger({ sinks, isEnabled: storedLevelGate(read, () => defaultLevels) }),
+    setDefaultLevels: (levels) => {
+      const previous = defaultLevels;
+      defaultLevels = levels;
+      return () => {
+        defaultLevels = previous;
+      };
+    },
     addLogSink: (sink) => {
       sinks.push(sink);
       return () => {
