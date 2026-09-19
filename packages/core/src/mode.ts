@@ -30,7 +30,7 @@ let settingsReady = true;
 let bufferedKeyEvents: { name: "keydown" | "keyup"; event: StackEvent }[] = [];
 let bufferReleaseTimer: ReturnType<typeof setTimeout> | undefined;
 
-// Safety net: release the buffer even if userSettingsLoaded never arrives (e.g. the background
+// Safety net: release the buffer even if userSettingsApplied never arrives (e.g. the background
 // never responds), so keys can never be held indefinitely.
 const SETTINGS_BUFFER_TIMEOUT_MS = 3000;
 
@@ -124,7 +124,7 @@ export function releaseBufferedKeyEvents(): void {
   }
   // When released via the safety timeout or a direct call, the once-listener never fired and so is
   // still registered.
-  document.removeEventListener("surfingkeys:userSettingsLoaded", releaseBufferedKeyEvents);
+  document.removeEventListener("surfingkeys:userSettingsApplied", releaseBufferedKeyEvents);
   settingsReady = true;
   const buffered = bufferedKeyEvents;
   bufferedKeyEvents = [];
@@ -139,12 +139,12 @@ export function releaseBufferedKeyEvents(): void {
 
 /**
  * Start buffering key events until the user's settings are applied; the buffer is released on the
- * userSettingsLoaded event or the safety timeout.
+ * userSettingsApplied event or the safety timeout.
  */
 export function beginBufferingKeyEvents(): void {
   settingsReady = false;
   bufferedKeyEvents = [];
-  document.addEventListener("surfingkeys:userSettingsLoaded", releaseBufferedKeyEvents, {
+  document.addEventListener("surfingkeys:userSettingsApplied", releaseBufferedKeyEvents, {
     once: true,
   });
   bufferReleaseTimer = setTimeout(releaseBufferedKeyEvents, SETTINGS_BUFFER_TIMEOUT_MS);
