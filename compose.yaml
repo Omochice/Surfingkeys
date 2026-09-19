@@ -33,6 +33,7 @@ services:
       ]
     environment:
       GRAFANA_URL: http://lgtm:3000
+      GRAFANA_ORG_ID: "1"
     ports:
       - "127.0.0.1:8000:8000"
     depends_on:
