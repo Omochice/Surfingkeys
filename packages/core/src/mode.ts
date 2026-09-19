@@ -113,8 +113,9 @@ function bufferKeyEvent(name: "keydown" | "keyup", event: StackEvent): void {
   bufferedKeyEvents.push({ name, event });
 }
 
-/** Stop buffering and replay the held key events in press order. */
-export function releaseBufferedKeyEvents(): void {
+type BufferReleaseReason = "userSettingsApplied" | "timeout" | "direct";
+
+function releaseBuffer(_reason: BufferReleaseReason): void {
   if (settingsReady) {
     return;
   }
@@ -124,7 +125,7 @@ export function releaseBufferedKeyEvents(): void {
   }
   // When released via the safety timeout or a direct call, the once-listener never fired and so is
   // still registered.
-  document.removeEventListener("surfingkeys:userSettingsApplied", releaseBufferedKeyEvents);
+  document.removeEventListener("surfingkeys:userSettingsApplied", onUserSettingsApplied);
   settingsReady = true;
   const buffered = bufferedKeyEvents;
   bufferedKeyEvents = [];
@@ -137,6 +138,18 @@ export function releaseBufferedKeyEvents(): void {
   }
 }
 
+// A module-level listener rather than a closure per beginBufferingKeyEvents call: the same frame
+// begins buffering more than once, and only an identical reference keeps the registration deduped
+// and removable.
+function onUserSettingsApplied(): void {
+  releaseBuffer("userSettingsApplied");
+}
+
+/** Stop buffering and replay the held key events in press order. */
+export function releaseBufferedKeyEvents(): void {
+  releaseBuffer("direct");
+}
+
 /**
  * Start buffering key events until the user's settings are applied; the buffer is released on the
  * userSettingsApplied event or the safety timeout.
@@ -144,10 +157,12 @@ export function releaseBufferedKeyEvents(): void {
 export function beginBufferingKeyEvents(): void {
   settingsReady = false;
   bufferedKeyEvents = [];
-  document.addEventListener("surfingkeys:userSettingsApplied", releaseBufferedKeyEvents, {
+  document.addEventListener("surfingkeys:userSettingsApplied", onUserSettingsApplied, {
     once: true,
   });
-  bufferReleaseTimer = setTimeout(releaseBufferedKeyEvents, SETTINGS_BUFFER_TIMEOUT_MS);
+  bufferReleaseTimer = setTimeout(() => {
+    releaseBuffer("timeout");
+  }, SETTINGS_BUFFER_TIMEOUT_MS);
 }
 
 function init(cb?: () => void): void {

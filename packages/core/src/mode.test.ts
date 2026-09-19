@@ -1,4 +1,5 @@
 import { Result } from "@praha/byethrow";
+import { expectDefined } from "@sk/test-support/helpers";
 import * as fc from "fast-check";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -404,13 +405,16 @@ describe("key buffering before user settings are applied", () => {
 
   it("removes the userSettingsApplied listener when the buffer is released", () => {
     initModeHub(makeTestEnv());
+    const addEventListener = vi.spyOn(document, "addEventListener");
     const removeEventListener = vi.spyOn(document, "removeEventListener");
     beginBufferingKeyEvents();
-    releaseBufferedKeyEvents();
-    expect(removeEventListener).toHaveBeenCalledWith(
-      "surfingkeys:userSettingsApplied",
-      releaseBufferedKeyEvents,
+    const added = addEventListener.mock.calls.find(
+      ([name]) => name === "surfingkeys:userSettingsApplied",
     );
+    expectDefined(added);
+    releaseBufferedKeyEvents();
+    expect(removeEventListener).toHaveBeenCalledWith("surfingkeys:userSettingsApplied", added[1]);
+    addEventListener.mockRestore();
     removeEventListener.mockRestore();
   });
 
