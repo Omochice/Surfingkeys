@@ -2,7 +2,12 @@ import Trie from "@sk/core/trie";
 import { runtime } from "@sk/messaging/runtime";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-import { applyBasicMappings, applySettings, ensureRegex } from "./settingsApplication";
+import {
+  applyBasicMappings,
+  applySettings,
+  ensureRegex,
+  snippetsPendingFor,
+} from "./settingsApplication";
 
 // The fakes expose only what the helpers call; `any` keeps the structural surplus of the real
 // Api/Normal types from forcing a full implementation.
@@ -280,5 +285,19 @@ describe("applySettings userSettingsApplied event", () => {
     });
 
     expect(applied).not.toHaveBeenCalled();
+  });
+});
+
+describe("snippetsPendingFor", () => {
+  it("is pending when advanced mode carries a snippet", () => {
+    expect(snippetsPendingFor({ showAdvanced: true, snippets: "api.map('H', 'S');" })).toBe(true);
+  });
+
+  it("is not pending when advanced mode is off", () => {
+    expect(snippetsPendingFor({ showAdvanced: false, snippets: "api.map('H', 'S');" })).toBe(false);
+  });
+
+  it("is not pending when advanced mode carries no snippet", () => {
+    expect(snippetsPendingFor({ showAdvanced: true })).toBe(false);
   });
 });
