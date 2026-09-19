@@ -79,6 +79,37 @@ describe("enableDevLogging", () => {
   });
 });
 
+describe("enableDevLogging default log levels", () => {
+  beforeEach(() => {
+    restoreStorage();
+    restoreStorage = stubStorageGet({});
+  });
+
+  it("posts a record of every level while nothing is stored", async () => {
+    const dispose = enableDevLogging(new EventTarget());
+
+    const { LOG } = await import("./log");
+    LOG("log", "chatter");
+    await flush();
+
+    expect(postedRecord().body.stringValue).toBe("chatter");
+    dispose();
+  });
+
+  it("enables errors only again once the returned disposer has run", async () => {
+    enableDevLogging(new EventTarget())();
+
+    const { LOG, addLogSink } = await import("./log");
+    const sink = vi.fn();
+    const removeSink = addLogSink(sink);
+    LOG("log", "chatter");
+    await flush();
+    removeSink();
+
+    expect(sink).not.toHaveBeenCalled();
+  });
+});
+
 describe("handleRelayedLog", () => {
   it("posts a relayed record under the context it came from", () => {
     handleRelayedLog({

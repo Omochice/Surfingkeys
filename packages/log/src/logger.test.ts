@@ -299,3 +299,70 @@ describe("storedLevelGate", () => {
     expect(read).toHaveBeenCalledTimes(2);
   });
 });
+
+describe("createHostLogger default levels", () => {
+  it("enables error only while the default levels are untouched", async () => {
+    const consoleLog = vi.spyOn(console, "log").mockImplementation(() => {});
+    const error = vi.spyOn(console, "error").mockImplementation(() => {});
+    const { log } = createHostLogger(async () => undefined);
+
+    log("log", "chatter");
+    log("error", "boom");
+    await flush();
+
+    expect(consoleLog).not.toHaveBeenCalled();
+    expect(error).toHaveBeenCalledExactlyOnceWith("boom");
+    consoleLog.mockRestore();
+    error.mockRestore();
+  });
+
+  it("enables a lowered default level when nothing is stored", async () => {
+    const consoleLog = vi.spyOn(console, "log").mockImplementation(() => {});
+    const { log, setDefaultLevels } = createHostLogger(async () => undefined);
+
+    setDefaultLevels(["log", "warn", "error"]);
+    log("log", "chatter");
+    await flush();
+
+    expect(consoleLog).toHaveBeenCalledExactlyOnceWith("chatter");
+    consoleLog.mockRestore();
+  });
+
+  it("lets a stored list override the lowered default", async () => {
+    const consoleLog = vi.spyOn(console, "log").mockImplementation(() => {});
+    const { log, setDefaultLevels } = createHostLogger(async () => ["error"]);
+
+    setDefaultLevels(["log", "warn", "error"]);
+    log("log", "chatter");
+    await flush();
+
+    expect(consoleLog).not.toHaveBeenCalled();
+    consoleLog.mockRestore();
+  });
+
+  it("restores the previous default levels through the returned disposer", async () => {
+    const consoleLog = vi.spyOn(console, "log").mockImplementation(() => {});
+    const { log, setDefaultLevels } = createHostLogger(async () => undefined);
+
+    setDefaultLevels(["log", "warn", "error"])();
+    log("log", "chatter");
+    await flush();
+
+    expect(consoleLog).not.toHaveBeenCalled();
+    consoleLog.mockRestore();
+  });
+});
+
+describe("storedLevelGate fallback levels", () => {
+  it("falls back to the levels the getter reports when nothing is stored", async () => {
+    let fallback: readonly LogLevel[] = ["error"];
+    const gate = storedLevelGate(
+      async () => undefined,
+      () => fallback,
+    );
+
+    expect(await gate("log")).toBe(false);
+    fallback = ["log"];
+    expect(await gate("log")).toBe(true);
+  });
+});

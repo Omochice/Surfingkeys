@@ -5,7 +5,7 @@ import type { UncaughtEventTarget } from "@sk/log/uncaught";
 import { captureUncaught } from "@sk/log/uncaught";
 import * as v from "valibot";
 
-import { addLogSink, LOG } from "./log";
+import { addLogSink, LOG, setDefaultLevels } from "./log";
 
 // The relayed envelope crosses the extension messaging boundary, so its shape is validated rather
 // than trusted; a content script of any page can send anything under this action.
@@ -21,8 +21,8 @@ type DevLogging = {
   /** Emit a log record relayed by another extension context, ignoring anything else. */
   handleRelayedLog: (message: unknown) => void;
   /**
-   * Start reporting the background's own records and uncaught errors to the collector, returning a
-   * disposer.
+   * Start reporting the background's own records and uncaught errors to the collector with every
+   * level enabled unless the stored level list says otherwise, returning a disposer.
    */
   enableDevLogging: (target: UncaughtEventTarget) => () => void;
 };
@@ -40,12 +40,16 @@ function createDevLogging(url: string): DevLogging {
       sink(record.level, ...record.args);
     },
     enableDevLogging: (target) => {
+      // This module is reached only from a development build, so its presence is what decides that
+      // the quiet production default does not apply; no package can read the build mode itself.
+      const restoreLevels = setDefaultLevels(LOG_LEVELS);
       const sink = otlpSink({ url, resourceAttributes: { "sk.context": "background" } });
       const removeSink = addLogSink(sink);
       const stopCapture = captureUncaught(target, LOG);
       return () => {
         removeSink();
         stopCapture();
+        restoreLevels();
       };
     },
   };
