@@ -26,10 +26,10 @@ type Mapkey = (
 
 /** Maps a key sequence to the action another key sequence already has. */
 type Remap = (
-  new_keystroke: string,
-  old_keystroke: string,
+  newKeystroke: string,
+  oldKeystroke: string,
   domain?: RegExp,
-  new_annotation?: string,
+  newAnnotation?: string,
 ) => void;
 
 /** Removes the mapping of a key sequence in one mode. */
@@ -44,26 +44,22 @@ export type UserScriptApi = {
     callback?: (response: R) => void,
   ) => void;
   /**
-   * Adds a search engine reachable from the omnibar and from `search_leader_key` + `alias`.
+   * Adds a search engine reachable from the omnibar and from `searchLeaderKey` + `alias`.
    *
    * @throws When `alias` contains a non-ASCII character.
    */
   addSearchAlias: (
     alias: string,
     prompt: string,
-    search_url: string,
-    search_leader_key?: string,
-    suggestion_url?: string,
-    callback_to_parse_suggestion?: (response: unknown, request: unknown) => unknown,
-    only_this_site_key?: string,
+    searchUrl: string,
+    searchLeaderKey?: string,
+    suggestionUrl?: string,
+    callbackToParseSuggestion?: (response: unknown, request: unknown) => unknown,
+    onlyThisSiteKey?: string,
     options?: Record<string, unknown>,
   ) => void;
   /** Removes a search engine added by `addSearchAlias`. */
-  removeSearchAlias: (
-    alias: string,
-    search_leader_key?: string,
-    only_this_site_key?: string,
-  ) => void;
+  removeSearchAlias: (alias: string, searchLeaderKey?: string, onlyThisSiteKey?: string) => void;
   /**
    * Searches the selected text, or the clipboard when nothing is selected.
    *
