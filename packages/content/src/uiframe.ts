@@ -32,13 +32,13 @@ const isUsableTargetOrigin = (origin: string | undefined): origin is string =>
 
 type BrowserLike = {
   getBackFocusFromFrontend?: () => void;
-  focusFrontend?: (ifr: HTMLIFrameElement) => void;
+  focusFrontend?: (iframe: HTMLIFrameElement) => void;
 };
 export type UiHost = HTMLDivElement & { tryDetach(): void };
 type ActiveContent = { window: Window; origin: string } | null;
 
 function createUiHost(adapter: BrowserLike, onload: (uiHost: UiHost) => void): void {
-  // tryDetach closes over `ifr`, so it is wired up below; the stub keeps the value a UiHost from
+  // tryDetach closes over `iframe`, so it is wired up below; the stub keeps the value a UiHost from
   // the start without a cast.
   const uiHost: UiHost = Object.assign(document.createElement("div"), {
     tryDetach: (): void => {},
@@ -47,21 +47,21 @@ function createUiHost(adapter: BrowserLike, onload: (uiHost: UiHost) => void): v
   uiHost.style.opacity = "1";
   uiHost.style.colorScheme = "light";
   const frontEndURL = chrome.runtime.getURL("frontend.html");
-  const ifr = document.createElement("iframe");
-  ifr.setAttribute("allowtransparency", "true");
-  ifr.setAttribute("frameborder", "0");
-  ifr.setAttribute("scrolling", "no");
-  ifr.setAttribute("class", "sk_ui");
-  ifr.setAttribute("src", frontEndURL);
-  ifr.setAttribute("title", "Surfingkeys");
-  ifr.style.position = "fixed";
-  ifr.style.left = "0";
-  ifr.style.bottom = "0";
-  ifr.style.width = "100%";
-  ifr.style.height = "0";
-  ifr.style.zIndex = "2147483647";
+  const iframe = document.createElement("iframe");
+  iframe.setAttribute("allowtransparency", "true");
+  iframe.setAttribute("frameborder", "0");
+  iframe.setAttribute("scrolling", "no");
+  iframe.setAttribute("class", "sk_ui");
+  iframe.setAttribute("src", frontEndURL);
+  iframe.setAttribute("title", "Surfingkeys");
+  iframe.style.position = "fixed";
+  iframe.style.left = "0";
+  iframe.style.bottom = "0";
+  iframe.style.width = "100%";
+  iframe.style.height = "0";
+  iframe.style.zIndex = "2147483647";
   uiHost.attachShadow({ mode: "open" });
-  uiHost.shadowRoot!.appendChild(ifr);
+  uiHost.shadowRoot!.appendChild(iframe);
 
   function onWindowMessage(event: MessageEvent): void {
     const parsed = v.safeParse(uihostMessageEnvelopeSchema, event.data);
@@ -70,7 +70,7 @@ function createUiHost(adapter: BrowserLike, onload: (uiHost: UiHost) => void): v
     }
     const message = parsed.output.surfingkeys_uihost_data;
     if (message.toFrontend) {
-      ifr.contentWindow!.postMessage({ surfingkeys_frontend_data: message }, frontEndURL);
+      iframe.contentWindow!.postMessage({ surfingkeys_frontend_data: message }, frontEndURL);
       if (
         message.toFrontend &&
         event.source &&
@@ -119,10 +119,10 @@ function createUiHost(adapter: BrowserLike, onload: (uiHost: UiHost) => void): v
     event.stopImmediatePropagation();
   }
 
-  ifr.addEventListener(
+  iframe.addEventListener(
     "load",
     () => {
-      ifr.contentWindow!.postMessage(
+      iframe.contentWindow!.postMessage(
         {
           surfingkeys_frontend_data: {
             action: "initFrontend",
@@ -155,13 +155,13 @@ function createUiHost(adapter: BrowserLike, onload: (uiHost: UiHost) => void): v
       return;
     }
     const response = parsed.output;
-    ifr.style.height = response.frameHeight;
+    iframe.style.height = response.frameHeight;
     if (response.pointerEvents) {
-      ifr.style.pointerEvents = response.pointerEvents;
+      iframe.style.pointerEvents = response.pointerEvents;
     }
     if (response.pointerEvents === "none") {
       uiHost.blur();
-      ifr.blur();
+      iframe.blur();
       // test with https://docs.google.com/ and https://web.whatsapp.com/
       if (lastStateOfPointerEvents !== response.pointerEvents && activeContent) {
         if (adapter.getBackFocusFromFrontend) {
@@ -183,7 +183,7 @@ function createUiHost(adapter: BrowserLike, onload: (uiHost: UiHost) => void): v
       }
     } else {
       if (adapter.focusFrontend) {
-        adapter.focusFrontend(ifr);
+        adapter.focusFrontend(iframe);
       }
       if (document.body) {
         document.body.style.animationFillMode = "none";
@@ -197,7 +197,7 @@ function createUiHost(adapter: BrowserLike, onload: (uiHost: UiHost) => void): v
   };
 
   uiHost.tryDetach = () => {
-    ifr.contentWindow!.postMessage(
+    iframe.contentWindow!.postMessage(
       {
         surfingkeys_frontend_data: {
           action: "destroyFrontend",
