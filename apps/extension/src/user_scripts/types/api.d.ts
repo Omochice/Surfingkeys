@@ -186,7 +186,7 @@ export type UserScriptSettings = {
   /** Sites matching this have Surfingkeys disabled. */
   blocklistPattern?: RegExp;
   /** Limits hint generation on entering visual mode to `[top, left, bottom, right]`. */
-  caretViewport?: number[] | null;
+  caretViewport?: [number, number, number, number] | null;
   /** Whether finding in the page and the omnibar is case sensitive. */
   caseSensitive?: boolean;
   /** Detects clickable links in text, which `O` then opens. */

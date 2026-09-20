@@ -59,7 +59,7 @@ type RuntimeConf = {
   ignoredFrameHosts: string[];
   scrollFriction: number;
   /** Limits visual-mode hints to `[top, left, bottom, right]`. */
-  caretViewport: number[] | null;
+  caretViewport: [number, number, number, number] | null;
   /** Window origins where a mouse text selection is turned into a search query. */
   mouseSelectToQuery: string[];
 };

@@ -19,6 +19,12 @@ describe("a settings snippet", () => {
     settings.hintAlign = "top";
   });
 
+  test("rejects a caretViewport that does not hold four numbers", () => {
+    settings.caretViewport = [0, 0, window.innerHeight, window.innerWidth];
+    // @ts-expect-error -- the right edge is missing
+    settings.caretViewport = [0, 0, window.innerHeight];
+  });
+
   test("rejects a setting the README does not document", () => {
     expectTypeOf(settings).not.toHaveProperty("noSuchSetting");
   });
