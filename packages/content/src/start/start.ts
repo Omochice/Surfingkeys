@@ -18,10 +18,10 @@ reportOnFail(
     const screen2 = document.querySelector<HTMLElement>("#screen2")!;
 
     document.getElementById("back")!.onclick = () => {
-      const cl = screen2.classList;
-      cl.remove("fadeOut");
-      cl.remove("fadeIn");
-      cl.add("fadeOut");
+      const classList = screen2.classList;
+      classList.remove("fadeOut");
+      classList.remove("fadeIn");
+      classList.add("fadeOut");
       screen2.addEventListener(
         "animationend",
         () => {
@@ -34,10 +34,10 @@ reportOnFail(
     };
 
     document.querySelector<HTMLElement>("#show-full-list-of-surfingkeys>a")!.onclick = () => {
-      const cl = screen1.classList;
-      cl.remove("fadeOut");
-      cl.remove("fadeIn");
-      cl.add("fadeOut");
+      const classList = screen1.classList;
+      classList.remove("fadeOut");
+      classList.remove("fadeIn");
+      classList.add("fadeOut");
       screen1.addEventListener(
         "animationend",
         () => {
@@ -66,10 +66,10 @@ document.addEventListener("surfingkeys:userSettingsLoaded", (evt) => {
     const randomTip = document.getElementById("randomTip")!;
     setInterval(() => {
       const i = Math.floor((Math.random() * 100_000) % keys.length);
-      const cl = randomTip.classList;
-      cl.remove("fadeOut");
-      cl.remove("fadeIn");
-      cl.add("fadeOut");
+      const classList = randomTip.classList;
+      classList.remove("fadeOut");
+      classList.remove("fadeIn");
+      classList.add("fadeOut");
       const tip = keys[i];
       if (tip == null) {
         return;
