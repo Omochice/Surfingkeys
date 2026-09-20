@@ -24,7 +24,7 @@ type RuntimeConf = {
   hintAlign: string;
   hintExplicit: boolean;
   hintShiftNonActive: boolean;
-  historyMUOrder: boolean;
+  historyMostUsedOrder: boolean;
   language: string | undefined;
   lastQuery: string;
   modeAfterYank: string;
@@ -105,7 +105,7 @@ const conf: RuntimeConf = {
   hintAlign: "center",
   hintExplicit: false,
   hintShiftNonActive: false,
-  historyMUOrder: true,
+  historyMostUsedOrder: true,
   language: undefined,
   lastQuery: "",
   modeAfterYank: "",

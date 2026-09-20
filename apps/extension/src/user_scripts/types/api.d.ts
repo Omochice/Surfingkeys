@@ -220,7 +220,7 @@ export type UserScriptSettings = {
   /** Whether the new tab is active after picking a hint while holding shift. */
   hintShiftNonActive?: boolean;
   /** Whether history is listed in most-used order in the omnibar. */
-  historyMUOrder?: boolean;
+  historyMostUsedOrder?: boolean;
   /** Frame origins skipped when `w` cycles through frames. */
   ignoredFrameHosts?: string[];
   /** Network errors for which Surfingkeys shows its own error page; `["*"]` means all. */

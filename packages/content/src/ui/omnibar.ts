@@ -1052,7 +1052,7 @@ function createOmnibar(front: OmnibarFront, clipboard: { write(text: string): vo
             {
               maxResults: self.getHistoryCacheSize(),
               query: self.input.value,
-              sortByMostUsed: runtime.conf.historyMUOrder,
+              sortByMostUsed: runtime.conf.historyMostUsedOrder,
             },
             (response: { history: { title?: string; url?: string }[] }) => {
               resolve(response.history);
@@ -1494,9 +1494,9 @@ function OpenURLs(
   };
 
   self.onReset = () => {
-    runtime.conf.historyMUOrder = !runtime.conf.historyMUOrder;
+    runtime.conf.historyMostUsedOrder = !runtime.conf.historyMostUsedOrder;
     queryFn().then((historyItems) => {
-      const compare = runtime.conf.historyMUOrder
+      const compare = runtime.conf.historyMostUsedOrder
         ? (a: HistoryItem, b: HistoryItem) => (b.visitCount ?? 0) - (a.visitCount ?? 0)
         : (a: HistoryItem, b: HistoryItem) => (b.lastVisitTime ?? 0) - (a.lastVisitTime ?? 0);
       omnibar.listURLs(historyItems.toSorted(compare), false);
