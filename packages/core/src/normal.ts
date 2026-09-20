@@ -59,7 +59,7 @@ type NormalMode = {
   readonly statusLine: string | undefined;
   enter(): void;
   onExit?(): void;
-  passFocus(pf: boolean): void;
+  passFocus(enabled: boolean): void;
   startLurk(): string;
   revertToLurk(): void;
   getLurkMode(): LurkMode | undefined;
@@ -272,8 +272,8 @@ function createNormal(insert: InsertLike, env: EngineEnv): NormalMode {
     },
   });
 
-  const passFocus = (pf: boolean): void => {
-    passFocusFlag = pf;
+  const passFocus = (enabled: boolean): void => {
+    passFocusFlag = enabled;
   };
 
   const startLurk = (): string => {
@@ -596,8 +596,8 @@ function createNormal(insert: InsertLike, env: EngineEnv): NormalMode {
     if (!n.contains(target)) return;
     let index = scrollNodes!.lastIndexOf(target);
     for (let i = scrollNodes!.length - 1; i >= 0 && index === -1; i--) {
-      const sn = scrollNodes![i];
-      if (sn != null && sn !== document.body && sn.contains(target)) {
+      const scrollNode = scrollNodes![i];
+      if (scrollNode != null && scrollNode !== document.body && scrollNode.contains(target)) {
         index = i;
       }
     }
@@ -607,26 +607,26 @@ function createNormal(insert: InsertLike, env: EngineEnv): NormalMode {
   }
 
   const highlightElement = (elm: Element): void => {
-    let rc;
+    let rect;
     if (document.scrollingElement === elm) {
-      rc = {
+      rect = {
         top: 0,
         left: 0,
         width: window.innerWidth,
         height: window.innerHeight,
       };
     } else {
-      rc = elm.getBoundingClientRect();
+      rect = elm.getBoundingClientRect();
     }
     dispatchSKEvent("front", [
       "highlightElement",
       {
         duration: 200,
         rect: {
-          top: rc.top,
-          left: rc.left,
-          width: rc.width,
-          height: rc.height,
+          top: rect.top,
+          left: rect.left,
+          width: rect.width,
+          height: rect.height,
         },
       },
     ]);
@@ -635,11 +635,11 @@ function createNormal(insert: InsertLike, env: EngineEnv): NormalMode {
     scrollNodes = getScrollableElements();
     if (scrollNodes.length > 0) {
       scrollIndex = (scrollIndex + 1) % scrollNodes.length;
-      const sn = scrollNodes[scrollIndex];
-      if (sn != null) {
-        scrollIntoViewIfNeeded(sn);
+      const scrollNode = scrollNodes[scrollIndex];
+      if (scrollNode != null) {
+        scrollIntoViewIfNeeded(scrollNode);
         if (!silent) {
-          self.highlightElement(sn);
+          self.highlightElement(scrollNode);
         }
       }
     }
@@ -692,10 +692,10 @@ function createNormal(insert: InsertLike, env: EngineEnv): NormalMode {
     if (scrollNodes!.length > 0) {
       scrollNode = scrollNodes![scrollIndex]!;
       if (scrollNode !== document.scrollingElement && scrollNode !== document.body) {
-        const br = scrollNode.getBoundingClientRect();
+        const bounds = scrollNode.getBoundingClientRect();
         if (
-          br.width === 0 ||
-          br.height === 0 ||
+          bounds.width === 0 ||
+          bounds.height === 0 ||
           !isElementPartiallyInViewport(scrollNode) ||
           (!hasScroll(scrollNode, "x", 16) && !hasScroll(scrollNode, "y", 16))
         ) {
@@ -842,8 +842,8 @@ function createNormal(insert: InsertLike, env: EngineEnv): NormalMode {
   const feedkeys = (keys: string): void => {
     setTimeout(() => {
       const evt = new Event("keydown");
-      for (const ch of keys) {
-        evt.sk_keyName = ch;
+      for (const char of keys) {
+        evt.sk_keyName = char;
         keymap.handleKey(evt);
       }
     }, 1);
@@ -890,12 +890,12 @@ function createNormal(insert: InsertLike, env: EngineEnv): NormalMode {
         const scrollNode = scrollNodes![scrollIndex]!;
         const helpers = scrollHelpers.get(scrollNode);
         if (helpers?.lastScrollTop != null && helpers.lastScrollLeft != null) {
-          const lt = scrollNode.scrollTop;
-          const ll = scrollNode.scrollLeft;
+          const currentScrollTop = scrollNode.scrollTop;
+          const currentScrollLeft = scrollNode.scrollLeft;
           scrollNode.scrollTop = helpers.lastScrollTop;
           scrollNode.scrollLeft = helpers.lastScrollLeft;
-          helpers.lastScrollTop = lt;
-          helpers.lastScrollLeft = ll;
+          helpers.lastScrollTop = currentScrollTop;
+          helpers.lastScrollLeft = currentScrollLeft;
         }
       }
     } else {
@@ -927,44 +927,54 @@ function createNormal(insert: InsertLike, env: EngineEnv): NormalMode {
       elm.style.borderStyle = "none";
       dispatchSKEvent("front", ["toggleStatus", false]);
 
-      let dx = 0;
-      let dy = 0;
-      let sx: number;
-      let sy: number;
-      let ww: number;
-      let wh: number;
-      const dh = elm.scrollHeight;
-      const dw = elm.scrollWidth;
+      let destinationX = 0;
+      let destinationY = 0;
+      let sourceX: number;
+      let sourceY: number;
+      let viewportWidth: number;
+      let viewportHeight: number;
+      const contentHeight = elm.scrollHeight;
+      const contentWidth = elm.scrollWidth;
       if (elm === document.scrollingElement) {
-        ww = window.innerWidth;
-        wh = window.innerHeight;
-        sx = 0;
-        sy = 0;
+        viewportWidth = window.innerWidth;
+        viewportHeight = window.innerHeight;
+        sourceX = 0;
+        sourceY = 0;
       } else {
-        const br = elm.getBoundingClientRect();
-        const rc: [number, number, number, number] = [
-          Math.max(br.left, 0),
-          Math.max(br.top, 0),
-          Math.min(br.right, window.innerWidth),
-          Math.min(br.bottom, window.innerHeight),
+        const bounds = elm.getBoundingClientRect();
+        const visible: [number, number, number, number] = [
+          Math.max(bounds.left, 0),
+          Math.max(bounds.top, 0),
+          Math.min(bounds.right, window.innerWidth),
+          Math.min(bounds.bottom, window.innerHeight),
         ];
-        ww = rc[2] - rc[0];
-        wh = rc[3] - rc[1];
-        sx = rc[0] * scale;
-        sy = rc[1] * scale;
+        viewportWidth = visible[2] - visible[0];
+        viewportHeight = visible[3] - visible[1];
+        sourceX = visible[0] * scale;
+        sourceY = visible[1] * scale;
       }
-      const sw = ww * scale;
-      const sh = wh * scale;
+      const sourceWidth = viewportWidth * scale;
+      const sourceHeight = viewportHeight * scale;
 
       const canvas = document.createElement("canvas");
-      canvas.width = dw * scale;
-      canvas.height = dh * scale;
+      canvas.width = contentWidth * scale;
+      canvas.height = contentHeight * scale;
       const ctx = canvas.getContext("2d")!;
 
       const img = document.createElement("img");
 
       img.onload = function () {
-        ctx.drawImage(img, sx, sy, sw, sh, dx, dy, sw, sh);
+        ctx.drawImage(
+          img,
+          sourceX,
+          sourceY,
+          sourceWidth,
+          sourceHeight,
+          destinationX,
+          destinationY,
+          sourceWidth,
+          sourceHeight,
+        );
         if (lastScrollTop === elm.scrollTop) {
           if (lastScrollLeft === elm.scrollLeft) {
             dispatchSKEvent("front", ["toggleStatus", true]);
@@ -975,14 +985,14 @@ function createNormal(insert: InsertLike, env: EngineEnv): NormalMode {
           } else {
             lastScrollTop = -1;
             elm.scrollTop = 0;
-            dy = 0;
+            destinationY = 0;
             lastScrollLeft = elm.scrollLeft;
-            if (elm.scrollLeft + 2 * ww < dw) {
-              elm.scrollLeft += ww;
-              dx += ww * scale;
+            if (elm.scrollLeft + 2 * viewportWidth < contentWidth) {
+              elm.scrollLeft += viewportWidth;
+              destinationX += viewportWidth * scale;
             } else {
-              elm.scrollLeft += dw % ww;
-              dx = elm.scrollLeft * scale;
+              elm.scrollLeft += contentWidth % viewportWidth;
+              destinationX = elm.scrollLeft * scale;
             }
             setTimeout(() => {
               RUNTIME("captureVisibleTab", null, (response: { dataUrl: string }) => {
@@ -992,12 +1002,12 @@ function createNormal(insert: InsertLike, env: EngineEnv): NormalMode {
           }
         } else {
           lastScrollTop = elm.scrollTop;
-          if (elm.scrollTop + 2 * wh < dh) {
-            elm.scrollTop += wh;
-            dy += wh * scale;
+          if (elm.scrollTop + 2 * viewportHeight < contentHeight) {
+            elm.scrollTop += viewportHeight;
+            destinationY += viewportHeight * scale;
           } else {
-            elm.scrollTop += dh % wh;
-            dy = elm.scrollTop * scale;
+            elm.scrollTop += contentHeight % viewportHeight;
+            destinationY = elm.scrollTop * scale;
           }
           setTimeout(() => {
             RUNTIME("captureVisibleTab", null, (response: { dataUrl: string }) => {
