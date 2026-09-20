@@ -428,7 +428,7 @@ describe("createAPI addSearchAlias key mappings", () => {
     expect(node?.meta).not.toBeUndefined();
   });
 
-  it("calls front.addSearchAlias with alias, prompt, search_url and options", () => {
+  it("calls front.addSearchAlias with alias, prompt, searchUrl and options", () => {
     const ctx = makeCtx();
     const api = createAPI(ctx as any, env);
 
@@ -489,7 +489,7 @@ describe("createAPI addSearchAlias key mappings", () => {
     expect(node?.meta).not.toBeUndefined();
   });
 
-  it("uses a custom search_leader_key when provided", () => {
+  it("uses a custom searchLeaderKey when provided", () => {
     const ctx = makeCtx();
     const api = createAPI(ctx as any, env);
 
@@ -502,7 +502,7 @@ describe("createAPI addSearchAlias key mappings", () => {
     expect(node?.meta).not.toBeUndefined();
   });
 
-  it("uses a custom only_this_site_key when provided", () => {
+  it("uses a custom onlyThisSiteKey when provided", () => {
     const ctx = makeCtx();
     const api = createAPI(ctx as any, env);
 
