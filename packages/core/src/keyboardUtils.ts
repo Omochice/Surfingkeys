@@ -179,18 +179,18 @@ function encodeOne(s: string, k: string): string {
 }
 
 function encodeKeystroke(s: string): string {
-  const ekp = /<(?:Ctrl-)?(?:Alt-)?(?:Meta-)?(?:Shift-)?([^>]+|.)>/g;
+  const keyNameRegex = /<(?:Ctrl-)?(?:Alt-)?(?:Meta-)?(?:Shift-)?([^>]+|.)>/g;
   let matches: RegExpExecArray | null;
   let ret = "";
   let lastIndex = 0;
-  while ((matches = ekp.exec(s)) !== null) {
+  while ((matches = keyNameRegex.exec(s)) !== null) {
     const captured = matches[1];
     if (captured == null) {
       continue;
     }
     ret += s.slice(lastIndex, matches.index);
     ret += encodeOne(matches[0], captured);
-    lastIndex = ekp.lastIndex;
+    lastIndex = keyNameRegex.lastIndex;
   }
   ret += s.slice(lastIndex);
   return ret;
@@ -198,11 +198,11 @@ function encodeKeystroke(s: string): string {
 
 function decodeKeystroke(s: string): string {
   let ret = "";
-  for (const ch of s) {
-    const packed = ch.charCodeAt(0) - ENCODED_BASE;
+  for (const char of s) {
+    const packed = char.charCodeAt(0) - ENCODED_BASE;
     let decoded = decodeKey(packed);
     if (decoded == null) {
-      ret += ch;
+      ret += char;
       continue;
     }
     const mod = packed & 15;
