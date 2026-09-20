@@ -123,21 +123,21 @@ export default function optionsMain(
   let localPathSaved = "";
   const localPathInput = requireElement<HTMLInputElement>("#localPath");
   const sample = requireElement("#sample").innerHTML;
-  function renderSettings(rs: StoredSettings): void {
-    if (rs.isMV3) {
+  function renderSettings(settings: StoredSettings): void {
+    if (settings.isMV3) {
       requireElement("#advancedTip").innerText =
         "First turn on 'Developer mode' in chrome://extensions/, then turn on 'Allow User Scripts' in Surfingkeys extension details, then toggle the 'Advanced mode' flag here.";
-      advancedToggler.disabled = !rs.isUserScriptsAvailable;
-      showAdvanced(rs.isUserScriptsAvailable && rs.showAdvanced);
+      advancedToggler.disabled = !settings.isUserScriptsAvailable;
+      showAdvanced(settings.isUserScriptsAvailable && settings.showAdvanced);
     } else {
-      showAdvanced(rs.showAdvanced);
+      showAdvanced(settings.showAdvanced);
     }
-    if (rs.localPath) {
-      localPathInput.value = rs.localPath;
-      localPathSaved = rs.localPath;
+    if (settings.localPath) {
+      localPathInput.value = settings.localPath;
+      localPathSaved = settings.localPath;
     }
-    if (rs.snippets && rs.snippets.length) {
-      getMappingsEditor().setValue(rs.snippets, -1);
+    if (settings.snippets && settings.snippets.length) {
+      getMappingsEditor().setValue(settings.snippets, -1);
     } else {
       getMappingsEditor().setValue(sample, -1);
     }
@@ -380,12 +380,12 @@ export default function optionsMain(
     });
   }
 
-  function renderKeyMappings(rs: StoredSettings): void {
+  function renderKeyMappings(settings: StoredSettings): void {
     initL10n((locale) => {
       const customization = basicMappings.map((w) => {
         let newKey: string | undefined = w.origin;
-        if (rs.basicMappings && Object.hasOwn(rs.basicMappings, w.origin)) {
-          newKey = rs.basicMappings[w.origin];
+        if (settings.basicMappings && Object.hasOwn(settings.basicMappings, w.origin)) {
+          newKey = settings.basicMappings[w.origin];
         }
         const annotation = typeof w.annotation === "string" ? w.annotation : "";
         return `<div>
@@ -435,9 +435,9 @@ export default function optionsMain(
         hide(keyPickerDiv);
         mode.exit();
       } else if (event.keyCode === 8) {
-        let ek = KeyboardUtils.encodeKeystroke(key);
-        ek = ek.slice(0, -1);
-        key = KeyboardUtils.decodeKeystroke(ek);
+        let encoded = KeyboardUtils.encodeKeystroke(key);
+        encoded = encoded.slice(0, -1);
+        key = KeyboardUtils.decodeKeystroke(encoded);
         showKey();
       } else if (event.keyCode === 13) {
         hide(keyPickerDiv);
