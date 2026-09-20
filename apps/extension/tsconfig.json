@@ -3,6 +3,6 @@
   "references": [
     { "path": "./tsconfig.browser.json" },
     { "path": "./tsconfig.node.json" },
-    { "path": "./tsconfig.user-script-types.json" }
+    { "path": "./tsconfig.snippet.json" }
   ]
 }
