@@ -64,9 +64,9 @@ export type UserScriptApi = {
     search_leader_key?: string,
     only_this_site_key?: string,
   ) => void;
-  /** Searches the selected text with the search engine registered under the alias `se`. */
+  /** Searches the selected text with the search engine registered under the alias `searchUrl`. */
   searchSelectedWith: (
-    se: string,
+    searchUrl: string,
     onlyThisSite?: boolean,
     interactive?: boolean,
     alias?: string,
