@@ -46,8 +46,7 @@ export type UserScriptApi = {
   /**
    * Adds a search engine reachable from the omnibar and from `searchLeaderKey` + `alias`.
    *
-   * @param options `faviconUrl` replaces the icon derived from `searchUrl`. `skipMaps: true` adds
-   *   the engine without its key mappings.
+   * @param options `faviconUrl` overrides the icon; `skipMaps` omits the key mappings.
    * @throws When `alias` contains a non-ASCII character.
    */
   addSearchAlias: (
