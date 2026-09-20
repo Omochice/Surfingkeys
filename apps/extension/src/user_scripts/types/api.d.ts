@@ -64,7 +64,15 @@ export type UserScriptApi = {
     search_leader_key?: string,
     only_this_site_key?: string,
   ) => void;
-  /** Searches the selected text with the search engine registered under the alias `searchUrl`. */
+  /**
+   * Searches the selected text, or the clipboard when nothing is selected.
+   *
+   * @param searchUrl The search engine's URL; the query replaces `{0}` or `%s`, or is appended.
+   * @param onlyThisSite Restricts the search to the current site.
+   * @param interactive Opens the omnibar on the query instead of searching at once.
+   * @param alias The `addSearchAlias` alias the interactive omnibar searches with, in place of
+   *   `searchUrl`.
+   */
   searchSelectedWith: (
     searchUrl: string,
     onlyThisSite?: boolean,
