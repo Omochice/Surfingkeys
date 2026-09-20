@@ -166,9 +166,9 @@ function getBrowserName(): "Chrome" | "Firefox" {
 }
 
 function timeStampString(t: number): string {
-  const dt = new Date();
-  dt.setTime(t);
-  return dt.toLocaleString();
+  const date = new Date();
+  date.setTime(t);
+  return date.toLocaleString();
 }
 
 function getDocumentOrigin(): string {
@@ -275,7 +275,7 @@ function initSKFunctionListener(
         return;
       }
       const args: unknown[] = evt.detail;
-      const fk = args.shift();
+      const functionKey = args.shift();
       if (capture) {
         const target = evt.target;
         const first = args[0];
@@ -287,16 +287,16 @@ function initSKFunctionListener(
         }
       }
 
-      if (typeof fk === "string") {
-        if (Object.hasOwn(callbacks, fk)) {
-          const cb = callbacks[fk];
+      if (typeof functionKey === "string") {
+        if (Object.hasOwn(callbacks, functionKey)) {
+          const cb = callbacks[functionKey];
           if (cb) {
             cb(...args);
           }
-          delete callbacks[fk];
+          delete callbacks[functionKey];
         }
-        if (Object.hasOwn(interfaces, fk)) {
-          const iface = interfaces[fk];
+        if (Object.hasOwn(interfaces, functionKey)) {
+          const iface = interfaces[functionKey];
           if (iface) {
             iface(...args);
           }
@@ -344,20 +344,20 @@ function getRealEdit(event?: Event): HTMLElement | null {
   if (target === window) {
     return document.body;
   }
-  let rt: Element | null = target instanceof Element ? target : null;
+  let realTarget: Element | null = target instanceof Element ? target : null;
   // on some pages like chrome://history/, input is in shadowRoot of several other recursive shadowRoots.
-  while (rt?.shadowRoot) {
-    if (rt.shadowRoot.activeElement) {
-      rt = rt.shadowRoot.activeElement;
+  while (realTarget?.shadowRoot) {
+    if (realTarget.shadowRoot.activeElement) {
+      realTarget = realTarget.shadowRoot.activeElement;
     } else {
-      const nested = rt.shadowRoot.querySelector("input, textarea, select");
+      const nested = realTarget.shadowRoot.querySelector("input, textarea, select");
       if (nested) {
-        rt = nested;
+        realTarget = nested;
       }
       break;
     }
   }
-  return rt instanceof HTMLElement ? rt : null;
+  return realTarget instanceof HTMLElement ? realTarget : null;
 }
 
 function toggleQuote(): void {
@@ -450,9 +450,9 @@ function getVisibleElements<T extends Element = Element>(
       continue;
     }
     if (e.shadowRoot) {
-      const cc = e.shadowRoot.querySelectorAll("*");
-      for (let j = 0; j < cc.length; j++) {
-        const child = cc[j];
+      const shadowChildren = e.shadowRoot.querySelectorAll("*");
+      for (let j = 0; j < shadowChildren.length; j++) {
+        const child = shadowChildren[j];
         if (child != null) {
           all.push(child);
         }
@@ -526,11 +526,11 @@ function actionWithSelectionPreserved(cb: (selection: Selection | null) => void)
     selection.focusOffset,
   ];
 
-  const dt = document.scrollingElement!.scrollTop;
+  const savedScrollTop = document.scrollingElement!.scrollTop;
 
   cb(selection);
 
-  document.scrollingElement!.scrollTop = dt;
+  document.scrollingElement!.scrollTop = savedScrollTop;
 
   if (pos[0] === "None") {
     selection.empty();
@@ -685,8 +685,8 @@ function getTextNodes(root: Node, pattern: RegExp, flag?: number): Node[] | Tree
         pattern.lastIndex = 0;
         return NodeFilter.FILTER_REJECT;
       }
-      const br = parent.getBoundingClientRect();
-      if (br.width < 4 || br.height < 4) {
+      const bounds = parent.getBoundingClientRect();
+      if (bounds.width < 4 || bounds.height < 4) {
         return NodeFilter.FILTER_REJECT;
       }
       return NodeFilter.FILTER_ACCEPT;
@@ -716,16 +716,16 @@ function getTextNodePos(
   const selection = document.getSelection()!;
   const nodeLength = node instanceof Text ? node.data.length : 0;
   selection.setBaseAndExtent(node, offset, node, length ? offset + length : nodeLength);
-  const br = selection.rangeCount > 0 ? selection.getRangeAt(0).getClientRects()[0] : null;
+  const rangeRect = selection.rangeCount > 0 ? selection.getRangeAt(0).getClientRects()[0] : null;
   const pos: { left: number; top: number; width?: number; height?: number } = {
     left: -1,
     top: -1,
   };
-  if (br && br.height > 0 && br.width > 0) {
-    pos.left = br.left;
-    pos.top = br.top;
-    pos.width = br.width;
-    pos.height = br.height;
+  if (rangeRect && rangeRect.height > 0 && rangeRect.width > 0) {
+    pos.left = rangeRect.left;
+    pos.top = rangeRect.top;
+    pos.width = rangeRect.width;
+    pos.height = rangeRect.height;
   }
   return pos;
 }
@@ -763,8 +763,8 @@ function locateFocusNode(
   selection: Selection | null,
 ): { left: number; top: number; width: number; height: number } | null {
   const sel = selection!;
-  const se = sel.focusNode!.parentElement!;
-  scrollIntoViewIfNeeded(se, true);
+  const focusElement = sel.focusNode!.parentElement!;
+  scrollIntoViewIfNeeded(focusElement, true);
   let r0 = unwrapOr<DOMRectList | DOMRect[]>(getTextRect(sel.focusNode!, sel.focusOffset), [])[0];
   if (!r0 && sel.focusNode instanceof Element) {
     r0 = sel.focusNode.getBoundingClientRect();
@@ -777,11 +777,11 @@ function locateFocusNode(
       height: r0.height,
     };
     if (r.left < 0 || r.left >= window.innerWidth) {
-      se.scrollLeft += r.left - window.innerWidth / 2;
+      focusElement.scrollLeft += r.left - window.innerWidth / 2;
       r.left = window.innerWidth / 2;
     }
     if (r.top < 0 || r.top >= window.innerHeight) {
-      se.scrollTop += r.top - window.innerHeight / 2;
+      focusElement.scrollTop += r.top - window.innerHeight / 2;
       r.top = window.innerHeight / 2;
     }
     return r;
@@ -885,26 +885,26 @@ function normalizeAnnotation(annotation: string | string[]): string | string[] {
 
 function mapInMode(
   mode: { name: string; mappings: Trie },
-  nks: string,
-  oks: string,
+  newKeystroke: string,
+  oldKeystroke: string,
   // Injected because this pure helper must not reach the WebExtension API itself.
   inUIFrame: boolean,
   new_annotation?: string | string[],
 ): Trie | undefined {
-  oks = KeyboardUtils.encodeKeystroke(oks);
-  const old_map = mode.mappings.find(oks);
+  oldKeystroke = KeyboardUtils.encodeKeystroke(oldKeystroke);
+  const old_map = mode.mappings.find(oldKeystroke);
   // A node without meta is only a prefix of longer mappings; copying it would bind a key to nothing.
   if (old_map?.meta == null) return undefined;
-  nks = KeyboardUtils.encodeKeystroke(nks);
-  mode.mappings.remove(nks);
+  newKeystroke = KeyboardUtils.encodeKeystroke(newKeystroke);
+  mode.mappings.remove(newKeystroke);
   // meta.word need to be new
   let meta: Omit<TrieMeta, "word"> = { ...old_map.meta };
   if (new_annotation) {
     meta = { ...meta, annotation: normalizeAnnotation(new_annotation) };
   }
-  mode.mappings.add(nks, meta);
+  mode.mappings.add(newKeystroke, meta);
   if (!inUIFrame) {
-    dispatchSKEvent("front", ["addMapkey", mode.name, nks, oks]);
+    dispatchSKEvent("front", ["addMapkey", mode.name, newKeystroke, oldKeystroke]);
   }
   return old_map;
 }
@@ -927,13 +927,13 @@ function getAnnotations(mappings: Trie): {
     .filter((m) => m.annotation && m.annotation.length > 0);
 }
 
-function constructSearchURL(se: string, word: string): string {
-  if (se.indexOf("{0}") > 0) {
-    return format(se, word);
-  } else if (se.indexOf("%s") > 0) {
-    return se.replace("%s", word);
+function constructSearchURL(searchUrl: string, word: string): string {
+  if (searchUrl.indexOf("{0}") > 0) {
+    return format(searchUrl, word);
+  } else if (searchUrl.indexOf("%s") > 0) {
+    return searchUrl.replace("%s", word);
   } else {
-    return se + word;
+    return searchUrl + word;
   }
 }
 
