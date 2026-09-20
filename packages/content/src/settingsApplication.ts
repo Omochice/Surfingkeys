@@ -101,22 +101,22 @@ function applyRuntimeConf(normal: Normal): void {
   );
 }
 
-export function applySettings(api: Api, normal: Normal, rs: StoredSettings): void {
+export function applySettings(api: Api, normal: Normal, stored: StoredSettings): void {
   const conf: Record<string, unknown> = runtime.conf;
-  for (const k in rs) {
+  for (const k in stored) {
     if (Object.hasOwn(runtime.conf, k)) {
-      conf[k] = rs[k];
+      conf[k] = stored[k];
     }
   }
-  if ("findHistory" in rs) {
+  if ("findHistory" in stored) {
     // Guard against a non-array findHistory from malformed stored settings.
-    const fh = Array.isArray(rs.findHistory) ? rs.findHistory : [];
-    runtime.conf.lastQuery = fh[0] ?? "";
+    const findHistory = Array.isArray(stored.findHistory) ? stored.findHistory : [];
+    runtime.conf.lastQuery = findHistory[0] ?? "";
   }
   // The MV3 user script's match patterns exclude the extension's own pages, and the inline path
   // below skips them too.
   const onExtensionPage = document.location.href.startsWith(chrome.runtime.getURL("/"));
-  const snippetsPending = Boolean(rs.showAdvanced && rs.snippets && !onExtensionPage);
+  const snippetsPending = Boolean(stored.showAdvanced && stored.snippets && !onExtensionPage);
   if (snippetsPending) {
     // A snippet can still change the conf the runtime state is derived from, so derive it again
     // once the snippet has been applied.
@@ -128,18 +128,18 @@ export function applySettings(api: Api, normal: Normal, rs: StoredSettings): voi
       { once: true },
     );
   }
-  if (!rs.showAdvanced) {
-    if (rs.basicMappings) {
-      applyBasicMappings(api, normal, rs.basicMappings);
+  if (!stored.showAdvanced) {
+    if (stored.basicMappings) {
+      applyBasicMappings(api, normal, stored.basicMappings);
     }
-    if (rs.disabledSearchAliases) {
-      for (const key in rs.disabledSearchAliases) {
+    if (stored.disabledSearchAliases) {
+      for (const key in stored.disabledSearchAliases) {
         api.removeSearchAlias(key);
       }
     }
-  } else if (!rs.isMV3 && rs.snippets && !onExtensionPage) {
+  } else if (!stored.isMV3 && stored.snippets && !onExtensionPage) {
     const settings = {};
-    const snippets = rs.snippets;
+    const snippets = stored.snippets;
     const r = Result.try({
       try: (): void => {
         new Function("settings", "api", snippets)(settings, api);
