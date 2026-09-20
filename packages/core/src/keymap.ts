@@ -89,9 +89,9 @@ export function createKeymap(getRoot: () => Trie, opts?: KeymapOptions): Keymap 
     } else if (pendingMap) {
       const meta = currentNode!.meta!;
       opts?.onKeysExecuted?.(meta.word + key, meta);
-      const pf = pendingMap;
+      const pending = pendingMap;
       event.sk_stopPropagation = !meta.stopPropagation || callStopPropagation(meta, key);
-      pf(key);
+      pending(key);
       actionDone = finish();
     } else if (
       repeats != null &&
