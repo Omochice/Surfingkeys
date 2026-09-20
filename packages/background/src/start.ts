@@ -121,7 +121,7 @@ const Gist = (() => {
     }
   };
 
-  async function createOrFindGist(token: string, magic_word: string): Promise<string> {
+  async function createOrFindGist(token: string, magicWord: string): Promise<string> {
     const auth = { Authorization: "token " + token };
     const r = await request("https://api.github.com/gists", auth);
     if (Result.isFailure(r)) {
@@ -135,7 +135,7 @@ const Gist = (() => {
     }
     let gist = "";
     gists.output.forEach((g) => {
-      if (g.description === magic_word && Object.hasOwn(g.files, magic_word)) {
+      if (g.description === magicWord && Object.hasOwn(g.files, magicWord)) {
         gist = g.id;
       }
     });
@@ -145,7 +145,7 @@ const Gist = (() => {
     const r2 = await request(
       "https://api.github.com/gists",
       auth,
-      `{ "description": "${magic_word}", "public": false, "files": { "${magic_word}": { "content": "${magic_word}" } } }`,
+      `{ "description": "${magicWord}", "public": false, "files": { "${magicWord}": { "content": "${magicWord}" } } }`,
     );
     // Same hang trap as above: resolve with an empty gist id on failure
     // (request error or unparsable body) so the sender never waits.

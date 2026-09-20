@@ -668,7 +668,7 @@ function getClickableElements(selectorString: string, pattern?: RegExp): Element
 function getTextNodes(root: Node, pattern: RegExp, flag: 0): TreeWalker;
 function getTextNodes(root: Node, pattern: RegExp, flag?: number): Node[];
 function getTextNodes(root: Node, pattern: RegExp, flag?: number): Node[] | TreeWalker {
-  const skip_tags = ["script", "style", "noscript", "surfingkeys_mark"];
+  const skipTags = ["script", "style", "noscript", "surfingkeys_mark"];
   const treeWalker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, {
     acceptNode: (node) => {
       const parent = node.parentElement;
@@ -678,7 +678,7 @@ function getTextNodes(root: Node, pattern: RegExp, flag?: number): Node[] | Tree
         !(parent instanceof HTMLElement) ||
         !node.data.trim() ||
         !parent.offsetParent ||
-        skip_tags.includes(parent.localName.toLowerCase()) ||
+        skipTags.includes(parent.localName.toLowerCase()) ||
         !pattern.test(node.data)
       ) {
         // node changed, reset pattern.lastIndex
@@ -889,24 +889,24 @@ function mapInMode(
   oldKeystroke: string,
   // Injected because this pure helper must not reach the WebExtension API itself.
   inUIFrame: boolean,
-  new_annotation?: string | string[],
+  newAnnotation?: string | string[],
 ): Trie | undefined {
   oldKeystroke = KeyboardUtils.encodeKeystroke(oldKeystroke);
-  const old_map = mode.mappings.find(oldKeystroke);
+  const oldMap = mode.mappings.find(oldKeystroke);
   // A node without meta is only a prefix of longer mappings; copying it would bind a key to nothing.
-  if (old_map?.meta == null) return undefined;
+  if (oldMap?.meta == null) return undefined;
   newKeystroke = KeyboardUtils.encodeKeystroke(newKeystroke);
   mode.mappings.remove(newKeystroke);
   // meta.word need to be new
-  let meta: Omit<TrieMeta, "word"> = { ...old_map.meta };
-  if (new_annotation) {
-    meta = { ...meta, annotation: normalizeAnnotation(new_annotation) };
+  let meta: Omit<TrieMeta, "word"> = { ...oldMap.meta };
+  if (newAnnotation) {
+    meta = { ...meta, annotation: normalizeAnnotation(newAnnotation) };
   }
   mode.mappings.add(newKeystroke, meta);
   if (!inUIFrame) {
     dispatchSKEvent("front", ["addMapkey", mode.name, newKeystroke, oldKeystroke]);
   }
-  return old_map;
+  return oldMap;
 }
 
 function getAnnotations(mappings: Trie): {

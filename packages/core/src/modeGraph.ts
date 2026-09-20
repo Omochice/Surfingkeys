@@ -21,8 +21,8 @@ type ContentOnlyFront = {
   addSearchAlias?: (
     alias: string,
     prompt: string,
-    search_url: string,
-    suggestion_url?: string,
+    searchUrl: string,
+    suggestionUrl?: string,
     callback?: (response: unknown, request: unknown) => unknown,
     options?: { skipMaps?: boolean; favicon_url?: string },
   ) => void;

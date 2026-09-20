@@ -1308,8 +1308,8 @@ function OpenBookmarks(omnibar: Omnibar): OpenBookmarksHandler {
     } else if (event.ctrlKey && event.shiftKey && KeyboardUtils.isWordChar(event)) {
       const fi = omnibar.focusedResult();
       if (fi && fi.data.url) {
-        const mark_char = String.fromCharCode(event.keyCode);
-        addVIMark(mark_char, fi.data.url);
+        const markChar = String.fromCharCode(event.keyCode);
+        addVIMark(markChar, fi.data.url);
         eaten = true;
       }
     }

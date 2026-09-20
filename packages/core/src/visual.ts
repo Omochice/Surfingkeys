@@ -506,7 +506,7 @@ function createVisual(clipboard: ClipboardLike, hints: HintsLike, env: EngineEnv
   let currentOccurrence = 0;
   let state = 0;
   const status = ["", "Caret", "Range"];
-  const mark_template = document.createElement("div");
+  const markTemplate = document.createElement("div");
   const cursor = document.createElement("div");
   cursor.className = "surfingkeys_cursor";
   cursor.style.zIndex = "2147483299";
@@ -630,7 +630,7 @@ function createVisual(clipboard: ClipboardLike, hints: HintsLike, env: EngineEnv
     const marks = Array.from(rects)
       .map((r) => {
         if (r.width > 0 && r.height > 0) {
-          const mark = mark_template.cloneNode(false);
+          const mark = markTemplate.cloneNode(false);
           if (mark instanceof HTMLElement) {
             mark.className = className;
             mark.style.position = "absolute";
@@ -953,7 +953,7 @@ function createVisual(clipboard: ClipboardLike, hints: HintsLike, env: EngineEnv
     styleMap[element] = style;
 
     cursor.setAttribute("style", styleMap["cursor"] || "");
-    mark_template.setAttribute("style", styleMap["marks"] || "");
+    markTemplate.setAttribute("style", styleMap["marks"] || "");
   };
 
   const self: VisualMode = {

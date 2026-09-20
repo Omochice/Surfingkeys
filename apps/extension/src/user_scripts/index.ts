@@ -28,13 +28,13 @@ function isDomainApplicable(domain?: RegExp) {
 }
 
 function cmap(
-  new_keystroke: string,
-  old_keystroke: string,
+  newKeystroke: string,
+  oldKeystroke: string,
   domain?: RegExp,
   _new_annotation?: string,
 ) {
   if (isDomainApplicable(domain)) {
-    dispatchSKEvent("front", ["addMapkey", "Omnibar", new_keystroke, old_keystroke]);
+    dispatchSKEvent("front", ["addMapkey", "Omnibar", newKeystroke, oldKeystroke]);
   }
 }
 
@@ -86,37 +86,17 @@ function addCommand(name: string, description: string, action: (...args: any[]) 
   dispatchSKEvent("front", ["addCommand", name, description]);
 }
 
-function map(
-  new_keystroke: string,
-  old_keystroke: string,
-  domain?: RegExp,
-  new_annotation?: string,
-) {
-  dispatchSKEvent("api", ["map", new_keystroke, old_keystroke, domain, new_annotation]);
+function map(newKeystroke: string, oldKeystroke: string, domain?: RegExp, newAnnotation?: string) {
+  dispatchSKEvent("api", ["map", newKeystroke, oldKeystroke, domain, newAnnotation]);
 }
-function imap(
-  new_keystroke: string,
-  old_keystroke: string,
-  domain?: RegExp,
-  new_annotation?: string,
-) {
-  dispatchSKEvent("api", ["imap", new_keystroke, old_keystroke, domain, new_annotation]);
+function imap(newKeystroke: string, oldKeystroke: string, domain?: RegExp, newAnnotation?: string) {
+  dispatchSKEvent("api", ["imap", newKeystroke, oldKeystroke, domain, newAnnotation]);
 }
-function lmap(
-  new_keystroke: string,
-  old_keystroke: string,
-  domain?: RegExp,
-  new_annotation?: string,
-) {
-  dispatchSKEvent("api", ["lmap", new_keystroke, old_keystroke, domain, new_annotation]);
+function lmap(newKeystroke: string, oldKeystroke: string, domain?: RegExp, newAnnotation?: string) {
+  dispatchSKEvent("api", ["lmap", newKeystroke, oldKeystroke, domain, newAnnotation]);
 }
-function vmap(
-  new_keystroke: string,
-  old_keystroke: string,
-  domain?: RegExp,
-  new_annotation?: string,
-) {
-  dispatchSKEvent("api", ["vmap", new_keystroke, old_keystroke, domain, new_annotation]);
+function vmap(newKeystroke: string, oldKeystroke: string, domain?: RegExp, newAnnotation?: string) {
+  dispatchSKEvent("api", ["vmap", newKeystroke, oldKeystroke, domain, newAnnotation]);
 }
 
 const functionsToListSuggestions: Record<string, (response: unknown, request: unknown) => unknown> =
@@ -213,28 +193,28 @@ initSKFunctionListener(
 function addSearchAlias(
   alias: string,
   prompt: string,
-  search_url: string,
-  search_leader_key?: string,
-  suggestion_url?: string,
-  callback_to_parse_suggestion?: (response: unknown, request: unknown) => unknown,
-  only_this_site_key?: string,
+  searchUrl: string,
+  searchLeaderKey?: string,
+  suggestionUrl?: string,
+  callbackToParseSuggestion?: (response: unknown, request: unknown) => unknown,
+  onlyThisSiteKey?: string,
   options?: Record<string, unknown>,
 ) {
   if (![...alias].every((c) => c.charCodeAt(0) <= 0x7f)) {
     throw `Invalid alias ${alias}, which must be ASCII characters.`;
   }
-  if (suggestion_url != null && callback_to_parse_suggestion != null) {
-    functionsToListSuggestions[suggestion_url] = callback_to_parse_suggestion;
+  if (suggestionUrl != null && callbackToParseSuggestion != null) {
+    functionsToListSuggestions[suggestionUrl] = callbackToParseSuggestion;
   }
   dispatchSKEvent("api", [
     "addSearchAlias",
     alias,
     prompt,
-    search_url,
-    search_leader_key,
-    suggestion_url,
+    searchUrl,
+    searchLeaderKey,
+    suggestionUrl,
     "user",
-    only_this_site_key,
+    onlyThisSiteKey,
     options,
   ]);
 }
@@ -280,8 +260,8 @@ const api = {
   unmapAllExcept: (keystrokes: string[], domain?: RegExp) => {
     dispatchSKEvent("api", ["unmapAllExcept", keystrokes, domain]);
   },
-  removeSearchAlias: (alias: string, search_leader_key?: string, only_this_site_key?: string) => {
-    dispatchSKEvent("api", ["removeSearchAlias", alias, search_leader_key, only_this_site_key]);
+  removeSearchAlias: (alias: string, searchLeaderKey?: string, onlyThisSiteKey?: string) => {
+    dispatchSKEvent("api", ["removeSearchAlias", alias, searchLeaderKey, onlyThisSiteKey]);
   },
   searchSelectedWith: (
     searchUrl: string,

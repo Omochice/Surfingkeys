@@ -220,26 +220,26 @@ function createAPI(ctx: ModeContext, env: EngineEnv) {
    * @example
    *   map(";d", "<Ctrl-Alt-d>");
    *
-   * @param {string} new_keystroke A key sequence to replace
-   * @param {string} old_keystroke A key sequence to be replaced
+   * @param {string} newKeystroke A key sequence to replace
+   * @param {string} oldKeystroke A key sequence to be replaced
    * @param {regex} [domain=null] A Javascript regex pattern to identify the domains that this
    *   mapping works. Default is `null`
-   * @param {string} [new_annotation=null] Use it instead of the annotation from old_keystroke if
+   * @param {string} [newAnnotation=null] Use it instead of the annotation from oldKeystroke if
    *   provided. Default is `null`
    * @param {string} [group=null] The section of the help opened by `?` that lists this mapping,
-   *   such as `"tabs"`. Only read when old_keystroke is a `:command`, since a key alias takes the
+   *   such as `"tabs"`. Only read when oldKeystroke is a `:command`, since a key alias takes the
    *   section of the key it replaces. Default is `null`
    */
   function map(
-    new_keystroke: string,
-    old_keystroke: string,
+    newKeystroke: string,
+    oldKeystroke: string,
     domain?: RegExp | number,
-    new_annotation?: string,
+    newAnnotation?: string,
     group?: FeatureGroup,
   ): void {
     if (isDomainApplicable(domain)) {
-      if (old_keystroke[0] === ":" && old_keystroke.length > 1) {
-        const cmdline = old_keystroke.slice(1);
+      if (oldKeystroke[0] === ":" && oldKeystroke.length > 1) {
+        const cmdline = oldKeystroke.slice(1);
         const keybound = createKeyTarget(
           () => {
             if (front.executeCommand == null) {
@@ -249,21 +249,21 @@ function createAPI(ctx: ModeContext, env: EngineEnv) {
             front.executeCommand(cmdline);
           },
           // There is no source mapping to take a section from, unlike the alias branch below.
-          new_annotation ?? null,
+          newAnnotation ?? null,
           group ?? "misc",
           false,
         );
-        normal.mappings.add(KeyboardUtils.encodeKeystroke(new_keystroke), keybound);
+        normal.mappings.add(KeyboardUtils.encodeKeystroke(newKeystroke), keybound);
       } else {
-        const specialKey = specialKeys[old_keystroke];
+        const specialKey = specialKeys[oldKeystroke];
         if (
-          !mapInMode(normal, new_keystroke, old_keystroke, isInUIFrame(), new_annotation) &&
+          !mapInMode(normal, newKeystroke, oldKeystroke, isInUIFrame(), newAnnotation) &&
           specialKey != null
         ) {
-          specialKey.push(new_keystroke);
-          dispatchSKEvent("front", ["addMapkey", "Mode", new_keystroke, old_keystroke]);
+          specialKey.push(newKeystroke);
+          dispatchSKEvent("front", ["addMapkey", "Mode", newKeystroke, oldKeystroke]);
         } else {
-          LOG("warn", `${old_keystroke} not found in normal mode.`);
+          LOG("warn", `${oldKeystroke} not found in normal mode.`);
         }
       }
     }
@@ -281,8 +281,8 @@ function createAPI(ctx: ModeContext, env: EngineEnv) {
    */
   function unmap(keystroke: string, domain?: RegExp): void {
     if (isDomainApplicable(domain)) {
-      const old_map = normal.mappings.find(KeyboardUtils.encodeKeystroke(keystroke));
-      if (old_map) {
+      const oldMap = normal.mappings.find(KeyboardUtils.encodeKeystroke(keystroke));
+      if (oldMap) {
         normal.mappings.remove(KeyboardUtils.encodeKeystroke(keystroke));
       } else {
         for (const k in specialKeys) {
@@ -331,22 +331,22 @@ function createAPI(ctx: ModeContext, env: EngineEnv) {
   /**
    * Map a key sequence to another in insert mode.
    *
-   * @param {string} new_keystroke A key sequence to replace
-   * @param {string} old_keystroke A key sequence to be replaced
+   * @param {string} newKeystroke A key sequence to replace
+   * @param {string} oldKeystroke A key sequence to be replaced
    * @param {regex} [domain=null] A Javascript regex pattern to identify the domains that this
    *   mapping works. Default is `null`
-   * @param {string} [new_annotation=null] Use it instead of the annotation from old_keystroke if
+   * @param {string} [newAnnotation=null] Use it instead of the annotation from oldKeystroke if
    *   provided. Default is `null`
    * @see map
    */
   function imap(
-    new_keystroke: string,
-    old_keystroke: string,
+    newKeystroke: string,
+    oldKeystroke: string,
     domain?: RegExp,
-    new_annotation?: string,
+    newAnnotation?: string,
   ): void {
     if (isDomainApplicable(domain)) {
-      mapInMode(insert, new_keystroke, old_keystroke, isInUIFrame(), new_annotation);
+      mapInMode(insert, newKeystroke, oldKeystroke, isInUIFrame(), newAnnotation);
     }
   }
 
@@ -367,22 +367,22 @@ function createAPI(ctx: ModeContext, env: EngineEnv) {
   /**
    * Map a key sequence to another in omnibar.
    *
-   * @param {string} new_keystroke A key sequence to replace
-   * @param {string} old_keystroke A key sequence to be replaced
+   * @param {string} newKeystroke A key sequence to replace
+   * @param {string} oldKeystroke A key sequence to be replaced
    * @param {regex} [domain=null] A Javascript regex pattern to identify the domains that this
    *   mapping works. Default is `null`
-   * @param {string} [new_annotation=null] Use it instead of the annotation from old_keystroke if
+   * @param {string} [newAnnotation=null] Use it instead of the annotation from oldKeystroke if
    *   provided. Default is `null`
    * @see map
    */
   function cmap(
-    new_keystroke: string,
-    old_keystroke: string,
+    newKeystroke: string,
+    oldKeystroke: string,
     domain?: RegExp,
     _new_annotation?: string,
   ): void {
     if (isDomainApplicable(domain)) {
-      dispatchSKEvent("front", ["addMapkey", "Omnibar", new_keystroke, old_keystroke]);
+      dispatchSKEvent("front", ["addMapkey", "Omnibar", newKeystroke, oldKeystroke]);
     }
   }
 
@@ -406,22 +406,22 @@ function createAPI(ctx: ModeContext, env: EngineEnv) {
   /**
    * Map a key sequence to another in visual mode.
    *
-   * @param {string} new_keystroke A key sequence to replace
-   * @param {string} old_keystroke A key sequence to be replaced
+   * @param {string} newKeystroke A key sequence to replace
+   * @param {string} oldKeystroke A key sequence to be replaced
    * @param {regex} [domain=null] A Javascript regex pattern to identify the domains that this
    *   mapping works. Default is `null`
-   * @param {string} [new_annotation=null] Use it instead of the annotation from old_keystroke if
+   * @param {string} [newAnnotation=null] Use it instead of the annotation from oldKeystroke if
    *   provided. Default is `null`
    * @see map
    */
   function vmap(
-    new_keystroke: string,
-    old_keystroke: string,
+    newKeystroke: string,
+    oldKeystroke: string,
     domain?: RegExp,
-    new_annotation?: string,
+    newAnnotation?: string,
   ): void {
     if (isDomainApplicable(domain)) {
-      mapInMode(visual, new_keystroke, old_keystroke, isInUIFrame(), new_annotation);
+      mapInMode(visual, newKeystroke, oldKeystroke, isInUIFrame(), newAnnotation);
     }
   }
 
@@ -442,22 +442,22 @@ function createAPI(ctx: ModeContext, env: EngineEnv) {
   /**
    * Map a key sequence to another in lurk mode.
    *
-   * @param {string} new_keystroke A key sequence to replace
-   * @param {string} old_keystroke A key sequence to be replaced
+   * @param {string} newKeystroke A key sequence to replace
+   * @param {string} oldKeystroke A key sequence to be replaced
    * @param {regex} [domain=null] A Javascript regex pattern to identify the domains that this
    *   mapping works. Default is `null`
-   * @param {string} [new_annotation=null] Use it instead of the annotation from old_keystroke if
+   * @param {string} [newAnnotation=null] Use it instead of the annotation from oldKeystroke if
    *   provided. Default is `null`
    * @see map
    */
   function lmap(
-    new_keystroke: string,
-    old_keystroke: string,
+    newKeystroke: string,
+    oldKeystroke: string,
     domain?: RegExp,
     _new_annotation?: string,
   ): void {
     if (isDomainApplicable(domain)) {
-      normal.addLurkMap(new_keystroke, old_keystroke);
+      normal.addLurkMap(newKeystroke, oldKeystroke);
     }
   }
 
@@ -483,39 +483,39 @@ function createAPI(ctx: ModeContext, env: EngineEnv) {
    *   search alias, when you input the string and press `space` in omnibar, the search engine will
    *   be triggered.
    * @param {string} prompt A caption to be placed in front of the omnibar.
-   * @param {string} search_url The URL of the search engine, for example,
+   * @param {string} searchUrl The URL of the search engine, for example,
    *   `https://www.s.com/search.html?query=`, if there are extra parameters for the search engine,
    *   you can use it as `https://www.s.com/search.html?query={0}&type=cs` or
    *   `https://www.s.com/search.html?type=cs&query=`(since order of URL parameters usually does not
    *   matter).
-   * @param {string} [search_leader_key=s] `<search_leader_key><alias>` in normal mode will search
+   * @param {string} [searchLeaderKey=s] `<searchLeaderKey><alias>` in normal mode will search
    *   selected text with this search engine directly without opening the omnibar, for example `sd`.
    *   Default is `s`
-   * @param {string} [suggestion_url=null] The URL to fetch suggestions in omnibar when this search
+   * @param {string} [suggestionUrl=null] The URL to fetch suggestions in omnibar when this search
    *   engine is triggered. Default is `null`
-   * @param {function} [callback_to_parse_suggestion=null] A function to parse the response from
-   *   `suggestion_url` and return a list of strings as suggestions. Receives two arguments:
+   * @param {function} [callbackToParseSuggestion=null] A function to parse the response from
+   *   `suggestionUrl` and return a list of strings as suggestions. Receives two arguments:
    *   `response`, the first argument, is an object containing a property `text` which holds the
    *   text of the response; and `request`, the second argument, is an object containing the
    *   properties `query` which is the text of the query and `url` which is the formatted URL for
    *   the request. Default is `null`
-   * @param {string} [only_this_site_key=o] `<search_leader_key><only_this_site_key><alias>` in
-   *   normal mode will search selected text within current site with this search engine directly
-   *   without opening the omnibar, for example `sod`. Default is `o`
+   * @param {string} [onlyThisSiteKey=o] `<searchLeaderKey><onlyThisSiteKey><alias>` in normal mode
+   *   will search selected text within current site with this search engine directly without
+   *   opening the omnibar, for example `sod`. Default is `o`
    * @param {object} [options=null] `favicon_url` URL for favicon for this search engine, `skipMaps`
    *   if `true` disable creating key mappings for this search engine. Default is `null`
    */
   function addSearchAlias(
     alias: string,
     prompt: string,
-    search_url: string,
-    search_leader_key?: string,
-    suggestion_url?: string,
+    searchUrl: string,
+    searchLeaderKey?: string,
+    suggestionUrl?: string,
     // User-provided suggestion parser; callers type its response/request for their own engine, which
     // an `unknown` parameter would reject (contravariance).
     // eslint-disable-next-line typescript/no-explicit-any
-    callback_to_parse_suggestion?: (...args: any[]) => unknown,
-    only_this_site_key?: string,
+    callbackToParseSuggestion?: (...args: any[]) => unknown,
+    onlyThisSiteKey?: string,
     options?: { skipMaps?: boolean; favicon_url?: string },
   ): void {
     if (![...alias].every((c) => c.charCodeAt(0) <= 0x7f)) {
@@ -525,9 +525,9 @@ function createAPI(ctx: ModeContext, env: EngineEnv) {
       front.addSearchAlias(
         alias,
         prompt,
-        search_url,
-        suggestion_url,
-        callback_to_parse_suggestion,
+        searchUrl,
+        suggestionUrl,
+        callbackToParseSuggestion,
         options,
       );
     }
@@ -536,9 +536,9 @@ function createAPI(ctx: ModeContext, env: EngineEnv) {
       return;
     }
     function ssw() {
-      searchSelectedWith(search_url);
+      searchSelectedWith(searchUrl);
     }
-    mapkey((search_leader_key || "s") + alias, ["Search selected with {0}", prompt], ssw, {
+    mapkey((searchLeaderKey || "s") + alias, ["Search selected with {0}", prompt], ssw, {
       group: "searchSelectedWith",
     });
     mapkey(
@@ -549,25 +549,25 @@ function createAPI(ctx: ModeContext, env: EngineEnv) {
       },
       { group: "omnibar" },
     );
-    vmapkey((search_leader_key || "s") + alias, "", ssw);
+    vmapkey((searchLeaderKey || "s") + alias, "", ssw);
     function ssw2() {
-      searchSelectedWith(search_url, true);
+      searchSelectedWith(searchUrl, true);
     }
-    mapkey((search_leader_key || "s") + (only_this_site_key || "o") + alias, "", ssw2);
-    vmapkey((search_leader_key || "s") + (only_this_site_key || "o") + alias, "", ssw2);
+    mapkey((searchLeaderKey || "s") + (onlyThisSiteKey || "o") + alias, "", ssw2);
+    vmapkey((searchLeaderKey || "s") + (onlyThisSiteKey || "o") + alias, "", ssw2);
 
     const capitalAlias = alias.toUpperCase();
     if (capitalAlias !== alias) {
       const ssw4 = () => {
-        searchSelectedWith(search_url, false, true, alias);
+        searchSelectedWith(searchUrl, false, true, alias);
       };
-      mapkey((search_leader_key || "s") + capitalAlias, "", ssw4);
-      vmapkey((search_leader_key || "s") + capitalAlias, "", ssw4);
+      mapkey((searchLeaderKey || "s") + capitalAlias, "", ssw4);
+      vmapkey((searchLeaderKey || "s") + capitalAlias, "", ssw4);
       const ssw5 = () => {
-        searchSelectedWith(search_url, true, true, alias);
+        searchSelectedWith(searchUrl, true, true, alias);
       };
-      mapkey((search_leader_key || "s") + (only_this_site_key || "o") + capitalAlias, "", ssw5);
-      vmapkey((search_leader_key || "s") + (only_this_site_key || "o") + capitalAlias, "", ssw5);
+      mapkey((searchLeaderKey || "s") + (onlyThisSiteKey || "o") + capitalAlias, "", ssw5);
+      vmapkey((searchLeaderKey || "s") + (onlyThisSiteKey || "o") + capitalAlias, "", ssw5);
     }
   }
 
@@ -578,32 +578,32 @@ function createAPI(ctx: ModeContext, env: EngineEnv) {
    *   removeSearchAlias("d");
    *
    * @param {string} alias The alias of the search engine to be removed.
-   * @param {string} [search_leader_key=s] `<search_leader_key><alias>` in normal mode will search
+   * @param {string} [searchLeaderKey=s] `<searchLeaderKey><alias>` in normal mode will search
    *   selected text with this search engine directly without opening the omnibar, for example `sd`.
    *   Default is `s`
-   * @param {string} [only_this_site_key=o] `<search_leader_key><only_this_site_key><alias>` in
-   *   normal mode will search selected text within current site with this search engine directly
-   *   without opening the omnibar, for example `sod`. Default is `o`
+   * @param {string} [onlyThisSiteKey=o] `<searchLeaderKey><onlyThisSiteKey><alias>` in normal mode
+   *   will search selected text within current site with this search engine directly without
+   *   opening the omnibar, for example `sod`. Default is `o`
    */
   function removeSearchAlias(
     alias: string,
-    search_leader_key?: string,
-    only_this_site_key?: string,
+    searchLeaderKey?: string,
+    onlyThisSiteKey?: string,
   ): void {
     if (!isInUIFrame()) {
       front.removeSearchAlias?.(alias);
     }
-    unmap((search_leader_key || "s") + alias);
+    unmap((searchLeaderKey || "s") + alias);
     unmap("o" + alias);
-    vunmap((search_leader_key || "s") + alias);
-    unmap((search_leader_key || "s") + (only_this_site_key || "o") + alias);
-    vunmap((search_leader_key || "s") + (only_this_site_key || "o") + alias);
+    vunmap((searchLeaderKey || "s") + alias);
+    unmap((searchLeaderKey || "s") + (onlyThisSiteKey || "o") + alias);
+    vunmap((searchLeaderKey || "s") + (onlyThisSiteKey || "o") + alias);
     const capitalAlias = alias.toUpperCase();
     if (capitalAlias !== alias) {
-      unmap((search_leader_key || "s") + capitalAlias);
-      vunmap((search_leader_key || "s") + capitalAlias);
-      unmap((search_leader_key || "s") + (only_this_site_key || "o") + capitalAlias);
-      vunmap((search_leader_key || "s") + (only_this_site_key || "o") + capitalAlias);
+      unmap((searchLeaderKey || "s") + capitalAlias);
+      vunmap((searchLeaderKey || "s") + capitalAlias);
+      unmap((searchLeaderKey || "s") + (onlyThisSiteKey || "o") + capitalAlias);
+      vunmap((searchLeaderKey || "s") + (onlyThisSiteKey || "o") + capitalAlias);
     }
   }
 
