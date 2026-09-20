@@ -39,14 +39,14 @@ function startScrollNodeObserver(normal: {
             if (!(e instanceof HTMLElement)) {
               return;
             }
-            const br = e.getBoundingClientRect();
+            const bounds = e.getBoundingClientRect();
             if (
-              br.width > 300 &&
-              br.height > 300 &&
-              br.width <= window.innerWidth &&
-              br.height <= window.innerHeight &&
-              br.top >= 0 &&
-              br.left >= 0 &&
+              bounds.width > 300 &&
+              bounds.height > 300 &&
+              bounds.width <= window.innerWidth &&
+              bounds.height <= window.innerHeight &&
+              bounds.top >= 0 &&
+              bounds.left >= 0 &&
               hasScroll(e, "y", 16) &&
               isElementPositionRelative(e)
             ) {
