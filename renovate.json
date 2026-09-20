@@ -4,5 +4,20 @@
     "github>Omochice/personal-renovate-config#v1.18.0",
     "github>Omochice/personal-renovate-config:nix#v1.18.0"
   ],
-  "forkProcessing": "enabled"
+  "forkProcessing": "enabled",
+  "docker-compose": {
+    "enabled": false
+  },
+  "customManagers": [
+    {
+      "customType": "regex",
+      "description": "The docker-compose manager cannot set a depType, so compose images are extracted here to mark them as devDependencies",
+      "managerFilePatterns": ["/(^|/)compose\\.ya?ml$/"],
+      "matchStrings": [
+        "image:\\s*(?<depName>[^\\s:@]+):(?<currentValue>[^\\s@]+)(?:@(?<currentDigest>sha256:[a-f0-9]+))?"
+      ],
+      "datasourceTemplate": "docker",
+      "depTypeTemplate": "devDependencies"
+    }
+  ]
 }
