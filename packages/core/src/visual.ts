@@ -82,24 +82,24 @@ function createVisual(clipboard: ClipboardLike, hints: HintsLike, env: EngineEnv
 
   mode.addEventListener("keydown", (event) => {
     const keyName = event.sk_keyName ?? "";
-    if (visualf) {
-      let exitf = false;
+    if (seekDirection) {
+      let shouldExit = false;
       event.sk_stopPropagation = true;
       event.sk_suppressed = true;
 
       const keyCode = event.keyCode;
       if (typeof keyCode === "number" && KeyboardUtils.isWordChar({ keyCode })) {
-        visualSeek(visualf, keyName);
-        lastF = [visualf, keyName];
-        exitf = true;
+        visualSeek(seekDirection, keyName);
+        lastF = [seekDirection, keyName];
+        shouldExit = true;
       } else if (isSpecialKeyOf("<Esc>", keyName)) {
-        exitf = true;
+        shouldExit = true;
       }
 
-      if (exitf) {
+      if (shouldExit) {
         mode.statusLine = mode.name + " - " + status[state];
         showModeStatus();
-        visualf = 0;
+        seekDirection = 0;
       }
     } else if (keyName.length) {
       keymap.handleKey(event);
@@ -429,7 +429,7 @@ function createVisual(clipboard: ClipboardLike, hints: HintsLike, env: EngineEnv
     code: () => {
       mode.statusLine = mode.name + " - " + status[state] + " - forward";
       showModeStatus();
-      visualf = 1;
+      seekDirection = 1;
     },
   });
   mappings.add("F", {
@@ -438,7 +438,7 @@ function createVisual(clipboard: ClipboardLike, hints: HintsLike, env: EngineEnv
     code: () => {
       mode.statusLine = mode.name + " - " + status[state] + " - backward";
       showModeStatus();
-      visualf = -1;
+      seekDirection = -1;
     },
   });
   mappings.add(";", {
@@ -511,22 +511,22 @@ function createVisual(clipboard: ClipboardLike, hints: HintsLike, env: EngineEnv
   cursor.className = "surfingkeys_cursor";
   cursor.style.zIndex = "2147483299";
 
-  let visualf = 0;
+  let seekDirection = 0;
   let lastF: [number, string] | null = null;
 
-  function visualSeek(dir: number, chr: string): void {
+  function visualSeek(dir: number, char: string): void {
     self.hideCursor();
     const lastPosBeforeF: [Node | null, number] = [selection.anchorNode, selection.anchorOffset];
     if (
       selection.focusNode &&
       selection.focusNode.textContent &&
       selection.focusNode.textContent.length &&
-      selection.focusNode.textContent[selection.focusOffset] === chr &&
+      selection.focusNode.textContent[selection.focusOffset] === char &&
       dir === 1
     ) {
       selection.setPosition(selection.focusNode, selection.focusOffset + 1);
     }
-    if (findNextTextNodeBy(chr, true, dir === -1)) {
+    if (findNextTextNodeBy(char, true, dir === -1)) {
       if (state === 1) {
         selection.setPosition(selection.focusNode, selection.focusOffset - 1);
       } else {
@@ -549,8 +549,8 @@ function createVisual(clipboard: ClipboardLike, hints: HintsLike, env: EngineEnv
       if (!(parent instanceof Element)) {
         continue;
       }
-      const br = parent.getBoundingClientRect();
-      if (br.top > window.innerHeight * y) {
+      const bounds = parent.getBoundingClientRect();
+      if (bounds.top > window.innerHeight * y) {
         node = treeWalker.currentNode;
         break;
       }
@@ -669,17 +669,17 @@ function createVisual(clipboard: ClipboardLike, hints: HintsLike, env: EngineEnv
   }
 
   function highlight(pattern: RegExp): void {
-    const gpattern = new RegExp(pattern.source, "g" + pattern.flags);
+    const globalPattern = new RegExp(pattern.source, "g" + pattern.flags);
     getTextNodes(document.body, pattern).forEach((node) => {
       if (!(node instanceof Text)) {
         return;
       }
       const data = node.data;
       let matches;
-      while ((matches = gpattern.exec(data)) !== null) {
+      while ((matches = globalPattern.exec(data)) !== null) {
         const match = matches[0];
         if (match.length) {
-          const pos = gpattern.lastIndex - match.length;
+          const pos = globalPattern.lastIndex - match.length;
           createMatchMark(node, pos, node, pos + match.length);
         } else {
           // matches like \b
@@ -695,8 +695,8 @@ function createVisual(clipboard: ClipboardLike, hints: HintsLike, env: EngineEnv
         if (!firstElement) {
           continue;
         }
-        const br = firstElement.getBoundingClientRect();
-        if (br.top > 0) {
+        const bounds = firstElement.getBoundingClientRect();
+        if (bounds.top > 0) {
           currentOccurrence = i;
           break;
         }
@@ -825,8 +825,8 @@ function createVisual(clipboard: ClipboardLike, hints: HintsLike, env: EngineEnv
   const feedkeys = (keys: string): void => {
     setTimeout(() => {
       const evt = new Event("keydown");
-      for (const ch of keys) {
-        evt.sk_keyName = ch;
+      for (const char of keys) {
+        evt.sk_keyName = char;
         keymap.handleKey(evt);
       }
     }, 1);
@@ -914,9 +914,9 @@ function createVisual(clipboard: ClipboardLike, hints: HintsLike, env: EngineEnv
   };
 
   const findSentenceOf = (query: string): string => {
-    const wr = new RegExp(String.raw`\b` + query + String.raw`\b`);
+    const wholeWordRegex = new RegExp(String.raw`\b` + query + String.raw`\b`);
     let elements: Element[] = getVisibleElements((e, v) => {
-      if (e instanceof HTMLElement && wr.test(e.innerText)) {
+      if (e instanceof HTMLElement && wholeWordRegex.test(e.innerText)) {
         v.push(e);
       }
     });

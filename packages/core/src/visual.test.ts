@@ -484,7 +484,7 @@ describe("createVisual — toggle() state transitions", () => {
   });
 });
 
-describe("createVisual — keydown: 'f' sets visualf=1 and updates statusLine", () => {
+describe("createVisual — keydown: 'f' sets seekDirection=1 and updates statusLine", () => {
   it("the 'f' mapping sets statusLine to include '- forward'", () => {
     const visual = createVisual(makeClipboard(), makeHints(), makeEnv());
     visual.onEnter!(); // state=1
@@ -705,14 +705,14 @@ describe("createVisual — 'y' yank honours modeAfterYank", () => {
   });
 });
 
-describe("createVisual — keydown while visualf is active", () => {
+describe("createVisual — keydown while seekDirection is active", () => {
   afterEach(() => {
     document.body.replaceChildren();
   });
 
   function enterFindMode(visual: ReturnType<typeof createVisual>) {
     visual.onEnter!(); // state=1
-    // The 'f' mapping sets visualf=1 (forward find pending).
+    // The 'f' mapping sets seekDirection=1 (forward find pending).
     visual.mappings.find("f")?.meta?.code?.();
     expect(visual.statusLine).toContain("forward");
   }
@@ -723,7 +723,7 @@ describe("createVisual — keydown while visualf is active", () => {
 
     // window.find is unimplemented in jsdom; stub it to false (as the next() test
     // does) so visualSeek runs without throwing. The branch under test is the
-    // exitf=true status reset / suppression, which is pure non-geometry logic.
+    // shouldExit=true status reset / suppression, which is pure non-geometry logic.
     const origFind = (window as any).find;
     (window as any).find = () => false;
     try {
