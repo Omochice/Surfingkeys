@@ -206,10 +206,10 @@ export class ModeHandle {
     }
 
     modeStack.sort((a, b) => {
-      const pa = a.priority ?? 0;
-      const pb = b.priority ?? 0;
-      if (pa < pb) return 1;
-      if (pb < pa) return -1;
+      const priorityA = a.priority ?? 0;
+      const priorityB = b.priority ?? 0;
+      if (priorityA < priorityB) return 1;
+      if (priorityB < priorityA) return -1;
       return 0;
     });
 
@@ -277,18 +277,18 @@ export function initModeHub(env: EngineEnv, cb?: () => void): void {
 /** Push the current top-of-stack mode's status line to the front. */
 export function showModeStatus(): void {
   if (document.hasFocus() && modeStack.length) {
-    const cm = modeStack[0];
-    if (cm == null) {
+    const currentMode = modeStack[0];
+    if (currentMode == null) {
       return;
     }
-    let sl = cm.statusLine || (conf.showModeStatus ? cm.name : "");
-    if (sl !== "" && window !== top && engineEnv && !engineEnv.isInUIFrame()) {
+    let statusLine = currentMode.statusLine || (conf.showModeStatus ? currentMode.name : "");
+    if (statusLine !== "" && window !== top && engineEnv && !engineEnv.isInUIFrame()) {
       const pathname = window.location.pathname.split("/");
       if (pathname.length) {
-        sl += " - frame: " + pathname.at(-1);
+        statusLine += " - frame: " + pathname.at(-1);
       }
     }
-    dispatchSKEvent("front", ["showStatus", [sl]]);
+    dispatchSKEvent("front", ["showStatus", [statusLine]]);
   }
 }
 

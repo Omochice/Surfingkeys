@@ -25,8 +25,8 @@ export function nextNonWord(str: string, dir: number, cur: number): number {
       cur = str.length;
       break;
     } else {
-      const ch = str[cur];
-      if (ch == null || nonWord.test(ch)) {
+      const char = str[cur];
+      if (char == null || nonWord.test(char)) {
         break;
       }
       cur = cur + dir;
@@ -233,13 +233,13 @@ function createInsert(env: EngineEnv): InsertMode {
   const emojiURL = env.getExtensionURL("pages/emoji.tsv");
   const emojiPrompt = new CursorPrompt(
     (c: string) => {
-      const ee = c.split("\t");
-      const codepoints = ee[0];
+      const fields = c.split("\t");
+      const codepoints = fields[0];
       if (codepoints == null) {
         return "";
       }
       const parsedUnicodeEmoji = String.fromCodePoint(...codepoints.split(",").map(Number));
-      return `<div><span>${parsedUnicodeEmoji}</span>${ee[1]}</div>`;
+      return `<div><span>${parsedUnicodeEmoji}</span>${fields[1]}</div>`;
     },
     (elm: Element) => {
       const child = elm.firstElementChild;
@@ -285,14 +285,14 @@ function createInsert(env: EngineEnv): InsertMode {
       keymap.handleKey(event, (last) => {
         // for insert mode to insert unmapped chars with preceding chars same as some mapkeys
         // such as, to insert `,m` in case of mapkey `,,` defined.
-        const pw = last.getPrefixWord();
-        if (pw) {
+        const prefixWord = last.getPrefixWord();
+        if (prefixWord) {
           const editEl = getRealEdit();
           if (isTextInput(editEl) && editEl.selectionStart != null) {
             const str = editEl.value;
             const start = editEl.selectionStart;
-            editEl.value = str.slice(0, start) + pw + str.slice(editEl.selectionEnd ?? 0);
-            const pos = start + pw.length;
+            editEl.value = str.slice(0, start) + prefixWord + str.slice(editEl.selectionEnd ?? 0);
+            const pos = start + prefixWord.length;
             editEl.setSelectionRange(pos, pos);
           } else {
             const selection = document.getSelection();
@@ -300,13 +300,13 @@ function createInsert(env: EngineEnv): InsertMode {
               return;
             }
             const range = selection.getRangeAt(0);
-            const n = document.createTextNode(pw);
+            const n = document.createTextNode(prefixWord);
             if (selection.type === "Caret") {
               const focus = selection.focusNode;
               if (focus instanceof Text) {
                 const pos = selection.focusOffset;
-                focus.data = focus.data.slice(0, pos) + pw + focus.data.slice(pos);
-                selection.setPosition(focus, pos + pw.length);
+                focus.data = focus.data.slice(0, pos) + prefixWord + focus.data.slice(pos);
+                selection.setPosition(focus, pos + prefixWord.length);
               } else {
                 range.insertNode(n);
                 selection.setPosition(n, n.length);

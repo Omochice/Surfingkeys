@@ -765,8 +765,8 @@ export function createTabs(deps: TabsDeps): TabsUnit {
         const defaultZoom = settings.defaultZoomFactor || 1;
         await chrome.tabs.setZoom(tabId, defaultZoom);
       } else {
-        const zf = await chrome.tabs.getZoom(tabId);
-        await chrome.tabs.setZoom(tabId, zf + zoomFactor);
+        const currentZoom = await chrome.tabs.getZoom(tabId);
+        await chrome.tabs.setZoom(tabId, currentZoom + zoomFactor);
       }
     },
     queueURLs: (message: unknown) => {

@@ -645,9 +645,9 @@ div.hint-scrollable {
       if (prefix == null || middle == null || suffix == null) {
         continue;
       }
-      const cp = Number.parseInt(middle);
-      if (cp < 0xff_ff_ff_ff) {
-        window.location.href = prefix + (cp + step) + suffix;
+      const currentNumber = Number.parseInt(middle);
+      if (currentNumber < 0xff_ff_ff_ff) {
+        window.location.href = prefix + (currentNumber + step) + suffix;
         return true;
       }
     }
@@ -759,8 +759,8 @@ div.hint-scrollable {
       if (p == null) {
         break;
       }
-      for (const ch of chars) {
-        hints.push(p + ch);
+      for (const char of chars) {
+        hints.push(p + char);
       }
     }
     hints = hints.slice(offset, offset + total);
@@ -771,10 +771,10 @@ div.hint-scrollable {
     const link = createElementWithContent("div", "A", { style: "top: 0; left: 0;" });
     holder.prepend(link);
     hintsHost.shadowRoot!.appendChild(holder);
-    const br = link.getBoundingClientRect();
+    const bounds = link.getBoundingClientRect();
     const ret = {
-      top: br.top + window.pageYOffset - document.documentElement.clientTop,
-      left: br.left + window.pageXOffset - document.documentElement.clientLeft,
+      top: bounds.top + window.pageYOffset - document.documentElement.clientTop,
+      left: bounds.left + window.pageXOffset - document.documentElement.clientLeft,
     };
     setSanitizedContent(holder, "");
     holder.remove();
@@ -808,7 +808,7 @@ div.hint-scrollable {
   function placeHints(elements: Element[]): void {
     initHolder("click");
     const hintLabels = self.genLabels(elements.length);
-    const bof = self.coordinate();
+    const origin = self.coordinate();
     const style = createElementWithContent("style", styleForClick);
     holder.prepend(style);
     if (behaviours.regionalHints) {
@@ -825,11 +825,11 @@ div.hint-scrollable {
       let left;
       const width = Math.min(r.width, window.innerWidth);
       if (conf.hintAlign === "right") {
-        left = window.pageXOffset + r.left - bof.left + width;
+        left = window.pageXOffset + r.left - origin.left + width;
       } else if (conf.hintAlign === "left") {
-        left = window.pageXOffset + r.left - bof.left;
+        left = window.pageXOffset + r.left - origin.left;
       } else {
-        left = window.pageXOffset + r.left - bof.left + width / 2;
+        left = window.pageXOffset + r.left - origin.left + width / 2;
       }
       if (left < window.pageXOffset) {
         left = window.pageXOffset;
@@ -840,7 +840,7 @@ div.hint-scrollable {
       if (elm instanceof HTMLElement && elm.dataset["hint_scrollable"]) {
         link.classList.add("hint-scrollable");
       }
-      let lTop = Math.max(r.top + window.pageYOffset - bof.top, 0);
+      let lTop = Math.max(r.top + window.pageYOffset - origin.top, 0);
       if (lTop === lastTop && Math.abs(left - lastLeft) < 20) {
         left += 20 - Math.abs(left - lastLeft);
       } else if (left === lastLeft && Math.abs(lTop - lastTop) < 20) {
@@ -866,17 +866,20 @@ div.hint-scrollable {
     const hints = holder.querySelectorAll("div");
     const firstHint = hints[0];
     if (firstHint != null) {
-      let bcr = getRealRect(firstHint);
+      let previousRect = getRealRect(firstHint);
       for (let i = 1; i < hints.length; i++) {
         const h = hints[i];
         if (h == null) {
           continue;
         }
-        const tcr = getRealRect(h);
-        if (tcr.top === bcr.top && Math.abs(tcr.left - bcr.left) < bcr.width) {
+        const currentRect = getRealRect(h);
+        if (
+          currentRect.top === previousRect.top &&
+          Math.abs(currentRect.left - previousRect.left) < previousRect.width
+        ) {
           h.style.top = h.offsetTop + h.offsetHeight + "px";
         }
-        bcr = getRealRect(h);
+        previousRect = getRealRect(h);
       }
     }
     hintsHost.shadowRoot!.appendChild(holder);
@@ -936,7 +939,7 @@ div.hint-scrollable {
     return elements.length;
   }
 
-  function createHintsForTextNode(rxp: RegExp, attrs?: Record<string, unknown>): number {
+  function createHintsForTextNode(regex: RegExp, attrs?: Record<string, unknown>): number {
     for (const attr in attrs) {
       behaviours[attr] = attrs[attr];
     }
@@ -944,9 +947,9 @@ div.hint-scrollable {
     mode.statusLine = (typeof statusLine === "string" && statusLine) || "Hints to select text";
 
     const visible = getVisibleElements((e, v) => {
-      const aa = e.childNodes;
-      for (let i = 0, len = aa.length; i < len; i++) {
-        const node = aa[i];
+      const children = e.childNodes;
+      for (let i = 0, len = children.length; i < len; i++) {
+        const node = children[i];
         if (node instanceof Text && node.data.length > 0) {
           v.push(e);
           break;
@@ -954,19 +957,19 @@ div.hint-scrollable {
       }
     });
     const textNodes: Text[] = visible.flatMap((e) => {
-      const aa = e.childNodes;
-      const bb: Text[] = [];
-      for (let i = 0, len = aa.length; i < len; i++) {
-        const node = aa[i];
+      const children = e.childNodes;
+      const textChildren: Text[] = [];
+      for (let i = 0, len = children.length; i < len; i++) {
+        const node = children[i];
         if (node instanceof Text && node.data.trim().length > 1) {
-          bb.push(node);
+          textChildren.push(node);
         }
       }
-      return bb;
+      return textChildren;
     });
 
     let positions: [Text, number, string][];
-    if (!rxp.flags.includes("g")) {
+    if (!regex.flags.includes("g")) {
       positions = textNodes.map((e) => {
         return [e, 0, ""];
       });
@@ -974,7 +977,7 @@ div.hint-scrollable {
       positions = [];
       for (const e of textNodes) {
         let match;
-        while ((match = rxp.exec(e.data)) != null) {
+        while ((match = regex.exec(e.data)) != null) {
           positions.push([e, match.index, match[0]]);
         }
       }

@@ -997,8 +997,10 @@ function defineCopyTableColumn(ctx: ModeContext): ModalMappingDef {
       code: () => {
         ctx.hints.create(getTableColumnHeads(), (element: HTMLTableCellElement) => {
           const table = element.closest("table");
-          const trs = table ? Array.from(table.querySelectorAll<HTMLTableRowElement>("tr")) : [];
-          const column = trs.map((tr) => {
+          const tableRows = table
+            ? Array.from(table.querySelectorAll<HTMLTableRowElement>("tr"))
+            : [];
+          const column = tableRows.map((tr) => {
             const cell = tr.children[element.cellIndex];
             return cell instanceof HTMLElement ? cell.innerText : "";
           });
@@ -1022,8 +1024,10 @@ function defineCopyMultipleTableColumns(ctx: ModeContext): ModalMappingDef {
           getTableColumnHeads(),
           (element: HTMLTableCellElement) => {
             const table = element.closest("table");
-            const trs = table ? Array.from(table.querySelectorAll<HTMLTableRowElement>("tr")) : [];
-            const column: string[] = trs.map((tr) => {
+            const tableRows = table
+              ? Array.from(table.querySelectorAll<HTMLTableRowElement>("tr"))
+              : [];
+            const column: string[] = tableRows.map((tr) => {
               const cell = tr.children[element.cellIndex];
               return cell instanceof HTMLElement ? cell.innerText : "";
             });
@@ -1393,9 +1397,9 @@ function defineCopyPageSource(ctx: ModeContext): ModalMappingDef {
       group: "clipboard",
       annotation: "Copy current page's source",
       code: () => {
-        const aa = document.documentElement.cloneNode(true);
-        if (aa instanceof Element) {
-          ctx.clipboard.write(aa.outerHTML);
+        const documentClone = document.documentElement.cloneNode(true);
+        if (documentClone instanceof Element) {
+          ctx.clipboard.write(documentClone.outerHTML);
         }
       },
     },
@@ -1566,11 +1570,11 @@ function defineCopyFormData(ctx: ModeContext): ModalMappingDef {
       group: "clipboard",
       annotation: "Copy form data in JSON on current page",
       code: () => {
-        const fd: Record<string, unknown> = {};
+        const formsData: Record<string, unknown> = {};
         document.querySelectorAll("form").forEach((form) => {
-          fd[generateFormKey(form)] = getFormData(form, "json");
+          formsData[generateFormKey(form)] = getFormData(form, "json");
         });
-        ctx.clipboard.write(JSON.stringify(fd, null, 4));
+        ctx.clipboard.write(JSON.stringify(formsData, null, 4));
       },
     },
   };
@@ -1591,34 +1595,34 @@ function defineFillForm(ctx: ModeContext): ModalMappingDef {
             const forms: Record<string, Record<string, unknown>> = result.success
               ? result.output
               : {};
-            const fd = forms[formKey];
-            if (fd) {
-              element.querySelectorAll<HTMLInputElement>("input, textarea").forEach((ip) => {
-                const value = fd[ip.name];
-                if (Object.hasOwn(fd, ip.name) && ip.type !== "hidden") {
-                  if (ip.type === "radio") {
-                    const op = element.querySelector<HTMLInputElement>(
-                      `input[name='${ip.name}'][value='${String(value)}']`,
+            const formValues = forms[formKey];
+            if (formValues) {
+              element.querySelectorAll<HTMLInputElement>("input, textarea").forEach((input) => {
+                const value = formValues[input.name];
+                if (Object.hasOwn(formValues, input.name) && input.type !== "hidden") {
+                  if (input.type === "radio") {
+                    const option = element.querySelector<HTMLInputElement>(
+                      `input[name='${input.name}'][value='${String(value)}']`,
                     );
-                    if (op) {
-                      op.checked = true;
+                    if (option) {
+                      option.checked = true;
                     }
                   } else if (Array.isArray(value)) {
                     element
-                      .querySelectorAll<HTMLInputElement>(`input[name='${ip.name}']`)
+                      .querySelectorAll<HTMLInputElement>(`input[name='${input.name}']`)
                       .forEach((ip2) => {
                         ip2.checked = false;
                       });
                     value.forEach((v) => {
-                      const op = element.querySelector<HTMLInputElement>(
-                        `input[name='${ip.name}'][value='${v}']`,
+                      const option = element.querySelector<HTMLInputElement>(
+                        `input[name='${input.name}'][value='${v}']`,
                       );
-                      if (op) {
-                        op.checked = true;
+                      if (option) {
+                        option.checked = true;
                       }
                     });
                   } else if (typeof value === "string") {
-                    ip.value = value;
+                    input.value = value;
                   }
                 }
               });
@@ -1640,14 +1644,14 @@ function defineCopyFormDataForPost(ctx: ModeContext): ModalMappingDef {
       group: "clipboard",
       annotation: "Copy form data for POST on current page",
       code: () => {
-        const aa: Record<string, unknown>[] = [];
+        const formsData: Record<string, unknown>[] = [];
         document.querySelectorAll("form").forEach((form) => {
-          const fd: Record<string, unknown> = {
+          const formEntry: Record<string, unknown> = {
             [(form.method || "get") + "::" + form.action]: getFormData(form),
           };
-          aa.push(fd);
+          formsData.push(formEntry);
         });
-        ctx.clipboard.write(JSON.stringify(aa, null, 4));
+        ctx.clipboard.write(JSON.stringify(formsData, null, 4));
       },
     },
   };
@@ -1794,8 +1798,8 @@ function defineEditSettings(env: EngineEnv): ModalMappingDef {
 }
 
 function defineBrowserSpecificMappings(env: EngineEnv): ModalMappingDef[] {
-  const bn = getBrowserName();
-  if (bn === "Firefox") {
+  const browserName = getBrowserName();
+  if (browserName === "Firefox") {
     return [
       {
         mode: "nmap",
@@ -1810,7 +1814,7 @@ function defineBrowserSpecificMappings(env: EngineEnv): ModalMappingDef[] {
       },
     ];
   }
-  if (bn === "Chrome") {
+  if (browserName === "Chrome") {
     const openChromePage = (
       keys: string,
       group: FeatureGroup,

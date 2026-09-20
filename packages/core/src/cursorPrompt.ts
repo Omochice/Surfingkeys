@@ -113,10 +113,10 @@ class CursorPrompt {
       this.onEnter();
       return;
     }
-    const si = this.element.querySelector("div.selected")!;
-    const ci = (items.indexOf(si) + (backward ? -1 : 1)) % items.length;
-    si.classList.remove("selected");
-    const next = items[ci];
+    const selected = this.element.querySelector("div.selected")!;
+    const nextIndex = (items.indexOf(selected) + (backward ? -1 : 1)) % items.length;
+    selected.classList.remove("selected");
+    const next = items[nextIndex];
     if (next) {
       next.classList.add("selected");
     }
@@ -178,8 +178,8 @@ class CursorPrompt {
 
   onKeyUp(): void {
     if (!this.#suppressKeyup && this.matchStart !== -1) {
-      const [v, ss] = this.#getValueAndSelectionStart();
-      if (ss < this.matchStart || v[this.matchStart - 1] !== this.activator) {
+      const [v, selectionStart] = this.#getValueAndSelectionStart();
+      if (selectionStart < this.matchStart || v[this.matchStart - 1] !== this.activator) {
         this.element.remove();
       } else {
         this.#render();
@@ -217,35 +217,35 @@ class CursorPrompt {
         setSanitizedContent(this.element, choices);
         document.body.append(this.element);
         this.element.firstElementChild!.classList.add("selected");
-        const br = (
+        const caretRect = (
           this.isNativeInput
             ? this.#getCursorPixelPos(this.#requireNativeInput())
             : locateFocusNode(document.getSelection())
         )!;
-        let top = br.top + br.height + 4;
+        let top = caretRect.top + caretRect.height + 4;
         this.element.style.borderRadius = "0px 0px 4px 4px";
         if (window.innerHeight - top < this.element.offsetHeight) {
-          top = br.top - this.element.offsetHeight;
+          top = caretRect.top - this.element.offsetHeight;
           this.element.style.borderRadius = "4px 4px 0px 0px";
         }
 
         this.element.style.position = "fixed";
         this.element.style.top = top + "px";
-        this.element.style.left = br.left + "px";
+        this.element.style.left = caretRect.left + "px";
       }
     }
   }
 
   #getCursorPixelPos(input: InputLike): DOMRect {
     const css = getComputedStyle(input);
-    let br = input.getBoundingClientRect();
+    let bounds = input.getBoundingClientRect();
     const mask = document.createElement("div");
     const span = document.createElement("span");
     mask.style.font = css.font;
     mask.style.position = "fixed";
     setSanitizedContent(mask, input.value);
-    mask.style.left = input.clientLeft + br.left + "px";
-    mask.style.top = input.clientTop + br.top + "px";
+    mask.style.left = input.clientLeft + bounds.left + "px";
+    mask.style.top = input.clientTop + bounds.top + "px";
     mask.style.color = "red";
     mask.style.overflow = "scroll";
     mask.style.visibility = "hidden";
@@ -261,17 +261,17 @@ class CursorPrompt {
     } else {
       const firstChild = mask.childNodes[0];
       if (firstChild instanceof Text) {
-        const fp = firstChild.splitText(pos);
-        fp.before(span);
+        const tail = firstChild.splitText(pos);
+        tail.before(span);
       }
     }
     document.body.appendChild(mask);
     scrollIntoViewIfNeeded(span);
 
-    br = span.getBoundingClientRect();
+    bounds = span.getBoundingClientRect();
 
     mask.remove();
-    return br;
+    return bounds;
   }
 }
 

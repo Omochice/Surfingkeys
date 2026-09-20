@@ -36,10 +36,13 @@ const updateSettingsMessageSchema = v.object({
   settings: v.record(v.string(), v.unknown()),
 });
 
-/** Shallow-merges every own enumerable property of `ss` onto `target` in place. */
-export function extendObject(target: Record<string, unknown>, ss: Record<string, unknown>): void {
-  for (const k in ss) {
-    target[k] = ss[k];
+/** Shallow-merges every own enumerable property of `source` onto `target` in place. */
+export function extendObject(
+  target: Record<string, unknown>,
+  source: Record<string, unknown>,
+): void {
+  for (const k in source) {
+    target[k] = source[k];
   }
 }
 
@@ -539,14 +542,14 @@ export function createSettings(deps: SettingsDeps): SettingsUnit {
           tabGroup[tab.windowId] = group;
         }
       });
-      const tabg: (string | undefined)[][] = [];
+      const tabGroups: (string | undefined)[][] = [];
       for (const k in tabGroup) {
         const group = tabGroup[k];
         if (group && group.length) {
-          tabg.push(group);
+          tabGroups.push(group);
         }
       }
-      sessions[name] = { tabs: tabg };
+      sessions[name] = { tabs: tabGroups };
       await updateAndPostSettings({
         sessions,
       });

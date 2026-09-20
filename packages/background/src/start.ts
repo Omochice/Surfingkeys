@@ -234,11 +234,11 @@ const Gist = (() => {
     );
     return Result.isSuccess(r) ? r.value : "";
   }
-  const readComment = async (nr: number): Promise<GistCommentResult> => {
+  const readComment = async (commentNumber: number): Promise<GistCommentResult> => {
     if (cachedGist === "") {
       return { status: 1, content: "Please call initGist first!" };
     }
-    const cached = cachedComments[nr];
+    const cached = cachedComments[commentNumber];
     if (cached !== undefined) {
       return fetchComment(cached);
     }
@@ -246,17 +246,20 @@ const Gist = (() => {
     if (!listed.ok) {
       return { status: 1, error: listed.error };
     }
-    const fresh = listed.comments[nr];
+    const fresh = listed.comments[commentNumber];
     if (fresh !== undefined) {
       return fetchComment(fresh);
     }
     return { status: 1, content: "Register not exists!" };
   };
-  const editComment = async (nr: number, clip: string): Promise<string | GistCommentResult> => {
+  const editComment = async (
+    commentNumber: number,
+    clip: string,
+  ): Promise<string | GistCommentResult> => {
     if (cachedGist === "") {
       return { status: 1, content: "Please call initGist first!" };
     }
-    const cached = cachedComments[nr];
+    const cached = cachedComments[commentNumber];
     if (cached !== undefined) {
       return writeComment(cached, clip);
     }
@@ -264,11 +267,11 @@ const Gist = (() => {
     if (!listed.ok) {
       return { status: 1, error: listed.error };
     }
-    const fresh = listed.comments[nr];
+    const fresh = listed.comments[commentNumber];
     if (fresh !== undefined) {
       return writeComment(fresh, clip);
     }
-    let toCreate = nr - listed.comments.length + 1;
+    let toCreate = commentNumber - listed.comments.length + 1;
     while (toCreate > 1) {
       await newComment(".");
       toCreate--;
@@ -393,16 +396,17 @@ function start(browser: BrowserAdapter, extraHandlers?: Record<string, MessageHa
         canvas.getContext("2d")!.drawImage(img, 0, 0, canvas.width, canvas.height);
         const outBlob = await canvas.convertToBlob();
         return await new Promise<string | ArrayBuffer | null>((resolve, reject) => {
-          const fr = new FileReader();
-          fr.onload = (e) => resolve(e.target!.result);
+          const reader = new FileReader();
+          reader.onload = (e) => resolve(e.target!.result);
           // `readAsDataURL` reports failures via `onerror`/`onabort`. Without
           // rejecting here the promise (and the awaiting `Result.try`) would
           // stay pending forever, hanging the background response and leaking.
           // `fr.error` is null on abort and may be null on error, so fall back
           // to an Error rather than rejecting with null.
-          fr.onerror = () => reject(fr.error ?? new Error("FileReader failed to read blob"));
-          fr.onabort = () => reject(fr.error ?? new Error("FileReader read aborted"));
-          fr.readAsDataURL(outBlob);
+          reader.onerror = () =>
+            reject(reader.error ?? new Error("FileReader failed to read blob"));
+          reader.onabort = () => reject(reader.error ?? new Error("FileReader read aborted"));
+          reader.readAsDataURL(outBlob);
         });
       },
       catch: (cause) => domApiError("requestImage", cause),
