@@ -146,8 +146,8 @@ type Omnibar = {
   triggerInput: () => void;
   getItems: () => unknown;
   getHistoryCacheSize: () => number;
-  highlight: (rxp: RegExp | null, str: string) => string;
-  createURLItem: (b: URLItem, rxp: RegExp | null) => OmnibarResult;
+  highlight: (regex: RegExp | null, str: string) => string;
+  createURLItem: (b: URLItem, regex: RegExp | null) => OmnibarResult;
   createItemFromRawHtml: (arg: {
     html: string;
     props?: Partial<OmnibarResult["data"]>;
@@ -210,7 +210,7 @@ type OmnibarMode = Omnibar & {
   getPageSize(): number;
   html(content: string): void;
   isUrl(input: string): boolean | RegExpMatchArray | null;
-  addHandler(name: string, hdl: OmnibarHandler): void;
+  addHandler(name: string, handler: OmnibarHandler): void;
 };
 
 /**
@@ -309,8 +309,8 @@ function createOmnibar(front: OmnibarFront, clipboard: { write(text: string): vo
       runtime.conf.omnibarPosition =
         runtime.conf.omnibarPosition === "bottom" ? "middle" : "bottom";
       reopen(() => {
-        savedAargs.pref = savedInput;
-        front.openOmnibar(savedAargs);
+        savedArgs.pref = savedInput;
+        front.openOmnibar(savedArgs);
       });
     },
   });
@@ -664,18 +664,18 @@ function createOmnibar(front: OmnibarFront, clipboard: { write(text: string): vo
     code: toggleQuote,
   });
 
-  const highlight = (rxp: RegExp | null, str: string): string => {
+  const highlight = (regex: RegExp | null, str: string): string => {
     if (str.slice(0, 11) === "data:image/") {
       str = str.slice(0, 1024);
     }
-    return rxp === null
+    return regex === null
       ? str
-      : str.replace(rxp, (m) => {
+      : str.replace(regex, (m) => {
           return "<span class=omnibar_highlight>" + m + "</span>";
         });
   };
 
-  const createURLItem = (b: URLItem, rxp: RegExp | null): OmnibarResult => {
+  const createURLItem = (b: URLItem, regex: RegExp | null): OmnibarResult => {
     const url = b.url ?? "";
     const title = b.title && b.title !== "" ? b.title : unwrapOr(tryDecodeURI(url), url);
     let type = "🔥";
@@ -711,7 +711,7 @@ function createOmnibar(front: OmnibarFront, clipboard: { write(text: string): vo
     li.appendChild(
       createElementWithContent(
         "div",
-        `<div class="title">${self.highlight(rxp, htmlEncode(title))} ${additional}</div><div class="url">${self.highlight(rxp, htmlEncode(unwrapOr(tryDecodeURIComponent(url), url)))}</div>`,
+        `<div class="title">${self.highlight(regex, htmlEncode(title))} ${additional}</div><div class="url">${self.highlight(regex, htmlEncode(unwrapOr(tryDecodeURIComponent(url), url)))}</div>`,
         { class: "text-container" },
       ),
     );
@@ -783,19 +783,19 @@ function createOmnibar(front: OmnibarFront, clipboard: { write(text: string): vo
     if (urlItems == null) {
       return;
     }
-    const si = (start - 1) * runtime.conf.omnibarMaxResults;
-    let ei = si + runtime.conf.omnibarMaxResults;
-    ei = ei > urlItems.length ? urlItems.length : ei;
+    const startIndex = (start - 1) * runtime.conf.omnibarMaxResults;
+    let endIndex = startIndex + runtime.conf.omnibarMaxResults;
+    endIndex = endIndex > urlItems.length ? urlItems.length : endIndex;
     let total: number | string = urlItems.length;
     if (total === runtime.conf.omnibarHistoryCacheSize) {
       total = total + "+";
     }
-    setResultPage(`${si + 1} - ${ei} / ${total}`);
-    pageItems = urlItems.slice(si, ei);
+    setResultPage(`${startIndex + 1} - ${endIndex} / ${total}`);
+    pageItems = urlItems.slice(startIndex, endIndex);
     const query = self.input.value.trim();
-    let rxp: RegExp | null = null;
+    let regex: RegExp | null = null;
     if (query.length) {
-      rxp = regexFromString(query, runtime.getCaseSensitive(query), true);
+      regex = regexFromString(query, runtime.getCaseSensitive(query), true);
     }
     self.listResults(pageItems, (b: URLItem) => {
       if (Object.hasOwn(b, "html")) {
@@ -804,11 +804,11 @@ function createOmnibar(front: OmnibarFront, clipboard: { write(text: string): vo
         if (getBrowserName() === "Firefox" && /^(place|data):/i.test(b.url)) {
           return null;
         }
-        return self.createURLItem(b, rxp);
+        return self.createURLItem(b, regex);
       } else if (showFolderFlag) {
         const li = createElementWithContent(
           "li",
-          `<div class="title">▷ ${self.highlight(rxp, b.title ?? "")}</div>`,
+          `<div class="title">▷ ${self.highlight(regex, b.title ?? "")}</div>`,
         );
         return buildOmnibarResult(li, {
           folder_name: b.title,
@@ -819,10 +819,10 @@ function createOmnibar(front: OmnibarFront, clipboard: { write(text: string): vo
     });
   }
 
-  let savedAargs: OmnibarShowArgs;
+  let savedArgs: OmnibarShowArgs;
   ui.onShow = (args: OmnibarShowArgs) => {
     handler = handlers[args.type] ?? {};
-    savedAargs = args;
+    savedArgs = args;
     ui.classList.remove("sk_omnibar_middle");
     ui.classList.remove("sk_omnibar_bottom");
     ui.classList.add("sk_omnibar_" + getPosition());
@@ -970,11 +970,11 @@ function createOmnibar(front: OmnibarFront, clipboard: { write(text: string): vo
     setFocusedIndex(-1);
   };
 
-  const addHandler = (name: string, hdl: OmnibarHandler): void => {
-    if (!hdl.onEnter) {
-      hdl.onEnter = () => self.openFocused(hdl);
+  const addHandler = (name: string, newHandler: OmnibarHandler): void => {
+    if (!newHandler.onEnter) {
+      newHandler.onEnter = () => self.openFocused(newHandler);
     }
-    handlers[name] = hdl;
+    handlers[name] = newHandler;
   };
 
   const listBookmarkFolders = (
@@ -1179,12 +1179,12 @@ function OpenBookmarks(omnibar: Omnibar): OpenBookmarksHandler {
   let lastFocused = 0;
 
   function onFolderUp() {
-    const fl = self.inFolder.pop();
-    if (!fl) {
+    const folder = self.inFolder.pop();
+    if (!folder) {
       return;
     }
-    if (fl.folderId) {
-      currentFolderId = fl.folderId;
+    if (folder.folderId) {
+      currentFolderId = folder.folderId;
       reportOnFail(
         RUNTIME("getBookmarks", { parentId: currentFolderId }, self.onResponse),
         reportError,
@@ -1193,9 +1193,9 @@ function OpenBookmarks(omnibar: Omnibar): OpenBookmarksHandler {
       currentFolderId = undefined;
       reportOnFail(RUNTIME("getBookmarks", null, self.onResponse), reportError);
     }
-    self.prompt = fl.prompt;
+    self.prompt = folder.prompt;
     omnibar.setPrompt(self.prompt ?? "");
-    lastFocused = fl.focused;
+    lastFocused = folder.focused;
   }
 
   self.onEnter = () => {
@@ -1417,11 +1417,11 @@ function AddBookmark(omnibar: Omnibar): AddBookmarkHandler {
         return p.length > 0;
       });
       for (let l = parts.length; l > 0; l--) {
-        const tf = folders.find((f) => {
+        const matchedFolder = folders.find((f) => {
           return f.title === `/${parts.slice(0, l).join("/")}/`;
         });
-        if (tf) {
-          page.folder = tf.id;
+        if (matchedFolder) {
+          page.folder = matchedFolder.id;
           page.path = parts.slice(l);
           folderName = "/" + parts.join("/");
           break;
@@ -1673,19 +1673,19 @@ function OpenWindows(omnibar: Omnibar, front: OmnibarFront): OmnibarHandler {
       }
       let filtered = cached;
       const query = omnibar.input.value;
-      let rxp: RegExp | null = null;
+      let regex: RegExp | null = null;
       if (query && query.length) {
-        rxp = regexFromString(query, runtime.getCaseSensitive(query), false);
+        regex = regexFromString(query, runtime.getCaseSensitive(query), false);
         filtered = cached.filter((w: WindowItem) => {
           for (const t of w.tabs) {
-            if (rxp!.test(t.title ?? "") || rxp!.test(t.url ?? "")) {
+            if (regex!.test(t.title ?? "") || regex!.test(t.url ?? "")) {
               return true;
             }
           }
           return false;
         });
       }
-      rxp = regexFromString(query, runtime.getCaseSensitive(query), true);
+      regex = regexFromString(query, runtime.getCaseSensitive(query), true);
       omnibar.listResults(filtered, (w: WindowItem) => {
         const li = createElementWithContent("li");
         li.classList.add("window");
@@ -1695,12 +1695,12 @@ function OpenWindows(omnibar: Omnibar, front: OmnibarFront): OmnibarHandler {
         w.tabs.forEach((t: TabItem) => {
           const div = createElementWithContent("div", "", { class: "tab_in_window" });
           div.appendChild(
-            createElementWithContent("div", omnibar.highlight(rxp, t.title ?? ""), {
+            createElementWithContent("div", omnibar.highlight(regex, t.title ?? ""), {
               class: "title",
             }),
           );
           div.appendChild(
-            createElementWithContent("div", omnibar.highlight(rxp, new URL(t.url ?? "").origin), {
+            createElementWithContent("div", omnibar.highlight(regex, new URL(t.url ?? "").origin), {
               class: "url",
             }),
           );
@@ -1823,7 +1823,7 @@ function SearchEngine(omnibar: Omnibar, front: OmnibarFront): SearchEngineHandle
   function listSuggestions(suggestions: SearchSuggestion[]) {
     omnibar.detectAndInsertURLItem(omnibar.input.value, suggestions);
     const query = encodeURIComponent(omnibar.input.value);
-    const rxp = regexFromString(query, runtime.getCaseSensitive(query), true);
+    const regex = regexFromString(query, runtime.getCaseSensitive(query), true);
     omnibar.listResults(suggestions, (w: SearchSuggestion) => {
       // `suggestions` is asserted as SearchSuggestion[] but originates from untrusted resp2.data, so
       // guard against null (which `typeof` reports as "object", making `in` throw) and stringify the
@@ -1831,7 +1831,7 @@ function SearchEngine(omnibar: Omnibar, front: OmnibarFront): SearchEngineHandle
       if (w != null && typeof w === "object" && "html" in w) {
         return omnibar.createItemFromRawHtml(w);
       } else if (w != null && typeof w === "object" && "url" in w) {
-        return omnibar.createURLItem(w, rxp);
+        return omnibar.createURLItem(w, regex);
       } else {
         const text = String(w);
         const li = createElementWithContent("li", `⌕ ${text}`);
@@ -2082,9 +2082,9 @@ function OmniQuery(omnibar: Omnibar, front: OmnibarFront): OmnibarHandler {
   };
 
   self.onInput = () => {
-    const iw = omnibar.input.value;
+    const inputValue = omnibar.input.value;
     const candidates = words.filter((w) => {
-      return w.includes(iw);
+      return w.includes(inputValue);
     });
     if (candidates.length) {
       omnibar.listResults(candidates, (w: string) => {

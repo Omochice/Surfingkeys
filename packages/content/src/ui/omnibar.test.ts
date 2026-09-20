@@ -61,7 +61,7 @@ describe("createOmnibar — highlight", () => {
     omnibar = createOmnibar(front, makeClipboard());
   });
 
-  it("returns the raw string unchanged when rxp is null", () => {
+  it("returns the raw string unchanged when regex is null", () => {
     expect(omnibar.highlight(null, "hello world")).toBe("hello world");
   });
 
