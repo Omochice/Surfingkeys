@@ -13,6 +13,8 @@ import {
 import { httpRequest, tabOpenLink } from "@sk/messaging/messagingActions";
 import { RUNTIME } from "@sk/messaging/runtime";
 
+import type { InlineQuery, MapkeyOptions, UserScriptApi, UserScriptSettings } from "./types/api";
+
 let EXTENSION_ROOT_URL = "";
 function isInUIFrame() {
   return (
@@ -20,8 +22,6 @@ function isInUIFrame() {
     document.location.href.indexOf(EXTENSION_ROOT_URL) === 0
   );
 }
-
-type MapkeyOptions = { domain?: RegExp; codeHasParameter?: number; [key: string]: unknown };
 
 function isDomainApplicable(domain?: RegExp) {
   return !domain || domain.test(document.location.href) || domain.test(window.origin);
@@ -121,12 +121,6 @@ function vmap(
 
 const functionsToListSuggestions: Record<string, (response: unknown, request: unknown) => unknown> =
   {};
-
-type InlineQuery = {
-  url: string | ((query: string) => string);
-  headers?: Record<string, string>;
-  parseResult: (res: unknown) => unknown;
-};
 
 let inlineQuery: InlineQuery | undefined;
 let hintsFunction: ((element: HTMLElement, shiftKey: boolean) => void) | undefined;
@@ -382,18 +376,16 @@ const api = {
     showBanner,
     showPopup,
   },
-};
-
-type UserScriptApi = typeof api;
+} satisfies UserScriptApi;
 
 const initUserScripts = (
   extensionRootUrl: string,
-  uf: (api: UserScriptApi, settings: Record<string, unknown>) => void,
+  uf: (api: UserScriptApi, settings: UserScriptSettings) => void,
 ) => {
   EXTENSION_ROOT_URL = extensionRootUrl;
   if (isInUIFrame()) return;
   userScriptTask = () => {
-    const settings = {};
+    const settings: UserScriptSettings = {};
     const r = Result.try({
       try: (): void => {
         uf(api, settings);

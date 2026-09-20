@@ -14,6 +14,7 @@
     "check:package": "sort-package-json --check",
     "check:type": "tsc --noEmit -p tsconfig.browser.json",
     "check:type-node": "tsc --noEmit -p tsconfig.node.json",
+    "check:type-snippet": "tsc --noEmit -p tsconfig.snippet.json",
     "dev": "wxt",
     "dev:firefox": "wxt -b firefox",
     "fmt": "npm-run-all2 --parallel --aggregate-output fmt:*",
