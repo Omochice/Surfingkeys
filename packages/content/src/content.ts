@@ -27,7 +27,7 @@ import { applySettings } from "./settingsApplication";
 type BrowserAdapter = {
   plugin?: (ctx: { front: unknown }) => void;
   getBackFocusFromFrontend?: () => void;
-  focusFrontend?: (ifr: HTMLIFrameElement) => void;
+  focusFrontend?: (iframe: HTMLIFrameElement) => void;
 };
 
 let adapter: BrowserAdapter = {};
@@ -81,13 +81,13 @@ function initModules(): Modes {
   dispatchSKEvent("defaultSettingsLoaded", { normal, api });
   reportOnFail(
     RUNTIME("getSettings", null, (response: { settings: StoredSettings }) => {
-      const rs = response.settings;
-      applySettings(api, normal, rs);
-      const disabledSearchAliases = rs.disabledSearchAliases;
+      const settings = response.settings;
+      applySettings(api, normal, settings);
+      const disabledSearchAliases = settings.disabledSearchAliases;
       const getUsage = front.getUsage;
       const frontCommand = front.command;
       dispatchSKEvent("userSettingsLoaded", {
-        settings: rs,
+        settings: settings,
         disabledSearchAliases,
         getUsage,
         frontCommand,
@@ -115,8 +115,8 @@ function initModules(): Modes {
 function initContent(modes: Modes): void {
   window.frameId = generateQuickGuid();
   runtime.on("settingsUpdated", (response) => {
-    const rs = response.settings;
-    applySettings(modes.api, modes.normal, rs);
+    const settings = response.settings;
+    applySettings(modes.api, modes.normal, settings);
   });
 
   if (
