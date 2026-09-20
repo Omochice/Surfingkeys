@@ -44,7 +44,7 @@ import createOmnibar from "./omnibar";
 // side is external data; validate its shape before dispatching. looseObject
 // preserves unknown keys so the payload reaches handlers (typed `any`) intact.
 const frontendMessageEnvelopeSchema = v.looseObject({
-  surfingkeys_frontend_data: v.looseObject({
+  surfingkeysFrontendData: v.looseObject({
     action: v.optional(v.string()),
     id: v.optional(v.union([v.string(), v.number()])),
     ack: v.optional(v.unknown()),
@@ -153,11 +153,11 @@ const Front = (() => {
       args["ack"] = true;
       callbacks[id] = successById;
     }
-    top!.postMessage({ surfingkeys_uihost_data: args }, self.topOrigin);
+    top!.postMessage({ surfingkeysUiHostData: args }, self.topOrigin);
   }
 
   function postMessage(args: Record<string, unknown>): void {
-    top!.postMessage({ surfingkeys_uihost_data: args }, self.topOrigin);
+    top!.postMessage({ surfingkeysUiHostData: args }, self.topOrigin);
   }
 
   let pressedHintKeys = "";
@@ -218,7 +218,7 @@ const Front = (() => {
         state = this;
         top!.postMessage(
           {
-            surfingkeys_uihost_data: {
+            surfingkeysUiHostData: {
               action: "setFrontFrame",
               pointerEvents: pointerEvents,
               frameHeight: frameHeight,
@@ -625,7 +625,7 @@ const Front = (() => {
         `<p style='float:right; width:100%; text-align:right'><a href='https://github.com/brookhong/surfingkeys' target='_blank' style='color:#0095dd'>${moreHelp}</a></p>`;
       top!.postMessage(
         {
-          surfingkeys_uihost_data: {
+          surfingkeysUiHostData: {
             data: usageHtml,
             toContent: true,
             id: id,
@@ -923,7 +923,7 @@ const Front = (() => {
       if (!parsed.success) {
         return;
       }
-      const message = parsed.output.surfingkeys_frontend_data;
+      const message = parsed.output.surfingkeysFrontendData;
       const id = message.id;
       const f = id == null ? undefined : callbacks[id];
       if (f) {
@@ -937,7 +937,7 @@ const Front = (() => {
         if (message.ack) {
           top!.postMessage(
             {
-              surfingkeys_uihost_data: {
+              surfingkeysUiHostData: {
                 data: ret,
                 action: message.action + "Ack",
                 toContent: true,
