@@ -6,9 +6,9 @@ import type {
   UserCodeError,
 } from "./types";
 
-export const chromeRuntimeError = (op: string, cause: unknown): ChromeRuntimeError => ({
+export const chromeRuntimeError = (operation: string, cause: unknown): ChromeRuntimeError => ({
   kind: "chrome-runtime",
-  op,
+  op: operation,
   cause,
 });
 
@@ -31,8 +31,8 @@ export const httpError = (url: string, cause: unknown, status?: number): HttpErr
   ...(status != null ? { status } : {}),
 });
 
-export const domApiError = (op: string, cause: unknown): DomApiError => ({
+export const domApiError = (operation: string, cause: unknown): DomApiError => ({
   kind: "dom-api",
-  op,
+  op: operation,
   cause,
 });
