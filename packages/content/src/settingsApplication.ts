@@ -66,7 +66,7 @@ export function ensureRegex(regexName: string): void {
 function applyRuntimeConf(normal: Normal): void {
   ensureRegex("prevLinkRegex");
   ensureRegex("nextLinkRegex");
-  ensureRegex("clickablePat");
+  ensureRegex("clickablePattern");
   reportOnFail(
     RUNTIME(
       "getState",

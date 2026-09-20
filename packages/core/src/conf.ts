@@ -10,7 +10,7 @@ type RuntimeConf = {
   disabledOnActiveElementPattern: string | undefined;
   smartCase: boolean;
   caseSensitive: boolean;
-  clickablePat: RegExp;
+  clickablePattern: RegExp;
   clickableSelector: string;
   editableSelector: string;
   cursorAtEndOfInput: boolean;
@@ -24,7 +24,7 @@ type RuntimeConf = {
   hintAlign: string;
   hintExplicit: boolean;
   hintShiftNonActive: boolean;
-  historyMUOrder: boolean;
+  historyMostUsedOrder: boolean;
   language: string | undefined;
   lastQuery: string;
   modeAfterYank: string;
@@ -54,7 +54,7 @@ type RuntimeConf = {
   tabIndicesSeparator: string;
   tabsThreshold: number;
   verticalTabs: boolean;
-  textAnchorPat: RegExp;
+  textAnchorPattern: RegExp;
   /** Frame origins for which `getFrameId` skips content-script initialization. */
   ignoredFrameHosts: string[];
   scrollFriction: number;
@@ -91,7 +91,7 @@ const conf: RuntimeConf = {
   disabledOnActiveElementPattern: undefined,
   smartCase: true,
   caseSensitive: false,
-  clickablePat: /(https?:\/\/|thunder:\/\/|magnet:)\S+/gi,
+  clickablePattern: /(https?:\/\/|thunder:\/\/|magnet:)\S+/gi,
   clickableSelector: "",
   editableSelector: "div.CodeMirror-scroll,div.ace_content",
   cursorAtEndOfInput: true,
@@ -105,7 +105,7 @@ const conf: RuntimeConf = {
   hintAlign: "center",
   hintExplicit: false,
   hintShiftNonActive: false,
-  historyMUOrder: true,
+  historyMostUsedOrder: true,
   language: undefined,
   lastQuery: "",
   modeAfterYank: "",
@@ -131,7 +131,7 @@ const conf: RuntimeConf = {
   tabIndicesSeparator: "|",
   tabsThreshold: 100,
   verticalTabs: true,
-  textAnchorPat: /(^[\n\r\s]*\S{3,}|\b\S{4,})/g,
+  textAnchorPattern: /(^[\n\r\s]*\S{3,}|\b\S{4,})/g,
   ignoredFrameHosts: ["https://tpc.googlesyndication.com"],
   scrollFriction: 0,
   caretViewport: null,

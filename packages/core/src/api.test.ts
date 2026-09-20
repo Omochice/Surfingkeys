@@ -599,7 +599,7 @@ describe("createAPI searchSelectedWith", () => {
     vi.restoreAllMocks();
   });
 
-  it("opens the omnibar with pref set to the query when interactive is true", () => {
+  it("opens the omnibar with initialQuery set to the query when interactive is true", () => {
     const ctx = makeCtx();
     const api = createAPI(ctx as any, env);
 
@@ -613,7 +613,7 @@ describe("createAPI searchSelectedWith", () => {
     expect(ctx.front.openOmnibar).toHaveBeenCalledWith({
       type: "SearchEngine",
       extra: "g",
-      pref: "my query",
+      initialQuery: "my query",
     });
 
     vi.restoreAllMocks();

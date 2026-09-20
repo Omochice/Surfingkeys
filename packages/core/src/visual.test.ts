@@ -438,13 +438,13 @@ describe("createVisual — toggle() state transitions", () => {
     document.body.replaceChildren();
   });
 
-  it("in state=0 (default) calls hints.create with textAnchorPat", () => {
+  it("in state=0 (default) calls hints.create with textAnchorPattern", () => {
     const hints = makeHints();
     const visual = createVisual(makeClipboard(), hints, makeEnv());
     visual.toggle();
 
     expect(hints.create).toHaveBeenCalledOnce();
-    expect(hints.create.mock.calls[0]?.[0]).toBe(conf.textAnchorPat);
+    expect(hints.create.mock.calls[0]?.[0]).toBe(conf.textAnchorPattern);
   });
 
   it("in state=1 (Caret) extends selection anchor and increments state to 2", () => {

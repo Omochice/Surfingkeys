@@ -64,9 +64,17 @@ export type UserScriptApi = {
     search_leader_key?: string,
     only_this_site_key?: string,
   ) => void;
-  /** Searches the selected text with the search engine registered under the alias `se`. */
+  /**
+   * Searches the selected text, or the clipboard when nothing is selected.
+   *
+   * @param searchUrl The search engine's URL; the query replaces `{0}` or `%s`, or is appended.
+   * @param onlyThisSite Restricts the search to the current site.
+   * @param interactive Opens the omnibar on the query instead of searching at once.
+   * @param alias The `addSearchAlias` alias the interactive omnibar searches with, in place of
+   *   `searchUrl`.
+   */
   searchSelectedWith: (
-    se: string,
+    searchUrl: string,
     onlyThisSite?: boolean,
     interactive?: boolean,
     alias?: string,
@@ -167,7 +175,8 @@ export type UserScriptApi = {
      * Opens the omnibar.
      *
      * @param args `type` selects the kind of omnibar, such as `Bookmarks`, `History`, `URLs`,
-     *   `Tabs`, `SearchEngine` or `Commands`.
+     *   `Tabs`, `SearchEngine` or `Commands`. `initialQuery` is the text the input starts with.
+     *   `tabbed: false` opens the chosen result in the current tab.
      */
     openOmnibar: (args: Record<string, unknown>) => void;
     /**
@@ -190,7 +199,7 @@ export type UserScriptSettings = {
   /** Whether finding in the page and the omnibar is case sensitive. */
   caseSensitive?: boolean;
   /** Detects clickable links in text, which `O` then opens. */
-  clickablePat?: RegExp;
+  clickablePattern?: RegExp;
   /** Extra CSS selector picking elements for hints mode. */
   clickableSelector?: string;
   /** Whether the cursor goes to the end of an input on entering it, rather than where it was left. */
@@ -220,7 +229,7 @@ export type UserScriptSettings = {
   /** Whether the new tab is active after picking a hint while holding shift. */
   hintShiftNonActive?: boolean;
   /** Whether history is listed in most-used order in the omnibar. */
-  historyMUOrder?: boolean;
+  historyMostUsedOrder?: boolean;
   /** Frame origins skipped when `w` cycles through frames. */
   ignoredFrameHosts?: string[];
   /** Network errors for which Surfingkeys shows its own error page; `["*"]` means all. */

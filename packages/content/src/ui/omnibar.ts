@@ -189,7 +189,7 @@ type OmnibarFront = {
 type OmnibarShowArgs = {
   type: string;
   tabbed?: boolean;
-  pref?: string;
+  initialQuery?: string;
   extra?: unknown;
 };
 
@@ -309,7 +309,7 @@ function createOmnibar(front: OmnibarFront, clipboard: { write(text: string): vo
       runtime.conf.omnibarPosition =
         runtime.conf.omnibarPosition === "bottom" ? "middle" : "bottom";
       reopen(() => {
-        savedArgs.pref = savedInput;
+        savedArgs.initialQuery = savedInput;
         front.openOmnibar(savedArgs);
       });
     },
@@ -837,8 +837,8 @@ function createOmnibar(front: OmnibarFront, clipboard: { write(text: string): vo
     tabbed = args.tabbed != null ? args.tabbed : true;
     self.input.focus();
     mode.enter();
-    if (args.pref) {
-      setQuery(args.pref);
+    if (args.initialQuery) {
+      setQuery(args.initialQuery);
     }
     resultsDiv.className = "";
     handler.onOpen && handler.onOpen(args.extra);
@@ -1052,7 +1052,7 @@ function createOmnibar(front: OmnibarFront, clipboard: { write(text: string): vo
             {
               maxResults: self.getHistoryCacheSize(),
               query: self.input.value,
-              sortByMostUsed: runtime.conf.historyMUOrder,
+              sortByMostUsed: runtime.conf.historyMostUsedOrder,
             },
             (response: { history: { title?: string; url?: string }[] }) => {
               resolve(response.history);
@@ -1494,9 +1494,9 @@ function OpenURLs(
   };
 
   self.onReset = () => {
-    runtime.conf.historyMUOrder = !runtime.conf.historyMUOrder;
+    runtime.conf.historyMostUsedOrder = !runtime.conf.historyMostUsedOrder;
     queryFn().then((historyItems) => {
-      const compare = runtime.conf.historyMUOrder
+      const compare = runtime.conf.historyMostUsedOrder
         ? (a: HistoryItem, b: HistoryItem) => (b.visitCount ?? 0) - (a.visitCount ?? 0)
         : (a: HistoryItem, b: HistoryItem) => (b.lastVisitTime ?? 0) - (a.lastVisitTime ?? 0);
       omnibar.listURLs(historyItems.toSorted(compare), false);

@@ -669,10 +669,10 @@ describe("createOmnibar — OpenURLs onReset sort order toggling", () => {
     });
   }
 
-  it("re-sorts results by visitCount desc when Ctrl-r toggles historyMUOrder to true", async () => {
+  it("re-sorts results by visitCount desc when Ctrl-r toggles historyMostUsedOrder to true", async () => {
     const { omnibar, ui } = makeOmnibar();
     runtime.conf.omnibarHistoryCacheSize = 100;
-    runtime.conf.historyMUOrder = false;
+    runtime.conf.historyMostUsedOrder = false;
     mockHistory();
 
     ui.onShow({ type: "History" });
@@ -685,15 +685,15 @@ describe("createOmnibar — OpenURLs onReset sort order toggling", () => {
     await Promise.resolve();
     await Promise.resolve();
 
-    expect(runtime.conf.historyMUOrder).toBe(true);
+    expect(runtime.conf.historyMostUsedOrder).toBe(true);
     const urls = omnibar.results().map((r: any) => r.data.url);
     expect(urls).toEqual(["https://c.com", "https://a.com", "https://b.com"]);
   });
 
-  it("re-sorts results by lastVisitTime desc when Ctrl-r toggles historyMUOrder to false", async () => {
+  it("re-sorts results by lastVisitTime desc when Ctrl-r toggles historyMostUsedOrder to false", async () => {
     const { omnibar, ui } = makeOmnibar();
     runtime.conf.omnibarHistoryCacheSize = 100;
-    runtime.conf.historyMUOrder = true;
+    runtime.conf.historyMostUsedOrder = true;
     mockHistory();
 
     ui.onShow({ type: "History" });
@@ -706,7 +706,7 @@ describe("createOmnibar — OpenURLs onReset sort order toggling", () => {
     await Promise.resolve();
     await Promise.resolve();
 
-    expect(runtime.conf.historyMUOrder).toBe(false);
+    expect(runtime.conf.historyMostUsedOrder).toBe(false);
     const urls = omnibar.results().map((r: any) => r.data.url);
     expect(urls).toEqual(["https://b.com", "https://a.com", "https://c.com"]);
   });
@@ -1573,7 +1573,7 @@ describe("OpenURLs (History) handler — onOpen calls RUNTIME getHistory and lis
   it("lists history items returned by RUNTIME getHistory", async () => {
     const { omnibar, ui } = makeOmnibar();
     runtime.conf.omnibarHistoryCacheSize = 100;
-    runtime.conf.historyMUOrder = false;
+    runtime.conf.historyMostUsedOrder = false;
 
     const history = [
       { url: "https://hist1.com", title: "H1", lastVisitTime: 200, visitCount: 3 },
@@ -1599,7 +1599,7 @@ describe("OpenURLs (History) handler — onOpen calls RUNTIME getHistory and lis
   it("Ctrl-r sends a second getHistory carrying the toggled sortByMostUsed", async () => {
     const { omnibar, ui } = makeOmnibar();
     runtime.conf.omnibarHistoryCacheSize = 100;
-    runtime.conf.historyMUOrder = false;
+    runtime.conf.historyMostUsedOrder = false;
 
     const history = [
       { url: "https://a.com", title: "A", lastVisitTime: 200, visitCount: 5 },
@@ -1721,7 +1721,7 @@ describe("createOmnibar — Ctrl-r triggers handler.onReset", () => {
   it("Ctrl-r mapping code calls handler.onReset when it exists", async () => {
     const { omnibar, ui } = makeOmnibar();
     runtime.conf.omnibarHistoryCacheSize = 100;
-    runtime.conf.historyMUOrder = false;
+    runtime.conf.historyMostUsedOrder = false;
 
     const history = [{ url: "https://a.com", title: "A", lastVisitTime: 100, visitCount: 5 }];
     mockRUNTIME.mockImplementation((_action: any, _args: any, cb?: any) => {
@@ -1735,7 +1735,7 @@ describe("createOmnibar — Ctrl-r triggers handler.onReset", () => {
     await Promise.resolve();
     await Promise.resolve();
 
-    const before = runtime.conf.historyMUOrder;
+    const before = runtime.conf.historyMostUsedOrder;
 
     const ctrlRCode = getMappingByAnnotation(
       omnibar,
@@ -1745,7 +1745,7 @@ describe("createOmnibar — Ctrl-r triggers handler.onReset", () => {
     ctrlRCode!();
 
     await Promise.resolve();
-    expect(runtime.conf.historyMUOrder).toBe(!before);
+    expect(runtime.conf.historyMostUsedOrder).toBe(!before);
   });
 });
 
@@ -2510,6 +2510,34 @@ describe("createOmnibar — listResultPage showFolder branch", () => {
     const result = omnibar.results()[0]!;
     expect(result.data.folder_name).toBe("Dev Folder");
     expect(result.data.folderId).toBe("folder1");
+  });
+});
+
+describe("createOmnibar — onShow with initialQuery", () => {
+  beforeEach(() => {
+    mockRUNTIME.mockReset();
+    mockRUNTIME.mockImplementation(() => Result.succeed(undefined));
+    localStorage.clear();
+  });
+
+  it("fills the input with initialQuery", () => {
+    const { omnibar, ui } = makeOmnibar();
+
+    ui.onShow({ type: "URLs", initialQuery: "https://example.com/path" });
+
+    expect(omnibar.input.value).toBe("https://example.com/path");
+  });
+
+  it("opens the prefilled URL on Enter when no result is focused", () => {
+    const { omnibar, ui } = makeOmnibar();
+
+    ui.onShow({ type: "URLs", initialQuery: "https://example.com/path", tabbed: false });
+    fireEnter(omnibar);
+
+    expect(mockRUNTIME).toHaveBeenCalledWith("openLink", {
+      tab: { tabbed: false, active: true },
+      url: "https://example.com/path",
+    });
   });
 });
 
