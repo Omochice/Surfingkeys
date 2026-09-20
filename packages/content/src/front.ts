@@ -57,7 +57,7 @@ type VisualLike = {
 };
 type BrowserLike = {
   getBackFocusFromFrontend?: () => void;
-  focusFrontend?: (ifr: HTMLIFrameElement) => void;
+  focusFrontend?: (iframe: HTMLIFrameElement) => void;
 };
 
 type QueryPos = { top: number; left: number; height: number; width: number };
@@ -253,12 +253,12 @@ function createFront(
     id: "sk_frame",
   });
   markSurfingKeysElement(frameElement);
-  function highlightElement(sn: {
+  function highlightElement(target: {
     rect: { top: number; left: number; width: number; height: number };
     duration?: number;
   }) {
     document.documentElement.append(frameElement);
-    const rect = sn.rect;
+    const rect = target.rect;
     frameElement.style.top = rect.top + "px";
     frameElement.style.left = rect.left + "px";
     frameElement.style.width = rect.width + "px";
@@ -266,7 +266,7 @@ function createFront(
     frameElement.style.display = "";
     setTimeout(() => {
       frameElement.remove();
-    }, sn.duration);
+    }, target.duration);
   }
 
   function getAllAnnotations() {
