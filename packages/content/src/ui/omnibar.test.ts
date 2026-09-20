@@ -2508,7 +2508,7 @@ describe("createOmnibar — listResultPage showFolder branch", () => {
 
     expect(omnibar.results().length).toBe(1);
     const result = omnibar.results()[0]!;
-    expect(result.data.folder_name).toBe("Dev Folder");
+    expect(result.data.folderName).toBe("Dev Folder");
     expect(result.data.folderId).toBe("folder1");
   });
 });

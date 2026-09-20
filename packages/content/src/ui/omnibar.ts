@@ -811,7 +811,7 @@ function createOmnibar(front: OmnibarFront, clipboard: { write(text: string): vo
           `<div class="title">▷ ${self.highlight(regex, b.title ?? "")}</div>`,
         );
         return buildOmnibarResult(li, {
-          folder_name: b.title,
+          folderName: b.title,
           folderId: b.id == null ? undefined : String(b.id),
         });
       }
@@ -1239,7 +1239,7 @@ function OpenBookmarks(omnibar: Omnibar): OpenBookmarksHandler {
         folderId: currentFolderId,
         focused: omnibar.focusedIndex(),
       });
-      self.prompt = fi.data.folder_name;
+      self.prompt = fi.data.folderName;
       omnibar.setPrompt(self.prompt ?? "");
       omnibar.setQuery("");
       currentFolderId = folderId;

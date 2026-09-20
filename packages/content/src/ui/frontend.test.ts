@@ -214,10 +214,10 @@ describe("actions['addMapkey'] — specialKeys path", () => {
     specialKeys["<Esc>"] = ["<Esc>"];
   });
 
-  it("pushes a new keystroke onto specialKeys when old_keystroke matches", () => {
+  it("pushes a new keystroke onto specialKeys when oldKeystroke matches", () => {
     Front.actions["addMapkey"]({
-      old_keystroke: "<Alt-s>",
-      new_keystroke: "<Alt-m>",
+      oldKeystroke: "<Alt-s>",
+      newKeystroke: "<Alt-m>",
       mode: "Normal",
     });
     expect(specialKeys["<Alt-s>"]).toContain("<Alt-m>");
@@ -226,8 +226,8 @@ describe("actions['addMapkey'] — specialKeys path", () => {
   it("does not touch specialKeys when the mode name is unknown", () => {
     const before = specialKeys["<Esc>"]!.slice();
     Front.actions["addMapkey"]({
-      old_keystroke: "NonExistentKey",
-      new_keystroke: "x",
+      oldKeystroke: "NonExistentKey",
+      newKeystroke: "x",
       mode: "UnknownMode",
     });
     expect(specialKeys["<Esc>"]).toEqual(before);
@@ -441,21 +441,21 @@ describe("actions['showBanner']", () => {
     vi.useFakeTimers();
     const banner = document.getElementById("sk_banner")!;
     banner.style.display = "none";
-    Front.actions["showBanner"]({ content: "Test banner", linger_time: 2000 });
+    Front.actions["showBanner"]({ content: "Test banner", lingerTime: 2000 });
     expect(banner.style.display).not.toBe("none");
   });
 
-  it("hides the banner automatically after linger_time", () => {
+  it("hides the banner automatically after lingerTime", () => {
     vi.useFakeTimers();
     const banner = document.getElementById("sk_banner")!;
     banner.style.display = "none";
-    Front.actions["showBanner"]({ content: "Linger test", linger_time: 500 });
+    Front.actions["showBanner"]({ content: "Linger test", lingerTime: 500 });
     expect(banner.style.display).not.toBe("none");
     vi.advanceTimersByTime(600);
     expect(banner.style.display).toBe("none");
   });
 
-  it("uses the default linger_time of 1600ms when none is given", () => {
+  it("uses the default lingerTime of 1600ms when none is given", () => {
     vi.useFakeTimers();
     const banner = document.getElementById("sk_banner")!;
     banner.style.display = "none";

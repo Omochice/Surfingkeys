@@ -485,12 +485,12 @@ function createFront(
       }
     },
     querySelectedWord,
-    addMapkey: (mode: string, new_keystroke: string, old_keystroke: string) => {
+    addMapkey: (mode: string, newKeystroke: string, oldKeystroke: string) => {
       applyUICommand({
         action: "addMapkey",
         mode: mode,
-        new_keystroke: new_keystroke,
-        old_keystroke: old_keystroke,
+        newKeystroke: newKeystroke,
+        oldKeystroke: oldKeystroke,
       });
     },
     removeMapkey: (mode: string, keystroke: string) => {
@@ -528,11 +528,11 @@ function createFront(
         action: "openFinder",
       });
     },
-    showBanner: (msg: string, linger_time?: number) => {
+    showBanner: (msg: string, lingerTime?: number) => {
       self.command({
         action: "showBanner",
         content: msg,
-        linger_time: linger_time,
+        lingerTime: lingerTime,
       });
     },
     showBubble: (
