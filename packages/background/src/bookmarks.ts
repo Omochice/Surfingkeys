@@ -23,14 +23,14 @@ const getBookmarksSchema = v.object({
 export function createBookmarkHandlers(): Record<string, MessageHandler> {
   let bookmarkFolders: { id: string; title: string }[] = [];
   function getFolders(tree: chrome.bookmarks.BookmarkTreeNode, root: string) {
-    let cd = root;
+    let currentPath = root;
     if (tree.title !== "" && (!Object.hasOwn(tree, "url") || tree.url == null)) {
-      cd += "/" + tree.title;
-      bookmarkFolders.push({ id: tree.id, title: cd + "/" });
+      currentPath += "/" + tree.title;
+      bookmarkFolders.push({ id: tree.id, title: currentPath + "/" });
     }
     if (tree.children) {
       for (const child of tree.children) {
-        getFolders(child, cd);
+        getFolders(child, currentPath);
       }
     }
   }
