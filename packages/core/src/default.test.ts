@@ -11,8 +11,8 @@ const seam = vi.hoisted(() => {
     tabOpenLink: vi.fn(),
     runtimeConf: {
       lastKeys: ["se"],
-      textAnchorPat: /x/g,
-      clickablePat: /y/g,
+      textAnchorPattern: /x/g,
+      clickablePattern: /y/g,
       clickableSelector: "",
     },
     utils: {
@@ -471,7 +471,7 @@ describe("more mode delegations", () => {
   it("O creates hints over the clickable pattern with a status line", () => {
     fire("O");
     expect(ctx.hints.create).toHaveBeenLastCalledWith(
-      seam.runtimeConf.clickablePat,
+      seam.runtimeConf.clickablePattern,
       expect.any(Function),
       { statusLine: "Open detected links from text" },
     );

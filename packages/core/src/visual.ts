@@ -764,7 +764,7 @@ function createVisual(clipboard: ClipboardLike, hints: HintsLike, env: EngineEnv
         break;
       }
       default: {
-        hints.create(conf.textAnchorPat, (element) => {
+        hints.create(conf.textAnchorPattern, (element) => {
           setTimeout(() => {
             selection.setPosition(element[0], element[1]);
             self.enter();

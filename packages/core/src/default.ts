@@ -302,7 +302,7 @@ function defineYankElementText(ctx: ModeContext): ModalMappingDef {
       group: "clipboard",
       annotation: "Yank text of an element",
       code: () => {
-        ctx.hints.create(conf.textAnchorPat, (element: TextAnchorMatch) => {
+        ctx.hints.create(conf.textAnchorPattern, (element: TextAnchorMatch) => {
           ctx.clipboard.write(element[1] === 0 ? element[0].data.trim() : element[2].trim());
         });
       },
@@ -320,7 +320,7 @@ function defineYankMultipleElementsText(ctx: ModeContext): ModalMappingDef {
       code: () => {
         const textToYank: string[] = [];
         ctx.hints.create(
-          conf.textAnchorPat,
+          conf.textAnchorPattern,
           (element: TextAnchorMatch) => {
             textToYank.push(element[1] === 0 ? element[0].data.trim() : element[2].trim());
             ctx.clipboard.write(textToYank.join("\n"));
@@ -592,7 +592,7 @@ function defineOpenDetectedLinks(ctx: ModeContext): ModalMappingDef {
       annotation: "Open detected links from text",
       code: () => {
         ctx.hints.create(
-          conf.clickablePat,
+          conf.clickablePattern,
           (element: TextAnchorMatch) => {
             window.location.assign(element[2]);
           },
@@ -759,7 +759,7 @@ function defineQueryWordWithHints(ctx: ModeContext): ModalMappingDef {
         if (performInlineQuery == null) {
           return;
         }
-        ctx.hints.create(conf.textAnchorPat, (element: TextAnchorMatch) => {
+        ctx.hints.create(conf.textAnchorPattern, (element: TextAnchorMatch) => {
           const word = element[2].trim().replace(/[^A-z].*$/, "");
           const b = getTextNodePos(element[0], element[1], element[2].length);
           performInlineQuery(

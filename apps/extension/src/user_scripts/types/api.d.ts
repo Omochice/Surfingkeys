@@ -190,7 +190,7 @@ export type UserScriptSettings = {
   /** Whether finding in the page and the omnibar is case sensitive. */
   caseSensitive?: boolean;
   /** Detects clickable links in text, which `O` then opens. */
-  clickablePat?: RegExp;
+  clickablePattern?: RegExp;
   /** Extra CSS selector picking elements for hints mode. */
   clickableSelector?: string;
   /** Whether the cursor goes to the end of an input on entering it, rather than where it was left. */
