@@ -15,6 +15,13 @@ const uihostMessageEnvelopeSchema = v.looseObject({
   }),
 });
 
+// Assigning a non-string to a style property coerces it, and a value such as `{ toString: false }`
+// would throw out of the message listener before the message is consumed.
+const frontFrameSchema = v.object({
+  frameHeight: v.string(),
+  pointerEvents: v.string(),
+});
+
 /**
  * Whether an origin can be given to `postMessage` as a targetOrigin, which throws for anything but
  * the wildcard or an absolute URL. `getDocumentOrigin` already maps `file://` and `"null"` to
@@ -142,7 +149,12 @@ function createUiHost(adapter: BrowserLike, onload: (uiHost: UiHost) => void): v
   actions["initFrontendAck"] = () => {
     onload(uiHost);
   };
-  actions["setFrontFrame"] = (response) => {
+  actions["setFrontFrame"] = (message: unknown) => {
+    const parsed = v.safeParse(frontFrameSchema, message);
+    if (!parsed.success) {
+      return;
+    }
+    const response = parsed.output;
     ifr.style.height = response.frameHeight;
     if (response.pointerEvents) {
       ifr.style.pointerEvents = response.pointerEvents;

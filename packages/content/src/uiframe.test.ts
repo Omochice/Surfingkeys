@@ -148,6 +148,62 @@ describe("createUiHost window message handler — activeContent origin", () => {
   });
 });
 
+describe("createUiHost window message handler — setFrontFrame values", () => {
+  const frameOf = (): HTMLIFrameElement => {
+    const ifr = document.documentElement.lastElementChild?.shadowRoot?.querySelector("iframe");
+    if (ifr == null) {
+      throw new Error("booted host has no iframe");
+    }
+    return ifr;
+  };
+
+  it.each(["frameHeight", "pointerEvents"])(
+    "consumes a setFrontFrame whose %s cannot be converted to a string, leaving the frame as it was",
+    (key) => {
+      const onMessage = bootMessageHandler();
+      const stopImmediatePropagation = vi.fn();
+      const message = {
+        action: "setFrontFrame",
+        frameHeight: "100%",
+        pointerEvents: "all",
+        [key]: { toString: false },
+      };
+
+      onMessage(
+        fakeEvent(
+          { surfingkeys_uihost_data: message },
+          { postMessage: vi.fn() },
+          stopImmediatePropagation,
+        ),
+      );
+
+      expect(stopImmediatePropagation).toHaveBeenCalled();
+      expect(frameOf().style.height).toBe("0px");
+      expect(frameOf().style.pointerEvents).toBe("");
+    },
+  );
+
+  it("applies the height and pointer events the frontend asks for", () => {
+    const onMessage = bootMessageHandler();
+
+    onMessage(
+      fakeEvent(
+        {
+          surfingkeys_uihost_data: {
+            action: "setFrontFrame",
+            frameHeight: "100%",
+            pointerEvents: "all",
+          },
+        },
+        { postMessage: vi.fn() },
+      ),
+    );
+
+    expect(frameOf().style.height).toBe("100%");
+    expect(frameOf().style.pointerEvents).toBe("all");
+  });
+});
+
 const ACTIVATION_ACTIONS = ["showStatus", "openOmnibar", "openFinder", "chooseTab"];
 
 const actionArb = fc.oneof(
