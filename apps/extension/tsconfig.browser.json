@@ -6,5 +6,10 @@
     "jsxImportSource": "solid-js"
   },
   "include": ["src"],
-  "exclude": ["src/**/*.test.ts", "src/**/*.test.tsx"]
+  "exclude": [
+    "src/**/*.test.ts",
+    "src/**/*.test.tsx",
+    "src/user_scripts/types/globals.d.ts",
+    "src/user_scripts/types/snippet.test-d.ts"
+  ]
 }
