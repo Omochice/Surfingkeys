@@ -502,7 +502,7 @@ function createAPI(ctx: ModeContext, env: EngineEnv) {
    * @param {string} [onlyThisSiteKey=o] `<searchLeaderKey><onlyThisSiteKey><alias>` in normal mode
    *   will search selected text within current site with this search engine directly without
    *   opening the omnibar, for example `sod`. Default is `o`
-   * @param {object} [options=null] `favicon_url` URL for favicon for this search engine, `skipMaps`
+   * @param {object} [options=null] `faviconUrl` URL for favicon for this search engine, `skipMaps`
    *   if `true` disable creating key mappings for this search engine. Default is `null`
    */
   function addSearchAlias(
@@ -516,7 +516,7 @@ function createAPI(ctx: ModeContext, env: EngineEnv) {
     // eslint-disable-next-line typescript/no-explicit-any
     callbackToParseSuggestion?: (...args: any[]) => unknown,
     onlyThisSiteKey?: string,
-    options?: { skipMaps?: boolean; favicon_url?: string },
+    options?: { skipMaps?: boolean; faviconUrl?: string },
   ): void {
     if (![...alias].every((c) => c.charCodeAt(0) <= 0x7f)) {
       throw `Invalid alias ${alias}, which must be ASCII characters.`;
