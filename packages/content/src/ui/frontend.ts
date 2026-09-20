@@ -300,9 +300,9 @@ const Front = (() => {
   const tabsElement = requireElement("#sk_tabs");
   const banner = requireElement("#sk_banner");
   const bubble = requireElement<BubbleElement>("#sk_bubble");
-  const sk_bubble_content = requireElement("#sk_bubble div.sk_bubble_content");
-  const sk_bubble_arrow = requireElement("#sk_bubble div.sk_arrow");
-  const sk_bubbleClassList = sk_bubble_content.classList;
+  const bubbleContent = requireElement("#sk_bubble div.sk_bubble_content");
+  const bubbleArrow = requireElement("#sk_bubble div.sk_arrow");
+  const sk_bubbleClassList = bubbleContent.classList;
   const [bubbleHtml, setBubbleHtml] = createSignal("");
   render(
     () =>
@@ -311,21 +311,18 @@ const Front = (() => {
           return bubbleHtml();
         },
       }),
-    sk_bubble_content,
+    bubbleContent,
   );
   function clearScrollerIndicator() {
     sk_bubbleClassList.remove("sk_scroller_indicator_top");
     sk_bubbleClassList.remove("sk_scroller_indicator_middle");
     sk_bubbleClassList.remove("sk_scroller_indicator_bottom");
   }
-  sk_bubble_content.onscroll = () => {
+  bubbleContent.onscroll = () => {
     clearScrollerIndicator();
-    if (sk_bubble_content.scrollTop === 0) {
+    if (bubbleContent.scrollTop === 0) {
       sk_bubbleClassList.add("sk_scroller_indicator_top");
-    } else if (
-      sk_bubble_content.scrollTop + sk_bubble_content.offsetHeight >=
-      sk_bubble_content.scrollHeight
-    ) {
+    } else if (bubbleContent.scrollTop + bubbleContent.offsetHeight >= bubbleContent.scrollHeight) {
       sk_bubbleClassList.add("sk_scroller_indicator_bottom");
     } else {
       sk_bubbleClassList.add("sk_scroller_indicator_middle");
@@ -752,8 +749,8 @@ const Front = (() => {
     bubble.style.top = "0px";
     bubble.style.left = "0px";
     setBubbleHtml(message.content);
-    sk_bubble_content.style.maxWidth = pos.winWidth - 32 + "px";
-    sk_bubble_content.scrollTop = 0;
+    bubbleContent.style.maxWidth = pos.winWidth - 32 + "px";
+    bubbleContent.scrollTop = 0;
     clearScrollerIndicator();
     bubble.style.display = "";
     const w = bubble.offsetWidth;
@@ -766,24 +763,24 @@ const Front = (() => {
       left[1] += left[0] - pos.winX - pos.winWidth + w;
       left[0] = pos.winX + pos.winWidth - w;
     }
-    sk_bubble_arrow.style.left = left[1] + pos.width / 2 - 2 + "px";
+    bubbleArrow.style.left = left[1] + pos.width / 2 - 2 + "px";
     bubble.style.left = left[0] + "px";
     bubble.noPointerEvents = message.noPointerEvents;
 
     if (pos.top + pos.height / 2 > pos.winHeight / 2) {
-      sk_bubble_arrow.setAttribute("dir", "down");
-      sk_bubble_arrow.style.top = "100%";
-      sk_bubble_content.style.maxHeight = pos.top - 12 - 32 + "px";
+      bubbleArrow.setAttribute("dir", "down");
+      bubbleArrow.style.top = "100%";
+      bubbleContent.style.maxHeight = pos.top - 12 - 32 + "px";
       h = bubble.offsetHeight;
       bubble.style.top = pos.top - h - 12 + "px";
     } else {
-      sk_bubble_arrow.setAttribute("dir", "up");
-      sk_bubble_arrow.style.top = "-12px";
-      sk_bubble_content.style.maxHeight = pos.winHeight - (pos.top + pos.height + 12) - 32 + "px";
+      bubbleArrow.setAttribute("dir", "up");
+      bubbleArrow.style.top = "-12px";
+      bubbleContent.style.maxHeight = pos.winHeight - (pos.top + pos.height + 12) - 32 + "px";
       h = bubble.offsetHeight;
       bubble.style.top = pos.top + pos.height + 12 + "px";
     }
-    if (sk_bubble_content.scrollHeight > sk_bubble_content.offsetHeight) {
+    if (bubbleContent.scrollHeight > bubbleContent.offsetHeight) {
       bubble.noPointerEvents = false;
       sk_bubbleClassList.add("sk_scroller_indicator_top");
     }
@@ -986,7 +983,7 @@ const Front = (() => {
     }
   };
 
-  sk_bubble_content.addEventListener(
+  bubbleContent.addEventListener(
     "mousewheel",
     (evt: Event) => {
       // "mousewheel" is not in the typed event map, so the listener is seen as a bare Event.
@@ -995,9 +992,8 @@ const Front = (() => {
       }
       if (
         (evt.deltaY > 0 &&
-          sk_bubble_content.scrollTop + sk_bubble_content.offsetHeight >=
-            sk_bubble_content.scrollHeight) ||
-        (evt.deltaY < 0 && sk_bubble_content.scrollTop <= 0)
+          bubbleContent.scrollTop + bubbleContent.offsetHeight >= bubbleContent.scrollHeight) ||
+        (evt.deltaY < 0 && bubbleContent.scrollTop <= 0)
       ) {
         evt.preventDefault();
       }

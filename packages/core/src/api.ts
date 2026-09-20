@@ -281,8 +281,8 @@ function createAPI(ctx: ModeContext, env: EngineEnv) {
    */
   function unmap(keystroke: string, domain?: RegExp): void {
     if (isDomainApplicable(domain)) {
-      const old_map = normal.mappings.find(KeyboardUtils.encodeKeystroke(keystroke));
-      if (old_map) {
+      const oldMap = normal.mappings.find(KeyboardUtils.encodeKeystroke(keystroke));
+      if (oldMap) {
         normal.mappings.remove(KeyboardUtils.encodeKeystroke(keystroke));
       } else {
         for (const k in specialKeys) {
