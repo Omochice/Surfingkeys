@@ -98,8 +98,8 @@ const getTopURLPromise = new Promise<string>((resolve) => {
   if (window === top) {
     resolve(window.location.href);
   } else {
-    RUNTIME("getTopURL", null, (rs: { url: string }) => {
-      resolve(rs.url);
+    RUNTIME("getTopURL", null, (response: { url: string }) => {
+      resolve(response.url);
     });
   }
 });
