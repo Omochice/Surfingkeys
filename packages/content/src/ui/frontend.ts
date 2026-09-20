@@ -233,18 +233,20 @@ const Front = (() => {
         ).filter((n) => {
           return n.style.display !== "none";
         });
-        const pe = visibleDivs.map((d: HTMLElement & { noPointerEvents?: boolean }) => {
-          const id = d.id;
-          const divNoPointerEvents = ["sk_keystroke", "sk_banner"];
-          if (divNoPointerEvents.includes(id)) {
-            return false;
-          } else if (id === "sk_status") {
-            return self.statusBar.querySelector("input") !== null;
-          } else {
-            return !d.noPointerEvents;
-          }
-        });
-        const pointerEvents2 = pe.some(Boolean);
+        const acceptsPointerEvents = visibleDivs.map(
+          (d: HTMLElement & { noPointerEvents?: boolean }) => {
+            const id = d.id;
+            const divNoPointerEvents = ["sk_keystroke", "sk_banner"];
+            if (divNoPointerEvents.includes(id)) {
+              return false;
+            } else if (id === "sk_status") {
+              return self.statusBar.querySelector("input") !== null;
+            } else {
+              return !d.noPointerEvents;
+            }
+          },
+        );
+        const pointerEvents2 = acceptsPointerEvents.some(Boolean);
 
         let ns;
         if (pointerEvents2) {
@@ -860,11 +862,11 @@ const Front = (() => {
 
   function showRichHints(keyHints: KeyHints) {
     initL10n((locale) => {
-      const cc = keyHints.candidates;
-      const words = Object.keys(cc)
+      const candidates = keyHints.candidates;
+      const words = Object.keys(candidates)
         .toSorted()
         .map((w) => {
-          const candidate = cc[w];
+          const candidate = candidates[w];
           if (candidate == null) {
             return "";
           }
