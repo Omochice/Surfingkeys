@@ -80,8 +80,8 @@ const createCommands = (normal: NormalLike, command: CommandFn, omnibar: Omnibar
     RUNTIME("clearQueueURLs");
   });
   command("timeStamp", "print time stamp in human readable format", (args) => {
-    const dt = new Date(Number.parseInt(args[0] ?? ""));
-    omnibar.listWords([dt.toString()]);
+    const date = new Date(Number.parseInt(args[0] ?? ""));
+    omnibar.listWords([date.toString()]);
   });
 };
 
