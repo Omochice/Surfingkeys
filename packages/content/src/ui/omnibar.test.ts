@@ -2513,6 +2513,34 @@ describe("createOmnibar — listResultPage showFolder branch", () => {
   });
 });
 
+describe("createOmnibar — onShow with initialQuery", () => {
+  beforeEach(() => {
+    mockRUNTIME.mockReset();
+    mockRUNTIME.mockImplementation(() => Result.succeed(undefined));
+    localStorage.clear();
+  });
+
+  it("fills the input with initialQuery", () => {
+    const { omnibar, ui } = makeOmnibar();
+
+    ui.onShow({ type: "URLs", initialQuery: "https://example.com/path" });
+
+    expect(omnibar.input.value).toBe("https://example.com/path");
+  });
+
+  it("opens the prefilled URL on Enter when no result is focused", () => {
+    const { omnibar, ui } = makeOmnibar();
+
+    ui.onShow({ type: "URLs", initialQuery: "https://example.com/path", tabbed: false });
+    fireEnter(omnibar);
+
+    expect(mockRUNTIME).toHaveBeenCalledWith("openLink", {
+      tab: { tabbed: false, active: true },
+      url: "https://example.com/path",
+    });
+  });
+});
+
 describe("createOmnibar — openFocused", () => {
   beforeEach(() => {
     mockRUNTIME.mockReset();

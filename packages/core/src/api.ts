@@ -635,7 +635,7 @@ function createAPI(ctx: ModeContext, env: EngineEnv) {
         query = "site:" + window.location.hostname + " " + query;
       }
       if (interactive) {
-        front.openOmnibar({ type: "SearchEngine", extra: alias, pref: query });
+        front.openOmnibar({ type: "SearchEngine", extra: alias, initialQuery: query });
       } else {
         tabOpenLink(constructSearchURL(se, encodeURIComponent(query)));
       }

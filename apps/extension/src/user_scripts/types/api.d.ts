@@ -167,7 +167,8 @@ export type UserScriptApi = {
      * Opens the omnibar.
      *
      * @param args `type` selects the kind of omnibar, such as `Bookmarks`, `History`, `URLs`,
-     *   `Tabs`, `SearchEngine` or `Commands`.
+     *   `Tabs`, `SearchEngine` or `Commands`. `initialQuery` is the text the input starts with.
+     *   `tabbed: false` opens the chosen result in the current tab.
      */
     openOmnibar: (args: Record<string, unknown>) => void;
     /**

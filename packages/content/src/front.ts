@@ -318,7 +318,8 @@ function createFront(
    *
    * @param {object} args `type` the sub type for the omnibar, which can be `Bookmarks`,
    *   `AddBookmark`, `History`, `URLs`, `RecentlyClosed`, `TabURLs`, `Tabs`, `Windows`, `VIMarks`,
-   *   `SearchEngine`, `Commands`, `OmniQuery` and `UserURLs`.
+   *   `SearchEngine`, `Commands`, `OmniQuery` and `UserURLs`. `initialQuery` is the text the input
+   *   starts with. `tabbed: false` opens the chosen result in the current tab.
    * @name Front.openOmnibar
    */
   self.openOmnibar = (args: Record<string, unknown>) => {

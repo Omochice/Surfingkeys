@@ -189,7 +189,7 @@ type OmnibarFront = {
 type OmnibarShowArgs = {
   type: string;
   tabbed?: boolean;
-  pref?: string;
+  initialQuery?: string;
   extra?: unknown;
 };
 
@@ -309,7 +309,7 @@ function createOmnibar(front: OmnibarFront, clipboard: { write(text: string): vo
       runtime.conf.omnibarPosition =
         runtime.conf.omnibarPosition === "bottom" ? "middle" : "bottom";
       reopen(() => {
-        savedArgs.pref = savedInput;
+        savedArgs.initialQuery = savedInput;
         front.openOmnibar(savedArgs);
       });
     },
@@ -837,8 +837,8 @@ function createOmnibar(front: OmnibarFront, clipboard: { write(text: string): vo
     tabbed = args.tabbed != null ? args.tabbed : true;
     self.input.focus();
     mode.enter();
-    if (args.pref) {
-      setQuery(args.pref);
+    if (args.initialQuery) {
+      setQuery(args.initialQuery);
     }
     resultsDiv.className = "";
     handler.onOpen && handler.onOpen(args.extra);
