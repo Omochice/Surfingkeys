@@ -58,7 +58,7 @@ type RuntimeConf = {
   /** Frame origins for which `getFrameId` skips content-script initialization. */
   ignoredFrameHosts: string[];
   scrollFriction: number;
-  /** Caret-mode viewport as `[left, top, width, height]`; `null` until a caret is placed. */
+  /** Limits visual-mode hints to `[top, left, bottom, right]`. */
   caretViewport: number[] | null;
   /** Window origins where a mouse text selection is turned into a search query. */
   mouseSelectToQuery: string[];
