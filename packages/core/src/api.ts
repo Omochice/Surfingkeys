@@ -58,6 +58,14 @@ export type RemapOptions = RemapInModeOptions & {
   group?: FeatureGroup;
 };
 
+type MapkeyTarget = {
+  mode: ModeWithMappings;
+  // The section a mapping of this mode gets when it names none. Visual and Insert each own one,
+  // while Normal has no section of its own, because the built-in normal mappings are filed by
+  // topic, so its mappings land in Misc rather than under a heading that would misdescribe them.
+  defaultGroup: FeatureGroup;
+};
+
 function createAPI(ctx: ModeContext, env: EngineEnv) {
   const { clipboard, insert, normal, hints, visual, front } = ctx;
   const { RUNTIME, isInUIFrame, tabOpenLink, log: LOG } = env;
@@ -65,14 +73,29 @@ function createAPI(ctx: ModeContext, env: EngineEnv) {
   // a guarded call. The iframe front omits it (inline queries act on the hosting page, which the
   // iframe lacks), so it falls back to a no-op there instead of registering an undefined handler.
   const registerInlineQuery = front.registerInlineQuery ?? (() => {});
+  const normalTarget: MapkeyTarget = {
+    mode: normal,
+    defaultGroup: "misc",
+  };
+  const visualTarget: MapkeyTarget = {
+    mode: visual,
+    defaultGroup: "visualMode",
+  };
+  const insertTarget: MapkeyTarget = {
+    mode: insert,
+    defaultGroup: "insertMode",
+  };
   function createKeyTarget(
     // User keypress handler of arbitrary signature (see mapkey's jscode).
     // eslint-disable-next-line typescript/no-explicit-any
     code: (...args: any[]) => void,
-    annotation: string | string[] | null,
-    group: FeatureGroup | undefined,
-    repeatIgnore?: boolean,
+    options: {
+      annotation: string | string[] | null;
+      group: FeatureGroup | undefined;
+      repeatIgnore?: boolean | undefined;
+    },
   ): KeyTarget {
+    const { annotation, group, repeatIgnore } = options;
     const keybound: KeyTarget = {
       code: code,
     };
@@ -97,20 +120,20 @@ function createAPI(ctx: ModeContext, env: EngineEnv) {
   }
 
   function mapkeyInMode(
-    mode: ModeWithMappings,
-    // The section a mapping of this mode gets when it names none. Visual and Insert each own one,
-    // while Normal has no section of its own, because the built-in normal mappings are filed by
-    // topic, so its mappings land in Misc rather than under a heading that would misdescribe them.
-    defaultGroup: FeatureGroup,
+    target: MapkeyTarget,
     keys: string,
-    annotation: string | string[],
-    // User keypress handler of arbitrary signature; `unknown[]` would reject user callbacks that
-    // declare typed parameters (e.g. (mark: string) => void).
-    // eslint-disable-next-line typescript/no-explicit-any
-    jscode: (...args: any[]) => void,
-    options?: MapOptions,
+    binding: {
+      annotation: string | string[];
+      // User keypress handler of arbitrary signature; `unknown[]` would reject user callbacks that
+      // declare typed parameters (e.g. (mark: string) => void).
+      // eslint-disable-next-line typescript/no-explicit-any
+      jscode: (...args: any[]) => void;
+      options?: MapOptions | undefined;
+    },
   ): void {
-    options = options || {};
+    const { mode, defaultGroup } = target;
+    const { annotation, jscode } = binding;
+    const options = binding.options || {};
     if (isDomainApplicable(options.domain)) {
       keys = KeyboardUtils.encodeKeystroke(keys);
       const old = mode.mappings.remove(keys);
@@ -144,7 +167,11 @@ function createAPI(ctx: ModeContext, env: EngineEnv) {
       if (requested != null && group !== requested) {
         LOG("warn", `${keys} names no help section [${requested}]; listing it under ${group}.`);
       }
-      const keybound = createKeyTarget(jscode, annotation, group, options.repeatIgnore);
+      const keybound = createKeyTarget(jscode, {
+        annotation,
+        group,
+        repeatIgnore: options.repeatIgnore,
+      });
       mode.mappings.add(keys, keybound);
     }
   }
@@ -178,7 +205,7 @@ function createAPI(ctx: ModeContext, env: EngineEnv) {
     jscode: (...args: any[]) => void,
     options?: MapOptions,
   ): void {
-    mapkeyInMode(normal, "misc", keys, annotation, jscode, options);
+    mapkeyInMode(normalTarget, keys, { annotation, jscode, options });
   }
 
   /**
@@ -205,7 +232,7 @@ function createAPI(ctx: ModeContext, env: EngineEnv) {
     jscode: (...args: any[]) => void,
     options?: MapOptions,
   ): void {
-    mapkeyInMode(visual, "visualMode", keys, annotation, jscode, options);
+    mapkeyInMode(visualTarget, keys, { annotation, jscode, options });
   }
 
   /**
@@ -232,7 +259,7 @@ function createAPI(ctx: ModeContext, env: EngineEnv) {
     jscode: (...args: any[]) => void,
     options?: MapOptions,
   ): void {
-    mapkeyInMode(insert, "insertMode", keys, annotation, jscode, options);
+    mapkeyInMode(insertTarget, keys, { annotation, jscode, options });
   }
 
   /**
@@ -257,10 +284,11 @@ function createAPI(ctx: ModeContext, env: EngineEnv) {
             }
             front.executeCommand(cmdline);
           },
-          // There is no source mapping to take a section from, unlike the alias branch below.
-          annotation ?? null,
-          group ?? "misc",
-          false,
+          {
+            annotation: annotation ?? null,
+            // There is no source mapping to take a section from, unlike the alias branch below.
+            group: group ?? "misc",
+          },
         );
         normal.mappings.add(KeyboardUtils.encodeKeystroke(newKeystroke), keybound);
       } else {
