@@ -1817,9 +1817,8 @@ function defineBrowserSpecificMappings(env: EngineEnv): ModalMappingDef[] {
   if (browserName === "Chrome") {
     const openChromePage = (
       keys: string,
-      group: FeatureGroup,
-      annotation: string,
       url: string,
+      { group, annotation }: { group: FeatureGroup; annotation: string },
     ): ModalMappingDef => ({
       mode: "nmap",
       keys,
@@ -1832,15 +1831,39 @@ function defineBrowserSpecificMappings(env: EngineEnv): ModalMappingDef[] {
       },
     });
     return [
-      openChromePage("on", "tabs", "Open newtab", "chrome://newtab/"),
-      openChromePage("ga", "chromeUrls", "Open Chrome About", "chrome://help/"),
-      openChromePage("gb", "chromeUrls", "Open Chrome Bookmarks", "chrome://bookmarks/"),
-      openChromePage("gc", "chromeUrls", "Open Chrome Cache", "chrome://cache/"),
-      openChromePage("gd", "chromeUrls", "Open Chrome Downloads", "chrome://downloads/"),
-      openChromePage("gh", "chromeUrls", "Open Chrome History", "chrome://history/"),
-      openChromePage("gk", "chromeUrls", "Open Chrome Cookies", "chrome://settings/cookies"),
-      openChromePage("ge", "chromeUrls", "Open Chrome Extensions", "chrome://extensions/"),
-      openChromePage(";i", "chromeUrls", "Open Chrome Inspect", "chrome://inspect/#devices"),
+      openChromePage("on", "chrome://newtab/", { group: "tabs", annotation: "Open newtab" }),
+      openChromePage("ga", "chrome://help/", {
+        group: "chromeUrls",
+        annotation: "Open Chrome About",
+      }),
+      openChromePage("gb", "chrome://bookmarks/", {
+        group: "chromeUrls",
+        annotation: "Open Chrome Bookmarks",
+      }),
+      openChromePage("gc", "chrome://cache/", {
+        group: "chromeUrls",
+        annotation: "Open Chrome Cache",
+      }),
+      openChromePage("gd", "chrome://downloads/", {
+        group: "chromeUrls",
+        annotation: "Open Chrome Downloads",
+      }),
+      openChromePage("gh", "chrome://history/", {
+        group: "chromeUrls",
+        annotation: "Open Chrome History",
+      }),
+      openChromePage("gk", "chrome://settings/cookies", {
+        group: "chromeUrls",
+        annotation: "Open Chrome Cookies",
+      }),
+      openChromePage("ge", "chrome://extensions/", {
+        group: "chromeUrls",
+        annotation: "Open Chrome Extensions",
+      }),
+      openChromePage(";i", "chrome://inspect/#devices", {
+        group: "chromeUrls",
+        annotation: "Open Chrome Inspect",
+      }),
     ];
   }
   return [];

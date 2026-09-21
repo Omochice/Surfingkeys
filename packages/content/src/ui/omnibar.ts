@@ -135,7 +135,11 @@ type Omnibar = {
   input: HTMLInputElement;
   resultsDiv: HTMLElement;
   cachedPromise?: Promise<unknown>;
-  command?: (cmd: string, annotation: string, jscode: (args: string[]) => void) => void;
+  command?: (
+    cmd: string,
+    jscode: (args: string[]) => void,
+    options: { annotation: string; group?: FeatureGroup },
+  ) => void;
   results: () => OmnibarResult[];
   focusedIndex: () => number;
   focusedResult: () => OmnibarResult | undefined;
@@ -2020,9 +2024,8 @@ function Commands(omnibar: Omnibar, front: OmnibarFront): OmnibarHandler {
 
   omnibar.command = (
     cmd: string,
-    annotation: string,
     jscode: (args: string[]) => void,
-    group: FeatureGroup = "misc",
+    { annotation, group = "misc" }: { annotation: string; group?: FeatureGroup },
   ) => {
     items[cmd] = {
       code: jscode,

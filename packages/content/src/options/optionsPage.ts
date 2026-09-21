@@ -13,7 +13,7 @@ import { RUNTIME } from "@sk/messaging/runtime";
 import { start } from "../content";
 import optionsMain from "./options";
 
-optionsMain(
+optionsMain({
   RUNTIME,
   KeyboardUtils,
   ModeHandle,
@@ -24,5 +24,5 @@ optionsMain(
   reportIssue,
   setSanitizedContent,
   showBanner,
-);
+});
 start({});

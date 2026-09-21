@@ -581,7 +581,7 @@ const Front = (() => {
     } else if (mode != null && Object.hasOwn(modes, mode)) {
       const targetMode = modes[mode];
       if (targetMode != null) {
-        mapInMode(targetMode, newKeystroke, oldKeystroke, isInUIFrame());
+        mapInMode(targetMode, { newKeystroke, oldKeystroke }, isInUIFrame());
       }
     }
   };
@@ -608,7 +608,7 @@ const Front = (() => {
         args: args,
       });
     };
-    omnibarCommand(message.name, message.description, proxyAction);
+    omnibarCommand(message.name, proxyAction, { annotation: message.description });
   };
   actions["getUsage"] = (message: unknown) => {
     // The ack flag the dispatcher may attach is irrelevant here; only metas and the correlation id
@@ -1125,12 +1125,10 @@ const Find = (() => {
         event.keyCode === KeyboardUtils.keyCodes["downArrow"]
       ) {
         if (findHistory.length) {
-          const [rotated, nextInc] = rotateInput(
-            findHistory,
-            event.keyCode === KeyboardUtils.keyCodes["downArrow"],
-            historyInc,
-            userInput,
-          );
+          const [rotated, nextInc] = rotateInput(findHistory, historyInc, {
+            backward: event.keyCode === KeyboardUtils.keyCodes["downArrow"],
+            prefix: userInput,
+          });
           // rotateInput only yields undefined for an out-of-range index, which the length guard
           // above rules out; the fallback just avoids rendering "undefined".
           inputEl.value = rotated ?? inputEl.value;

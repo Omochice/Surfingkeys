@@ -300,21 +300,21 @@ describe("getNearestWord", () => {
 
 describe("rotateInput", () => {
   it("advances forward through the full list including the empty slot", () => {
-    expect(rotateInput(["x", "y"], false, 0)).toEqual(["y", 1]);
-    expect(rotateInput(["x", "y"], false, 1)).toEqual([undefined, 2]);
-    expect(rotateInput(["x", "y"], false, 2)).toEqual(["x", 0]);
+    expect(rotateInput(["x", "y"], 0, { backward: false })).toEqual(["y", 1]);
+    expect(rotateInput(["x", "y"], 1, { backward: false })).toEqual([undefined, 2]);
+    expect(rotateInput(["x", "y"], 2, { backward: false })).toEqual(["x", 0]);
   });
 
   it("steps backward and wraps to the empty slot", () => {
-    expect(rotateInput(["x", "y"], true, 0)).toEqual([undefined, 2]);
+    expect(rotateInput(["x", "y"], 0, { backward: true })).toEqual([undefined, 2]);
   });
 
   it("restricts rotation to entries that extend the typed prefix", () => {
-    expect(rotateInput(["aa", "ab", "bc"], false, 0, "a")).toEqual(["ab", 1]);
+    expect(rotateInput(["aa", "ab", "bc"], 0, { backward: false, prefix: "a" })).toEqual(["ab", 1]);
   });
 
   it("returns the typed prefix itself when rotating onto the empty slot", () => {
-    expect(rotateInput(["aa", "ab"], false, 1, "a")).toEqual(["a", 2]);
+    expect(rotateInput(["aa", "ab"], 1, { backward: false, prefix: "a" })).toEqual(["a", 2]);
   });
 });
 
@@ -599,7 +599,7 @@ describe("mapInMode", () => {
     const code = () => {};
     mode.mappings.add(KeyboardUtils.encodeKeystroke("j"), { annotation: "down", code });
 
-    const old = mapInMode(mode, "x", "j", false);
+    const old = mapInMode(mode, { newKeystroke: "x", oldKeystroke: "j" }, false);
 
     expect(old).toBeDefined();
     const rebound = mode.mappings.find(KeyboardUtils.encodeKeystroke("x"));
@@ -614,7 +614,7 @@ describe("mapInMode", () => {
       group: "sessions",
     });
 
-    mapInMode(mode, "x", "j", false, "Custom");
+    mapInMode(mode, { newKeystroke: "x", oldKeystroke: "j", annotation: "Custom" }, false);
 
     const rebound = mode.mappings.find(KeyboardUtils.encodeKeystroke("x"));
     expect(rebound?.meta?.group).toBe("sessions");
@@ -623,14 +623,16 @@ describe("mapInMode", () => {
 
   it("returns undefined when the source mapping does not exist", () => {
     const mode = { name: "normal", mappings: new Trie() };
-    expect(mapInMode(mode, "x", "nonexistent", false)).toBeUndefined();
+    expect(
+      mapInMode(mode, { newKeystroke: "x", oldKeystroke: "nonexistent" }, false),
+    ).toBeUndefined();
   });
 
   it("does not create a mapping from a keystroke that is only a prefix of longer ones", () => {
     const mode = { name: "normal", mappings: new Trie() };
     mode.mappings.add(KeyboardUtils.encodeKeystroke("jk"), { annotation: "down", code: () => {} });
 
-    expect(mapInMode(mode, "x", "j", false)).toBeUndefined();
+    expect(mapInMode(mode, { newKeystroke: "x", oldKeystroke: "j" }, false)).toBeUndefined();
     expect(mode.mappings.find(KeyboardUtils.encodeKeystroke("x"))).toBeUndefined();
   });
 });
@@ -785,19 +787,19 @@ describe("constructSearchURL — additional branches", () => {
 
 describe("rotateInput — additional branches", () => {
   it("clamps curr to list.length when it exceeds the filtered list size", () => {
-    expect(rotateInput(["aa", "ab", "bc"], false, 5, "a")).toEqual(["aa", 0]);
+    expect(rotateInput(["aa", "ab", "bc"], 5, { backward: false, prefix: "a" })).toEqual(["aa", 0]);
   });
 
   it("steps backward through a prefix-filtered list", () => {
-    expect(rotateInput(["aa", "ab", "bc"], true, 1, "a")).toEqual(["aa", 0]);
+    expect(rotateInput(["aa", "ab", "bc"], 1, { backward: true, prefix: "a" })).toEqual(["aa", 0]);
   });
 
   it("returns str when rotating past the last filtered entry backward", () => {
-    expect(rotateInput(["aa", "ab", "bc"], true, 0, "a")).toEqual(["a", 2]);
+    expect(rotateInput(["aa", "ab", "bc"], 0, { backward: true, prefix: "a" })).toEqual(["a", 2]);
   });
 
   it("wraps forward from the last slot back to the first entry", () => {
-    expect(rotateInput(["x", "y"], false, 2)).toEqual(["x", 0]);
+    expect(rotateInput(["x", "y"], 2, { backward: false })).toEqual(["x", 0]);
   });
 });
 
@@ -862,7 +864,11 @@ describe("mapInMode — additional branches", () => {
     const mode = { name: "normal", mappings: new Trie() };
     mode.mappings.add(KeyboardUtils.encodeKeystroke("k"), { annotation: "up" });
 
-    mapInMode(mode, "y", "k", false, ["Custom annotation", "param"]);
+    mapInMode(
+      mode,
+      { newKeystroke: "y", oldKeystroke: "k", annotation: ["Custom annotation", "param"] },
+      false,
+    );
 
     const rebound = mode.mappings.find(KeyboardUtils.encodeKeystroke("y"));
     expect(rebound?.meta?.annotation).toEqual(["Custom annotation", "param"]);

@@ -71,10 +71,9 @@ class CursorPrompt {
 
   activate(
     parentElement: HTMLElement,
-    data?: string[],
-    threshold?: number,
-    insertOffset?: number,
+    options?: { data?: string[]; threshold?: number; insertOffset?: number },
   ): void {
+    const { data, threshold, insertOffset } = options ?? {};
     this.insertOffset = insertOffset || 0;
     this.threshold = threshold || 0;
     this.parentElement = parentElement;

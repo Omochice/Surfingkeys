@@ -45,7 +45,7 @@ function setup() {
   };
   createCommands(
     { feedkeys: vi.fn() },
-    (name, _annotation, handler) => {
+    (name, handler) => {
       handlers[name] = handler;
     },
     omnibar,

@@ -730,28 +730,23 @@ function getTextNodePos(
   return pos;
 }
 
+/** One end of a DOM range. */
+export type BoundaryPoint = { node: Node; offset: number };
+
 const focusedRange = document.createRange();
 function getTextRect(
-  node: Node,
-  startOffset: number,
-  endNodeOrOffset?: Node | number,
-  endOffset?: number,
+  start: BoundaryPoint,
+  end: BoundaryPoint = start,
 ): Result.Result<DOMRectList | DOMRect[], DomApiError> {
   return Result.try({
     try: () => {
       let rects: DOMRectList | DOMRect[] = [];
-      let start = startOffset;
-      while (rects.length === 0 && start >= 0) {
-        focusedRange.setStart(node, start);
-        if (endOffset != null && typeof endNodeOrOffset === "object") {
-          focusedRange.setEnd(endNodeOrOffset, endOffset);
-        } else if (typeof endNodeOrOffset === "number") {
-          focusedRange.setEnd(node, endNodeOrOffset);
-        } else {
-          focusedRange.setEnd(node, startOffset);
-        }
+      let startOffset = start.offset;
+      while (rects.length === 0 && startOffset >= 0) {
+        focusedRange.setStart(start.node, startOffset);
+        focusedRange.setEnd(end.node, end.offset);
         rects = focusedRange.getClientRects();
-        start--;
+        startOffset--;
       }
       return rects;
     },
@@ -765,7 +760,10 @@ function locateFocusNode(
   const sel = selection!;
   const focusElement = sel.focusNode!.parentElement!;
   scrollIntoViewIfNeeded(focusElement, true);
-  let r0 = unwrapOr<DOMRectList | DOMRect[]>(getTextRect(sel.focusNode!, sel.focusOffset), [])[0];
+  let r0 = unwrapOr<DOMRectList | DOMRect[]>(
+    getTextRect({ node: sel.focusNode!, offset: sel.focusOffset }),
+    [],
+  )[0];
   if (!r0 && sel.focusNode instanceof Element) {
     r0 = sel.focusNode.getBoundingClientRect();
   }
@@ -834,14 +832,18 @@ function getWordUnderCursor(mouseCursor?: boolean): string | null {
   if (selection.focusNode && selection.focusNode.textContent) {
     const range = getNearestWord(selection.focusNode.textContent, selection.focusOffset);
     const selRect = unwrapOr<DOMRectList | DOMRect[]>(
-      getTextRect(selection.focusNode, range[0], range[0] + range[1]),
+      getTextRect(
+        { node: selection.focusNode, offset: range[0] },
+        { node: selection.focusNode, offset: range[0] + range[1] },
+      ),
       [],
     )[0];
     const word = selection.focusNode.textContent.slice(range[0], range[0] + range[1]);
     if (
       selRect &&
       word &&
-      (!mouseCursor || (clickPos && rectContains(selRect, clickPos[0], clickPos[1], 0, 0)))
+      (!mouseCursor ||
+        (clickPos && rectContains(selRect, { x: clickPos[0], y: clickPos[1] }, { x: 0, y: 0 })))
     ) {
       return word.trim();
     }
@@ -849,9 +851,17 @@ function getWordUnderCursor(mouseCursor?: boolean): string | null {
   return null;
 }
 
-// allow some errors of x and y as ex and ey respectively.
-function rectContains(rect: DOMRect, x: number, y: number, ex: number, ey: number): boolean {
-  return y > rect.top - ey && y < rect.bottom + ey && x > rect.left - ex && x < rect.right + ex;
+function rectContains(
+  rect: DOMRect,
+  point: { x: number; y: number },
+  tolerance: { x: number; y: number },
+): boolean {
+  return (
+    point.y > rect.top - tolerance.y &&
+    point.y < rect.bottom + tolerance.y &&
+    point.x > rect.left - tolerance.x &&
+    point.x < rect.right + tolerance.x
+  );
 }
 
 function format(template: string, ...args: unknown[]): string {
@@ -885,22 +895,20 @@ function normalizeAnnotation(annotation: string | string[]): string | string[] {
 
 function mapInMode(
   mode: { name: string; mappings: Trie },
-  newKeystroke: string,
-  oldKeystroke: string,
+  remap: { newKeystroke: string; oldKeystroke: string; annotation?: string | string[] | undefined },
   // Injected because this pure helper must not reach the WebExtension API itself.
   inUIFrame: boolean,
-  newAnnotation?: string | string[],
 ): Trie | undefined {
-  oldKeystroke = KeyboardUtils.encodeKeystroke(oldKeystroke);
+  const oldKeystroke = KeyboardUtils.encodeKeystroke(remap.oldKeystroke);
   const oldMap = mode.mappings.find(oldKeystroke);
   // A node without meta is only a prefix of longer mappings; copying it would bind a key to nothing.
   if (oldMap?.meta == null) return undefined;
-  newKeystroke = KeyboardUtils.encodeKeystroke(newKeystroke);
+  const newKeystroke = KeyboardUtils.encodeKeystroke(remap.newKeystroke);
   mode.mappings.remove(newKeystroke);
   // meta.word need to be new
   let meta: Omit<TrieMeta, "word"> = { ...oldMap.meta };
-  if (newAnnotation) {
-    meta = { ...meta, annotation: normalizeAnnotation(newAnnotation) };
+  if (remap.annotation) {
+    meta = { ...meta, annotation: normalizeAnnotation(remap.annotation) };
   }
   mode.mappings.add(newKeystroke, meta);
   if (!inUIFrame) {
@@ -1086,13 +1094,13 @@ function refreshHints(
 
 function rotateInput(
   inputs: string[],
-  backward: boolean,
   curr: number,
-  str?: string,
+  options: { backward: boolean; prefix?: string | undefined },
 ): [string | undefined, number] {
+  const { backward, prefix } = options;
   let list = inputs;
-  if (str) {
-    list = inputs.filter((l) => l.indexOf(str) === 0 && l !== str);
+  if (prefix) {
+    list = inputs.filter((l) => l.indexOf(prefix) === 0 && l !== prefix);
     if (curr > list.length) {
       curr = list.length;
     }
@@ -1100,7 +1108,7 @@ function rotateInput(
   const delta = backward ? -1 : 1;
   const length = list.length + 1; // +1 for empty input
   curr = (curr + length + delta) % length;
-  return [curr < list.length ? list[curr] : str, curr];
+  return [curr < list.length ? list[curr] : prefix, curr];
 }
 
 /**

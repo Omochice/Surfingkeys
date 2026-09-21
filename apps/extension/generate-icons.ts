@@ -26,6 +26,9 @@ const reframe = (svg: string): string => {
   let matched = false;
   const reframed = svg.replace(
     /viewBox="(-?\d+(?:\.\d+)?) (-?\d+(?:\.\d+)?) (\d+(?:\.\d+)?) (\d+(?:\.\d+)?)"/,
+    // String.prototype.replace gives each capture group its own positional parameter; declaring
+    // fewer to satisfy the limit would drop the viewBox dimension the last group carries.
+    // eslint-disable-next-line max-params
     (_, x: string, y: string, w: string, h: string) => {
       matched = true;
       const minX = Number(x);

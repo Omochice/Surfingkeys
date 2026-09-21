@@ -134,7 +134,12 @@ function listenForSKEvent(type: string): {
 describe("createFront window message handler — action dispatch", () => {
   it("dispatches surfingkeys:user CustomEvent for executeUserCommand action", () => {
     const { handler, restore } = captureMessageHandler();
-    createFront(makeInsert(), makeNormal(), null, makeVisual(), makeBrowser());
+    createFront({
+      insert: makeInsert(),
+      normal: makeNormal(),
+      visual: makeVisual(),
+      browser: makeBrowser(),
+    });
     restore();
     const messageHandler = handler()!;
 
@@ -154,7 +159,7 @@ describe("createFront window message handler — action dispatch", () => {
   it("calls visual.visualClear for visualClear action", () => {
     const visual = makeVisual();
     const { handler, restore } = captureMessageHandler();
-    createFront(makeInsert(), makeNormal(), null, visual, makeBrowser());
+    createFront({ insert: makeInsert(), normal: makeNormal(), visual, browser: makeBrowser() });
     restore();
     const messageHandler = handler()!;
 
@@ -166,7 +171,7 @@ describe("createFront window message handler — action dispatch", () => {
   it("calls visual.emptySelection for emptySelection action", () => {
     const visual = makeVisual();
     const { handler, restore } = captureMessageHandler();
-    createFront(makeInsert(), makeNormal(), null, visual, makeBrowser());
+    createFront({ insert: makeInsert(), normal: makeNormal(), visual, browser: makeBrowser() });
     restore();
     const messageHandler = handler()!;
 
@@ -178,7 +183,7 @@ describe("createFront window message handler — action dispatch", () => {
   it("calls visual.visualEnter with query for visualEnter action", () => {
     const visual = makeVisual();
     const { handler, restore } = captureMessageHandler();
-    createFront(makeInsert(), makeNormal(), null, visual, makeBrowser());
+    createFront({ insert: makeInsert(), normal: makeNormal(), visual, browser: makeBrowser() });
     restore();
     const messageHandler = handler()!;
 
@@ -192,7 +197,7 @@ describe("createFront window message handler — action dispatch", () => {
     try {
       const visual = makeVisual();
       const { handler, restore } = captureMessageHandler();
-      createFront(makeInsert(), makeNormal(), null, visual, makeBrowser());
+      createFront({ insert: makeInsert(), normal: makeNormal(), visual, browser: makeBrowser() });
       restore();
       const messageHandler = handler()!;
 
@@ -211,7 +216,7 @@ describe("createFront window message handler — action dispatch", () => {
     try {
       const visual = makeVisual();
       const { handler, restore } = captureMessageHandler();
-      createFront(makeInsert(), makeNormal(), null, visual, makeBrowser());
+      createFront({ insert: makeInsert(), normal: makeNormal(), visual, browser: makeBrowser() });
       restore();
       const messageHandler = handler()!;
 
@@ -230,7 +235,7 @@ describe("createFront window message handler — action dispatch", () => {
   it("deactivated/activated actions toggle the frontActive flag", () => {
     const visual = makeVisual();
     const { handler, restore } = captureMessageHandler();
-    createFront(makeInsert(), makeNormal(), null, visual, makeBrowser());
+    createFront({ insert: makeInsert(), normal: makeNormal(), visual, browser: makeBrowser() });
     restore();
     const messageHandler = handler()!;
 
@@ -247,7 +252,12 @@ describe("createFront window message handler — action dispatch", () => {
 describe("createFront addSearchAlias — getSearchSuggestions with function listSuggestion", () => {
   it("calls the listSuggestion function with the right arguments", () => {
     const { handler, restore } = captureMessageHandler();
-    const front = createFront(makeInsert(), makeNormal(), null, makeVisual(), makeBrowser());
+    const front = createFront({
+      insert: makeInsert(),
+      normal: makeNormal(),
+      visual: makeVisual(),
+      browser: makeBrowser(),
+    });
     restore();
     const messageHandler = handler()!;
 
@@ -278,7 +288,12 @@ describe("createFront addSearchAlias — getSearchSuggestions with function list
 describe("createFront getSearchSuggestions — non-function listSuggestion dispatches SKEvent", () => {
   it("dispatches surfingkeys:user getSearchSuggestions when listSuggestion is not a function", () => {
     const { handler, restore } = captureMessageHandler();
-    const front = createFront(makeInsert(), makeNormal(), null, makeVisual(), makeBrowser());
+    const front = createFront({
+      insert: makeInsert(),
+      normal: makeNormal(),
+      visual: makeVisual(),
+      browser: makeBrowser(),
+    });
     restore();
     const messageHandler = handler()!;
 
@@ -305,7 +320,7 @@ describe("createFront getSearchSuggestions — non-function listSuggestion dispa
       (d) => Array.isArray(d) && d[0] === "getSearchSuggestions",
     );
     expect(matchingEvent).toBeDefined();
-    expect(matchingEvent?.[1]).toBe("https://en.wikipedia.org/w/suggest");
+    expect(matchingEvent?.[1]).toMatchObject({ url: "https://en.wikipedia.org/w/suggest" });
 
     cleanup();
   });
@@ -315,7 +330,12 @@ describe("createFront actions[dialogResponse] — triggers onDialogResponseOk ca
   it("calls onDialogResponseOk when result is Ok", () => {
     const { handler: msgHandler, restore: restoreMsg } = captureMessageHandler();
     const { handler: skHandler, restore: restoreSK } = captureFrontSKHandler();
-    createFront(makeInsert(), makeNormal(), null, makeVisual(), makeBrowser());
+    createFront({
+      insert: makeInsert(),
+      normal: makeNormal(),
+      visual: makeVisual(),
+      browser: makeBrowser(),
+    });
     restoreMsg();
     restoreSK();
     const messageHandler = msgHandler()!;
@@ -332,7 +352,12 @@ describe("createFront actions[dialogResponse] — triggers onDialogResponseOk ca
   it("does not call onDialogResponseOk when result is not Ok", () => {
     const { handler: msgHandler, restore: restoreMsg } = captureMessageHandler();
     const { handler: skHandler, restore: restoreSK } = captureFrontSKHandler();
-    createFront(makeInsert(), makeNormal(), null, makeVisual(), makeBrowser());
+    createFront({
+      insert: makeInsert(),
+      normal: makeNormal(),
+      visual: makeVisual(),
+      browser: makeBrowser(),
+    });
     restoreMsg();
     restoreSK();
     const messageHandler = msgHandler()!;
@@ -360,7 +385,12 @@ describe("createFront registerInlineQuery — performInlineQuery dispatches user
   });
 
   it("performInlineQuery dispatches surfingkeys:user performInlineQuery after registerInlineQuery", () => {
-    const front = createFront(makeInsert(), makeNormal(), null, makeVisual(), makeBrowser());
+    const front = createFront({
+      insert: makeInsert(),
+      normal: makeNormal(),
+      visual: makeVisual(),
+      browser: makeBrowser(),
+    });
 
     front.registerInlineQuery();
 
@@ -397,7 +427,12 @@ describe("createFront chooseTab — RUNTIME delegation", () => {
       getLurkMode: vi.fn(() => undefined),
       keymap: { repeats: "3" },
     };
-    const front = createFront(makeInsert(), normal, null, makeVisual(), makeBrowser());
+    const front = createFront({
+      insert: makeInsert(),
+      normal,
+      visual: makeVisual(),
+      browser: makeBrowser(),
+    });
 
     front.chooseTab();
 
@@ -413,7 +448,12 @@ describe("createFront openOmnibar", () => {
     const mockCreateUiHost = createUiHost as ReturnType<typeof vi.fn>;
     mockCreateUiHost.mockClear();
 
-    const front = createFront(makeInsert(), makeNormal(), null, makeVisual(), makeBrowser());
+    const front = createFront({
+      insert: makeInsert(),
+      normal: makeNormal(),
+      visual: makeVisual(),
+      browser: makeBrowser(),
+    });
 
     front.openOmnibar({ type: "OmniQuery", extra: "search term", style: "" });
 
@@ -427,7 +467,12 @@ describe("createFront showUsage / getAllAnnotations — includes lurk mode trie"
     mockCreateUiHost.mockClear();
 
     const normal = makeNormal(true);
-    const front = createFront(makeInsert(), normal, null, makeVisual(), makeBrowser());
+    const front = createFront({
+      insert: makeInsert(),
+      normal,
+      visual: makeVisual(),
+      browser: makeBrowser(),
+    });
 
     front.showUsage();
 
@@ -442,7 +487,12 @@ describe("createFront SKEvent front channel — hideKeystroke / showKeystroke", 
     mockCreateUiHost.mockClear();
 
     const { handler: skHandler, restore } = captureFrontSKHandler();
-    createFront(makeInsert(), makeNormal(), null, makeVisual(), makeBrowser());
+    createFront({
+      insert: makeInsert(),
+      normal: makeNormal(),
+      visual: makeVisual(),
+      browser: makeBrowser(),
+    });
     restore();
     const frontHandler = skHandler()!;
 
@@ -471,7 +521,12 @@ describe("createFront SKEvent front channel — removeMapkey", () => {
     });
 
     const { handler: skHandler, restore } = captureFrontSKHandler();
-    const front = createFront(makeInsert(), makeNormal(), null, makeVisual(), makeBrowser());
+    const front = createFront({
+      insert: makeInsert(),
+      normal: makeNormal(),
+      visual: makeVisual(),
+      browser: makeBrowser(),
+    });
     restore();
     const frontHandler = skHandler()!;
 
@@ -509,7 +564,7 @@ describe("createFront applySettingsFromSnippets — enableEmojiInsertion propaga
   it("calls insert.enableEmojiInsertion when the snippet enables it", () => {
     const insert = makeInsert();
     const { handler: skHandler, restore } = captureFrontSKHandler();
-    createFront(insert, makeNormal(), null, makeVisual(), makeBrowser());
+    createFront({ insert, normal: makeNormal(), visual: makeVisual(), browser: makeBrowser() });
     restore();
     const frontHandler = skHandler()!;
 
@@ -534,7 +589,12 @@ describe("createFront runtime.on focusFrame — highlights when frameId matches"
       origOn(msg, cb);
     });
 
-    createFront(makeInsert(), makeNormal(), null, makeVisual(), makeBrowser());
+    createFront({
+      insert: makeInsert(),
+      normal: makeNormal(),
+      visual: makeVisual(),
+      browser: makeBrowser(),
+    });
 
     const focusFrameHandler = capturedHandlers["focusFrame"];
     expect(focusFrameHandler).toBeDefined();
@@ -554,7 +614,7 @@ describe("createFront window message handler — DictoriumViewReady activates wh
   it("sets frontActive=true on DictoriumViewReady, enabling subsequent actions", () => {
     const visual = makeVisual();
     const { handler, restore } = captureMessageHandler();
-    createFront(makeInsert(), makeNormal(), null, visual, makeBrowser());
+    createFront({ insert: makeInsert(), normal: makeNormal(), visual, browser: makeBrowser() });
     restore();
     const messageHandler = handler()!;
 
@@ -577,7 +637,7 @@ describe("createFront window message handler — activated message while inactiv
   it("routes the activated message through the inactive path and re-activates", () => {
     const visual = makeVisual();
     const { handler, restore } = captureMessageHandler();
-    createFront(makeInsert(), makeNormal(), null, visual, makeBrowser());
+    createFront({ insert: makeInsert(), normal: makeNormal(), visual, browser: makeBrowser() });
     restore();
     const messageHandler = handler()!;
 
@@ -592,7 +652,12 @@ describe("createFront window message handler — activated message while inactiv
 describe("createFront window message handler — stopImmediatePropagation behavior", () => {
   it("does not stop propagation for dictorium_data messages", () => {
     const { handler, restore } = captureMessageHandler();
-    createFront(makeInsert(), makeNormal(), null, makeVisual(), makeBrowser());
+    createFront({
+      insert: makeInsert(),
+      normal: makeNormal(),
+      visual: makeVisual(),
+      browser: makeBrowser(),
+    });
     restore();
     const messageHandler = handler()!;
 
@@ -613,7 +678,12 @@ describe("createFront window message handler — stopImmediatePropagation behavi
 
   it("calls stopImmediatePropagation for surfingkeysContentData messages", () => {
     const { handler, restore } = captureMessageHandler();
-    createFront(makeInsert(), makeNormal(), null, makeVisual(), makeBrowser());
+    createFront({
+      insert: makeInsert(),
+      normal: makeNormal(),
+      visual: makeVisual(),
+      browser: makeBrowser(),
+    });
     restore();
     const messageHandler = handler()!;
 
@@ -635,7 +705,12 @@ describe("createFront removeSearchAlias — queues applyUICommand for removeSear
     const mockCreateUiHost = createUiHost as ReturnType<typeof vi.fn>;
     mockCreateUiHost.mockClear();
 
-    const front = createFront(makeInsert(), makeNormal(), null, makeVisual(), makeBrowser());
+    const front = createFront({
+      insert: makeInsert(),
+      normal: makeNormal(),
+      visual: makeVisual(),
+      browser: makeBrowser(),
+    });
 
     expect(() => {
       front.removeSearchAlias("g");
@@ -650,7 +725,12 @@ describe("createFront setHintsCharacters — queues applyUICommand", () => {
     const mockCreateUiHost = createUiHost as ReturnType<typeof vi.fn>;
     mockCreateUiHost.mockClear();
 
-    const front = createFront(makeInsert(), makeNormal(), null, makeVisual(), makeBrowser());
+    const front = createFront({
+      insert: makeInsert(),
+      normal: makeNormal(),
+      visual: makeVisual(),
+      browser: makeBrowser(),
+    });
 
     expect(() => {
       front.setHintsCharacters("asdfghjkl");
@@ -665,7 +745,12 @@ describe("createFront executeCommand — triggers newFrontEnd", () => {
     const mockCreateUiHost = createUiHost as ReturnType<typeof vi.fn>;
     mockCreateUiHost.mockClear();
 
-    const front = createFront(makeInsert(), makeNormal(), null, makeVisual(), makeBrowser());
+    const front = createFront({
+      insert: makeInsert(),
+      normal: makeNormal(),
+      visual: makeVisual(),
+      browser: makeBrowser(),
+    });
 
     front.executeCommand("tabNext");
 
@@ -678,7 +763,12 @@ describe("createFront getUsage — builds annotations and delivers via newFrontE
     const mockCreateUiHost = createUiHost as ReturnType<typeof vi.fn>;
     mockCreateUiHost.mockClear();
 
-    const front = createFront(makeInsert(), makeNormal(), null, makeVisual(), makeBrowser());
+    const front = createFront({
+      insert: makeInsert(),
+      normal: makeNormal(),
+      visual: makeVisual(),
+      browser: makeBrowser(),
+    });
     const cb = vi.fn();
     front.getUsage(cb);
 
@@ -689,7 +779,12 @@ describe("createFront getUsage — builds annotations and delivers via newFrontE
 describe("createFront actions[getPageText] — ack path posts body text", () => {
   it("posts body.innerText back via runtime.postTopMessage after Promise resolves", async () => {
     const { handler, restore } = captureMessageHandler();
-    createFront(makeInsert(), makeNormal(), null, makeVisual(), makeBrowser());
+    createFront({
+      insert: makeInsert(),
+      normal: makeNormal(),
+      visual: makeVisual(),
+      browser: makeBrowser(),
+    });
     restore();
     const messageHandler = handler()!;
 
@@ -720,7 +815,12 @@ describe("createFront actions[getPageText] — ack path posts body text", () => 
 describe("createFront actions[getBackFocus] — calls window.focus", () => {
   it("calls window.focus when the action is dispatched", () => {
     const { handler, restore } = captureMessageHandler();
-    createFront(makeInsert(), makeNormal(), null, makeVisual(), makeBrowser());
+    createFront({
+      insert: makeInsert(),
+      normal: makeNormal(),
+      visual: makeVisual(),
+      browser: makeBrowser(),
+    });
     restore();
     const messageHandler = handler()!;
 
@@ -737,7 +837,12 @@ describe("createFront actions[getBackFocus] — calls window.focus", () => {
 describe("createFront addSearchAlias — without suggestionURL skips listSuggestions", () => {
   it("leaves no suggestion handler for the alias URL, so nothing is sent back", async () => {
     const { handler, restore } = captureMessageHandler();
-    const front = createFront(makeInsert(), makeNormal(), null, makeVisual(), makeBrowser());
+    const front = createFront({
+      insert: makeInsert(),
+      normal: makeNormal(),
+      visual: makeVisual(),
+      browser: makeBrowser(),
+    });
     restore();
     const messageHandler = handler()!;
     const postSpy = vi.spyOn(runtime, "postTopMessage").mockImplementation(() => {});
@@ -786,7 +891,12 @@ describe("createFront window message — frontendDestroyed resets frontend", () 
     // Capture the message handler belonging to THIS front so the frontendDestroyed
     // event resets its own frontendPromise (not a sibling instance's closure).
     const { handler, restore } = captureMessageHandler();
-    const front = createFront(makeInsert(), makeNormal(), null, makeVisual(), makeBrowser());
+    const front = createFront({
+      insert: makeInsert(),
+      normal: makeNormal(),
+      visual: makeVisual(),
+      browser: makeBrowser(),
+    });
     restore();
     const messageHandler = handler()!;
 
@@ -812,7 +922,12 @@ describe("createFront self.attach — calls showModeStatus", () => {
     const mockCreateUiHost = createUiHost as ReturnType<typeof vi.fn>;
     mockCreateUiHost.mockClear();
 
-    const front = createFront(makeInsert(), makeNormal(), null, makeVisual(), makeBrowser());
+    const front = createFront({
+      insert: makeInsert(),
+      normal: makeNormal(),
+      visual: makeVisual(),
+      browser: makeBrowser(),
+    });
 
     expect(() => {
       front.attach();
@@ -825,7 +940,12 @@ describe("createFront self.attach — calls showModeStatus", () => {
     const mockCreateUiHost = createUiHost as ReturnType<typeof vi.fn>;
     mockCreateUiHost.mockClear();
 
-    const front = createFront(makeInsert(), makeNormal(), null, makeVisual(), makeBrowser());
+    const front = createFront({
+      insert: makeInsert(),
+      normal: makeNormal(),
+      visual: makeVisual(),
+      browser: makeBrowser(),
+    });
 
     front.attach();
     const firstCount = mockCreateUiHost.mock.calls.length;
@@ -849,7 +969,12 @@ describe("createFront self.detach — schedules tryDetach on the uiHost", () => 
       cb({ tryDetach });
     });
 
-    const front = createFront(makeInsert(), makeNormal(), null, makeVisual(), makeBrowser());
+    const front = createFront({
+      insert: makeInsert(),
+      normal: makeNormal(),
+      visual: makeVisual(),
+      browser: makeBrowser(),
+    });
     front.attach();
 
     front.detach();
@@ -875,7 +1000,12 @@ describe("createFront self.attach — cancels pending detach timer", () => {
       cb({ tryDetach });
     });
 
-    const front = createFront(makeInsert(), makeNormal(), null, makeVisual(), makeBrowser());
+    const front = createFront({
+      insert: makeInsert(),
+      normal: makeNormal(),
+      visual: makeVisual(),
+      browser: makeBrowser(),
+    });
     front.attach();
 
     // detach() schedules uiHostDetaching via frontendPromise.then(...).
@@ -896,7 +1026,12 @@ describe("createFront self.attach — cancels pending detach timer", () => {
 describe("createFront actions[getSearchSuggestions] — non-function dispatches user event with callbackId", () => {
   it("dispatches surfingkeys:user with a string callbackId as the last argument", () => {
     const { handler: msgHandler, restore: restoreMsg } = captureMessageHandler();
-    const front = createFront(makeInsert(), makeNormal(), null, makeVisual(), makeBrowser());
+    const front = createFront({
+      insert: makeInsert(),
+      normal: makeNormal(),
+      visual: makeVisual(),
+      browser: makeBrowser(),
+    });
     restoreMsg();
     const messageHandler = msgHandler()!;
 
@@ -924,10 +1059,8 @@ describe("createFront actions[getSearchSuggestions] — non-function dispatches 
 
     document.removeEventListener("surfingkeys:user", userListener);
 
-    // The non-function branch dispatches: ["getSearchSuggestions", url, response, ctx, callbackId]
     const evt = captured.find((d) => d[0] === "getSearchSuggestions");
     expect(evt).toBeDefined();
-    expect(typeof evt![4]).toBe("string");
-    expect((evt![4] as string).length).toBeGreaterThan(0);
+    expect(evt?.[1]).toMatchObject({ callbackId: expect.stringMatching(/.+/) });
   });
 });

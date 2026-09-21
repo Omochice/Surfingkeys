@@ -289,7 +289,7 @@ function createAPI(ctx: ModeContext, env: EngineEnv) {
       } else {
         const specialKey = specialKeys[oldKeystroke];
         if (
-          !mapInMode(normal, newKeystroke, oldKeystroke, isInUIFrame(), annotation) &&
+          !mapInMode(normal, { newKeystroke, oldKeystroke, annotation }, isInUIFrame()) &&
           specialKey != null
         ) {
           specialKey.push(newKeystroke);
@@ -368,7 +368,7 @@ function createAPI(ctx: ModeContext, env: EngineEnv) {
   function imap(newKeystroke: string, oldKeystroke: string, options?: RemapInModeOptions): void {
     const { domain, annotation } = options ?? {};
     if (isDomainApplicable(domain)) {
-      mapInMode(insert, newKeystroke, oldKeystroke, isInUIFrame(), annotation);
+      mapInMode(insert, { newKeystroke, oldKeystroke, annotation }, isInUIFrame());
     }
   }
 
@@ -425,7 +425,7 @@ function createAPI(ctx: ModeContext, env: EngineEnv) {
   function vmap(newKeystroke: string, oldKeystroke: string, options?: RemapInModeOptions): void {
     const { domain, annotation } = options ?? {};
     if (isDomainApplicable(domain)) {
-      mapInMode(visual, newKeystroke, oldKeystroke, isInUIFrame(), annotation);
+      mapInMode(visual, { newKeystroke, oldKeystroke, annotation }, isInUIFrame());
     }
   }
 

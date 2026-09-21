@@ -74,20 +74,20 @@ function makeCreateElementWithContent() {
 }
 
 function initOptions(runtimeSpy = makeRUNTIME()) {
-  optionsMain(
-    runtimeSpy,
-    makeKeyboardUtils(),
-    makeMode() as any,
-    makeCreateElementWithContent(),
-    () => "Chrome",
-    (s: string) => s,
-    (cb: (locale: (s: string) => string) => void) => cb((s) => s),
-    (_title: string, _desc: string) => {},
-    (elm: Element, str: string) => {
+  optionsMain({
+    RUNTIME: runtimeSpy,
+    KeyboardUtils: makeKeyboardUtils(),
+    ModeHandle: makeMode() as any,
+    createElementWithContent: makeCreateElementWithContent(),
+    getBrowserName: () => "Chrome",
+    htmlEncode: (s: string) => s,
+    initL10n: (cb: (locale: (s: string) => string) => void) => cb((s) => s),
+    reportIssue: (_title: string, _desc: string) => {},
+    setSanitizedContent: (elm: Element, str: string) => {
       elm.innerHTML = str;
     },
-    (_msg: string, _timeout?: number) => {},
-  );
+    showBanner: (_msg: string, _timeout?: number) => {},
+  });
   return runtimeSpy;
 }
 
@@ -157,20 +157,20 @@ describe("showAdvanced toggle behavior", () => {
       return Result.succeed(undefined);
     });
 
-    optionsMain(
-      RUNTIME as any,
-      makeKeyboardUtils(),
-      makeMode() as any,
-      makeCreateElementWithContent(),
-      () => "Chrome",
-      (s: string) => s,
-      (cb: (locale: (s: string) => string) => void) => cb((s) => s),
-      (_title: string, _desc: string) => {},
-      (elm: Element, str: string) => {
+    optionsMain({
+      RUNTIME: RUNTIME as any,
+      KeyboardUtils: makeKeyboardUtils(),
+      ModeHandle: makeMode() as any,
+      createElementWithContent: makeCreateElementWithContent(),
+      getBrowserName: () => "Chrome",
+      htmlEncode: (s: string) => s,
+      initL10n: (cb: (locale: (s: string) => string) => void) => cb((s) => s),
+      reportIssue: (_title: string, _desc: string) => {},
+      setSanitizedContent: (elm: Element, str: string) => {
         elm.innerHTML = str;
       },
       showBanner,
-    );
+    });
 
     const toggler = document.getElementById("advancedToggler") as HTMLInputElement;
     toggler.checked = true;
@@ -397,20 +397,20 @@ describe("Firefox-specific localPathForSettings display", () => {
     const localPathDiv = document.getElementById("localPathForSettings") as HTMLElement;
     localPathDiv.style.display = "none";
 
-    optionsMain(
-      makeRUNTIME() as any,
-      makeKeyboardUtils(),
-      makeMode() as any,
-      makeCreateElementWithContent(),
-      () => "Firefox",
-      (s: string) => s,
-      (cb: (locale: (s: string) => string) => void) => cb((s) => s),
-      (_title: string, _desc: string) => {},
-      (elm: Element, str: string) => {
+    optionsMain({
+      RUNTIME: makeRUNTIME() as any,
+      KeyboardUtils: makeKeyboardUtils(),
+      ModeHandle: makeMode() as any,
+      createElementWithContent: makeCreateElementWithContent(),
+      getBrowserName: () => "Firefox",
+      htmlEncode: (s: string) => s,
+      initL10n: (cb: (locale: (s: string) => string) => void) => cb((s) => s),
+      reportIssue: (_title: string, _desc: string) => {},
+      setSanitizedContent: (elm: Element, str: string) => {
         elm.innerHTML = str;
       },
-      (_msg: string, _timeout?: number) => {},
-    );
+      showBanner: (_msg: string, _timeout?: number) => {},
+    });
 
     expect(localPathDiv.style.display).toBe("");
   });
@@ -599,20 +599,20 @@ describe("KeyPicker keydown: Escape hides the picker", () => {
   it("hides the keyPicker div when Escape is pressed", () => {
     const { ModeClass, instances } = makeTrackingMode();
 
-    optionsMain(
-      makeRUNTIME() as any,
-      makeKeyboardUtils(),
-      ModeClass as any,
-      makeCreateElementWithContent(),
-      () => "Chrome",
-      (s: string) => s,
-      (cb: (locale: (s: string) => string) => void) => cb((s) => s),
-      (_title: string, _desc: string) => {},
-      (elm: Element, str: string) => {
+    optionsMain({
+      RUNTIME: makeRUNTIME() as any,
+      KeyboardUtils: makeKeyboardUtils(),
+      ModeHandle: ModeClass as any,
+      createElementWithContent: makeCreateElementWithContent(),
+      getBrowserName: () => "Chrome",
+      htmlEncode: (s: string) => s,
+      initL10n: (cb: (locale: (s: string) => string) => void) => cb((s) => s),
+      reportIssue: (_title: string, _desc: string) => {},
+      setSanitizedContent: (elm: Element, str: string) => {
         elm.innerHTML = str;
       },
-      (_msg: string, _timeout?: number) => {},
-    );
+      showBanner: (_msg: string, _timeout?: number) => {},
+    });
 
     const kp = instances.get("KeyPicker");
     expect(kp).toBeDefined();
@@ -640,20 +640,20 @@ describe("KeyPicker keydown: regular character appends to key", () => {
   it("appends a character to the key display when a regular key is pressed", () => {
     const { ModeClass, instances } = makeTrackingMode();
 
-    optionsMain(
-      makeRUNTIME() as any,
-      makeKeyboardUtils(),
-      ModeClass as any,
-      makeCreateElementWithContent(),
-      () => "Chrome",
-      (s: string) => s,
-      (cb: (locale: (s: string) => string) => void) => cb((s) => s),
-      (_title: string, _desc: string) => {},
-      (elm: Element, str: string) => {
+    optionsMain({
+      RUNTIME: makeRUNTIME() as any,
+      KeyboardUtils: makeKeyboardUtils(),
+      ModeHandle: ModeClass as any,
+      createElementWithContent: makeCreateElementWithContent(),
+      getBrowserName: () => "Chrome",
+      htmlEncode: (s: string) => s,
+      initL10n: (cb: (locale: (s: string) => string) => void) => cb((s) => s),
+      reportIssue: (_title: string, _desc: string) => {},
+      setSanitizedContent: (elm: Element, str: string) => {
         elm.innerHTML = str;
       },
-      (_msg: string, _timeout?: number) => {},
-    );
+      showBanner: (_msg: string, _timeout?: number) => {},
+    });
 
     const kp = instances.get("KeyPicker");
     // A single-character sk_keyName is what selects the char-append branch.
@@ -673,20 +673,20 @@ function renderBasicMappingKbd(origin: string, userSettings: Record<string, unkn
   const RUNTIME = makeRUNTIME();
   const { ModeClass, instances } = makeTrackingMode();
 
-  optionsMain(
-    RUNTIME as any,
-    makeKeyboardUtils(),
-    ModeClass as any,
-    makeCreateElementWithContent(),
-    () => "Chrome",
-    (s: string) => s,
-    (cb: (locale: (s: string) => string) => void) => cb((s) => s),
-    (_title: string, _desc: string) => {},
-    (elm: Element, str: string) => {
+  optionsMain({
+    RUNTIME: RUNTIME as any,
+    KeyboardUtils: makeKeyboardUtils(),
+    ModeHandle: ModeClass as any,
+    createElementWithContent: makeCreateElementWithContent(),
+    getBrowserName: () => "Chrome",
+    htmlEncode: (s: string) => s,
+    initL10n: (cb: (locale: (s: string) => string) => void) => cb((s) => s),
+    reportIssue: (_title: string, _desc: string) => {},
+    setSanitizedContent: (elm: Element, str: string) => {
       elm.innerHTML = str;
     },
-    (_msg: string, _timeout?: number) => {},
-  );
+    showBanner: (_msg: string, _timeout?: number) => {},
+  });
 
   document.dispatchEvent(
     new CustomEvent("surfingkeys:defaultSettingsLoaded", {
@@ -780,20 +780,20 @@ describe("KeyPicker keydown: Backspace removes last character", () => {
   it("removes the last character of the accumulated key on Backspace", () => {
     const { ModeClass, instances } = makeTrackingMode();
 
-    optionsMain(
-      makeRUNTIME() as any,
-      makeKeyboardUtils(),
-      ModeClass as any,
-      makeCreateElementWithContent(),
-      () => "Chrome",
-      (s: string) => s,
-      (cb: (locale: (s: string) => string) => void) => cb((s) => s),
-      (_title: string, _desc: string) => {},
-      (elm: Element, str: string) => {
+    optionsMain({
+      RUNTIME: makeRUNTIME() as any,
+      KeyboardUtils: makeKeyboardUtils(),
+      ModeHandle: ModeClass as any,
+      createElementWithContent: makeCreateElementWithContent(),
+      getBrowserName: () => "Chrome",
+      htmlEncode: (s: string) => s,
+      initL10n: (cb: (locale: (s: string) => string) => void) => cb((s) => s),
+      reportIssue: (_title: string, _desc: string) => {},
+      setSanitizedContent: (elm: Element, str: string) => {
         elm.innerHTML = str;
       },
-      (_msg: string, _timeout?: number) => {},
-    );
+      showBanner: (_msg: string, _timeout?: number) => {},
+    });
 
     const kp = instances.get("KeyPicker");
 
@@ -890,20 +890,20 @@ describe("renderSearchAlias: aliases with object prompt", () => {
     // Clearing the container and taking the last checkbox isolates this instance's own row.
     const RUNTIME = makeRUNTIME();
 
-    optionsMain(
-      RUNTIME as any,
-      makeKeyboardUtils(),
-      makeMode() as any,
-      makeCreateElementWithContent(),
-      () => "Chrome",
-      (s: string) => s,
-      (cb: (locale: (s: string) => string) => void) => cb((s) => s),
-      (_title: string, _desc: string) => {},
-      (elm: Element, str: string) => {
+    optionsMain({
+      RUNTIME: RUNTIME as any,
+      KeyboardUtils: makeKeyboardUtils(),
+      ModeHandle: makeMode() as any,
+      createElementWithContent: makeCreateElementWithContent(),
+      getBrowserName: () => "Chrome",
+      htmlEncode: (s: string) => s,
+      initL10n: (cb: (locale: (s: string) => string) => void) => cb((s) => s),
+      reportIssue: (_title: string, _desc: string) => {},
+      setSanitizedContent: (elm: Element, str: string) => {
         elm.innerHTML = str;
       },
-      (_msg: string, _timeout?: number) => {},
-    );
+      showBanner: (_msg: string, _timeout?: number) => {},
+    });
 
     document.getElementById("searchAliases")!.innerHTML = "";
 
@@ -950,20 +950,20 @@ describe("saveSettings: loadSettingsFromUrl callback updates snippets", () => {
       return Result.succeed(undefined);
     });
 
-    optionsMain(
-      RUNTIME as any,
-      makeKeyboardUtils(),
-      makeMode() as any,
-      makeCreateElementWithContent(),
-      () => "Chrome",
-      (s: string) => s,
-      (cb: (locale: (s: string) => string) => void) => cb((s) => s),
-      (_title: string, _desc: string) => {},
-      (elm: Element, str: string) => {
+    optionsMain({
+      RUNTIME: RUNTIME as any,
+      KeyboardUtils: makeKeyboardUtils(),
+      ModeHandle: makeMode() as any,
+      createElementWithContent: makeCreateElementWithContent(),
+      getBrowserName: () => "Chrome",
+      htmlEncode: (s: string) => s,
+      initL10n: (cb: (locale: (s: string) => string) => void) => cb((s) => s),
+      reportIssue: (_title: string, _desc: string) => {},
+      setSanitizedContent: (elm: Element, str: string) => {
         elm.innerHTML = str;
       },
-      (_msg: string, _timeout?: number) => {},
-    );
+      showBanner: (_msg: string, _timeout?: number) => {},
+    });
 
     fireUserSettingsLoaded({});
 
@@ -987,20 +987,20 @@ describe("saveSettings: loadSettingsFromUrl callback updates snippets", () => {
       return Result.succeed(undefined);
     });
 
-    optionsMain(
-      RUNTIME as any,
-      makeKeyboardUtils(),
-      makeMode() as any,
-      makeCreateElementWithContent(),
-      () => "Chrome",
-      (s: string) => s,
-      (cb: (locale: (s: string) => string) => void) => cb((s) => s),
-      (_title: string, _desc: string) => {},
-      (elm: Element, str: string) => {
+    optionsMain({
+      RUNTIME: RUNTIME as any,
+      KeyboardUtils: makeKeyboardUtils(),
+      ModeHandle: makeMode() as any,
+      createElementWithContent: makeCreateElementWithContent(),
+      getBrowserName: () => "Chrome",
+      htmlEncode: (s: string) => s,
+      initL10n: (cb: (locale: (s: string) => string) => void) => cb((s) => s),
+      reportIssue: (_title: string, _desc: string) => {},
+      setSanitizedContent: (elm: Element, str: string) => {
         elm.innerHTML = str;
       },
-      (_msg: string, _timeout?: number) => {},
-    );
+      showBanner: (_msg: string, _timeout?: number) => {},
+    });
 
     fireUserSettingsLoaded({});
     const textarea = document.getElementById("mappings") as HTMLTextAreaElement;

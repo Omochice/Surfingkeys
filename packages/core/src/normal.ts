@@ -282,7 +282,7 @@ function createNormal(insert: InsertLike, env: EngineEnv): NormalMode {
       mode.exit();
       lurk = createLurk(self, RUNTIME);
       lurkMaps!.forEach((lurkMap) => {
-        mapInMode(lurk!, lurkMap[0], lurkMap[1], isInUIFrame());
+        mapInMode(lurk!, { newKeystroke: lurkMap[0], oldKeystroke: lurkMap[1] }, isInUIFrame());
         lurk!.mappings.remove(KeyboardUtils.encodeKeystroke(lurkMap[1]));
       });
       lurkMaps = undefined;

@@ -9,6 +9,7 @@ import { ModeHandle, showModeStatus } from "./mode";
 import { isSpecialKeyOf } from "./specialKeys";
 import Trie from "./trie";
 import type { TrieMeta } from "./trie";
+import type { BoundaryPoint } from "./utils";
 import {
   actionWithSelectionPreserved,
   dispatchMouseEvent,
@@ -35,6 +36,8 @@ type HintsLike = {
 };
 
 type Match = [Node, number, HTMLElement[]];
+
+type NullableBoundaryPoint = { node: Node | null; offset: number };
 
 type VisualMode = {
   eventListeners: ModeHandle["eventListeners"];
@@ -123,7 +126,7 @@ function createVisual(clipboard: ClipboardLike, hints: HintsLike, env: EngineEnv
   });
   mode.addEventListener("scroll", () => {
     matches.forEach((m) => {
-      const r = unwrapOr<DOMRectList | DOMRect[]>(getTextRect(m[0], m[1]), [])[0];
+      const r = unwrapOr<DOMRectList | DOMRect[]>(getTextRect({ node: m[0], offset: m[1] }), [])[0];
       if (r == null) {
         return;
       }
@@ -183,10 +186,8 @@ function createVisual(clipboard: ClipboardLike, hints: HintsLike, env: EngineEnv
   mode.addEventListener("selectionchange", () => {
     clearSelectionMark();
     selectionMark = createSelectionMark(
-      selection.anchorNode,
-      selection.anchorOffset,
-      selection.focusNode,
-      selection.focusOffset,
+      { node: selection.anchorNode, offset: selection.anchorOffset },
+      { node: selection.focusNode, offset: selection.focusOffset },
     );
   });
 
@@ -612,17 +613,8 @@ function createVisual(clipboard: ClipboardLike, hints: HintsLike, env: EngineEnv
   }
 
   const markHolder = document.createElement("div");
-  function createMark(
-    className: string,
-    node1: Node,
-    offset1: number,
-    node2: Node,
-    offset2: number,
-  ): HTMLElement[] {
-    const rects = unwrapOr<DOMRectList | DOMRect[]>(
-      getTextRect(node1, offset1, node2, offset2),
-      [],
-    );
+  function createMark(className: string, start: BoundaryPoint, end: BoundaryPoint): HTMLElement[] {
+    const rects = unwrapOr<DOMRectList | DOMRect[]>(getTextRect(start, end), []);
     if (rects.length > 100) {
       // avoid hangs due to huge amounts of selection
       return [];
@@ -652,19 +644,23 @@ function createVisual(clipboard: ClipboardLike, hints: HintsLike, env: EngineEnv
     return marks;
   }
   function createSelectionMark(
-    node1: Node | null,
-    offset1: number,
-    node2: Node | null,
-    offset2: number,
+    start: NullableBoundaryPoint,
+    end: NullableBoundaryPoint,
   ): HTMLElement[] {
-    if (!node1 || !node2) return [];
-    return createMark("surfingkeys_selection_mark", node1, offset1, node2, offset2);
+    const { node: startNode } = start;
+    const { node: endNode } = end;
+    if (!startNode || !endNode) return [];
+    return createMark(
+      "surfingkeys_selection_mark",
+      { node: startNode, offset: start.offset },
+      { node: endNode, offset: end.offset },
+    );
   }
-  function createMatchMark(node1: Node, offset1: number, node2: Node, offset2: number): void {
-    const marks = createMark("surfingkeys_match_mark", node1, offset1, node2, offset2);
+  function createMatchMark(start: BoundaryPoint, end: BoundaryPoint): void {
+    const marks = createMark("surfingkeys_match_mark", start, end);
 
     if (marks.length) {
-      matches.push([node1, offset1, marks]);
+      matches.push([start.node, start.offset, marks]);
     }
   }
 
@@ -680,7 +676,7 @@ function createVisual(clipboard: ClipboardLike, hints: HintsLike, env: EngineEnv
         const match = matches[0];
         if (match.length) {
           const pos = globalPattern.lastIndex - match.length;
-          createMatchMark(node, pos, node, pos + match.length);
+          createMatchMark({ node, offset: pos }, { node, offset: pos + match.length });
         } else {
           // matches like \b
           break;
@@ -870,10 +866,8 @@ function createVisual(clipboard: ClipboardLike, hints: HintsLike, env: EngineEnv
         posToStartFind = [selection.anchorNode, selection.anchorOffset];
       }
       createMatchMark(
-        selection.anchorNode!,
-        selection.anchorOffset,
-        selection.focusNode!,
-        selection.focusOffset,
+        { node: selection.anchorNode!, offset: selection.anchorOffset },
+        { node: selection.focusNode!, offset: selection.focusOffset },
       );
 
       while (
@@ -881,10 +875,8 @@ function createVisual(clipboard: ClipboardLike, hints: HintsLike, env: EngineEnv
         findNextTextNodeBy(query, caseSensitive, false)
       ) {
         createMatchMark(
-          selection.anchorNode!,
-          selection.anchorOffset,
-          selection.focusNode!,
-          selection.focusOffset,
+          { node: selection.anchorNode!, offset: selection.anchorOffset },
+          { node: selection.focusNode!, offset: selection.focusOffset },
         );
       }
       document.scrollingElement!.scrollTop = scrollTop;
