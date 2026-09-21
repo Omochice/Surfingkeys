@@ -211,9 +211,6 @@ catalogs:
     '@types/chrome':
       specifier: 0.3.0
       version: 0.3.0
-    '@types/firefox-webext-browser':
-      specifier: 143.0.0
-      version: 143.0.0
     dompurify:
       specifier: 3.4.15
       version: 3.4.15
@@ -316,9 +313,6 @@ importers:
       '@types/chrome':
         specifier: 'catalog:'
         version: 0.3.0
-      '@types/firefox-webext-browser':
-        specifier: 'catalog:'
-        version: 143.0.0
       '@types/node':
         specifier: 25.9.7
         version: 25.9.7
@@ -383,9 +377,6 @@ importers:
       '@types/chrome':
         specifier: 'catalog:'
         version: 0.3.0
-      '@types/firefox-webext-browser':
-        specifier: 'catalog:'
-        version: 143.0.0
       jsdom:
         specifier: 'catalog:'
         version: 30.1.0
@@ -524,9 +515,6 @@ importers:
       '@types/chrome':
         specifier: 'catalog:'
         version: 0.3.0
-      '@types/firefox-webext-browser':
-        specifier: 'catalog:'
-        version: 143.0.0
       '@vitest/browser-playwright':
         specifier: 5.0.1
         version: 5.0.1(playwright@1.63.0)(vite@8.3.0(@types/node@25.9.7)(jiti@2.7.0)(yaml@2.9.1))(vitest@5.0.1)
@@ -649,9 +637,6 @@ importers:
       '@types/chrome':
         specifier: 'catalog:'
         version: 0.3.0
-      '@types/firefox-webext-browser':
-        specifier: 'catalog:'
-        version: 143.0.0
       jsdom:
         specifier: 'catalog:'
         version: 30.1.0
@@ -1785,9 +1770,6 @@ packages:
 
   '@types/filewriter@0.0.33':
     resolution: {integrity: sha512-xFU8ZXTw4gd358lb2jw25nxY9QAgqn2+bKKjKOYfNCzN4DKCFetK7sPtrlpg66Ywe3vWY9FNxprZawAh9wfJ3g==}
-
-  '@types/firefox-webext-browser@143.0.0':
-    resolution: {integrity: sha512-865dYKMOP0CllFyHmgXV4IQgVL51OSQQCwSoihQ17EwugePKFSAZRc0EI+y7Ly4q7j5KyURlA7LgRpFieO4JOw==}
 
   '@types/gensync@1.0.5':
     resolution: {integrity: sha512-MbsRCT7mTikHwKZ0X+LVUTLRrZZRLipTuXEO9qOYO+zmjMVk81axyClMROf6uoPD9MRVu46bx8zoR0Ad9q3NAg==}
@@ -4075,8 +4057,6 @@ snapshots:
       '@types/filewriter': 0.0.33
 
   '@types/filewriter@0.0.33': {}
-
-  '@types/firefox-webext-browser@143.0.0': {}
 
   '@types/gensync@1.0.5': {}
 

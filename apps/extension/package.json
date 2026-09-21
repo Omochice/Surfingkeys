@@ -40,7 +40,6 @@
     "@sk/test-support": "workspace:*",
     "@sk/types": "workspace:*",
     "@types/chrome": "catalog:",
-    "@types/firefox-webext-browser": "catalog:",
     "@types/node": "25.9.7",
     "@wxt-dev/module-solid": "1.1.4",
     "jsdom": "catalog:",
