@@ -277,25 +277,22 @@ function createOmnibar(front: OmnibarFront, clipboard: { write(text: string): vo
       const fi = focusedResult();
       const idx = focusedIndex();
       if (fi && fi.data.uid) {
-        reportOnFail(
-          RUNTIME("removeURL", { uid: fi.data.uid }, (ret: { response: string }) => {
-            if (ret.response !== "Done") {
-              return;
-            }
-            const remaining = results().slice();
-            remaining.splice(idx, 1);
-            setResults(remaining);
-            const bottom = getPosition() === "bottom";
-            const newIdx = bottom ? idx - 1 : idx;
-            if (newIdx >= 0 && newIdx < remaining.length) {
-              self.focusItem(newIdx);
-            } else {
-              savedFocused = bottom ? 0 : remaining.length;
-              self.triggerInput();
-            }
-          }),
-          reportError,
-        );
+        request<{ response: string }>("removeURL", { uid: fi.data.uid }).then((ret) => {
+          if (ret.response !== "Done") {
+            return;
+          }
+          const remaining = results().slice();
+          remaining.splice(idx, 1);
+          setResults(remaining);
+          const bottom = getPosition() === "bottom";
+          const newIdx = bottom ? idx - 1 : idx;
+          if (newIdx >= 0 && newIdx < remaining.length) {
+            self.focusItem(newIdx);
+          } else {
+            savedFocused = bottom ? 0 : remaining.length;
+            self.triggerInput();
+          }
+        }, reportError);
       }
     },
   });
@@ -383,17 +380,14 @@ function createOmnibar(front: OmnibarFront, clipboard: { write(text: string): vo
         .map((r) => r.data.uid)
         .filter((u) => u);
       if (uids.length) {
-        reportOnFail(
-          RUNTIME("removeURL", { uid: uids }, (ret: { response: string }) => {
-            if (ret.response === "Done") {
-              if (handler && handler.getResults) {
-                handler.getResults();
-              }
-              self.triggerInput();
+        request<{ response: string }>("removeURL", { uid: uids }).then((ret) => {
+          if (ret.response === "Done") {
+            if (handler && handler.getResults) {
+              handler.getResults();
             }
-          }),
-          reportError,
-        );
+            self.triggerInput();
+          }
+        }, reportError);
       }
     },
   });
@@ -1046,20 +1040,13 @@ function createOmnibar(front: OmnibarFront, clipboard: { write(text: string): vo
     "History",
     OpenURLs("history", self, () => {
       return new Promise((resolve) => {
-        reportOnFail(
-          RUNTIME(
-            "getHistory",
-            {
-              maxResults: self.getHistoryCacheSize(),
-              query: self.input.value,
-              sortByMostUsed: runtime.conf.historyMostUsedOrder,
-            },
-            (response: { history: { title?: string; url?: string }[] }) => {
-              resolve(response.history);
-            },
-          ),
-          reportError,
-        );
+        request<{ history: { title?: string; url?: string }[] }>("getHistory", {
+          maxResults: self.getHistoryCacheSize(),
+          query: self.input.value,
+          sortByMostUsed: runtime.conf.historyMostUsedOrder,
+        }).then((response) => {
+          resolve(response.history);
+        }, reportError);
       });
     }),
   );
@@ -1067,43 +1054,28 @@ function createOmnibar(front: OmnibarFront, clipboard: { write(text: string): vo
     "URLs",
     OpenURLs("", self, () => {
       return new Promise((resolve) => {
-        reportOnFail(
-          RUNTIME(
-            "getTabs",
-            { queryInfo: runtime.conf.omnibarTabsQuery },
-            (response: { tabs: { title?: string; url?: string }[] }) => {
-              let results: readonly { title?: string; url?: string }[] = response.tabs;
-              request<{ urls: { title?: string; url?: string }[] }>("getTopSites").then(
-                (response2) => {
-                  results = results.concat(response2.urls);
-                  results = filterByTitleOrUrl(
-                    results,
-                    self.input.value,
-                    runtime.getCaseSensitive(self.input.value),
-                  );
-                  self.listBookmarkFolders(() => {
-                    reportOnFail(
-                      RUNTIME(
-                        "getAllURLs",
-                        {
-                          maxResults: self.getHistoryCacheSize() - results.length,
-                          query: self.input.value,
-                        },
-                        (response3: { urls: { title?: string; url?: string }[] }) => {
-                          results = results.concat(response3.urls);
-                          resolve(results);
-                        },
-                      ),
-                      reportError,
-                    );
-                  });
-                },
-                reportError,
-              );
-            },
-          ),
-          reportError,
-        );
+        request<{ tabs: { title?: string; url?: string }[] }>("getTabs", {
+          queryInfo: runtime.conf.omnibarTabsQuery,
+        }).then((response) => {
+          let results: readonly { title?: string; url?: string }[] = response.tabs;
+          request<{ urls: { title?: string; url?: string }[] }>("getTopSites").then((response2) => {
+            results = results.concat(response2.urls);
+            results = filterByTitleOrUrl(
+              results,
+              self.input.value,
+              runtime.getCaseSensitive(self.input.value),
+            );
+            self.listBookmarkFolders(() => {
+              request<{ urls: { title?: string; url?: string }[] }>("getAllURLs", {
+                maxResults: self.getHistoryCacheSize() - results.length,
+                query: self.input.value,
+              }).then((response3) => {
+                results = results.concat(response3.urls);
+                resolve(results);
+              }, reportError);
+            });
+          }, reportError);
+        }, reportError);
       });
     }),
   );
@@ -1174,10 +1146,9 @@ function OpenBookmarks(omnibar: Omnibar): OpenBookmarksHandler {
     }
     if (folder.folderId) {
       currentFolderId = folder.folderId;
-      reportOnFail(
-        RUNTIME("getBookmarks", { parentId: currentFolderId }, self.onResponse),
-        reportError,
-      );
+      request<{ bookmarks: { url?: string }[] }>("getBookmarks", {
+        parentId: currentFolderId,
+      }).then(self.onResponse, reportError);
     } else {
       currentFolderId = undefined;
       request<{ bookmarks: { url?: string }[] }>("getBookmarks").then(self.onResponse, reportError);
@@ -1192,28 +1163,24 @@ function OpenBookmarks(omnibar: Omnibar): OpenBookmarksHandler {
     const fi = omnibar.focusedResult();
     const folderId = fi?.data.folderId;
     if (folderId && !self.activeTab) {
-      reportOnFail(
-        RUNTIME(
-          "getBookmarks",
-          { parentId: folderId },
-          (response: { bookmarks: { url?: string }[] }) => {
-            const subItems = response.bookmarks;
-            for (const m of subItems) {
-              if (m.url) {
-                reportOnFail(
-                  RUNTIME("openLink", {
-                    tab: {
-                      tabbed: true,
-                      active: false,
-                    },
-                    url: m.url,
-                  }),
-                  reportError,
-                );
-              }
+      request<{ bookmarks: { url?: string }[] }>("getBookmarks", { parentId: folderId }).then(
+        (response) => {
+          const subItems = response.bookmarks;
+          for (const m of subItems) {
+            if (m.url) {
+              reportOnFail(
+                RUNTIME("openLink", {
+                  tab: {
+                    tabbed: true,
+                    active: false,
+                  },
+                  url: m.url,
+                }),
+                reportError,
+              );
             }
-          },
-        ),
+          }
+        },
         reportError,
       );
       self.inFolder.push({
@@ -1233,10 +1200,9 @@ function OpenBookmarks(omnibar: Omnibar): OpenBookmarksHandler {
       omnibar.setQuery("");
       currentFolderId = folderId;
       lastFocused = 0;
-      reportOnFail(
-        RUNTIME("getBookmarks", { parentId: currentFolderId }, self.onResponse),
-        reportError,
-      );
+      request<{ bookmarks: { url?: string }[] }>("getBookmarks", {
+        parentId: currentFolderId,
+      }).then(self.onResponse, reportError);
     } else {
       ret = omnibar.openFocused(self);
       if (ret) {
@@ -1281,14 +1247,10 @@ function OpenBookmarks(omnibar: Omnibar): OpenBookmarksHandler {
       folderOnly = !folderOnly;
       self.prompt = folderOnly ? "bookmark folder" : "bookmark";
       omnibar.setPrompt(self.prompt);
-      reportOnFail(
-        RUNTIME(
-          "getBookmarks",
-          { parentId: currentFolderId, query: omnibar.input.value },
-          self.onResponse,
-        ),
-        reportError,
-      );
+      request<{ bookmarks: { url?: string }[] }>("getBookmarks", {
+        parentId: currentFolderId,
+        query: omnibar.input.value,
+      }).then(self.onResponse, reportError);
       eaten = true;
     } else if (
       event.keyCode === KeyboardUtils.keyCodes["backspace"] &&
@@ -1309,18 +1271,11 @@ function OpenBookmarks(omnibar: Omnibar): OpenBookmarksHandler {
   };
   self.onInput = () => {
     const query = omnibar.input.value;
-    reportOnFail(
-      RUNTIME(
-        "getBookmarks",
-        {
-          parentId: currentFolderId,
-          caseSensitive: runtime.getCaseSensitive(query),
-          query,
-        },
-        self.onResponse,
-      ),
-      reportError,
-    );
+    request<{ bookmarks: { url?: string }[] }>("getBookmarks", {
+      parentId: currentFolderId,
+      caseSensitive: runtime.getCaseSensitive(query),
+      query,
+    }).then(self.onResponse, reportError);
   };
   self.onResponse = (response: { bookmarks: { url?: string }[] }) => {
     let items = response.bookmarks;
@@ -1423,12 +1378,9 @@ function AddBookmark(omnibar: Omnibar): AddBookmarkHandler {
         folderName = `${firstFolder.title ?? ""}${parts.join("/")}`;
       }
     }
-    reportOnFail(
-      RUNTIME("createBookmark", { page: page }, () => {
-        showBanner(`Bookmark created at ${folderName}.`, 3000);
-      }),
-      reportError,
-    );
+    request("createBookmark", { page: page }).then(() => {
+      showBanner(`Bookmark created at ${folderName}.`, 3000);
+    }, reportError);
     localStorage.setItem("surfingkeys.lastAddedBookmark", omnibar.input.value);
     return true;
   };
@@ -1512,14 +1464,10 @@ function OpenTabs(omnibar: Omnibar): OmnibarHandler {
         runtime.conf.tabsThreshold,
         Math.ceil(window.innerWidth / 26),
       );
-      reportOnFail(
-        RUNTIME(
-          "getTabs",
-          getTabsArgs,
-          (response: { tabs: { title?: string; url?: string }[] }) => {
-            resolve(response.tabs);
-          },
-        ),
+      request<{ tabs: { title?: string; url?: string }[] }>("getTabs", getTabsArgs).then(
+        (response) => {
+          resolve(response.tabs);
+        },
         reportError,
       );
     });
@@ -1572,16 +1520,11 @@ function CloseTabs(omnibar: Omnibar): OmnibarHandler {
   self.onOpen = () => {
     self.prompt = "close tabs";
     tabsPromise = new Promise<TabItem[]>((resolve) => {
-      reportOnFail(
-        RUNTIME(
-          "getTabs",
-          { queryInfo: { currentWindow: true } },
-          (response: { tabs: { title?: string; url?: string }[] }) => {
-            resolve(response.tabs);
-          },
-        ),
-        reportError,
-      );
+      request<{ tabs: { title?: string; url?: string }[] }>("getTabs", {
+        queryInfo: { currentWindow: true },
+      }).then((response) => {
+        resolve(response.tabs);
+      }, reportError);
     });
     omnibar.cachedPromise = tabsPromise;
     self.onInput?.();
@@ -1631,12 +1574,9 @@ function OpenWindows(omnibar: Omnibar, front: OmnibarFront): OmnibarHandler {
   let windowsPromise: Promise<WindowItem[]> | undefined;
   self.getResults = () => {
     windowsPromise = new Promise<WindowItem[]>((resolve) => {
-      reportOnFail(
-        RUNTIME("getWindows", { query: "" }, (response: { windows: WindowItem[] }) => {
-          resolve(response.windows);
-        }),
-        reportError,
-      );
+      request<{ windows: WindowItem[] }>("getWindows", { query: "" }).then((response) => {
+        resolve(response.windows);
+      }, reportError);
     });
     omnibar.cachedPromise = windowsPromise;
   };
@@ -1713,39 +1653,28 @@ function OpenVIMarks(omnibar: Omnibar): OmnibarHandler {
   self.onOpen = () => {
     const query = omnibar.input.value;
     const urls: { title: string; type: string; uid: string; url: string }[] = [];
-    reportOnFail(
-      RUNTIME(
-        "getSettings",
-        { key: "marks" },
-        (response: {
-          settings: {
-            marks: Record<
-              string,
-              string | { url: string; scrollLeft?: number; scrollTop?: number }
-            >;
-          };
-        }) => {
-          for (const m in response.settings.marks) {
-            const raw = response.settings.marks[m];
-            if (raw == null) {
-              continue;
-            }
-            const markInfo =
-              typeof raw === "string" ? { url: raw, scrollLeft: 0, scrollTop: 0 } : raw;
-            if (query === "" || markInfo.url.includes(query)) {
-              urls.push({
-                title: m,
-                type: "🔗",
-                uid: "M" + m,
-                url: markInfo.url,
-              });
-            }
-          }
-          omnibar.listURLs(urls, false);
-        },
-      ),
-      reportError,
-    );
+    request<{
+      settings: {
+        marks: Record<string, string | { url: string; scrollLeft?: number; scrollTop?: number }>;
+      };
+    }>("getSettings", { key: "marks" }).then((response) => {
+      for (const m in response.settings.marks) {
+        const raw = response.settings.marks[m];
+        if (raw == null) {
+          continue;
+        }
+        const markInfo = typeof raw === "string" ? { url: raw, scrollLeft: 0, scrollTop: 0 } : raw;
+        if (query === "" || markInfo.url.includes(query)) {
+          urls.push({
+            title: m,
+            type: "🔗",
+            uid: "M" + m,
+            url: markInfo.url,
+          });
+        }
+      }
+      omnibar.listURLs(urls, false);
+    }, reportError);
   };
   self.onInput = self.onOpen;
   return self;
@@ -1846,24 +1775,21 @@ function SearchEngine(omnibar: Omnibar, front: OmnibarFront): SearchEngineHandle
         self.suggestionURL ?? "",
         encodeURIComponent(omnibar.input.value),
       );
-      reportOnFail(
-        RUNTIME("request", { method: "get", url: requestUrl }, (resp: unknown) => {
-          front.contentCommand(
-            {
-              action: "getSearchSuggestions",
-              url: self.suggestionURL,
-              query: omnibar.input.value,
-              requestUrl,
-              response: resp,
-            },
-            (resp2: unknown) => {
-              const raw = resp2 && typeof resp2 === "object" && "data" in resp2 ? resp2.data : [];
-              listSuggestions(Array.isArray(raw) ? raw : []);
-            },
-          );
-        }),
-        reportError,
-      );
+      request("request", { method: "get", url: requestUrl }).then((resp) => {
+        front.contentCommand(
+          {
+            action: "getSearchSuggestions",
+            url: self.suggestionURL,
+            query: omnibar.input.value,
+            requestUrl,
+            response: resp,
+          },
+          (resp2: unknown) => {
+            const raw = resp2 && typeof resp2 === "object" && "data" in resp2 ? resp2.data : [];
+            listSuggestions(Array.isArray(raw) ? raw : []);
+          },
+        );
+      }, reportError);
     }, runtime.conf.omnibarSuggestionTimeout);
   };
 
@@ -1896,17 +1822,14 @@ function SearchEngine(omnibar: Omnibar, front: OmnibarFront): SearchEngineHandle
         iconUrl.search = "";
         iconUrl.hash = "";
       }
-      reportOnFail(
-        RUNTIME("requestImage", { url: iconUrl.href }, (response: { text: string } | null) => {
-          if (response) {
-            localStorage.setItem(searchEngineIconStorageKey, response.text);
-            alias.prompt = {
-              html: `<img src="${response.text}" alt="${message.prompt}" style="width: 20px;" />`,
-            };
-          }
-        }),
-        reportError,
-      );
+      request<{ text: string } | null>("requestImage", { url: iconUrl.href }).then((response) => {
+        if (response) {
+          localStorage.setItem(searchEngineIconStorageKey, response.text);
+          alias.prompt = {
+            html: `<img src="${response.text}" alt="${message.prompt}" style="width: 20px;" />`,
+          };
+        }
+      }, reportError);
     }
   };
   front.actions["removeSearchAlias"] = (message: { alias: string }) => {
@@ -1938,20 +1861,16 @@ function Commands(omnibar: Omnibar, front: OmnibarFront): OmnibarHandler {
       return;
     }
 
-    reportOnFail(
-      RUNTIME(
-        "getSettings",
-        { key: "cmdHistory" },
-        (response: { settings: { cmdHistory: string[] } }) => {
-          const candidates = response.settings.cmdHistory;
-          if (candidates.length) {
-            omnibar.listResults(candidates, (c: unknown) => {
-              const li = createElementWithContent("li", String(c));
-              return buildOmnibarResult(li, { cmd: String(c) });
-            });
-          }
-        },
-      ),
+    request<{ settings: { cmdHistory: string[] } }>("getSettings", { key: "cmdHistory" }).then(
+      (response) => {
+        const candidates = response.settings.cmdHistory;
+        if (candidates.length) {
+          omnibar.listResults(candidates, (c: unknown) => {
+            const li = createElementWithContent("li", String(c));
+            return buildOmnibarResult(li, { cmd: String(c) });
+          });
+        }
+      },
       reportError,
     );
   };

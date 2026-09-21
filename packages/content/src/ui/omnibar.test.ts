@@ -676,10 +676,11 @@ describe("createOmnibar — OpenURLs onReset sort order toggling", () => {
   ];
 
   function mockHistory() {
-    mockRUNTIME.mockImplementation((_action: any, _args: any, cb?: any) => {
-      if (_action === "getHistory" && cb) cb({ history: history.slice() });
-      return Result.succeed(undefined);
-    });
+    mockRequest.mockImplementation((action: any) =>
+      action === "getHistory"
+        ? Promise.resolve({ history: history.slice() })
+        : new Promise(() => {}),
+    );
   }
 
   it("re-sorts results by visitCount desc when Ctrl-r toggles historyMostUsedOrder to true", async () => {
@@ -689,14 +690,12 @@ describe("createOmnibar — OpenURLs onReset sort order toggling", () => {
     mockHistory();
 
     ui.onShow({ type: "History" });
-    await Promise.resolve();
-    await Promise.resolve();
+    await flush();
 
     const ctrlR = getMappingByAnnotation(omnibar, "Re-sort history by visitCount or lastVisitTime");
     expect(ctrlR).toBeDefined();
     ctrlR!();
-    await Promise.resolve();
-    await Promise.resolve();
+    await flush();
 
     expect(runtime.conf.historyMostUsedOrder).toBe(true);
     const urls = omnibar.results().map((r: any) => r.data.url);
@@ -710,14 +709,12 @@ describe("createOmnibar — OpenURLs onReset sort order toggling", () => {
     mockHistory();
 
     ui.onShow({ type: "History" });
-    await Promise.resolve();
-    await Promise.resolve();
+    await flush();
 
     const ctrlR = getMappingByAnnotation(omnibar, "Re-sort history by visitCount or lastVisitTime");
     expect(ctrlR).toBeDefined();
     ctrlR!();
-    await Promise.resolve();
-    await Promise.resolve();
+    await flush();
 
     expect(runtime.conf.historyMostUsedOrder).toBe(false);
     const urls = omnibar.results().map((r: any) => r.data.url);
@@ -769,18 +766,12 @@ describe("OpenTabs handler — onOpen/onInput lists filtered tabs via RUNTIME('g
       { url: "https://b.com", title: "Beta", width: 800, windowId: 1, id: 11 },
     ];
 
-    mockRUNTIME.mockImplementation((_action: any, _args: any, cb?: any) => {
-      if (_action === "getTabs" && cb) {
-        cb({ tabs });
-      }
-      return Result.succeed(undefined);
-    });
+    mockRequest.mockImplementation((action: any) =>
+      action === "getTabs" ? Promise.resolve({ tabs }) : new Promise(() => {}),
+    );
 
     ui.onShow({ type: "Tabs" });
-    // cachedPromise resolves on the next microtask tick
-    await Promise.resolve();
-    // onInput runs cachedPromise.then(...) — one more microtask
-    await Promise.resolve();
+    await flush();
 
     expect(omnibar.results().length).toBe(2);
     const uids = omnibar.results().map((r: any) => r.data.uid);
@@ -797,17 +788,13 @@ describe("OpenTabs handler — onOpen/onInput lists filtered tabs via RUNTIME('g
       { url: "https://b.com", title: "Beta Page", width: 800, windowId: 1, id: 11 },
     ];
 
-    mockRUNTIME.mockImplementation((_action: any, _args: any, cb?: any) => {
-      if (_action === "getTabs" && cb) {
-        cb({ tabs });
-      }
-      return Result.succeed(undefined);
-    });
+    mockRequest.mockImplementation((action: any) =>
+      action === "getTabs" ? Promise.resolve({ tabs }) : new Promise(() => {}),
+    );
 
     omnibar.input.value = "Alpha";
     ui.onShow({ type: "Tabs" });
-    await Promise.resolve();
-    await Promise.resolve();
+    await flush();
 
     expect(omnibar.results().length).toBe(1);
     expect(omnibar.results()[0]?.data.uid).toBe("T1:10");
@@ -817,20 +804,16 @@ describe("OpenTabs handler — onOpen/onInput lists filtered tabs via RUNTIME('g
     const { ui } = makeOmnibar();
     runtime.conf.tabsThreshold = 100;
 
-    mockRUNTIME.mockImplementation((_action: any, _args: any, cb?: any) => {
-      if (_action === "getTabs" && cb) {
-        cb({ tabs: [] });
-      }
-      return Result.succeed(undefined);
-    });
+    mockRequest.mockImplementation((action: any) =>
+      action === "getTabs" ? Promise.resolve({ tabs: [] }) : new Promise(() => {}),
+    );
 
     ui.onShow({ type: "Tabs", extra: { action: "gather" } });
-    await Promise.resolve();
-    await Promise.resolve();
+    await flush();
 
     // The gather prompt is not exposed by the omnibar API, so the currentWindow: false
     // query stands in for it: onOpen sets both together in the gather branch.
-    const getTabs = mockRUNTIME.mock.calls.find((c) => c[0] === "getTabs");
+    const getTabs = mockRequest.mock.calls.find((c) => c[0] === "getTabs");
     expect(getTabs?.[1]).toMatchObject({ queryInfo: { currentWindow: false } });
   });
 });
@@ -855,16 +838,12 @@ describe("CloseTabs handler — onOpen fires RUNTIME getTabs and resolves cached
       },
     ];
 
-    mockRUNTIME.mockImplementation((_action: any, _args: any, cb?: any) => {
-      if (_action === "getTabs" && cb) {
-        cb({ tabs });
-      }
-      return Result.succeed(undefined);
-    });
+    mockRequest.mockImplementation((action: any) =>
+      action === "getTabs" ? Promise.resolve({ tabs }) : new Promise(() => {}),
+    );
 
     ui.onShow({ type: "CloseTabs" });
-    await Promise.resolve();
-    await Promise.resolve();
+    await flush();
 
     const urls = omnibar.results().map((r: any) => r.data.url);
     expect(urls).toContain("https://example.com/page");
@@ -879,10 +858,10 @@ describe("CloseTabs handler — onOpen fires RUNTIME getTabs and resolves cached
     ];
 
     let runtimeCall: any = null;
-    mockRUNTIME.mockImplementation((_action: any, _args: any, cb?: any) => {
-      if (_action === "getTabs" && cb) {
-        cb({ tabs });
-      }
+    mockRequest.mockImplementation((action: any) =>
+      action === "getTabs" ? Promise.resolve({ tabs }) : new Promise(() => {}),
+    );
+    mockRUNTIME.mockImplementation((_action: any, _args: any) => {
       if (_action === "closeTabByIds") {
         runtimeCall = { action: _action, args: _args };
       }
@@ -890,8 +869,7 @@ describe("CloseTabs handler — onOpen fires RUNTIME getTabs and resolves cached
     });
 
     ui.onShow({ type: "CloseTabs" });
-    await Promise.resolve();
-    await Promise.resolve();
+    await flush();
 
     fireEnter(omnibar);
 
@@ -925,16 +903,12 @@ describe("OpenWindows handler — onInput builds window results", () => {
       },
     ];
 
-    mockRUNTIME.mockImplementation((_action: any, _args: any, cb?: any) => {
-      if (_action === "getWindows" && cb) {
-        cb({ windows });
-      }
-      return Result.succeed(undefined);
-    });
+    mockRequest.mockImplementation((action: any) =>
+      action === "getWindows" ? Promise.resolve({ windows }) : new Promise(() => {}),
+    );
 
     ui.onShow({ type: "Windows" });
-    await Promise.resolve();
-    await Promise.resolve();
+    await flush();
 
     expect(omnibar.results().length).toBe(2);
     const windowIds = omnibar.results().map((r: any) => r.data.windowId);
@@ -955,16 +929,12 @@ describe("OpenWindows handler — onInput builds window results", () => {
       },
     ];
 
-    mockRUNTIME.mockImplementation((_action: any, _args: any, cb?: any) => {
-      if (_action === "getWindows" && cb) {
-        cb({ windows });
-      }
-      return Result.succeed(undefined);
-    });
+    mockRequest.mockImplementation((action: any) =>
+      action === "getWindows" ? Promise.resolve({ windows }) : new Promise(() => {}),
+    );
 
     ui.onShow({ type: "Windows" });
-    await Promise.resolve();
-    await Promise.resolve();
+    await flush();
 
     const result = omnibar.results()[0];
     expect(result?.data.url).toBe("https://x.com\nhttps://y.com");
@@ -982,10 +952,10 @@ describe("OpenWindows handler — onInput builds window results", () => {
     ];
 
     let moveToWindowArg: any = null;
-    mockRUNTIME.mockImplementation((_action: any, _args: any, cb?: any) => {
-      if (_action === "getWindows" && cb) {
-        cb({ windows });
-      }
+    mockRequest.mockImplementation((action: any) =>
+      action === "getWindows" ? Promise.resolve({ windows }) : new Promise(() => {}),
+    );
+    mockRUNTIME.mockImplementation((_action: any, _args: any) => {
       if (_action === "moveToWindow") {
         moveToWindowArg = _args;
       }
@@ -993,8 +963,7 @@ describe("OpenWindows handler — onInput builds window results", () => {
     });
 
     ui.onShow({ type: "Windows" });
-    await Promise.resolve();
-    await Promise.resolve();
+    await flush();
 
     expect(omnibar.focusedResult()?.data.windowId).toBe(99);
 
@@ -1008,10 +977,10 @@ describe("OpenWindows handler — onInput builds window results", () => {
     const { front, ui } = makeOmnibar();
 
     let moveToWindowArg: any = null;
-    mockRUNTIME.mockImplementation((_action: any, _args: any, cb?: any) => {
-      if (_action === "getWindows" && cb) {
-        cb({ windows: [] });
-      }
+    mockRequest.mockImplementation((action: any) =>
+      action === "getWindows" ? Promise.resolve({ windows: [] }) : new Promise(() => {}),
+    );
+    mockRUNTIME.mockImplementation((_action: any, _args: any) => {
       if (_action === "moveToWindow") {
         moveToWindowArg = _args;
       }
@@ -1019,8 +988,7 @@ describe("OpenWindows handler — onInput builds window results", () => {
     });
 
     ui.onShow({ type: "Windows" });
-    await Promise.resolve();
-    await Promise.resolve();
+    await flush();
 
     expect(moveToWindowArg?.windowId).toBe(-1);
     expect(front.hidePopup).toHaveBeenCalled();
@@ -1042,14 +1010,12 @@ describe("OpenVIMarks handler — onOpen lists marks from settings", () => {
       b: { url: "https://beta.com", scrollLeft: 0, scrollTop: 0 },
     };
 
-    mockRUNTIME.mockImplementation((_action: any, _args: any, cb?: any) => {
-      if (_action === "getSettings" && cb) {
-        cb({ settings: { marks } });
-      }
-      return Result.succeed(undefined);
-    });
+    mockRequest.mockImplementation((action: any) =>
+      action === "getSettings" ? Promise.resolve({ settings: { marks } }) : new Promise(() => {}),
+    );
 
     ui.onShow({ type: "VIMarks" });
+    await flush();
 
     expect(omnibar.results().length).toBe(2);
     const urls = omnibar.results().map((r: any) => r.data.url);
@@ -1060,14 +1026,14 @@ describe("OpenVIMarks handler — onOpen lists marks from settings", () => {
   it("assigns uid M<char> for each mark", async () => {
     const { omnibar, ui } = makeOmnibar();
 
-    mockRUNTIME.mockImplementation((_action: any, _args: any, cb?: any) => {
-      if (_action === "getSettings" && cb) {
-        cb({ settings: { marks: { x: "https://x.com" } } });
-      }
-      return Result.succeed(undefined);
-    });
+    mockRequest.mockImplementation((action: any) =>
+      action === "getSettings"
+        ? Promise.resolve({ settings: { marks: { x: "https://x.com" } } })
+        : new Promise(() => {}),
+    );
 
     ui.onShow({ type: "VIMarks" });
+    await flush();
 
     expect(omnibar.results()[0]?.data.uid).toBe("Mx");
   });
@@ -1075,22 +1041,22 @@ describe("OpenVIMarks handler — onOpen lists marks from settings", () => {
   it("filters marks by the current input value (query substring match)", async () => {
     const { omnibar, ui } = makeOmnibar();
 
-    mockRUNTIME.mockImplementation((_action: any, _args: any, cb?: any) => {
-      if (_action === "getSettings" && cb) {
-        cb({
-          settings: {
-            marks: {
-              a: "https://alpha.com",
-              b: "https://beta.org",
+    mockRequest.mockImplementation((action: any) =>
+      action === "getSettings"
+        ? Promise.resolve({
+            settings: {
+              marks: {
+                a: "https://alpha.com",
+                b: "https://beta.org",
+              },
             },
-          },
-        });
-      }
-      return Result.succeed(undefined);
-    });
+          })
+        : new Promise(() => {}),
+    );
 
     omnibar.input.value = "alpha";
     ui.onShow({ type: "VIMarks" });
+    await flush();
 
     expect(omnibar.results().length).toBe(1);
     expect(omnibar.results()[0]?.data.url).toBe("https://alpha.com");
@@ -1104,22 +1070,22 @@ describe("Commands handler — onInput lists matching commands", () => {
     localStorage.clear();
   });
 
-  it("onInput lists commands whose name contains the current input", () => {
+  it("onInput lists commands whose name contains the current input", async () => {
     const { omnibar, ui } = makeOmnibar();
 
     omnibar.command?.("tabopen", () => {}, { annotation: "Open a tab" });
     omnibar.command?.("tabnew", () => {}, { annotation: "New tab" });
     omnibar.command?.("quit", () => {}, { annotation: "Quit browser" });
 
-    mockRUNTIME.mockImplementation((_action: any, _args: any, cb?: any) => {
-      if (_action === "getSettings" && cb) {
-        cb({ settings: { cmdHistory: [] } });
-      }
-      return Result.succeed(undefined);
-    });
+    mockRequest.mockImplementation((action: any) =>
+      action === "getSettings"
+        ? Promise.resolve({ settings: { cmdHistory: [] } })
+        : new Promise(() => {}),
+    );
 
     omnibar.input.value = "tab";
     ui.onShow({ type: "Commands" });
+    await flush();
 
     const cmds = omnibar.results().map((r: any) => r.data.cmd);
     expect(cmds).toContain("tabopen");
@@ -1127,19 +1093,19 @@ describe("Commands handler — onInput lists matching commands", () => {
     expect(cmds).not.toContain("quit");
   });
 
-  it("onOpen with empty input shows command history from RUNTIME getSettings", () => {
+  it("onOpen with empty input shows command history from the getSettings response", async () => {
     const { omnibar, ui } = makeOmnibar();
     omnibar.input.value = "";
 
     const history = ["tabopen github.com", "quit"];
-    mockRUNTIME.mockImplementation((_action: any, _args: any, cb?: any) => {
-      if (_action === "getSettings" && cb) {
-        cb({ settings: { cmdHistory: history } });
-      }
-      return Result.succeed(undefined);
-    });
+    mockRequest.mockImplementation((action: any) =>
+      action === "getSettings"
+        ? Promise.resolve({ settings: { cmdHistory: history } })
+        : new Promise(() => {}),
+    );
 
     ui.onShow({ type: "Commands" });
+    await flush();
 
     const cmds = omnibar.results().map((r: any) => r.data.cmd);
     expect(cmds).toContain("tabopen github.com");
@@ -1151,12 +1117,11 @@ describe("Commands handler — onInput lists matching commands", () => {
     omnibar.command?.("greet2", () => {}, { annotation: "Greet" });
     omnibar.input.value = "";
 
-    mockRUNTIME.mockImplementation((_action: any, _args: any, cb?: any) => {
-      if (_action === "getSettings" && cb) {
-        cb({ settings: { cmdHistory: [] } });
-      }
-      return Result.succeed(undefined);
-    });
+    mockRequest.mockImplementation((action: any) =>
+      action === "getSettings"
+        ? Promise.resolve({ settings: { cmdHistory: [] } })
+        : new Promise(() => {}),
+    );
 
     ui.onShow({ type: "Commands" });
     mockRUNTIME.mockClear();
@@ -1347,31 +1312,24 @@ describe("OpenBookmarks handler — onInput + onResponse", () => {
       { id: "b1", title: "My Bookmark", url: "https://bm.com", dateAdded: 0, parentId: "1" },
     ];
 
-    mockRUNTIME.mockImplementation((_action: any, _args: any, cb?: any) => {
-      if (_action === "getBookmarkFolders" && cb) {
-        cb({ folders });
-      }
-      if (_action === "getBookmarks" && cb) {
-        cb({ bookmarks });
-      }
-      return Result.succeed(undefined);
+    mockRequest.mockImplementation((action: any) => {
+      if (action === "getBookmarkFolders") return Promise.resolve({ folders });
+      if (action === "getBookmarks") return Promise.resolve({ bookmarks });
+      return new Promise(() => {});
     });
 
     omnibar.input.value = "";
     ui.onShow({ type: "Bookmarks" });
 
     mockRUNTIME.mockClear();
-    mockRUNTIME.mockImplementation((_action: any, _args: any, cb?: any) => {
-      if (_action === "getBookmarks" && cb) {
-        cb({ bookmarks });
-      }
-      return Result.succeed(undefined);
-    });
+    mockRequest.mockImplementation((action: any) =>
+      action === "getBookmarks" ? Promise.resolve({ bookmarks }) : new Promise(() => {}),
+    );
 
     omnibar.input.value = "My";
     omnibar.triggerInput();
 
-    const getBookmarksCall = mockRUNTIME.mock.calls.find((c) => c[0] === "getBookmarks");
+    const getBookmarksCall = mockRequest.mock.calls.find((c) => c[0] === "getBookmarks");
     expect(getBookmarksCall).toBeDefined();
     expect(getBookmarksCall?.[1]).toMatchObject({ query: "My" });
   });
@@ -1477,11 +1435,11 @@ describe("SearchEngine handler — onInput without suggestionURL clears results"
     omnibar.input.value = "hello";
     omnibar.triggerInput();
 
-    expect(mockRUNTIME.mock.calls.find((c) => c[0] === "request")).toBeUndefined();
+    expect(mockRequest.mock.calls.find((c) => c[0] === "request")).toBeUndefined();
 
     vi.advanceTimersByTime(400);
 
-    const requestCall = mockRUNTIME.mock.calls.find((c) => c[0] === "request");
+    const requestCall = mockRequest.mock.calls.find((c) => c[0] === "request");
     expect(requestCall).toBeDefined();
     const requestArgs = requestCall?.[1];
     expect(requestArgs?.["url"]).toContain("hello");
@@ -1505,17 +1463,14 @@ describe("AddBookmark handler — onEnter creates bookmark in focused folder", (
     ];
 
     let createBookmarkArgs: any = null;
-    mockRequest.mockImplementation((action: any) => {
+    mockRequest.mockImplementation((action: any, args: any) => {
       if (action === "getBookmarkFolders") return Promise.resolve({ folders });
       if (action === "getBookmark") return Promise.resolve({ bookmarks: [] });
-      return new Promise(() => {});
-    });
-    mockRUNTIME.mockImplementation((_action: any, _args: any, cb?: any) => {
-      if (_action === "createBookmark") {
-        createBookmarkArgs = _args;
-        if (cb) cb({});
+      if (action === "createBookmark") {
+        createBookmarkArgs = args;
+        return Promise.resolve({});
       }
-      return Result.succeed(undefined);
+      return new Promise(() => {});
     });
 
     ui.onShow({
@@ -1590,16 +1545,12 @@ describe("OpenURLs (History) handler — onOpen calls RUNTIME getHistory and lis
       { url: "https://hist2.com", title: "H2", lastVisitTime: 100, visitCount: 1 },
     ];
 
-    mockRUNTIME.mockImplementation((_action: any, _args: any, cb?: any) => {
-      if (_action === "getHistory" && cb) {
-        cb({ history });
-      }
-      return Result.succeed(undefined);
-    });
+    mockRequest.mockImplementation((action: any) =>
+      action === "getHistory" ? Promise.resolve({ history }) : new Promise(() => {}),
+    );
 
     ui.onShow({ type: "History" });
-    await Promise.resolve();
-    await Promise.resolve();
+    await flush();
 
     const urls = omnibar.results().map((r: any) => r.data.url);
     expect(urls).toContain("https://hist1.com");
@@ -1616,22 +1567,17 @@ describe("OpenURLs (History) handler — onOpen calls RUNTIME getHistory and lis
       { url: "https://b.com", title: "B", lastVisitTime: 100, visitCount: 10 },
     ];
 
-    mockRUNTIME.mockImplementation((_action: any, _args: any, cb?: any) => {
-      if (_action === "getHistory" && cb) {
-        cb({ history });
-      }
-      return Result.succeed(undefined);
-    });
+    mockRequest.mockImplementation((action: any) =>
+      action === "getHistory" ? Promise.resolve({ history }) : new Promise(() => {}),
+    );
 
     ui.onShow({ type: "History" });
-    await Promise.resolve();
-    await Promise.resolve();
+    await flush();
 
     getMappingByAnnotation(omnibar, "Re-sort history by visitCount or lastVisitTime")?.();
-    await Promise.resolve();
-    await Promise.resolve();
+    await flush();
 
-    const historyQueries = mockRUNTIME.mock.calls.filter((c: any[]) => c[0] === "getHistory");
+    const historyQueries = mockRequest.mock.calls.filter((c: any[]) => c[0] === "getHistory");
     expect(historyQueries).toHaveLength(2);
     expect(historyQueries[0]?.[1]).toMatchObject({ sortByMostUsed: false });
     expect(historyQueries[1]?.[1]).toMatchObject({ sortByMostUsed: true });
@@ -1734,16 +1680,12 @@ describe("createOmnibar — Ctrl-r triggers handler.onReset", () => {
     runtime.conf.historyMostUsedOrder = false;
 
     const history = [{ url: "https://a.com", title: "A", lastVisitTime: 100, visitCount: 5 }];
-    mockRUNTIME.mockImplementation((_action: any, _args: any, cb?: any) => {
-      if (_action === "getHistory" && cb) {
-        cb({ history });
-      }
-      return Result.succeed(undefined);
-    });
+    mockRequest.mockImplementation((action: any) =>
+      action === "getHistory" ? Promise.resolve({ history }) : new Promise(() => {}),
+    );
 
     ui.onShow({ type: "History" });
-    await Promise.resolve();
-    await Promise.resolve();
+    await flush();
 
     const before = runtime.conf.historyMostUsedOrder;
 
@@ -1768,10 +1710,9 @@ describe("createOmnibar — Ctrl-j toggles omnibarPosition between middle and bo
   it("switches from middle to bottom and calls front.hidePopup", () => {
     // Use makeOmnibar() so input.focus() is real (backed by a real DOM input)
     runtime.conf.omnibarPosition = "middle";
-    mockRUNTIME.mockImplementation((_action: any, _args: any, cb?: any) => {
-      if (_action === "getTabs" && cb) cb({ tabs: [] });
-      return Result.succeed(undefined);
-    });
+    mockRequest.mockImplementation((action: any) =>
+      action === "getTabs" ? Promise.resolve({ tabs: [] }) : new Promise(() => {}),
+    );
     const { omnibar, front, ui } = makeOmnibar();
     ui.onShow({ type: "Tabs" });
 
@@ -1783,10 +1724,9 @@ describe("createOmnibar — Ctrl-j toggles omnibarPosition between middle and bo
   });
 
   it("switches from bottom back to middle", () => {
-    mockRUNTIME.mockImplementation((_action: any, _args: any, cb?: any) => {
-      if (_action === "getTabs" && cb) cb({ tabs: [] });
-      return Result.succeed(undefined);
-    });
+    mockRequest.mockImplementation((action: any) =>
+      action === "getTabs" ? Promise.resolve({ tabs: [] }) : new Promise(() => {}),
+    );
     // makeOmnibar() resets omnibarPosition to "middle"; set it to "bottom" after.
     const { omnibar, ui } = makeOmnibar();
     runtime.conf.omnibarPosition = "bottom";
@@ -1974,37 +1914,33 @@ describe("createOmnibar — Ctrl-d deletes the focused item", () => {
     );
   }
 
-  it("removes the focused item from results when the backend reports Done", () => {
+  it("removes the focused item from results when the backend reports Done", async () => {
     const { omnibar } = makeOmnibar();
     runtime.conf.focusFirstCandidate = true;
-    mockRUNTIME.mockImplementation((action: any, _args: any, cb?: any) => {
-      if (action === "removeURL" && cb) {
-        cb({ response: "Done" });
-      }
-      return Result.succeed(undefined);
-    });
+    mockRequest.mockImplementation((action: any) =>
+      action === "removeURL" ? Promise.resolve({ response: "Done" }) : new Promise(() => {}),
+    );
     listWithUids(omnibar, ["u0", "u1", "u2"]);
     omnibar.focusItem(0);
 
     getMappingByAnnotation(omnibar, "Delete focused item from bookmark or history")!();
+    await flush();
 
-    expect(mockRUNTIME).toHaveBeenCalledWith("removeURL", { uid: "u0" }, expect.any(Function));
+    expect(mockRequest).toHaveBeenCalledWith("removeURL", { uid: "u0" });
     expect(omnibar.results().map((r: any) => r.data.uid)).toEqual(["u1", "u2"]);
   });
 
-  it("keeps the results unchanged when the backend does not report Done", () => {
+  it("keeps the results unchanged when the backend does not report Done", async () => {
     const { omnibar } = makeOmnibar();
     runtime.conf.focusFirstCandidate = true;
-    mockRUNTIME.mockImplementation((action: any, _args: any, cb?: any) => {
-      if (action === "removeURL" && cb) {
-        cb({ response: "Failed" });
-      }
-      return Result.succeed(undefined);
-    });
+    mockRequest.mockImplementation((action: any) =>
+      action === "removeURL" ? Promise.resolve({ response: "Failed" }) : new Promise(() => {}),
+    );
     listWithUids(omnibar, ["a", "b"]);
     omnibar.focusItem(0);
 
     getMappingByAnnotation(omnibar, "Delete focused item from bookmark or history")!();
+    await flush();
 
     expect(omnibar.results().map((r: any) => r.data.uid)).toEqual(["a", "b"]);
   });
@@ -2066,7 +2002,7 @@ describe("SearchEngine handler — listSuggestions with html/url-keyed items", (
     vi.useRealTimers();
   });
 
-  it("suggestion items with url field are rendered as URL items", () => {
+  it("suggestion items with url field are rendered as URL items", async () => {
     const { omnibar, front, ui } = makeOmnibar();
     runtime.conf.omnibarSuggestion = true;
     runtime.conf.omnibarSuggestionTimeout = 300;
@@ -2081,18 +2017,14 @@ describe("SearchEngine handler — listSuggestions with html/url-keyed items", (
     ui.onShow({ type: "SearchEngine", extra: "u" });
     omnibar.input.value = "test";
 
-    let suggestionsCb: any = null;
-    mockRUNTIME.mockImplementation((_action: any, _args: any, cb?: any) => {
-      if (_action === "request" && cb) {
-        cb({ text: "" });
-        suggestionsCb = front.contentCommand.mock.calls.at(-1)?.[1];
-      }
-      return Result.succeed(undefined);
-    });
+    mockRequest.mockImplementation((action: any) =>
+      action === "request" ? Promise.resolve({ text: "" }) : new Promise(() => {}),
+    );
 
     omnibar.triggerInput();
-    vi.advanceTimersByTime(400);
+    await vi.advanceTimersByTimeAsync(400);
 
+    const suggestionsCb = front.contentCommand.mock.calls.at(-1)?.[1];
     if (suggestionsCb) {
       suggestionsCb({ data: [{ url: "https://sug.example.com", title: "Sug" }] });
     } else {
@@ -2100,7 +2032,7 @@ describe("SearchEngine handler — listSuggestions with html/url-keyed items", (
         if (cb) cb({ data: [{ url: "https://sug.example.com", title: "Sug" }] });
       });
       omnibar.triggerInput();
-      vi.advanceTimersByTime(400);
+      await vi.advanceTimersByTimeAsync(400);
     }
 
     const urls = omnibar.results().map((r: any) => r.data.url);
@@ -2126,10 +2058,9 @@ describe("SearchEngine handler — listSuggestions with html/url-keyed items", (
       if (cb) cb({ data: "not an array" });
     });
 
-    mockRUNTIME.mockImplementation((_action: any, _args: any, cb?: any) => {
-      if (_action === "request" && cb) cb({ text: "" });
-      return Result.succeed(undefined);
-    });
+    mockRequest.mockImplementation((action: any) =>
+      action === "request" ? Promise.resolve({ text: "" }) : new Promise(() => {}),
+    );
 
     omnibar.triggerInput();
     vi.advanceTimersByTime(200);
@@ -2185,7 +2116,7 @@ describe("SearchEngine — addSearchAlias icon loading paths", () => {
       suggestionURL: undefined,
     });
 
-    const requestImageCall = mockRUNTIME.mock.calls.find((c) => c[0] === "requestImage");
+    const requestImageCall = mockRequest.mock.calls.find((c) => c[0] === "requestImage");
     expect(requestImageCall).toBeUndefined();
   });
 
@@ -2196,12 +2127,12 @@ describe("SearchEngine — addSearchAlias icon loading paths", () => {
     createOmnibar(front, makeClipboard());
 
     let requestImageUrl: string | undefined;
-    mockRUNTIME.mockImplementation((_action: any, _args: any, cb?: any) => {
-      if (_action === "requestImage") {
-        requestImageUrl = _args.url;
-        if (cb) cb(null);
+    mockRequest.mockImplementation((action: any, args: any) => {
+      if (action === "requestImage") {
+        requestImageUrl = args.url;
+        return Promise.resolve(null);
       }
-      return Result.succeed(undefined);
+      return new Promise(() => {});
     });
 
     front.actions["addSearchAlias"]({
@@ -2227,10 +2158,11 @@ describe("Commands handler — onInput with no matching candidates", () => {
     const { omnibar, ui } = makeOmnibar();
 
     omnibar.command?.("tabopen", () => {}, { annotation: "Open a tab" });
-    mockRUNTIME.mockImplementation((_action: any, _args: any, cb?: any) => {
-      if (_action === "getSettings" && cb) cb({ settings: { cmdHistory: [] } });
-      return Result.succeed(undefined);
-    });
+    mockRequest.mockImplementation((action: any) =>
+      action === "getSettings"
+        ? Promise.resolve({ settings: { cmdHistory: [] } })
+        : new Promise(() => {}),
+    );
 
     omnibar.input.value = "";
     ui.onShow({ type: "Commands" });
@@ -2306,15 +2238,13 @@ describe("OpenWindows handler — onInput filters windows by query", () => {
       },
     ];
 
-    mockRUNTIME.mockImplementation((_action: any, _args: any, cb?: any) => {
-      if (_action === "getWindows" && cb) cb({ windows });
-      return Result.succeed(undefined);
-    });
+    mockRequest.mockImplementation((action: any) =>
+      action === "getWindows" ? Promise.resolve({ windows }) : new Promise(() => {}),
+    );
 
     omnibar.input.value = "GitHub";
     ui.onShow({ type: "Windows" });
-    await Promise.resolve();
-    await Promise.resolve();
+    await flush();
 
     expect(omnibar.results().length).toBe(1);
     const windowIds = omnibar.results().map((r: any) => r.data.windowId);
@@ -2334,16 +2264,14 @@ describe("OpenTabs handler — onOpen with filter arg", () => {
     const { ui } = makeOmnibar();
     runtime.conf.tabsThreshold = 100;
 
-    mockRUNTIME.mockImplementation((_action: any, _args: any, cb?: any) => {
-      if (_action === "getTabs" && cb) cb({ tabs: [] });
-      return Result.succeed(undefined);
-    });
+    mockRequest.mockImplementation((action: any) =>
+      action === "getTabs" ? Promise.resolve({ tabs: [] }) : new Promise(() => {}),
+    );
 
     ui.onShow({ type: "Tabs", extra: { filter: "some-filter" } });
-    await Promise.resolve();
-    await Promise.resolve();
+    await flush();
 
-    const getTabsCall = mockRUNTIME.mock.calls.find((c) => c[0] === "getTabs");
+    const getTabsCall = mockRequest.mock.calls.find((c) => c[0] === "getTabs");
     expect(getTabsCall).toBeDefined();
     expect(getTabsCall?.[1]).toMatchObject({ filter: "some-filter" });
   });
