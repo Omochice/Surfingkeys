@@ -264,7 +264,7 @@ function createInsert(env: EngineEnv): InsertMode {
         setTimeout(() => {
           const elm = getRealEdit();
           if (elm) {
-            emojiPrompt.activate(elm, undefined, conf.startToShowEmoji, -1);
+            emojiPrompt.activate(elm, { threshold: conf.startToShowEmoji, insertOffset: -1 });
           }
         }, 100);
       },

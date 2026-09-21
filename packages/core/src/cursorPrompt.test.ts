@@ -47,7 +47,7 @@ describe("CursorPrompt activate (native input)", () => {
     input.value = "@foo";
     input.setSelectionRange(4, 4);
     const cp = new CursorPrompt(renderer, picker, async () => []);
-    cp.activate(input, ["foo", "bar"]);
+    cp.activate(input, { data: ["foo", "bar"] });
     expect(cp.isNativeInput).toBe(true);
     cp.close();
   });
@@ -56,7 +56,7 @@ describe("CursorPrompt activate (native input)", () => {
     input.value = "hello@";
     input.setSelectionRange(6, 6);
     const cp = new CursorPrompt(renderer, picker, async () => []);
-    cp.activate(input, ["world"]);
+    cp.activate(input, { data: ["world"] });
     expect(cp.activator).toBe("@");
     cp.close();
   });
@@ -66,7 +66,7 @@ describe("CursorPrompt activate (native input)", () => {
     input.value = "x@";
     input.setSelectionRange(2, 2);
     const cp = new CursorPrompt(renderer, picker, fetcher);
-    cp.activate(input, ["apple", "apricot", "banana"]);
+    cp.activate(input, { data: ["apple", "apricot", "banana"] });
     expect(fetcher).not.toHaveBeenCalled();
     cp.close();
   });
