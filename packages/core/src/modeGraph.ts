@@ -24,7 +24,7 @@ type ContentOnlyFront = {
     searchUrl: string,
     suggestionUrl?: string,
     callback?: (response: unknown, request: unknown) => unknown,
-    options?: { skipMaps?: boolean; favicon_url?: string },
+    options?: { skipMaps?: boolean; faviconUrl?: string },
   ) => void;
   removeSearchAlias(alias: string): void;
   // Forwarded verbatim to a dynamic front method and an any-typed action registry; a narrower

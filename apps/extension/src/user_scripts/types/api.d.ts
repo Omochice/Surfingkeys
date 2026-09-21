@@ -46,6 +46,7 @@ export type UserScriptApi = {
   /**
    * Adds a search engine reachable from the omnibar and from `searchLeaderKey` + `alias`.
    *
+   * @param options `faviconUrl` overrides the icon; `skipMaps` omits the key mappings.
    * @throws When `alias` contains a non-ASCII character.
    */
   addSearchAlias: (
@@ -63,11 +64,9 @@ export type UserScriptApi = {
   /**
    * Searches the selected text, or the clipboard when nothing is selected.
    *
-   * @param searchUrl The search engine's URL; the query replaces `{0}` or `%s`, or is appended.
-   * @param onlyThisSite Restricts the search to the current site.
+   * @param searchUrl The search engine's search URL.
    * @param interactive Opens the omnibar on the query instead of searching at once.
-   * @param alias The `addSearchAlias` alias the interactive omnibar searches with, in place of
-   *   `searchUrl`.
+   * @param alias Replaces `searchUrl` in interactive mode.
    */
   searchSelectedWith: (
     searchUrl: string,
@@ -171,8 +170,8 @@ export type UserScriptApi = {
      * Opens the omnibar.
      *
      * @param args `type` selects the kind of omnibar, such as `Bookmarks`, `History`, `URLs`,
-     *   `Tabs`, `SearchEngine` or `Commands`. `initialQuery` is the text the input starts with.
-     *   `tabbed: false` opens the chosen result in the current tab.
+     *   `Tabs`, `SearchEngine` or `Commands`. `initialQuery` prefills the input; `tabbed: false`
+     *   opens in the current tab.
      */
     openOmnibar: (args: Record<string, unknown>) => void;
     /**

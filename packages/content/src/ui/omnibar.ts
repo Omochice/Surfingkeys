@@ -1883,7 +1883,7 @@ function SearchEngine(omnibar: Omnibar, front: OmnibarFront): SearchEngineHandle
     prompt: string;
     url: string;
     suggestionURL: string;
-    options?: { favicon_url?: string };
+    options?: { faviconUrl?: string };
   }) => {
     const alias: SearchAlias = {
       prompt: `${message.prompt}`,
@@ -1899,8 +1899,8 @@ function SearchEngine(omnibar: Omnibar, front: OmnibarFront): SearchEngineHandle
       };
     } else if (front.topOrigin.startsWith("http")) {
       let iconUrl;
-      if (message.options?.favicon_url) {
-        iconUrl = new URL(message.options.favicon_url);
+      if (message.options?.faviconUrl) {
+        iconUrl = new URL(message.options.faviconUrl);
       } else {
         iconUrl = new URL(message.url);
         iconUrl.pathname = "favicon.ico";

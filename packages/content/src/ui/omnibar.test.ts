@@ -2179,7 +2179,7 @@ describe("SearchEngine — addSearchAlias icon loading paths", () => {
     expect(requestImageCall).toBeUndefined();
   });
 
-  it("uses favicon_url from options when provided instead of deriving from url", () => {
+  it("uses faviconUrl from options when provided instead of deriving from url", () => {
     buildOmnibarDOM();
     const front = makeFront();
     front.topOrigin = "https://example.com";
@@ -2199,7 +2199,7 @@ describe("SearchEngine — addSearchAlias icon loading paths", () => {
       prompt: "Favicon",
       url: "https://search.example.com/q={0}",
       suggestionURL: undefined,
-      options: { favicon_url: "https://cdn.example.com/icon.png" },
+      options: { faviconUrl: "https://cdn.example.com/icon.png" },
     });
 
     expect(requestImageUrl).toBe("https://cdn.example.com/icon.png");
