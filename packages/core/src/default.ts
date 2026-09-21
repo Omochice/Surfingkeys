@@ -123,7 +123,7 @@ function generateFormKey(form: HTMLFormElement): string {
 
 function openGoogleTranslate(env: EngineEnv, searchSelectedWith: SearchSelectedWith): void {
   if (window.getSelection()!.toString()) {
-    searchSelectedWith("https://translate.google.com/?hl=en#auto/en/", false, false, "");
+    searchSelectedWith("https://translate.google.com/?hl=en#auto/en/");
   } else {
     env.tabOpenLink(
       "https://translate.google.com/translate?js=n&sl=auto&tl=zh-CN&u=" + window.location.href,

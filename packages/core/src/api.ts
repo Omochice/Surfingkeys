@@ -36,6 +36,12 @@ export type MapOptions = {
   group?: FeatureGroup;
 };
 
+export type SearchSelectedWithOptions = {
+  onlyThisSite?: boolean;
+  interactive?: boolean;
+  alias?: string;
+};
+
 function createAPI(ctx: ModeContext, env: EngineEnv) {
   const { clipboard, insert, normal, hints, visual, front } = ctx;
   const { RUNTIME, isInUIFrame, tabOpenLink, log: LOG } = env;
@@ -551,7 +557,7 @@ function createAPI(ctx: ModeContext, env: EngineEnv) {
     );
     vmapkey((searchLeaderKey || "s") + alias, "", ssw);
     function ssw2() {
-      searchSelectedWith(searchUrl, true);
+      searchSelectedWith(searchUrl, { onlyThisSite: true });
     }
     mapkey((searchLeaderKey || "s") + (onlyThisSiteKey || "o") + alias, "", ssw2);
     vmapkey((searchLeaderKey || "s") + (onlyThisSiteKey || "o") + alias, "", ssw2);
@@ -559,12 +565,12 @@ function createAPI(ctx: ModeContext, env: EngineEnv) {
     const capitalAlias = alias.toUpperCase();
     if (capitalAlias !== alias) {
       const ssw4 = () => {
-        searchSelectedWith(searchUrl, false, true, alias);
+        searchSelectedWith(searchUrl, { interactive: true, alias });
       };
       mapkey((searchLeaderKey || "s") + capitalAlias, "", ssw4);
       vmapkey((searchLeaderKey || "s") + capitalAlias, "", ssw4);
       const ssw5 = () => {
-        searchSelectedWith(searchUrl, true, true, alias);
+        searchSelectedWith(searchUrl, { onlyThisSite: true, interactive: true, alias });
       };
       mapkey((searchLeaderKey || "s") + (onlyThisSiteKey || "o") + capitalAlias, "", ssw5);
       vmapkey((searchLeaderKey || "s") + (onlyThisSiteKey || "o") + capitalAlias, "", ssw5);
@@ -614,20 +620,15 @@ function createAPI(ctx: ModeContext, env: EngineEnv) {
    *   searchSelectedWith("https://translate.google.com/?hl=en#auto/en/");
    *
    * @param {string} searchUrl A search engine's search URL
-   * @param {boolean} [onlyThisSite=false] Whether to search only within current site, need support
-   *   from the provided search engine. Default is `false`
-   * @param {boolean} [interactive=false] Whether to search in interactive mode, in case that you
-   *   need some small modification on the selected content. Default is `false`
-   * @param {string} [alias=""] Only used with interactive mode, in such case the url from
+   * @param {object} [options=null] `onlyThisSite`: boolean, whether to search only within current
+   *   site, needs support from the provided search engine, `interactive`: boolean, whether to
+   *   search in interactive mode, in case that you need some small modification on the selected
+   *   content, `alias`: string, only used with interactive mode, in such case the url from
    *   `searchUrl` is ignored, SurfingKeys will construct search URL from the alias registered by
-   *   `addSearchAlias`. Default is `""`
+   *   `addSearchAlias`. Default is `null`
    */
-  function searchSelectedWith(
-    searchUrl: string,
-    onlyThisSite?: boolean,
-    interactive?: boolean,
-    alias?: string,
-  ): void {
+  function searchSelectedWith(searchUrl: string, options?: SearchSelectedWithOptions): void {
+    const { onlyThisSite, interactive, alias } = options ?? {};
     let query = window.getSelection()!.toString();
     clipboard.read((response) => {
       query = query || response.data;

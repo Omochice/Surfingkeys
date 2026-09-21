@@ -6,6 +6,16 @@ export type MapkeyOptions = {
   [key: string]: unknown;
 };
 
+/** Options accepted by `searchSelectedWith`. */
+export type SearchSelectedWithOptions = {
+  /** Restricts the search to the current site. */
+  onlyThisSite?: boolean;
+  /** Opens the omnibar on the query instead of searching at once. */
+  interactive?: boolean;
+  /** Replaces `searchUrl` in interactive mode. */
+  alias?: string;
+};
+
 /** An inline query shown for the word under the cursor or the selection. */
 export type InlineQuery = {
   /** The endpoint the query is appended to, or a function building the full URL. */
@@ -65,15 +75,8 @@ export type UserScriptApi = {
    * Searches the selected text, or the clipboard when nothing is selected.
    *
    * @param searchUrl The search engine's search URL.
-   * @param interactive Opens the omnibar on the query instead of searching at once.
-   * @param alias Replaces `searchUrl` in interactive mode.
    */
-  searchSelectedWith: (
-    searchUrl: string,
-    onlyThisSite?: boolean,
-    interactive?: boolean,
-    alias?: string,
-  ) => void;
+  searchSelectedWith: (searchUrl: string, options?: SearchSelectedWithOptions) => void;
   /** Adds a command to the omnibar's command mode. */
   // eslint-disable-next-line typescript/no-explicit-any -- user command callback of arbitrary signature
   addCommand: (name: string, description: string, action: (...args: any[]) => void) => void;

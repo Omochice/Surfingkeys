@@ -1368,9 +1368,6 @@ describe(";t translates selected text or current page", () => {
     fire(";t");
     expect(api.searchSelectedWith).toHaveBeenCalledWith(
       "https://translate.google.com/?hl=en#auto/en/",
-      false,
-      false,
-      "",
     );
   });
 

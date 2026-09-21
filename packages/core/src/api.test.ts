@@ -589,7 +589,7 @@ describe("createAPI searchSelectedWith", () => {
     const tabOpenLink = vi.mocked(env.tabOpenLink);
     tabOpenLink.mockClear();
 
-    api.searchSelectedWith("https://www.google.com/search?q=", true);
+    api.searchSelectedWith("https://www.google.com/search?q=", { onlyThisSite: true });
 
     expect(tabOpenLink).toHaveBeenCalledTimes(1);
     const url = tabOpenLink.mock.calls[0]![0] as string;
@@ -608,7 +608,7 @@ describe("createAPI searchSelectedWith", () => {
     } as any);
     ctx.clipboard.read.mockImplementation((cb: any) => cb({ data: "" }));
 
-    api.searchSelectedWith("https://www.google.com/search?q=", false, true, "g");
+    api.searchSelectedWith("https://www.google.com/search?q=", { interactive: true, alias: "g" });
 
     expect(ctx.front.openOmnibar).toHaveBeenCalledWith({
       type: "SearchEngine",
