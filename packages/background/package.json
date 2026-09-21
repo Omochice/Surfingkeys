@@ -28,6 +28,7 @@
     "@sk/types": "workspace:*",
     "@types/chrome": "catalog:",
     "@types/firefox-webext-browser": "catalog:",
+    "@types/webextension-polyfill": "0.12.6",
     "jsdom": "catalog:",
     "npm-run-all2": "catalog:",
     "oxfmt": "catalog:",

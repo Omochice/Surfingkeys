@@ -435,6 +435,9 @@ importers:
       '@types/firefox-webext-browser':
         specifier: 'catalog:'
         version: 143.0.0
+      '@types/webextension-polyfill':
+        specifier: 0.12.6
+        version: 0.12.6
       jsdom:
         specifier: 'catalog:'
         version: 30.1.0
@@ -1803,6 +1806,9 @@ packages:
 
   '@types/trusted-types@2.0.7':
     resolution: {integrity: sha512-ScaPdn1dQczgbl0QFTeTOmVHFULt394XJgOQNoyVhZ6r2vLnMLJfBPd53SB52T/3G36VI1/g2MZaX0cwDuXsfw==}
+
+  '@types/webextension-polyfill@0.12.6':
+    resolution: {integrity: sha512-XTNQSGiQaipt1iocbpHSjYHd+Ujcya+K5H4H2uH7JwycReTFixoYqGWIKih2Ec072NuEW2lAyXRDYmlEx00+cw==}
 
   '@typescript/typescript-aix-ppc64@7.0.2':
     resolution: {integrity: sha512-MTKKkWB7p/0E9xi1d1tHtZ5PiLkGEMIq88pK2CubZjOsLtYTLqhgIgi6zepFa+9GHZ6h05NMCkQxGKiPXMxXtQ==}
@@ -4087,6 +4093,8 @@ snapshots:
 
   '@types/trusted-types@2.0.7':
     optional: true
+
+  '@types/webextension-polyfill@0.12.6': {}
 
   '@typescript/typescript-aix-ppc64@7.0.2':
     optional: true
