@@ -842,7 +842,8 @@ function getWordUnderCursor(mouseCursor?: boolean): string | null {
     if (
       selRect &&
       word &&
-      (!mouseCursor || (clickPos && rectContains(selRect, clickPos[0], clickPos[1], 0, 0)))
+      (!mouseCursor ||
+        (clickPos && rectContains(selRect, { x: clickPos[0], y: clickPos[1] }, { x: 0, y: 0 })))
     ) {
       return word.trim();
     }
@@ -850,9 +851,17 @@ function getWordUnderCursor(mouseCursor?: boolean): string | null {
   return null;
 }
 
-// allow some errors of x and y as ex and ey respectively.
-function rectContains(rect: DOMRect, x: number, y: number, ex: number, ey: number): boolean {
-  return y > rect.top - ey && y < rect.bottom + ey && x > rect.left - ex && x < rect.right + ex;
+function rectContains(
+  rect: DOMRect,
+  point: { x: number; y: number },
+  tolerance: { x: number; y: number },
+): boolean {
+  return (
+    point.y > rect.top - tolerance.y &&
+    point.y < rect.bottom + tolerance.y &&
+    point.x > rect.left - tolerance.x &&
+    point.x < rect.right + tolerance.x
+  );
 }
 
 function format(template: string, ...args: unknown[]): string {
