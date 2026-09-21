@@ -730,7 +730,7 @@ function getTextNodePos(
   return pos;
 }
 
-/** One end of a DOM range: a node and an offset within it. */
+/** One end of a DOM range. */
 export type BoundaryPoint = { node: Node; offset: number };
 
 const focusedRange = document.createRange();
