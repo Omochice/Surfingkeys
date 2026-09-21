@@ -13,7 +13,13 @@ import {
 import { httpRequest, tabOpenLink } from "@sk/messaging/messagingActions";
 import { RUNTIME } from "@sk/messaging/runtime";
 
-import type { InlineQuery, MapkeyOptions, UserScriptApi, UserScriptSettings } from "./types/api";
+import type {
+  InlineQuery,
+  MapkeyOptions,
+  SearchSelectedWithOptions,
+  UserScriptApi,
+  UserScriptSettings,
+} from "./types/api";
 
 let EXTENSION_ROOT_URL = "";
 function isInUIFrame() {
@@ -263,13 +269,8 @@ const api = {
   removeSearchAlias: (alias: string, searchLeaderKey?: string, onlyThisSiteKey?: string) => {
     dispatchSKEvent("api", ["removeSearchAlias", alias, searchLeaderKey, onlyThisSiteKey]);
   },
-  searchSelectedWith: (
-    searchUrl: string,
-    onlyThisSite?: boolean,
-    interactive?: boolean,
-    alias?: string,
-  ) => {
-    dispatchSKEvent("api", ["searchSelectedWith", searchUrl, onlyThisSite, interactive, alias]);
+  searchSelectedWith: (searchUrl: string, options?: SearchSelectedWithOptions) => {
+    dispatchSKEvent("api", ["searchSelectedWith", searchUrl, options]);
   },
   tabOpenLink,
   Clipboard: {
