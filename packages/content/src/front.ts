@@ -133,22 +133,25 @@ function createFront(
   const listSuggestions: Record<string, ListSuggestionFn> = {};
   self.addSearchAlias = (
     alias: string,
-    prompt: string,
     url: string,
-    suggestionURL?: string,
-    listSuggestion?: ListSuggestionFn,
-    options?: Record<string, unknown>,
+    options?: {
+      prompt?: string;
+      suggestionUrl?: string;
+      parseSuggestion?: ListSuggestionFn;
+      faviconUrl?: string;
+    },
   ) => {
-    if (suggestionURL && listSuggestion) {
-      listSuggestions[suggestionURL] = listSuggestion;
+    const { prompt, suggestionUrl, parseSuggestion, faviconUrl } = options ?? {};
+    if (suggestionUrl && parseSuggestion) {
+      listSuggestions[suggestionUrl] = parseSuggestion;
     }
     applyUICommand({
       action: "addSearchAlias",
       alias: alias,
       prompt: prompt,
       url: url,
-      suggestionURL: suggestionURL,
-      options: options,
+      suggestionURL: suggestionUrl,
+      options: { faviconUrl },
     });
   };
   self.removeSearchAlias = (alias: string) => {

@@ -408,7 +408,7 @@ describe("createAPI addSearchAlias key mappings", () => {
     const ctx = makeCtx();
     const api = createAPI(ctx as any, env);
 
-    api.addSearchAlias("g", "Google", "https://www.google.com/search?q=");
+    api.addSearchAlias("g", "https://www.google.com/search?q=", { prompt: "Google" });
 
     // Walking only to the 's' root would pass even if the 'g' child were never
     // registered, so the assertions below target the leaf node.
@@ -425,7 +425,7 @@ describe("createAPI addSearchAlias key mappings", () => {
     const ctx = makeCtx();
     const api = createAPI(ctx as any, env);
 
-    api.addSearchAlias("d", "DuckDuckGo", "https://duckduckgo.com/?q=");
+    api.addSearchAlias("d", "https://duckduckgo.com/?q=", { prompt: "DuckDuckGo" });
 
     let node: any = ctx.normal.mappings;
     for (const ch of "od") {
@@ -439,7 +439,7 @@ describe("createAPI addSearchAlias key mappings", () => {
     const ctx = makeCtx();
     const api = createAPI(ctx as any, env);
 
-    api.addSearchAlias("g", "Google", "https://www.google.com/search?q=");
+    api.addSearchAlias("g", "https://www.google.com/search?q=", { prompt: "Google" });
 
     let node: any = ctx.visual.mappings;
     for (const ch of "sg") {
@@ -448,28 +448,37 @@ describe("createAPI addSearchAlias key mappings", () => {
     expect(node?.meta).not.toBeUndefined();
   });
 
-  it("calls front.addSearchAlias with alias, prompt, searchUrl and options", () => {
+  it("calls front.addSearchAlias with alias, searchUrl and the omnibar options", () => {
     const ctx = makeCtx();
     const api = createAPI(ctx as any, env);
 
     const suggestionCb = vi.fn();
-    api.addSearchAlias(
-      "b",
-      "Bing",
-      "https://bing.com/search?q=",
-      "s",
-      "https://bing.com/suggest?q=",
-      suggestionCb,
-    );
+    api.addSearchAlias("b", "https://bing.com/search?q=", {
+      prompt: "Bing",
+      searchLeaderKey: "s",
+      suggestionUrl: "https://bing.com/suggest?q=",
+      parseSuggestion: suggestionCb,
+    });
 
-    expect(ctx.front.addSearchAlias).toHaveBeenCalledWith(
-      "b",
-      "Bing",
-      "https://bing.com/search?q=",
-      "https://bing.com/suggest?q=",
-      suggestionCb,
-      undefined,
-    );
+    expect(ctx.front.addSearchAlias).toHaveBeenCalledWith("b", "https://bing.com/search?q=", {
+      prompt: "Bing",
+      suggestionUrl: "https://bing.com/suggest?q=",
+      parseSuggestion: suggestionCb,
+      faviconUrl: undefined,
+    });
+  });
+
+  it("falls back to the alias as the prompt when none is given", () => {
+    const ctx = makeCtx();
+    const api = createAPI(ctx as any, env);
+
+    api.addSearchAlias("q", "https://example.com/?q=");
+
+    let node: any = ctx.normal.mappings;
+    for (const ch of "sq") {
+      node = node?.find(ch);
+    }
+    expect(node?.meta?.annotation).toEqual(["Search selected with {0}", "q"]);
   });
 
   it("throws for a non-ASCII alias", () => {
@@ -477,7 +486,7 @@ describe("createAPI addSearchAlias key mappings", () => {
     const api = createAPI(ctx as any, env);
 
     expect(() => {
-      api.addSearchAlias("日", "Japanese", "https://example.com/?q=");
+      api.addSearchAlias("日", "https://example.com/?q=", { prompt: "Japanese" });
     }).toThrow();
   });
 
@@ -485,9 +494,7 @@ describe("createAPI addSearchAlias key mappings", () => {
     const ctx = makeCtx();
     const api = createAPI(ctx as any, env);
 
-    api.addSearchAlias("k", "Kagi", "https://kagi.com/search?q=", "s", undefined, undefined, "o", {
-      skipMaps: true,
-    });
+    api.addSearchAlias("k", "https://kagi.com/search?q=", { prompt: "Kagi", skipMaps: true });
 
     let node: any = ctx.normal.mappings;
     for (const ch of "sk") {
@@ -500,7 +507,7 @@ describe("createAPI addSearchAlias key mappings", () => {
     const ctx = makeCtx();
     const api = createAPI(ctx as any, env);
 
-    api.addSearchAlias("g", "Google", "https://www.google.com/search?q=");
+    api.addSearchAlias("g", "https://www.google.com/search?q=", { prompt: "Google" });
 
     let node: any = ctx.normal.mappings;
     for (const ch of "sG") {
@@ -513,7 +520,7 @@ describe("createAPI addSearchAlias key mappings", () => {
     const ctx = makeCtx();
     const api = createAPI(ctx as any, env);
 
-    api.addSearchAlias("x", "Example", "https://example.com/?q=", "t");
+    api.addSearchAlias("x", "https://example.com/?q=", { prompt: "Example", searchLeaderKey: "t" });
 
     let node: any = ctx.normal.mappings;
     for (const ch of "tx") {
@@ -526,15 +533,10 @@ describe("createAPI addSearchAlias key mappings", () => {
     const ctx = makeCtx();
     const api = createAPI(ctx as any, env);
 
-    api.addSearchAlias(
-      "y",
-      "Yahoo",
-      "https://search.yahoo.com/?q=",
-      "s",
-      undefined,
-      undefined,
-      "n",
-    );
+    api.addSearchAlias("y", "https://search.yahoo.com/?q=", {
+      prompt: "Yahoo",
+      onlyThisSiteKey: "n",
+    });
 
     let node: any = ctx.normal.mappings;
     for (const ch of "sny") {
@@ -549,7 +551,7 @@ describe("createAPI removeSearchAlias", () => {
     const ctx = makeCtx();
     const api = createAPI(ctx as any, env);
 
-    api.addSearchAlias("m", "MDN", "https://developer.mozilla.org/en-US/search?q=");
+    api.addSearchAlias("m", "https://developer.mozilla.org/en-US/search?q=", { prompt: "MDN" });
 
     api.removeSearchAlias("m");
 
@@ -564,7 +566,7 @@ describe("createAPI removeSearchAlias", () => {
     const ctx = makeCtx();
     const api = createAPI(ctx as any, env);
 
-    api.addSearchAlias("p", "Python", "https://docs.python.org/3/search.html?q=");
+    api.addSearchAlias("p", "https://docs.python.org/3/search.html?q=", { prompt: "Python" });
     ctx.front.removeSearchAlias.mockClear();
 
     api.removeSearchAlias("p");
@@ -943,7 +945,7 @@ describe("createAPI search-alias defensive arms", () => {
     ctx.front.addSearchAlias = undefined;
     const api = createAPI(ctx as any, env);
 
-    api.addSearchAlias("g", "Google", "https://www.google.com/search?q=");
+    api.addSearchAlias("g", "https://www.google.com/search?q=", { prompt: "Google" });
     let node: any = ctx.normal.mappings;
     for (const ch of "sg") {
       node = node?.find(ch);
@@ -955,7 +957,7 @@ describe("createAPI search-alias defensive arms", () => {
     const ctx = makeCtx();
     const api = createAPI(ctx as any, env);
 
-    api.addSearchAlias("G", "Google", "https://www.google.com/search?q=");
+    api.addSearchAlias("G", "https://www.google.com/search?q=", { prompt: "Google" });
     api.removeSearchAlias("G");
     let node: any = ctx.normal.mappings;
     for (const ch of "sG") {

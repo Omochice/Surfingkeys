@@ -13,6 +13,16 @@ describe("a settings snippet", () => {
     expectTypeOf(api.Hints.create).returns.toEqualTypeOf<false | Promise<number>>();
   });
 
+  test("takes a search alias's optional settings in the options object", () => {
+    api.addSearchAlias("d", "https://duckduckgo.com/?q=", {
+      prompt: "duckduckgo",
+      suggestionUrl: "https://duckduckgo.com/ac/?q=",
+      parseSuggestion: (response) => response,
+    });
+    // @ts-expect-error -- a string is not an options object
+    api.addSearchAlias("d", "duckduckgo", "https://duckduckgo.com/?q=");
+  });
+
   test("assigns a documented setting", () => {
     settings.hintAlign = "left";
     expectTypeOf(settings).toHaveProperty("scrollStepSize");

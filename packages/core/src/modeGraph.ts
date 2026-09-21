@@ -20,11 +20,15 @@ type ContentOnlyFront = {
   executeCommand(cmd: string): void;
   addSearchAlias?: (
     alias: string,
-    prompt: string,
     searchUrl: string,
-    suggestionUrl?: string,
-    callback?: (response: unknown, request: unknown) => unknown,
-    options?: { skipMaps?: boolean; faviconUrl?: string },
+    options?: {
+      prompt?: string | undefined;
+      suggestionUrl?: string | undefined;
+      parseSuggestion?:
+        | ((response: unknown, request: { url: string; query: string }) => unknown)
+        | undefined;
+      faviconUrl?: string | undefined;
+    },
   ) => void;
   removeSearchAlias(alias: string): void;
   // Forwarded verbatim to a dynamic front method and an any-typed action registry; a narrower

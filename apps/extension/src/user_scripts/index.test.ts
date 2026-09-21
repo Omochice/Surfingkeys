@@ -257,7 +257,7 @@ describe("vmap (via api returned by factory)", () => {
 describe("addSearchAlias (via api returned by factory)", () => {
   it("dispatches a surfingkeys:api event containing the alias and searchUrl", () => {
     const events = captureEvents("surfingkeys:api", () => {
-      capturedApi.addSearchAlias("g", "Google", "https://www.google.com/search?q=");
+      capturedApi.addSearchAlias("g", "https://www.google.com/search?q=", { prompt: "Google" });
     });
 
     const evt = events.find(
@@ -265,41 +265,41 @@ describe("addSearchAlias (via api returned by factory)", () => {
         Array.isArray(e.detail) &&
         e.detail[0] === "addSearchAlias" &&
         e.detail[1] === "g" &&
-        e.detail[3] === "https://www.google.com/search?q=",
+        e.detail[2] === "https://www.google.com/search?q=",
     );
     expect(evt).not.toBeUndefined();
   });
 
-  it("includes 'user' as the source in the dispatched event detail", () => {
+  it("replaces the suggestion parser with 'user' in the dispatched event detail", () => {
     const events = captureEvents("surfingkeys:api", () => {
-      capturedApi.addSearchAlias("d", "DDG", "https://duckduckgo.com/?q=");
+      capturedApi.addSearchAlias("d", "https://duckduckgo.com/?q=", {
+        prompt: "DDG",
+        parseSuggestion: () => [],
+      });
     });
 
     const evt = events.find((e) => Array.isArray(e.detail) && e.detail[0] === "addSearchAlias");
     expect(evt).not.toBeUndefined();
-    expect((evt as CustomEvent).detail[6]).toBe("user");
+    expect((evt as CustomEvent).detail[3].parseSuggestion).toBe("user");
   });
 
   it("throws for a non-ASCII alias character", () => {
     expect(() => {
-      capturedApi.addSearchAlias("日", "Japanese", "https://example.com/?q=");
+      capturedApi.addSearchAlias("日", "https://example.com/?q=", { prompt: "Japanese" });
     }).toThrow();
   });
 
   it("passes suggestionUrl through to the dispatch detail", () => {
     const events = captureEvents("surfingkeys:api", () => {
-      capturedApi.addSearchAlias(
-        "b",
-        "Bing",
-        "https://bing.com/search?q=",
-        "s",
-        "https://bing.com/suggest?q=",
-      );
+      capturedApi.addSearchAlias("b", "https://bing.com/search?q=", {
+        prompt: "Bing",
+        suggestionUrl: "https://bing.com/suggest?q=",
+      });
     });
 
     const evt = events.find((e) => Array.isArray(e.detail) && e.detail[0] === "addSearchAlias");
     expect(evt).not.toBeUndefined();
-    expect((evt as CustomEvent).detail[5]).toBe("https://bing.com/suggest?q=");
+    expect((evt as CustomEvent).detail[3].suggestionUrl).toBe("https://bing.com/suggest?q=");
   });
 });
 

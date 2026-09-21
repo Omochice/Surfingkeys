@@ -573,13 +573,13 @@ describe("search aliases", () => {
 
   it("wires Google to its search URL", () => {
     const google = api.addSearchAlias.mock.calls.find((c: unknown[]) => c[0] === "g");
-    expect(google[1]).toBe("google");
-    expect(google[2]).toBe("https://www.google.com/search?q=");
+    expect(google[1]).toBe("https://www.google.com/search?q=");
+    expect(google[2].prompt).toBe("google");
   });
 
   it("Google's suggestion parser extracts the completion list", () => {
     const google = api.addSearchAlias.mock.calls.find((c: unknown[]) => c[0] === "g");
-    const parse = google[5];
+    const parse = google[2].parseSuggestion;
     expect(parse({ text: '["query",["alpha","beta"]]' })).toEqual(["alpha", "beta"]);
   });
 });
@@ -1254,7 +1254,7 @@ describe(";pf fills form from clipboard", () => {
 describe("search alias suggestion parsers", () => {
   const getParser = (alias: string) => {
     const call = api.addSearchAlias.mock.calls.find((c: unknown[]) => c[0] === alias);
-    return call![5] as (response: { text: string }) => unknown;
+    return call![2].parseSuggestion as (response: { text: string }) => unknown;
   };
 
   it("duckduckgo parser returns phrase from each result", () => {

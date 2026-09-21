@@ -35,6 +35,27 @@ export type RemapOptions = RemapInModeOptions & {
   group?: string;
 };
 
+/** The keys that trigger a search alias outside the omnibar. */
+export type SearchAliasKeyOptions = {
+  /** `<searchLeaderKey><alias>` searches the selection with the engine, without the omnibar. */
+  searchLeaderKey?: string;
+  /** `<searchLeaderKey><onlyThisSiteKey><alias>` limits that search to the current site. */
+  onlyThisSiteKey?: string;
+};
+
+/** Options accepted by `addSearchAlias`. */
+export type SearchAliasOptions = SearchAliasKeyOptions & {
+  /** The caption shown in front of the omnibar. */
+  prompt?: string;
+  /** The query is appended to it to fetch the omnibar's suggestions. */
+  suggestionUrl?: string;
+  /** Turns the response from `suggestionUrl` into the list of suggestions. */
+  parseSuggestion?: (response: unknown, request: unknown) => unknown;
+  /** Adds the engine to the omnibar only, with no key mappings. */
+  skipMaps?: boolean;
+  faviconUrl?: string;
+};
+
 /** An inline query shown for the word under the cursor or the selection. */
 export type InlineQuery = {
   /** The endpoint the query is appended to, or a function building the full URL. */
@@ -69,19 +90,10 @@ export type UserScriptApi = {
   /**
    * Adds a search engine reachable from the omnibar and from `searchLeaderKey` + `alias`.
    *
-   * @param options `faviconUrl` overrides the icon; `skipMaps` omits the key mappings.
+   * @param searchUrl The query is appended, or replaces `{0}` when the URL holds one.
    * @throws When `alias` contains a non-ASCII character.
    */
-  addSearchAlias: (
-    alias: string,
-    prompt: string,
-    searchUrl: string,
-    searchLeaderKey?: string,
-    suggestionUrl?: string,
-    callbackToParseSuggestion?: (response: unknown, request: unknown) => unknown,
-    onlyThisSiteKey?: string,
-    options?: Record<string, unknown>,
-  ) => void;
+  addSearchAlias: (alias: string, searchUrl: string, options?: SearchAliasOptions) => void;
   /** Removes a search engine added by `addSearchAlias`. */
   removeSearchAlias: (alias: string, searchLeaderKey?: string, onlyThisSiteKey?: string) => void;
   /**
