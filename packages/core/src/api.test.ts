@@ -208,7 +208,7 @@ describe("createAPI unmap", () => {
     api.mapkey("w", "test", vi.fn());
     const encoded = KeyboardUtils.encodeKeystroke("w");
 
-    api.unmap("w", /this-domain-will-never-match\.example/);
+    api.unmap("w", { domain: /this-domain-will-never-match\.example/ });
 
     expect(ctx.normal.mappings.find(encoded)).not.toBeUndefined();
   });
@@ -331,7 +331,7 @@ describe("createAPI cunmap", () => {
     document.addEventListener("surfingkeys:front", handler);
 
     const api = createAPI(ctx as any, env);
-    api.cunmap("<Ctrl-j>", /nomatch\.example\.com/);
+    api.cunmap("<Ctrl-j>", { domain: /nomatch\.example\.com/ });
 
     document.removeEventListener("surfingkeys:front", handler);
 
@@ -676,7 +676,7 @@ describe("createAPI lmap", () => {
     const ctx = makeCtx();
     const api = createAPI(ctx as any, env);
 
-    api.lmap("x", "<Alt-i>", /this-domain-will-never-match\.example/);
+    api.lmap("x", "<Alt-i>", { domain: /this-domain-will-never-match\.example/ });
 
     expect(ctx.normal.addLurkMap).not.toHaveBeenCalled();
   });
@@ -775,7 +775,7 @@ describe("createAPI map special-key and not-found arms", () => {
     const ctx = makeCtx();
     const api = createAPI(ctx as any, env);
 
-    api.map("e", ":echo", undefined, "Echo it", "tabs");
+    api.map("e", ":echo", { annotation: "Echo it", group: "tabs" });
 
     const node = ctx.normal.mappings.find(KeyboardUtils.encodeKeystroke("e"));
     expect(node?.meta?.annotation).toContain("Echo it");
@@ -785,7 +785,7 @@ describe("createAPI map special-key and not-found arms", () => {
     const ctx = makeCtx();
     const api = createAPI(ctx as any, env);
 
-    api.map("e", ":echo", undefined, "plain label");
+    api.map("e", ":echo", { annotation: "plain label" });
 
     const node = ctx.normal.mappings.find(KeyboardUtils.encodeKeystroke("e"));
     expect(node?.meta?.annotation).toContain("plain label");
@@ -796,7 +796,7 @@ describe("createAPI map special-key and not-found arms", () => {
     const ctx = makeCtx();
     const api = createAPI(ctx as any, env);
 
-    api.map("e", ":echo", /this-domain-will-never-match\.example/);
+    api.map("e", ":echo", { domain: /this-domain-will-never-match\.example/ });
 
     expect(ctx.normal.mappings.find(KeyboardUtils.encodeKeystroke("e"))).toBeUndefined();
   });
@@ -848,7 +848,7 @@ describe("createAPI imap / vmap", () => {
     const ctx = makeCtx();
     const api = createAPI(ctx as any, env);
     api.imapkey("i", "insert source", vi.fn());
-    api.imap("p", "i", /this-domain-will-never-match\.example/);
+    api.imap("p", "i", { domain: /this-domain-will-never-match\.example/ });
     expect(ctx.insert.mappings.find(KeyboardUtils.encodeKeystroke("p"))).toBeUndefined();
   });
 
@@ -856,7 +856,7 @@ describe("createAPI imap / vmap", () => {
     const ctx = makeCtx();
     const api = createAPI(ctx as any, env);
     api.vmapkey("v", "visual source", vi.fn());
-    api.vmap("p", "v", /this-domain-will-never-match\.example/);
+    api.vmap("p", "v", { domain: /this-domain-will-never-match\.example/ });
     expect(ctx.visual.mappings.find(KeyboardUtils.encodeKeystroke("p"))).toBeUndefined();
   });
 });
@@ -868,7 +868,7 @@ describe("createAPI unmapAllExcept domain guard", () => {
     api.mapkey("a", "first", vi.fn());
     api.mapkey("b", "second", vi.fn());
 
-    api.unmapAllExcept(["a"], /this-domain-will-never-match\.example/);
+    api.unmapAllExcept(["a"], { domain: /this-domain-will-never-match\.example/ });
 
     expect(ctx.normal.mappings.find(KeyboardUtils.encodeKeystroke("b"))?.meta).not.toBeUndefined();
   });
@@ -881,7 +881,7 @@ describe("createAPI unmap-family domain guard (no-op when domain mismatches)", (
     const ctx = makeCtx();
     const api = createAPI(ctx as any, env);
     api.imapkey("j", "insert", vi.fn());
-    api.iunmap("j", noMatch);
+    api.iunmap("j", { domain: noMatch });
     expect(ctx.insert.mappings.find(KeyboardUtils.encodeKeystroke("j"))?.meta).not.toBeUndefined();
   });
 
@@ -889,7 +889,7 @@ describe("createAPI unmap-family domain guard (no-op when domain mismatches)", (
     const ctx = makeCtx();
     const api = createAPI(ctx as any, env);
     api.vmapkey("b", "visual", vi.fn());
-    api.vunmap("b", noMatch);
+    api.vunmap("b", { domain: noMatch });
     expect(ctx.visual.mappings.find(KeyboardUtils.encodeKeystroke("b"))?.meta).not.toBeUndefined();
   });
 
@@ -900,7 +900,7 @@ describe("createAPI unmap-family domain guard (no-op when domain mismatches)", (
       dispatched.push((e as CustomEvent).detail);
     });
     const api = createAPI(ctx as any, env);
-    api.cmap("ctrl-n", "ctrl-j", noMatch);
+    api.cmap("ctrl-n", "ctrl-j", { domain: noMatch });
     const omnibarAdds = dispatched.filter((d) => Array.isArray(d) && d[1] === "Omnibar");
     expect(omnibarAdds).toHaveLength(0);
   });
@@ -962,7 +962,7 @@ describe("createAPI map feature group inheritance", () => {
     const api = createAPI(ctx as any, env);
     api.mapkey("p", "Choose a tab", vi.fn(), { group: "tabs" });
 
-    api.map("f", "p", undefined, "Pick a tab");
+    api.map("f", "p", { annotation: "Pick a tab" });
 
     const node = ctx.normal.mappings.find(KeyboardUtils.encodeKeystroke("f"));
     expect(node?.meta?.annotation).toContain("Pick a tab");

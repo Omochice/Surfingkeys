@@ -584,7 +584,12 @@ describe("search aliases", () => {
 
 describe("remaps", () => {
   it("maps g0/g$ to tab edges and remaps arrow keys in command mode", () => {
-    expect(remaps).toContainEqual(["map", "g0", ":feedkeys 99E", 0, "Go to the first tab", "tabs"]);
+    expect(remaps).toContainEqual([
+      "map",
+      "g0",
+      ":feedkeys 99E",
+      { annotation: "Go to the first tab", group: "tabs" },
+    ]);
     expect(remaps).toContainEqual(["cmap", "<ArrowDown>", "<Ctrl-n>"]);
   });
 });

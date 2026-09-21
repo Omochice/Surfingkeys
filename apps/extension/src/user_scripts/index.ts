@@ -14,8 +14,11 @@ import { httpRequest, tabOpenLink } from "@sk/messaging/messagingActions";
 import { RUNTIME } from "@sk/messaging/runtime";
 
 import type {
+  DomainOptions,
   InlineQuery,
   MapkeyOptions,
+  RemapInModeOptions,
+  RemapOptions,
   SearchSelectedWithOptions,
   UserScriptApi,
   UserScriptSettings,
@@ -33,19 +36,14 @@ function isDomainApplicable(domain?: RegExp) {
   return !domain || domain.test(document.location.href) || domain.test(window.origin);
 }
 
-function cmap(
-  newKeystroke: string,
-  oldKeystroke: string,
-  domain?: RegExp,
-  _new_annotation?: string,
-) {
-  if (isDomainApplicable(domain)) {
+function cmap(newKeystroke: string, oldKeystroke: string, options?: DomainOptions) {
+  if (isDomainApplicable(options?.domain)) {
     dispatchSKEvent("front", ["addMapkey", "Omnibar", newKeystroke, oldKeystroke]);
   }
 }
 
-function cunmap(keystroke: string, domain?: RegExp) {
-  if (isDomainApplicable(domain)) {
+function cunmap(keystroke: string, options?: DomainOptions) {
+  if (isDomainApplicable(options?.domain)) {
     dispatchSKEvent("front", ["removeMapkey", "Omnibar", keystroke]);
   }
 }
@@ -92,17 +90,17 @@ function addCommand(name: string, description: string, action: (...args: any[]) 
   dispatchSKEvent("front", ["addCommand", name, description]);
 }
 
-function map(newKeystroke: string, oldKeystroke: string, domain?: RegExp, newAnnotation?: string) {
-  dispatchSKEvent("api", ["map", newKeystroke, oldKeystroke, domain, newAnnotation]);
+function map(newKeystroke: string, oldKeystroke: string, options?: RemapOptions) {
+  dispatchSKEvent("api", ["map", newKeystroke, oldKeystroke, options]);
 }
-function imap(newKeystroke: string, oldKeystroke: string, domain?: RegExp, newAnnotation?: string) {
-  dispatchSKEvent("api", ["imap", newKeystroke, oldKeystroke, domain, newAnnotation]);
+function imap(newKeystroke: string, oldKeystroke: string, options?: RemapInModeOptions) {
+  dispatchSKEvent("api", ["imap", newKeystroke, oldKeystroke, options]);
 }
-function lmap(newKeystroke: string, oldKeystroke: string, domain?: RegExp, newAnnotation?: string) {
-  dispatchSKEvent("api", ["lmap", newKeystroke, oldKeystroke, domain, newAnnotation]);
+function lmap(newKeystroke: string, oldKeystroke: string, options?: DomainOptions) {
+  dispatchSKEvent("api", ["lmap", newKeystroke, oldKeystroke, options]);
 }
-function vmap(newKeystroke: string, oldKeystroke: string, domain?: RegExp, newAnnotation?: string) {
-  dispatchSKEvent("api", ["vmap", newKeystroke, oldKeystroke, domain, newAnnotation]);
+function vmap(newKeystroke: string, oldKeystroke: string, options?: RemapInModeOptions) {
+  dispatchSKEvent("api", ["vmap", newKeystroke, oldKeystroke, options]);
 }
 
 const functionsToListSuggestions: Record<string, (response: unknown, request: unknown) => unknown> =
@@ -254,17 +252,17 @@ const api = {
   vmapkey,
   map,
   mapkey,
-  unmap: (keystroke: string, domain?: RegExp) => {
-    dispatchSKEvent("api", ["unmap", keystroke, domain]);
+  unmap: (keystroke: string, options?: DomainOptions) => {
+    dispatchSKEvent("api", ["unmap", keystroke, options]);
   },
-  iunmap: (keystroke: string, domain?: RegExp) => {
-    dispatchSKEvent("api", ["iunmap", keystroke, domain]);
+  iunmap: (keystroke: string, options?: DomainOptions) => {
+    dispatchSKEvent("api", ["iunmap", keystroke, options]);
   },
-  vunmap: (keystroke: string, domain?: RegExp) => {
-    dispatchSKEvent("api", ["vunmap", keystroke, domain]);
+  vunmap: (keystroke: string, options?: DomainOptions) => {
+    dispatchSKEvent("api", ["vunmap", keystroke, options]);
   },
-  unmapAllExcept: (keystrokes: string[], domain?: RegExp) => {
-    dispatchSKEvent("api", ["unmapAllExcept", keystrokes, domain]);
+  unmapAllExcept: (keystrokes: string[], options?: DomainOptions) => {
+    dispatchSKEvent("api", ["unmapAllExcept", keystrokes, options]);
   },
   removeSearchAlias: (alias: string, searchLeaderKey?: string, onlyThisSiteKey?: string) => {
     dispatchSKEvent("api", ["removeSearchAlias", alias, searchLeaderKey, onlyThisSiteKey]);

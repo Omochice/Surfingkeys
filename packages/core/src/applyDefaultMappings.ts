@@ -29,11 +29,11 @@ export function applyDefaultMappings(api: SurfingkeysApi, mappings: DefaultMappi
 }
 
 function registerGoToFirstTab(api: SurfingkeysApi): void {
-  api.map("g0", ":feedkeys 99E", 0, "Go to the first tab", "tabs");
+  api.map("g0", ":feedkeys 99E", { annotation: "Go to the first tab", group: "tabs" });
 }
 
 function registerGoToLastTab(api: SurfingkeysApi): void {
-  api.map("g$", ":feedkeys 99R", 0, "Go to the last tab", "tabs");
+  api.map("g$", ":feedkeys 99R", { annotation: "Go to the last tab", group: "tabs" });
 }
 
 function registerQuit(api: SurfingkeysApi): void {

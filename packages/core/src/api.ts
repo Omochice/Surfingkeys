@@ -44,6 +44,21 @@ export type SearchSelectedWithOptions = {
   alias?: string;
 };
 
+export type RemapOptions = {
+  domain?: RegExp;
+  annotation?: string;
+  group?: FeatureGroup;
+};
+
+export type RemapInModeOptions = {
+  domain?: RegExp;
+  annotation?: string;
+};
+
+export type DomainOptions = {
+  domain?: RegExp;
+};
+
 function createAPI(ctx: ModeContext, env: EngineEnv) {
   const { clipboard, insert, normal, hints, visual, front } = ctx;
   const { RUNTIME, isInUIFrame, tabOpenLink, log: LOG } = env;
@@ -75,9 +90,8 @@ function createAPI(ctx: ModeContext, env: EngineEnv) {
     return keybound;
   }
 
-  function isDomainApplicable(domain?: RegExp | number): boolean {
-    // A falsy domain (undefined or the legacy 0 sentinel) means "applies everywhere".
-    if (!domain || typeof domain === "number") {
+  function isDomainApplicable(domain?: RegExp): boolean {
+    if (domain == null) {
       return true;
     }
     return domain.test(document.location.href) || domain.test(window.origin);
@@ -230,21 +244,14 @@ function createAPI(ctx: ModeContext, env: EngineEnv) {
    *
    * @param {string} newKeystroke A key sequence to replace
    * @param {string} oldKeystroke A key sequence to be replaced
-   * @param {regex} [domain=null] A Javascript regex pattern to identify the domains that this
-   *   mapping works. Default is `null`
-   * @param {string} [newAnnotation=null] Use it instead of the annotation from oldKeystroke if
-   *   provided. Default is `null`
-   * @param {string} [group=null] The section of the help opened by `?` that lists this mapping,
-   *   such as `"tabs"`. Only read when oldKeystroke is a `:command`, since a key alias takes the
-   *   section of the key it replaces. Default is `null`
+   * @param {object} [options=null] `domain`: regex, a Javascript regex pattern to identify the
+   *   domains that this mapping works, `annotation`: string, use it instead of the annotation from
+   *   oldKeystroke if provided, `group`: string, the section of the help opened by `?` that lists
+   *   this mapping, such as `"tabs"`, only read when oldKeystroke is a `:command`, since a key
+   *   alias takes the section of the key it replaces. Default is `null`
    */
-  function map(
-    newKeystroke: string,
-    oldKeystroke: string,
-    domain?: RegExp | number,
-    newAnnotation?: string,
-    group?: FeatureGroup,
-  ): void {
+  function map(newKeystroke: string, oldKeystroke: string, options?: RemapOptions): void {
+    const { domain, annotation, group } = options ?? {};
     if (isDomainApplicable(domain)) {
       if (oldKeystroke[0] === ":" && oldKeystroke.length > 1) {
         const cmdline = oldKeystroke.slice(1);
@@ -257,7 +264,7 @@ function createAPI(ctx: ModeContext, env: EngineEnv) {
             front.executeCommand(cmdline);
           },
           // There is no source mapping to take a section from, unlike the alias branch below.
-          newAnnotation ?? null,
+          annotation ?? null,
           group ?? "misc",
           false,
         );
@@ -265,7 +272,7 @@ function createAPI(ctx: ModeContext, env: EngineEnv) {
       } else {
         const specialKey = specialKeys[oldKeystroke];
         if (
-          !mapInMode(normal, newKeystroke, oldKeystroke, isInUIFrame(), newAnnotation) &&
+          !mapInMode(normal, newKeystroke, oldKeystroke, isInUIFrame(), annotation) &&
           specialKey != null
         ) {
           specialKey.push(newKeystroke);
@@ -281,13 +288,14 @@ function createAPI(ctx: ModeContext, env: EngineEnv) {
    * Unmap a key sequence in normal mode.
    *
    * @example
-   *   unmap("<<", /youtube.com/);
+   *   unmap("<<", { domain: /youtube.com/ });
    *
    * @param {string} keystroke A key sequence to be removed.
-   * @param {regex} [domain=null] A Javascript regex pattern to identify the domains that this
-   *   mapping will be removed. Default is `null`
+   * @param {object} [options=null] `domain`: regex, a Javascript regex pattern to identify the
+   *   domains that this mapping will be removed. Default is `null`
    */
-  function unmap(keystroke: string, domain?: RegExp): void {
+  function unmap(keystroke: string, options?: DomainOptions): void {
+    const { domain } = options ?? {};
     if (isDomainApplicable(domain)) {
       const oldMap = normal.mappings.find(KeyboardUtils.encodeKeystroke(keystroke));
       if (oldMap) {
@@ -311,13 +319,14 @@ function createAPI(ctx: ModeContext, env: EngineEnv) {
    * Unmap all keybindings except those specified.
    *
    * @example
-   *   unmapAllExcept(["E", "R", "T"], /google.com|twitter.com/);
+   *   unmapAllExcept(["E", "R", "T"], { domain: /google.com|twitter.com/ });
    *
    * @param {array} keystrokes The keybindings you want to keep.
-   * @param {regex} [domain=null] A Javascript regex pattern to identify the domains that this
-   *   mapping will be removed. Default is `null`
+   * @param {object} [options=null] `domain`: regex, a Javascript regex pattern to identify the
+   *   domains that this mapping will be removed. Default is `null`
    */
-  function unmapAllExcept(keystrokes: string[], domain?: RegExp): void {
+  function unmapAllExcept(keystrokes: string[], options?: DomainOptions): void {
+    const { domain } = options ?? {};
     if (isDomainApplicable(domain)) {
       const modes: (ModeWithMappings & { keymap: Pick<Keymap, "reset"> })[] = [normal, insert];
       modes.forEach((mode) => {
@@ -341,20 +350,15 @@ function createAPI(ctx: ModeContext, env: EngineEnv) {
    *
    * @param {string} newKeystroke A key sequence to replace
    * @param {string} oldKeystroke A key sequence to be replaced
-   * @param {regex} [domain=null] A Javascript regex pattern to identify the domains that this
-   *   mapping works. Default is `null`
-   * @param {string} [newAnnotation=null] Use it instead of the annotation from oldKeystroke if
-   *   provided. Default is `null`
+   * @param {object} [options=null] `domain`: regex, a Javascript regex pattern to identify the
+   *   domains that this mapping works, `annotation`: string, use it instead of the annotation from
+   *   oldKeystroke if provided. Default is `null`
    * @see map
    */
-  function imap(
-    newKeystroke: string,
-    oldKeystroke: string,
-    domain?: RegExp,
-    newAnnotation?: string,
-  ): void {
+  function imap(newKeystroke: string, oldKeystroke: string, options?: RemapInModeOptions): void {
+    const { domain, annotation } = options ?? {};
     if (isDomainApplicable(domain)) {
-      mapInMode(insert, newKeystroke, oldKeystroke, isInUIFrame(), newAnnotation);
+      mapInMode(insert, newKeystroke, oldKeystroke, isInUIFrame(), annotation);
     }
   }
 
@@ -362,11 +366,12 @@ function createAPI(ctx: ModeContext, env: EngineEnv) {
    * Unmap a key sequence in insert mode.
    *
    * @param {string} keystroke A key sequence to be removed.
-   * @param {regex} [domain=null] A Javascript regex pattern to identify the domains that this
-   *   mapping will be removed. Default is `null`
+   * @param {object} [options=null] `domain`: regex, a Javascript regex pattern to identify the
+   *   domains that this mapping will be removed. Default is `null`
    * @see unmap
    */
-  function iunmap(keystroke: string, domain?: RegExp): void {
+  function iunmap(keystroke: string, options?: DomainOptions): void {
+    const { domain } = options ?? {};
     if (isDomainApplicable(domain)) {
       insert.mappings.remove(KeyboardUtils.encodeKeystroke(keystroke));
     }
@@ -377,18 +382,12 @@ function createAPI(ctx: ModeContext, env: EngineEnv) {
    *
    * @param {string} newKeystroke A key sequence to replace
    * @param {string} oldKeystroke A key sequence to be replaced
-   * @param {regex} [domain=null] A Javascript regex pattern to identify the domains that this
-   *   mapping works. Default is `null`
-   * @param {string} [newAnnotation=null] Use it instead of the annotation from oldKeystroke if
-   *   provided. Default is `null`
+   * @param {object} [options=null] `domain`: regex, a Javascript regex pattern to identify the
+   *   domains that this mapping works. Default is `null`
    * @see map
    */
-  function cmap(
-    newKeystroke: string,
-    oldKeystroke: string,
-    domain?: RegExp,
-    _new_annotation?: string,
-  ): void {
+  function cmap(newKeystroke: string, oldKeystroke: string, options?: DomainOptions): void {
+    const { domain } = options ?? {};
     if (isDomainApplicable(domain)) {
       dispatchSKEvent("front", ["addMapkey", "Omnibar", newKeystroke, oldKeystroke]);
     }
@@ -401,11 +400,12 @@ function createAPI(ctx: ModeContext, env: EngineEnv) {
    *   cunmap("<Ctrl-j>");
    *
    * @param {string} keystroke A key sequence to be removed.
-   * @param {regex} [domain=null] A Javascript regex pattern to identify the domains that this
-   *   mapping will be removed. Default is `null`
+   * @param {object} [options=null] `domain`: regex, a Javascript regex pattern to identify the
+   *   domains that this mapping will be removed. Default is `null`
    * @see unmap
    */
-  function cunmap(keystroke: string, domain?: RegExp): void {
+  function cunmap(keystroke: string, options?: DomainOptions): void {
+    const { domain } = options ?? {};
     if (isDomainApplicable(domain)) {
       dispatchSKEvent("front", ["removeMapkey", "Omnibar", keystroke]);
     }
@@ -416,20 +416,15 @@ function createAPI(ctx: ModeContext, env: EngineEnv) {
    *
    * @param {string} newKeystroke A key sequence to replace
    * @param {string} oldKeystroke A key sequence to be replaced
-   * @param {regex} [domain=null] A Javascript regex pattern to identify the domains that this
-   *   mapping works. Default is `null`
-   * @param {string} [newAnnotation=null] Use it instead of the annotation from oldKeystroke if
-   *   provided. Default is `null`
+   * @param {object} [options=null] `domain`: regex, a Javascript regex pattern to identify the
+   *   domains that this mapping works, `annotation`: string, use it instead of the annotation from
+   *   oldKeystroke if provided. Default is `null`
    * @see map
    */
-  function vmap(
-    newKeystroke: string,
-    oldKeystroke: string,
-    domain?: RegExp,
-    newAnnotation?: string,
-  ): void {
+  function vmap(newKeystroke: string, oldKeystroke: string, options?: RemapInModeOptions): void {
+    const { domain, annotation } = options ?? {};
     if (isDomainApplicable(domain)) {
-      mapInMode(visual, newKeystroke, oldKeystroke, isInUIFrame(), newAnnotation);
+      mapInMode(visual, newKeystroke, oldKeystroke, isInUIFrame(), annotation);
     }
   }
 
@@ -437,11 +432,12 @@ function createAPI(ctx: ModeContext, env: EngineEnv) {
    * Unmap a key sequence in visual mode.
    *
    * @param {string} keystroke A key sequence to be removed.
-   * @param {regex} [domain=null] A Javascript regex pattern to identify the domains that this
-   *   mapping will be removed. Default is `null`
+   * @param {object} [options=null] `domain`: regex, a Javascript regex pattern to identify the
+   *   domains that this mapping will be removed. Default is `null`
    * @see unmap
    */
-  function vunmap(keystroke: string, domain?: RegExp): void {
+  function vunmap(keystroke: string, options?: DomainOptions): void {
+    const { domain } = options ?? {};
     if (isDomainApplicable(domain)) {
       visual.mappings.remove(KeyboardUtils.encodeKeystroke(keystroke));
     }
@@ -452,18 +448,12 @@ function createAPI(ctx: ModeContext, env: EngineEnv) {
    *
    * @param {string} newKeystroke A key sequence to replace
    * @param {string} oldKeystroke A key sequence to be replaced
-   * @param {regex} [domain=null] A Javascript regex pattern to identify the domains that this
-   *   mapping works. Default is `null`
-   * @param {string} [newAnnotation=null] Use it instead of the annotation from oldKeystroke if
-   *   provided. Default is `null`
+   * @param {object} [options=null] `domain`: regex, a Javascript regex pattern to identify the
+   *   domains that this mapping works. Default is `null`
    * @see map
    */
-  function lmap(
-    newKeystroke: string,
-    oldKeystroke: string,
-    domain?: RegExp,
-    _new_annotation?: string,
-  ): void {
+  function lmap(newKeystroke: string, oldKeystroke: string, options?: DomainOptions): void {
+    const { domain } = options ?? {};
     if (isDomainApplicable(domain)) {
       normal.addLurkMap(newKeystroke, oldKeystroke);
     }
