@@ -1094,13 +1094,13 @@ function refreshHints(
 
 function rotateInput(
   inputs: string[],
-  backward: boolean,
   curr: number,
-  str?: string,
+  options: { backward: boolean; prefix?: string | undefined },
 ): [string | undefined, number] {
+  const { backward, prefix } = options;
   let list = inputs;
-  if (str) {
-    list = inputs.filter((l) => l.indexOf(str) === 0 && l !== str);
+  if (prefix) {
+    list = inputs.filter((l) => l.indexOf(prefix) === 0 && l !== prefix);
     if (curr > list.length) {
       curr = list.length;
     }
@@ -1108,7 +1108,7 @@ function rotateInput(
   const delta = backward ? -1 : 1;
   const length = list.length + 1; // +1 for empty input
   curr = (curr + length + delta) % length;
-  return [curr < list.length ? list[curr] : str, curr];
+  return [curr < list.length ? list[curr] : prefix, curr];
 }
 
 /**

@@ -1125,12 +1125,10 @@ const Find = (() => {
         event.keyCode === KeyboardUtils.keyCodes["downArrow"]
       ) {
         if (findHistory.length) {
-          const [rotated, nextInc] = rotateInput(
-            findHistory,
-            event.keyCode === KeyboardUtils.keyCodes["downArrow"],
-            historyInc,
-            userInput,
-          );
+          const [rotated, nextInc] = rotateInput(findHistory, historyInc, {
+            backward: event.keyCode === KeyboardUtils.keyCodes["downArrow"],
+            prefix: userInput,
+          });
           // rotateInput only yields undefined for an out-of-range index, which the length guard
           // above rules out; the fallback just avoids rendering "undefined".
           inputEl.value = rotated ?? inputEl.value;
