@@ -1,4 +1,10 @@
+import type { ContextualIdentities } from "webextension-polyfill";
+
 import { extendObject, getSubSettings } from "./settings";
+
+// The global `browser` from @types/chrome is `typeof chrome`, which would hide
+// the Firefox-only contextualIdentities API.
+declare const browser: { contextualIdentities: ContextualIdentities.Static };
 
 async function loadRawSettings(
   keys: string | readonly string[] | null | undefined,
