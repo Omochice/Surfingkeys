@@ -8,7 +8,6 @@ export type MapkeyOptions = {
 
 /** Options accepted by `searchSelectedWith`. */
 export type SearchSelectedWithOptions = {
-  /** Restricts the search to the current site. */
   onlyThisSite?: boolean;
   /** Opens the omnibar on the query instead of searching at once. */
   interactive?: boolean;

@@ -38,7 +38,9 @@ export type MapOptions = {
 
 export type SearchSelectedWithOptions = {
   onlyThisSite?: boolean;
+  /** Opens the omnibar on the query instead of searching at once. */
   interactive?: boolean;
+  /** Replaces `searchUrl` in interactive mode. */
   alias?: string;
 };
 
@@ -618,14 +620,6 @@ function createAPI(ctx: ModeContext, env: EngineEnv) {
    *
    * @example
    *   searchSelectedWith("https://translate.google.com/?hl=en#auto/en/");
-   *
-   * @param {string} searchUrl A search engine's search URL
-   * @param {object} [options=null] `onlyThisSite`: boolean, whether to search only within current
-   *   site, needs support from the provided search engine, `interactive`: boolean, whether to
-   *   search in interactive mode, in case that you need some small modification on the selected
-   *   content, `alias`: string, only used with interactive mode, in such case the url from
-   *   `searchUrl` is ignored, SurfingKeys will construct search URL from the alias registered by
-   *   `addSearchAlias`. Default is `null`
    */
   function searchSelectedWith(searchUrl: string, options?: SearchSelectedWithOptions): void {
     const { onlyThisSite, interactive, alias } = options ?? {};
