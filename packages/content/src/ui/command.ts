@@ -1,6 +1,7 @@
 import type { FeatureGroup } from "@sk/core/featureGroup";
+import { reportError } from "@sk/core/report";
 import { createElementWithContent } from "@sk/core/utils";
-import { RUNTIME } from "@sk/messaging/runtime";
+import { request, RUNTIME } from "@sk/messaging/runtime";
 
 import { buildOmnibarResult } from "./omnibarResult";
 import type { OmnibarResult } from "./omnibarResult";
@@ -94,11 +95,11 @@ const createCommands = (normal: NormalLike, command: CommandFn, omnibar: Omnibar
   command(
     "listQueueURLs",
     () => {
-      RUNTIME("getQueueURLs", null, (response: { queueURLs: string[] }) => {
+      request<{ queueURLs: string[] }>("getQueueURLs").then((response) => {
         omnibar.listResults(response.queueURLs, (url) => {
           return buildOmnibarResult(createElementWithContent("li", url), {});
         });
-      });
+      }, reportError);
     },
     { annotation: "list URLs in queue waiting for open" },
   );

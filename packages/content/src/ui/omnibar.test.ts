@@ -1,5 +1,6 @@
 import { Result } from "@praha/byethrow";
-import { RUNTIME, runtime } from "@sk/messaging/runtime";
+import { request, RUNTIME, runtime } from "@sk/messaging/runtime";
+import { flush } from "@sk/test-support/helpers";
 import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 
 import createOmnibar from "./omnibar";
@@ -10,10 +11,17 @@ vi.mock("@sk/messaging/runtime", async (importOriginal) => {
   return {
     ...orig,
     RUNTIME: vi.fn(() => Result.succeed(undefined)),
+    request: vi.fn(() => new Promise(() => {})),
   };
 });
 
 const mockRUNTIME = vi.mocked(RUNTIME);
+const mockRequest = vi.mocked(request);
+
+beforeEach(() => {
+  mockRequest.mockReset();
+  mockRequest.mockImplementation(() => new Promise(() => {}));
+});
 
 function buildOmnibarDOM() {
   document.body.innerHTML = `
@@ -628,7 +636,7 @@ describe("createOmnibar — AddBookmark.onInput folder filtering", () => {
     localStorage.clear();
   });
 
-  it("lists only folders whose title matches the typed query (case-insensitive)", () => {
+  it("lists only folders whose title matches the typed query (case-insensitive)", async () => {
     const { omnibar, ui } = makeOmnibar();
 
     const folders = [
@@ -636,13 +644,14 @@ describe("createOmnibar — AddBookmark.onInput folder filtering", () => {
       { title: "/Other Bookmarks/", id: "2" },
       { title: "/Dev/", id: "3" },
     ];
-    mockRUNTIME.mockImplementation((_action: any, _args: any, cb?: any) => {
-      if (_action === "getBookmarkFolders" && cb) cb({ folders });
-      if (_action === "getBookmark" && cb) cb({ bookmarks: [] });
-      return Result.succeed(undefined);
+    mockRequest.mockImplementation((action: any) => {
+      if (action === "getBookmarkFolders") return Promise.resolve({ folders });
+      if (action === "getBookmark") return Promise.resolve({ bookmarks: [] });
+      return new Promise(() => {});
     });
 
     ui.onShow({ type: "AddBookmark", extra: { url: "https://x.com", title: "X" } });
+    await flush();
     expect(omnibar.results().length).toBe(3);
 
     omnibar.input.value = "bar";
@@ -1367,7 +1376,7 @@ describe("OpenBookmarks handler — onInput + onResponse", () => {
     expect(getBookmarksCall?.[1]).toMatchObject({ query: "My" });
   });
 
-  it("onResponse populates results from RUNTIME getBookmarks response bookmarks", () => {
+  it("onResponse populates results from the getBookmarks response bookmarks", async () => {
     const { omnibar, ui } = makeOmnibar();
 
     const folders = [{ id: "1", title: "/Bar/" }];
@@ -1376,18 +1385,15 @@ describe("OpenBookmarks handler — onInput + onResponse", () => {
       { id: "b2", title: "Page Two", url: "https://two.com", dateAdded: 0, parentId: "1" },
     ];
 
-    mockRUNTIME.mockImplementation((_action: any, _args: any, cb?: any) => {
-      if (_action === "getBookmarkFolders" && cb) {
-        cb({ folders });
-      }
-      if (_action === "getBookmarks" && cb) {
-        cb({ bookmarks });
-      }
-      return Result.succeed(undefined);
+    mockRequest.mockImplementation((action: any) => {
+      if (action === "getBookmarkFolders") return Promise.resolve({ folders });
+      if (action === "getBookmarks") return Promise.resolve({ bookmarks });
+      return new Promise(() => {});
     });
 
     omnibar.input.value = "";
     ui.onShow({ type: "Bookmarks" });
+    await flush();
 
     const urls = omnibar.results().map((r: any) => r.data.url);
     expect(urls).toContain("https://one.com");
@@ -1489,7 +1495,7 @@ describe("AddBookmark handler — onEnter creates bookmark in focused folder", (
     localStorage.clear();
   });
 
-  it("onEnter calls RUNTIME createBookmark with the folder from focusedResult", () => {
+  it("onEnter calls RUNTIME createBookmark with the folder from focusedResult", async () => {
     const { omnibar, ui } = makeOmnibar();
     runtime.conf.focusFirstCandidate = true;
 
@@ -1499,13 +1505,12 @@ describe("AddBookmark handler — onEnter creates bookmark in focused folder", (
     ];
 
     let createBookmarkArgs: any = null;
+    mockRequest.mockImplementation((action: any) => {
+      if (action === "getBookmarkFolders") return Promise.resolve({ folders });
+      if (action === "getBookmark") return Promise.resolve({ bookmarks: [] });
+      return new Promise(() => {});
+    });
     mockRUNTIME.mockImplementation((_action: any, _args: any, cb?: any) => {
-      if (_action === "getBookmarkFolders" && cb) {
-        cb({ folders });
-      }
-      if (_action === "getBookmark" && cb) {
-        cb({ bookmarks: [] });
-      }
       if (_action === "createBookmark") {
         createBookmarkArgs = _args;
         if (cb) cb({});
@@ -1517,6 +1522,7 @@ describe("AddBookmark handler — onEnter creates bookmark in focused folder", (
       type: "AddBookmark",
       extra: { url: "https://new-page.com", title: "New Page" },
     });
+    await flush();
 
     expect(omnibar.focusedIndex()).toBeGreaterThanOrEqual(0);
 

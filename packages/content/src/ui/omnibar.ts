@@ -25,7 +25,7 @@ import {
   tryDecodeURI,
   tryDecodeURIComponent,
 } from "@sk/core/utils";
-import { RUNTIME, runtime } from "@sk/messaging/runtime";
+import { request, RUNTIME, runtime } from "@sk/messaging/runtime";
 import { createEffect, createRoot, createSignal } from "solid-js";
 import { render } from "solid-js/web";
 
@@ -987,19 +987,15 @@ function createOmnibar(front: OmnibarFront, clipboard: { write(text: string): vo
       folders: Record<string, { id: string; title?: string }>,
     ) => void,
   ): void => {
-    reportOnFail(
-      RUNTIME(
-        "getBookmarkFolders",
-        null,
-        (response: { folders: { id: string; title?: string }[] }) => {
-          const folders: Record<string, BookmarkFolder> = {};
-          response.folders.forEach((f) => {
-            folders[f.id] = f;
-          });
-          bookmarkFolders = folders;
-          cb && cb(response, folders);
-        },
-      ),
+    request<{ folders: { id: string; title?: string }[] }>("getBookmarkFolders").then(
+      (response) => {
+        const folders: Record<string, BookmarkFolder> = {};
+        response.folders.forEach((f) => {
+          folders[f.id] = f;
+        });
+        bookmarkFolders = folders;
+        cb && cb(response, folders);
+      },
       reportError,
     );
   };
@@ -1077,35 +1073,31 @@ function createOmnibar(front: OmnibarFront, clipboard: { write(text: string): vo
             { queryInfo: runtime.conf.omnibarTabsQuery },
             (response: { tabs: { title?: string; url?: string }[] }) => {
               let results: readonly { title?: string; url?: string }[] = response.tabs;
-              reportOnFail(
-                RUNTIME(
-                  "getTopSites",
-                  null,
-                  (response2: { urls: { title?: string; url?: string }[] }) => {
-                    results = results.concat(response2.urls);
-                    results = filterByTitleOrUrl(
-                      results,
-                      self.input.value,
-                      runtime.getCaseSensitive(self.input.value),
+              request<{ urls: { title?: string; url?: string }[] }>("getTopSites").then(
+                (response2) => {
+                  results = results.concat(response2.urls);
+                  results = filterByTitleOrUrl(
+                    results,
+                    self.input.value,
+                    runtime.getCaseSensitive(self.input.value),
+                  );
+                  self.listBookmarkFolders(() => {
+                    reportOnFail(
+                      RUNTIME(
+                        "getAllURLs",
+                        {
+                          maxResults: self.getHistoryCacheSize() - results.length,
+                          query: self.input.value,
+                        },
+                        (response3: { urls: { title?: string; url?: string }[] }) => {
+                          results = results.concat(response3.urls);
+                          resolve(results);
+                        },
+                      ),
+                      reportError,
                     );
-                    self.listBookmarkFolders(() => {
-                      reportOnFail(
-                        RUNTIME(
-                          "getAllURLs",
-                          {
-                            maxResults: self.getHistoryCacheSize() - results.length,
-                            query: self.input.value,
-                          },
-                          (response3: { urls: { title?: string; url?: string }[] }) => {
-                            results = results.concat(response3.urls);
-                            resolve(results);
-                          },
-                        ),
-                        reportError,
-                      );
-                    });
-                  },
-                ),
+                  });
+                },
                 reportError,
               );
             },
@@ -1119,20 +1111,16 @@ function createOmnibar(front: OmnibarFront, clipboard: { write(text: string): vo
     "RecentlyClosed",
     OpenURLs("Recently closed", self, () => {
       return new Promise((resolve) => {
-        reportOnFail(
-          RUNTIME(
-            "getRecentlyClosed",
-            null,
-            (response: { urls: { title?: string; url?: string }[] }) => {
-              resolve(
-                filterByTitleOrUrl(
-                  response.urls,
-                  self.input.value,
-                  runtime.getCaseSensitive(self.input.value),
-                ),
-              );
-            },
-          ),
+        request<{ urls: { title?: string; url?: string }[] }>("getRecentlyClosed").then(
+          (response) => {
+            resolve(
+              filterByTitleOrUrl(
+                response.urls,
+                self.input.value,
+                runtime.getCaseSensitive(self.input.value),
+              ),
+            );
+          },
           reportError,
         );
       });
@@ -1142,18 +1130,15 @@ function createOmnibar(front: OmnibarFront, clipboard: { write(text: string): vo
     "TabURLs",
     OpenURLs("Tab History", self, () => {
       return new Promise((resolve) => {
-        reportOnFail(
-          RUNTIME("getTabURLs", null, (response: { urls: { title?: string; url?: string }[] }) => {
-            resolve(
-              filterByTitleOrUrl(
-                response.urls,
-                self.input.value,
-                runtime.getCaseSensitive(self.input.value),
-              ),
-            );
-          }),
-          reportError,
-        );
+        request<{ urls: { title?: string; url?: string }[] }>("getTabURLs").then((response) => {
+          resolve(
+            filterByTitleOrUrl(
+              response.urls,
+              self.input.value,
+              runtime.getCaseSensitive(self.input.value),
+            ),
+          );
+        }, reportError);
       });
     }),
   );
@@ -1195,7 +1180,7 @@ function OpenBookmarks(omnibar: Omnibar): OpenBookmarksHandler {
       );
     } else {
       currentFolderId = undefined;
-      reportOnFail(RUNTIME("getBookmarks", null, self.onResponse), reportError);
+      request<{ bookmarks: { url?: string }[] }>("getBookmarks").then(self.onResponse, reportError);
     }
     self.prompt = folder.prompt;
     omnibar.setPrompt(self.prompt ?? "");
@@ -1273,7 +1258,10 @@ function OpenBookmarks(omnibar: Omnibar): OpenBookmarksHandler {
         self.inFolder = JSON.parse(lastBookmarkFolder);
         onFolderUp();
       } else {
-        reportOnFail(RUNTIME("getBookmarks", null, self.onResponse), reportError);
+        request<{ bookmarks: { url?: string }[] }>("getBookmarks").then(
+          self.onResponse,
+          reportError,
+        );
       }
       if (omnibar.input.value !== "") {
         self.onInput?.();
@@ -1365,31 +1353,28 @@ function AddBookmark(omnibar: Omnibar): AddBookmarkHandler {
       omnibar.listResults(folders.slice(), (f: BookmarkFolder) => {
         return buildFolderResult(f.title ?? "", f.id);
       });
-      reportOnFail(
-        RUNTIME("getBookmark", null, (resp: { bookmarks: { parentId?: string | number }[] }) => {
-          if (resp.bookmarks.length) {
-            const b = resp.bookmarks[0];
-            omnibar.setPrompt("edit bookmark");
-            const idx = omnibar
-              .results()
-              .findIndex((r: OmnibarResult) => r.data.folder === String(b?.parentId));
-            if (idx !== -1) {
-              omnibar.focusItem(idx);
-            }
+      request<{ bookmarks: { parentId?: string | number }[] }>("getBookmark").then((resp) => {
+        if (resp.bookmarks.length) {
+          const b = resp.bookmarks[0];
+          omnibar.setPrompt("edit bookmark");
+          const idx = omnibar
+            .results()
+            .findIndex((r: OmnibarResult) => r.data.folder === String(b?.parentId));
+          if (idx !== -1) {
+            omnibar.focusItem(idx);
           }
+        }
 
-          const lastBookmarkFolder = localStorage.getItem("surfingkeys.lastAddedBookmark");
-          if (lastBookmarkFolder) {
-            omnibar.setQuery(lastBookmarkFolder);
+        const lastBookmarkFolder = localStorage.getItem("surfingkeys.lastAddedBookmark");
+        if (lastBookmarkFolder) {
+          omnibar.setQuery(lastBookmarkFolder);
 
-            // Select it, so typing overwrites the restored value for a user who does not want it.
-            omnibar.input.select();
+          // Select it, so typing overwrites the restored value for a user who does not want it.
+          omnibar.input.select();
 
-            self.onInput?.();
-          }
-        }),
-        reportError,
-      );
+          self.onInput?.();
+        }
+      }, reportError);
     });
   };
 
