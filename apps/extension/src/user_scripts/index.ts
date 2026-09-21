@@ -82,10 +82,14 @@ function vmapkey(
 }
 
 const userDefinedCommands: Record<string, (...args: unknown[]) => void> = {};
-// eslint-disable-next-line typescript/no-explicit-any -- user command callback of arbitrary signature
-function addCommand(name: string, description: string, action: (...args: any[]) => void) {
+function addCommand(
+  name: string,
+  // eslint-disable-next-line typescript/no-explicit-any -- user command callback of arbitrary signature
+  action: (...args: any[]) => void,
+  options?: { description?: string },
+) {
   userDefinedCommands[name] = action;
-  dispatchSKEvent("front", ["addCommand", name, description]);
+  dispatchSKEvent("front", ["addCommand", name, options?.description ?? ""]);
 }
 
 function map(newKeystroke: string, oldKeystroke: string, options?: RemapOptions) {

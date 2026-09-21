@@ -167,7 +167,7 @@ describe("vmapkey (via api returned by factory)", () => {
 describe("addCommand (via api returned by factory)", () => {
   it("dispatches a surfingkeys:front event with ['addCommand', name, description]", () => {
     const events = captureEvents("surfingkeys:front", () => {
-      capturedApi.addCommand("myCmd", "My command description", vi.fn());
+      capturedApi.addCommand("myCmd", vi.fn(), { description: "My command description" });
     });
 
     const evt = events.find(
@@ -178,6 +178,17 @@ describe("addCommand (via api returned by factory)", () => {
         e.detail[2] === "My command description",
     );
     expect(evt).not.toBeUndefined();
+  });
+
+  it("dispatches an empty description when options is omitted", () => {
+    const events = captureEvents("surfingkeys:front", () => {
+      capturedApi.addCommand("noDescCmd", vi.fn());
+    });
+
+    const evt = events.find(
+      (e) => Array.isArray(e.detail) && e.detail[0] === "addCommand" && e.detail[1] === "noDescCmd",
+    );
+    expect((evt as CustomEvent).detail[2]).toBe("");
   });
 });
 
@@ -548,7 +559,7 @@ describe("surfingkeys:user — callUserFunction", () => {
 describe("surfingkeys:user — executeUserCommand", () => {
   it("invokes the registered command with its spread args", () => {
     const action = vi.fn();
-    capturedApi.addCommand("greet", "say hi", action);
+    capturedApi.addCommand("greet", action, { description: "say hi" });
 
     fireUser(["executeUserCommand", "greet", ["alice", "bob"]]);
 
@@ -557,7 +568,7 @@ describe("surfingkeys:user — executeUserCommand", () => {
 
   it("does nothing for an unknown command name", () => {
     const action = vi.fn();
-    capturedApi.addCommand("known", "", action);
+    capturedApi.addCommand("known", action);
 
     fireUser(["executeUserCommand", "unknown-cmd", []]);
 
