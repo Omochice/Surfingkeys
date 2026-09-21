@@ -202,9 +202,9 @@ export function createSettings(deps: SettingsDeps): SettingsUnit {
   function getState(
     blocklist: Record<string, unknown>,
     url: URL | null,
-    blocklistPattern: { source: string; flags: string } | undefined,
-    lurkingPattern: { source: string; flags: string } | undefined,
+    patterns: v.InferOutput<typeof togglePatternMessageSchema>,
   ) {
+    const { blocklistPattern, lurkingPattern } = patterns;
     if (blocklist[".*"]) {
       return "disabled";
     }
@@ -321,7 +321,7 @@ export function createSettings(deps: SettingsDeps): SettingsUnit {
       if (!sender) {
         return undefined;
       }
-      const { blocklistPattern, lurkingPattern } = v.parse(togglePatternMessageSchema, message);
+      const patterns = v.parse(togglePatternMessageSchema, message);
       const data = await loadSettings("blocklist");
       const blocklist = v.parse(blocklistSchema, data["blocklist"]);
       const senderUrl = getSenderUrl(sender);
@@ -343,8 +343,7 @@ export function createSettings(deps: SettingsDeps): SettingsUnit {
         state: getState(
           blocklist,
           sender.tab && senderUrl != null ? new URL(senderUrl) : null,
-          blocklistPattern,
-          lurkingPattern,
+          patterns,
         ),
         blocklist,
         url: origin,
@@ -367,7 +366,7 @@ export function createSettings(deps: SettingsDeps): SettingsUnit {
       }
     },
     getState: async (message: unknown, sender?: chrome.runtime.MessageSender) => {
-      const { blocklistPattern, lurkingPattern } = v.parse(togglePatternMessageSchema, message);
+      const patterns = v.parse(togglePatternMessageSchema, message);
       const data = await loadSettings(["blocklist"]);
       if (sender?.tab) {
         const senderUrl = getSenderUrl(sender);
@@ -375,8 +374,7 @@ export function createSettings(deps: SettingsDeps): SettingsUnit {
           state: getState(
             v.parse(blocklistSchema, data["blocklist"]),
             senderUrl != null ? new URL(senderUrl) : null,
-            blocklistPattern,
-            lurkingPattern,
+            patterns,
           ),
         };
       }
