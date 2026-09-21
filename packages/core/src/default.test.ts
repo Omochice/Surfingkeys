@@ -1,3 +1,4 @@
+import { flush } from "@sk/test-support/helpers";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import type { EngineEnv } from "./engineEnv";
@@ -5,8 +6,11 @@ import { repeatCount } from "./repeatCount";
 
 const seam = vi.hoisted(() => {
   const RUNTIME = Object.assign(vi.fn(), { repeats: 1 });
+  const request = vi.fn(() => new Promise<any>(() => {}));
   return {
     RUNTIME,
+    request,
+    reportError: vi.fn(),
     dispatchSKEvent: vi.fn(),
     tabOpenLink: vi.fn(),
     runtimeConf: {
@@ -42,6 +46,8 @@ vi.mock("./events", () => ({
 
 vi.mock("./utils", () => seam.utils);
 
+vi.mock("./report", () => ({ reportError: seam.reportError }));
+
 import { applyDefaultMappings, registerDefaultExtras } from "./applyDefaultMappings";
 import createDefaultMappings from "./default";
 
@@ -49,6 +55,7 @@ import createDefaultMappings from "./default";
 // reflected at handler-invocation time.
 const makeEnv = (): EngineEnv => ({
   RUNTIME: seam.RUNTIME,
+  request: seam.request,
   isInUIFrame: () => false,
   reportIssue: () => {},
   tabOpenLink: seam.tabOpenLink,
@@ -352,7 +359,6 @@ describe("RUNTIME keys that pass a response handler", () => {
   // message is observable.
   const cases: Array<[string, string, unknown]> = [
     ["yj", "getSettings", { key: "RAW" }],
-    ["yY", "getTabs", null],
     ["yQ", "getSettings", { key: "OmniQueryHistory" }],
     ["gp", "getTabs", { queryInfo: { audible: true } }],
     ["yd", "getDownloads", { query: { state: "in_progress" } }],
@@ -781,17 +787,24 @@ describe(";pj restores settings from clipboard", () => {
   });
 });
 
-describe("yY response callback writes tab URLs to clipboard", () => {
-  it("joins tab URLs with newlines", () => {
-    let capturedCb: ((r: { tabs: { url: string }[] }) => void) | null = null;
-    seam.RUNTIME.mockImplementationOnce(
-      (_subj: string, _arg: unknown, cb: (r: { tabs: { url: string }[] }) => void) => {
-        capturedCb = cb;
-      },
-    );
+describe("yY writes tab URLs to clipboard", () => {
+  it("joins tab URLs with newlines", async () => {
+    seam.request.mockResolvedValueOnce({
+      tabs: [{ url: "https://a.com" }, { url: "https://b.com" }],
+    });
     fire("yY");
-    capturedCb!({ tabs: [{ url: "https://a.com" }, { url: "https://b.com" }] });
+    await flush();
+    expect(seam.request).toHaveBeenLastCalledWith("getTabs");
     expect(ctx.clipboard.write).toHaveBeenLastCalledWith("https://a.com\nhttps://b.com");
+  });
+
+  it("reports the failure once and writes nothing when the request rejects", async () => {
+    const failure = { kind: "chrome-runtime", op: "sendMessage:getTabs", cause: "gone" };
+    seam.request.mockRejectedValueOnce(failure);
+    fire("yY");
+    await flush();
+    expect(seam.reportError).toHaveBeenCalledExactlyOnceWith(failure);
+    expect(ctx.clipboard.write).not.toHaveBeenCalled();
   });
 });
 
@@ -1760,20 +1773,14 @@ describe("yg captures the visible tab", () => {
     fire("yg");
     expect(ctx.front.toggleStatus).toHaveBeenLastCalledWith(false);
     vi.advanceTimersByTime(500);
-    expect(seam.RUNTIME).toHaveBeenLastCalledWith("captureVisibleTab", null, expect.any(Function));
+    expect(seam.request).toHaveBeenLastCalledWith("captureVisibleTab");
   });
 
-  it("the captureVisibleTab callback toggles status back on and shows the image", () => {
+  it("the captureVisibleTab response toggles status back on and shows the image", async () => {
     vi.useFakeTimers();
-    let capturedCb: ((r: { dataUrl: string }) => void) | null = null;
-    seam.RUNTIME.mockImplementationOnce(
-      (_s: string, _a: unknown, cb: (r: { dataUrl: string }) => void) => {
-        capturedCb = cb;
-      },
-    );
+    seam.request.mockResolvedValueOnce({ dataUrl: "data:image/png;base64,abc" });
     fire("yg");
-    vi.advanceTimersByTime(500);
-    capturedCb!({ dataUrl: "data:image/png;base64,abc" });
+    await vi.advanceTimersByTimeAsync(500);
     expect(ctx.front.toggleStatus).toHaveBeenLastCalledWith(true);
     expect(seam.utils.showPopup).toHaveBeenLastCalledWith(
       expect.stringContaining("data:image/png;base64,abc"),

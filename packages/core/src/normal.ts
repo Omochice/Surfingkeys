@@ -6,6 +6,7 @@ import KeyboardUtils from "./keyboardUtils";
 import { type Keymap, createKeymap } from "./keymap";
 import { ModeHandle, getCurrentMode, showModeStatus, suppressKeyUp } from "./mode";
 import { repeatCount } from "./repeatCount";
+import { reportError } from "./report";
 import { getScrollableElements, hasScroll } from "./scrollDetection";
 import { isSpecialKeyOf } from "./specialKeys";
 import Trie from "./trie";
@@ -248,7 +249,7 @@ function createPassThrough(): PassThroughMode {
 }
 
 function createNormal(insert: InsertLike, env: EngineEnv): NormalMode {
-  const { RUNTIME, isInUIFrame, getExtensionURL } = env;
+  const { RUNTIME, request, isInUIFrame, getExtensionURL } = env;
   const mode = new ModeHandle("Normal");
   const mappings = new Trie();
 
@@ -912,7 +913,7 @@ function createNormal(insert: InsertLike, env: EngineEnv): NormalMode {
   };
 
   const captureElement = (elm: HTMLElement): void => {
-    RUNTIME("getCaptureSize", null, (response: { width: number }) => {
+    request<{ width: number }>("getCaptureSize").then((response) => {
       const scale = response.width / window.innerWidth;
 
       elm.scrollTop = 0;
@@ -995,9 +996,9 @@ function createNormal(insert: InsertLike, env: EngineEnv): NormalMode {
               destinationX = elm.scrollLeft * scale;
             }
             setTimeout(() => {
-              RUNTIME("captureVisibleTab", null, (response: { dataUrl: string }) => {
+              request<{ dataUrl: string }>("captureVisibleTab").then((response) => {
                 img.src = response.dataUrl;
-              });
+              }, reportError);
             }, 1000);
           }
         } else {
@@ -1010,20 +1011,20 @@ function createNormal(insert: InsertLike, env: EngineEnv): NormalMode {
             destinationY = elm.scrollTop * scale;
           }
           setTimeout(() => {
-            RUNTIME("captureVisibleTab", null, (response: { dataUrl: string }) => {
+            request<{ dataUrl: string }>("captureVisibleTab").then((response) => {
               img.src = response.dataUrl;
-            });
+            }, reportError);
           }, 1000);
         }
       };
 
       // wait 500 millisecond for keystrokes of Surfingkeys to hide
       setTimeout(() => {
-        RUNTIME("captureVisibleTab", null, (response: { dataUrl: string }) => {
+        request<{ dataUrl: string }>("captureVisibleTab").then((response) => {
           img.src = response.dataUrl;
-        });
+        }, reportError);
       }, 500);
-    });
+    }, reportError);
   };
 
   mappings.add("yG", {
