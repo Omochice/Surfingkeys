@@ -14,7 +14,7 @@ import { reportError } from "@sk/core/report";
 type RuntimeFn = {
   <R = unknown>(
     action: string,
-    args?: Record<string, unknown> | null,
+    args?: Record<string, unknown>,
     callback?: (response: R) => void,
   ): Result.Result<void, ChromeRuntimeError>;
 };
@@ -59,7 +59,7 @@ function buildPayload(
  */
 const RUNTIME: RuntimeFn = function <R = unknown>(
   action: string,
-  args?: Record<string, unknown> | null,
+  args?: Record<string, unknown>,
   callback?: (response: R) => void,
 ): Result.Result<void, ChromeRuntimeError> {
   const a = buildPayload(action, args, callback != null);
@@ -133,9 +133,9 @@ const getTopURLPromise = new Promise<string>((resolve) => {
   if (window === top) {
     resolve(window.location.href);
   } else {
-    RUNTIME("getTopURL", null, (response: { url: string }) => {
+    request<{ url: string }>("getTopURL").then((response) => {
       resolve(response.url);
-    });
+    }, reportError);
   }
 });
 

@@ -1,5 +1,7 @@
 import { Result } from "@praha/byethrow";
-import { RUNTIME } from "@sk/messaging/runtime";
+import { reportError } from "@sk/core/report";
+import { request, RUNTIME } from "@sk/messaging/runtime";
+import { flush } from "@sk/test-support/helpers";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import createCommands from "./command";
@@ -12,10 +14,15 @@ vi.mock("@sk/messaging/runtime", async (importOriginal) => {
   return {
     ...orig,
     RUNTIME: vi.fn(() => Result.succeed(undefined)),
+    request: vi.fn(() => new Promise(() => {})),
   };
 });
 
+vi.mock("@sk/core/report", () => ({ reportError: vi.fn() }));
+
 const mockRUNTIME = vi.mocked(RUNTIME);
+const mockRequest = vi.mocked(request);
+const mockReportError = vi.mocked(reportError);
 
 type Handler = (args: string[]) => void | boolean;
 
@@ -73,6 +80,9 @@ function onlyBatch(listed: OmnibarResult[][]): OmnibarResult[] {
 beforeEach(() => {
   mockRUNTIME.mockReset();
   mockRUNTIME.mockReturnValue(Result.succeed(undefined));
+  mockRequest.mockReset();
+  mockRequest.mockImplementation(() => new Promise(() => {}));
+  mockReportError.mockReset();
 });
 
 describe("listSession", () => {
@@ -92,17 +102,28 @@ describe("listSession", () => {
 });
 
 describe("listQueueURLs", () => {
-  it("renders each queued URL as an OmnibarResult row", () => {
-    mockRUNTIME.mockImplementation((_action, _args, callback) => {
-      callback?.({ queueURLs: ["https://a.example", "https://b.example"] });
-      return Result.succeed(undefined);
-    });
+  it("renders each queued URL as an OmnibarResult row", async () => {
+    mockRequest.mockResolvedValue({ queueURLs: ["https://a.example", "https://b.example"] });
 
     const { handlers, listed } = setup();
     runCommand(handlers, "listQueueURLs");
+    await flush();
 
+    expect(mockRequest).toHaveBeenLastCalledWith("getQueueURLs");
     const rows = onlyBatch(listed);
     expect(rows.map((row) => row.data.text)).toEqual(["https://a.example", "https://b.example"]);
     expect(rows[0]?.html).toContain("https://a.example");
+  });
+
+  it("reports the failure once and lists nothing when the request rejects", async () => {
+    const failure = { kind: "chrome-runtime", op: "sendMessage:getQueueURLs", cause: "gone" };
+    mockRequest.mockRejectedValue(failure);
+
+    const { handlers, listed } = setup();
+    runCommand(handlers, "listQueueURLs");
+    await flush();
+
+    expect(mockReportError).toHaveBeenCalledExactlyOnceWith(failure);
+    expect(listed).toHaveLength(0);
   });
 });

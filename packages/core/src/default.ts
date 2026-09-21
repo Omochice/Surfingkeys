@@ -8,6 +8,7 @@ import type { FeatureGroup } from "./featureGroup";
 import KeyboardUtils from "./keyboardUtils";
 import type { ModeContext } from "./modeGraph";
 import { repeatCount } from "./repeatCount";
+import { reportError } from "./report";
 import {
   getBrowserName,
   getCssSelectorsOfEditable,
@@ -467,10 +468,10 @@ function defineCapturePage(ctx: ModeContext, env: EngineEnv): ModalMappingDef {
       code: () => {
         ctx.front.toggleStatus(false);
         setTimeout(() => {
-          env.RUNTIME("captureVisibleTab", null, (response: { dataUrl: string }) => {
+          env.request<{ dataUrl: string }>("captureVisibleTab").then((response) => {
             ctx.front.toggleStatus(true);
             showPopup(`<img src='${response.dataUrl}' />`);
-          });
+          }, reportError);
         }, 500);
       },
     },
@@ -1499,13 +1500,13 @@ function defineCopyAllTabUrls(ctx: ModeContext, env: EngineEnv): ModalMappingDef
       group: "clipboard",
       annotation: "Copy all tabs's url",
       code: () => {
-        env.RUNTIME("getTabs", null, (response) => {
+        env.request("getTabs").then((response) => {
           const { tabs } = v.parse(
             v.object({ tabs: v.array(v.object({ url: v.optional(v.string()) })) }),
             response,
           );
           ctx.clipboard.write(tabs.map((tab) => tab.url ?? "").join("\n"));
-        });
+        }, reportError);
       },
     },
   };

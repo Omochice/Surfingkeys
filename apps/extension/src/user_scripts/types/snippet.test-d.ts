@@ -33,6 +33,11 @@ describe("a settings snippet", () => {
     >();
   });
 
+  test("rejects a positional placeholder in place of the arguments", () => {
+    // @ts-expect-error -- null is not a record of arguments
+    api.RUNTIME("getTabURLs", null, (response) => response);
+  });
+
   test("assigns a documented setting", () => {
     settings.hintAlign = "left";
     expectTypeOf(settings).toHaveProperty("scrollStepSize");

@@ -1,56 +1,52 @@
-import { reportOnFail } from "@sk/common/result";
 import { reportError } from "@sk/core/report";
 import { hide, setSanitizedContent, show } from "@sk/core/utils";
-import { RUNTIME } from "@sk/messaging/runtime";
+import { request } from "@sk/messaging/runtime";
 
-reportOnFail(
-  RUNTIME("getTopSites", null, (response: { urls: { url: string; title: string }[] }) => {
-    const urls = response.urls.map((u: { url: string; title: string }) => {
-      const favUrl = chrome.runtime.getURL(`/_favicon/?pageUrl=${encodeURIComponent(u.url)}`);
-      return `<li><a href="${u.url}"><i style="background:url(${favUrl}) no-repeat"></i>${u.title}</a></li>`;
-    });
-    setSanitizedContent(document.querySelector("#topSites>ul")!, urls.join("\n"));
+request<{ urls: { url: string; title: string }[] }>("getTopSites").then((response) => {
+  const urls = response.urls.map((u: { url: string; title: string }) => {
+    const favUrl = chrome.runtime.getURL(`/_favicon/?pageUrl=${encodeURIComponent(u.url)}`);
+    return `<li><a href="${u.url}"><i style="background:url(${favUrl}) no-repeat"></i>${u.title}</a></li>`;
+  });
+  setSanitizedContent(document.querySelector("#topSites>ul")!, urls.join("\n"));
 
-    const screen1 = document.querySelector<HTMLElement>("#screen1")!;
-    show(screen1);
-    screen1.classList.add("fadeIn");
+  const screen1 = document.querySelector<HTMLElement>("#screen1")!;
+  show(screen1);
+  screen1.classList.add("fadeIn");
 
-    const screen2 = document.querySelector<HTMLElement>("#screen2")!;
+  const screen2 = document.querySelector<HTMLElement>("#screen2")!;
 
-    document.getElementById("back")!.onclick = () => {
-      const classList = screen2.classList;
-      classList.remove("fadeOut");
-      classList.remove("fadeIn");
-      classList.add("fadeOut");
-      screen2.addEventListener(
-        "animationend",
-        () => {
-          hide(screen2);
-          show(screen1);
-          screen1.classList.add("fadeIn");
-        },
-        { once: true },
-      );
-    };
+  document.getElementById("back")!.onclick = () => {
+    const classList = screen2.classList;
+    classList.remove("fadeOut");
+    classList.remove("fadeIn");
+    classList.add("fadeOut");
+    screen2.addEventListener(
+      "animationend",
+      () => {
+        hide(screen2);
+        show(screen1);
+        screen1.classList.add("fadeIn");
+      },
+      { once: true },
+    );
+  };
 
-    document.querySelector<HTMLElement>("#show-full-list-of-surfingkeys>a")!.onclick = () => {
-      const classList = screen1.classList;
-      classList.remove("fadeOut");
-      classList.remove("fadeIn");
-      classList.add("fadeOut");
-      screen1.addEventListener(
-        "animationend",
-        () => {
-          hide(screen1);
-          show(screen2);
-          screen2.classList.add("fadeIn");
-        },
-        { once: true },
-      );
-    };
-  }),
-  reportError,
-);
+  document.querySelector<HTMLElement>("#show-full-list-of-surfingkeys>a")!.onclick = () => {
+    const classList = screen1.classList;
+    classList.remove("fadeOut");
+    classList.remove("fadeIn");
+    classList.add("fadeOut");
+    screen1.addEventListener(
+      "animationend",
+      () => {
+        hide(screen1);
+        show(screen2);
+        screen2.classList.add("fadeIn");
+      },
+      { once: true },
+    );
+  };
+}, reportError);
 
 document.addEventListener("surfingkeys:userSettingsLoaded", (evt) => {
   if (!(evt instanceof CustomEvent)) {

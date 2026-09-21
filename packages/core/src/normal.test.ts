@@ -23,6 +23,10 @@ const env: EngineEnv = {
     }
     return Result.succeed();
   },
+  request: (action, args) =>
+    new Promise((resolve) => {
+      chrome.runtime.sendMessage({ ...args, action, needResponse: true }, resolve);
+    }),
   isInUIFrame: () => false,
   reportIssue: () => {},
   tabOpenLink: vi.fn(),
@@ -1151,10 +1155,10 @@ describe("createNormal captureElement", () => {
     Reflect.deleteProperty(document, "scrollingElement");
   });
 
-  it("calls RUNTIME getCaptureSize then schedules captureVisibleTab after 500 ms", () => {
-    // Make sendMessage invoke the getCaptureSize callback synchronously, then
-    // record captureVisibleTab calls without invoking their callbacks (to avoid
-    // triggering the img.onload chain which requires a real canvas).
+  it("requests getCaptureSize then schedules captureVisibleTab after 500 ms", async () => {
+    // Make sendMessage answer getCaptureSize synchronously, then record
+    // captureVisibleTab calls without answering them (to avoid triggering the
+    // img.onload chain which requires a real canvas).
     const capturedActions: string[] = [];
     (globalThis as any).chrome.runtime.sendMessage = (
       msg: any,
@@ -1174,13 +1178,13 @@ describe("createNormal captureElement", () => {
     expect(capturedActions).toContain("getCaptureSize");
 
     expect(capturedActions).not.toContain("captureVisibleTab");
-    vi.advanceTimersByTime(600);
+    await vi.advanceTimersByTimeAsync(600);
     expect(capturedActions).toContain("captureVisibleTab");
 
     (globalThis as any).chrome.runtime.sendMessage = () => {};
   });
 
-  it("hides scrollbars and borders before the first captureVisibleTab call", () => {
+  it("hides scrollbars and borders before the first captureVisibleTab call", async () => {
     (globalThis as any).chrome.runtime.sendMessage = (
       msg: any,
       cb?: (r: unknown) => void,
@@ -1194,8 +1198,8 @@ describe("createNormal captureElement", () => {
     const elm = document.documentElement;
 
     normal.captureElement(elm);
+    await vi.advanceTimersByTimeAsync(0);
 
-    // Style mutations happen synchronously inside the getCaptureSize callback.
     expect(elm.style.overflowY).toBe("hidden");
     expect(elm.style.overflowX).toBe("hidden");
     expect(elm.style.borderStyle).toBe("none");
@@ -1203,7 +1207,7 @@ describe("createNormal captureElement", () => {
     (globalThis as any).chrome.runtime.sendMessage = () => {};
   });
 
-  it("dispatches front toggleStatus false before taking the screenshot", () => {
+  it("dispatches front toggleStatus false before taking the screenshot", async () => {
     const events: CustomEvent[] = [];
     const capture = (e: Event): void => {
       events.push(e as CustomEvent);
@@ -1221,6 +1225,7 @@ describe("createNormal captureElement", () => {
 
     const normal = createNormal(insertStub, env);
     normal.captureElement(document.documentElement);
+    await vi.advanceTimersByTimeAsync(0);
 
     document.removeEventListener("surfingkeys:front", capture);
     (globalThis as any).chrome.runtime.sendMessage = () => {};

@@ -8,7 +8,7 @@ import { hide, requireElement, show } from "@sk/core/utils";
 
 type RuntimeFn = <R = unknown>(
   action: string,
-  args?: Record<string, unknown> | null,
+  args?: Record<string, unknown>,
   callback?: (resp: R) => void,
 ) => Result.Result<void, ChromeRuntimeError>;
 type RequestFn = <R = unknown>(action: string, args?: Record<string, unknown>) => Promise<R>;
@@ -66,6 +66,7 @@ type OptionsDeps = {
 export default function optionsMain(deps: OptionsDeps): void {
   const {
     RUNTIME,
+    request,
     KeyboardUtils,
     ModeHandle,
     createElementWithContent,
@@ -186,14 +187,11 @@ export default function optionsMain(deps: OptionsDeps): void {
       resetBtn.innerText =
         "WARNING! This will clear all your settings. Click this again to continue.";
     } else {
-      reportOnFail(
-        RUNTIME("resetSettings", null, (response: { settings: StoredSettings }) => {
-          renderSettings(response.settings);
-          renderKeyMappings(response.settings);
-          showBanner("Settings reset", 1000);
-        }),
-        reportError,
-      );
+      request<{ settings: StoredSettings }>("resetSettings").then((response) => {
+        renderSettings(response.settings);
+        renderKeyMappings(response.settings);
+        showBanner("Settings reset", 1000);
+      }, reportError);
     }
   };
 

@@ -29,10 +29,13 @@ function buildDOM(): void {
 }
 
 function makeRUNTIME() {
-  return vi.fn(
-    (_action: string, _args?: Record<string, unknown> | null, _cb?: (resp: any) => void) =>
-      Result.succeed(undefined),
+  return vi.fn((_action: string, _args?: Record<string, unknown>, _cb?: (resp: any) => void) =>
+    Result.succeed(undefined),
   );
+}
+
+function makeRequest() {
+  return vi.fn((_action: string, _args?: Record<string, unknown>) => new Promise<any>(() => {}));
 }
 
 function makeKeyboardUtils() {
@@ -73,9 +76,10 @@ function makeCreateElementWithContent() {
   };
 }
 
-function initOptions(runtimeSpy = makeRUNTIME()) {
+function initOptions(runtimeSpy = makeRUNTIME(), requestSpy = makeRequest()) {
   optionsMain({
     RUNTIME: runtimeSpy,
+    request: requestSpy,
     KeyboardUtils: makeKeyboardUtils(),
     ModeHandle: makeMode() as any,
     createElementWithContent: makeCreateElementWithContent(),
@@ -159,6 +163,7 @@ describe("showAdvanced toggle behavior", () => {
 
     optionsMain({
       RUNTIME: RUNTIME as any,
+      request: makeRequest() as any,
       KeyboardUtils: makeKeyboardUtils(),
       ModeHandle: makeMode() as any,
       createElementWithContent: makeCreateElementWithContent(),
@@ -197,15 +202,16 @@ describe("resetSettings button", () => {
     expect(btn.innerText).toContain("WARNING");
   });
 
-  it("calls RUNTIME resetSettings on the second click", () => {
-    const RUNTIME = initOptions();
+  it("requests resetSettings on the second click", () => {
+    const request = makeRequest();
+    initOptions(makeRUNTIME(), request);
     const btn = document.getElementById("resetSettings") as HTMLElement;
     btn.innerText = "Reset";
     btn.onclick!(new MouseEvent("click") as unknown as PointerEvent);
-    expect(RUNTIME).not.toHaveBeenCalledWith("resetSettings", expect.anything(), expect.anything());
+    expect(request).not.toHaveBeenCalledWith("resetSettings");
 
     btn.onclick!(new MouseEvent("click") as unknown as PointerEvent);
-    expect(RUNTIME).toHaveBeenCalledWith("resetSettings", null, expect.any(Function));
+    expect(request).toHaveBeenCalledWith("resetSettings");
   });
 });
 
@@ -399,6 +405,7 @@ describe("Firefox-specific localPathForSettings display", () => {
 
     optionsMain({
       RUNTIME: makeRUNTIME() as any,
+      request: makeRequest() as any,
       KeyboardUtils: makeKeyboardUtils(),
       ModeHandle: makeMode() as any,
       createElementWithContent: makeCreateElementWithContent(),
@@ -601,6 +608,7 @@ describe("KeyPicker keydown: Escape hides the picker", () => {
 
     optionsMain({
       RUNTIME: makeRUNTIME() as any,
+      request: makeRequest() as any,
       KeyboardUtils: makeKeyboardUtils(),
       ModeHandle: ModeClass as any,
       createElementWithContent: makeCreateElementWithContent(),
@@ -642,6 +650,7 @@ describe("KeyPicker keydown: regular character appends to key", () => {
 
     optionsMain({
       RUNTIME: makeRUNTIME() as any,
+      request: makeRequest() as any,
       KeyboardUtils: makeKeyboardUtils(),
       ModeHandle: ModeClass as any,
       createElementWithContent: makeCreateElementWithContent(),
@@ -675,6 +684,7 @@ function renderBasicMappingKbd(origin: string, userSettings: Record<string, unkn
 
   optionsMain({
     RUNTIME: RUNTIME as any,
+    request: makeRequest() as any,
     KeyboardUtils: makeKeyboardUtils(),
     ModeHandle: ModeClass as any,
     createElementWithContent: makeCreateElementWithContent(),
@@ -782,6 +792,7 @@ describe("KeyPicker keydown: Backspace removes last character", () => {
 
     optionsMain({
       RUNTIME: makeRUNTIME() as any,
+      request: makeRequest() as any,
       KeyboardUtils: makeKeyboardUtils(),
       ModeHandle: ModeClass as any,
       createElementWithContent: makeCreateElementWithContent(),
@@ -892,6 +903,7 @@ describe("renderSearchAlias: aliases with object prompt", () => {
 
     optionsMain({
       RUNTIME: RUNTIME as any,
+      request: makeRequest() as any,
       KeyboardUtils: makeKeyboardUtils(),
       ModeHandle: makeMode() as any,
       createElementWithContent: makeCreateElementWithContent(),
@@ -952,6 +964,7 @@ describe("saveSettings: loadSettingsFromUrl callback updates snippets", () => {
 
     optionsMain({
       RUNTIME: RUNTIME as any,
+      request: makeRequest() as any,
       KeyboardUtils: makeKeyboardUtils(),
       ModeHandle: makeMode() as any,
       createElementWithContent: makeCreateElementWithContent(),
@@ -989,6 +1002,7 @@ describe("saveSettings: loadSettingsFromUrl callback updates snippets", () => {
 
     optionsMain({
       RUNTIME: RUNTIME as any,
+      request: makeRequest() as any,
       KeyboardUtils: makeKeyboardUtils(),
       ModeHandle: makeMode() as any,
       createElementWithContent: makeCreateElementWithContent(),

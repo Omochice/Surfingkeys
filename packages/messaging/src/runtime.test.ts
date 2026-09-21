@@ -32,7 +32,7 @@ describe("RUNTIME", () => {
     });
     const userCallback = vi.fn();
 
-    const result = RUNTIME("getTabs", null, userCallback);
+    const result = RUNTIME("getTabs", {}, userCallback);
 
     expect(Result.isSuccess(result)).toBe(true);
     expect(userCallback).toHaveBeenCalledWith(response);
@@ -46,7 +46,7 @@ describe("RUNTIME", () => {
     });
     const userCallback = vi.fn();
 
-    RUNTIME("getTabs", null, userCallback);
+    RUNTIME("getTabs", {}, userCallback);
 
     expect(userCallback).not.toHaveBeenCalled();
     expect(reportErrorMock).toHaveBeenCalledTimes(1);
@@ -64,7 +64,7 @@ describe("RUNTIME", () => {
       throw new Error("Extension context invalidated.");
     });
 
-    const result = RUNTIME("getTabs", null, vi.fn());
+    const result = RUNTIME("getTabs", {}, vi.fn());
 
     expect(Result.isFailure(result)).toBe(true);
     if (Result.isFailure(result)) {
@@ -120,7 +120,7 @@ describe("RUNTIME", () => {
       cb?.(undefined);
     });
 
-    RUNTIME("getTabs", null, vi.fn());
+    RUNTIME("getTabs", {}, vi.fn());
 
     expect(reportErrorMock).toHaveBeenCalledWith(
       expect.objectContaining({ cause: "unknown error" }),
