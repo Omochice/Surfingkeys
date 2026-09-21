@@ -48,10 +48,14 @@ describe("regexFromString", () => {
 
   it("matches metacharacters literally rather than as a pattern", () => {
     fc.assert(
-      fc.property(word, word, word, fc.boolean(), (prefix, w, suffix, caseSensitive) => {
-        const rxp = regexFromString(w, caseSensitive, false);
-        expect(rxp.test(prefix + w + suffix)).toBe(true);
-      }),
+      fc.property(
+        fc.tuple(word, word, word),
+        fc.boolean(),
+        ([prefix, w, suffix], caseSensitive) => {
+          const rxp = regexFromString(w, caseSensitive, false);
+          expect(rxp.test(prefix + w + suffix)).toBe(true);
+        },
+      ),
     );
   });
 });
