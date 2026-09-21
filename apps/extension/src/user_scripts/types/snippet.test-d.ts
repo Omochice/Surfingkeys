@@ -23,6 +23,10 @@ describe("a settings snippet", () => {
     api.addSearchAlias("d", "duckduckgo", "https://duckduckgo.com/?q=");
   });
 
+  test("removes a search alias without a positional placeholder", () => {
+    api.removeSearchAlias("d", { onlyThisSiteKey: "o" });
+  });
+
   test("assigns a documented setting", () => {
     settings.hintAlign = "left";
     expectTypeOf(settings).toHaveProperty("scrollStepSize");

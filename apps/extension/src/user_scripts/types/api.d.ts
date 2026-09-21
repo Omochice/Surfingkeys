@@ -36,7 +36,7 @@ export type RemapOptions = RemapInModeOptions & {
 };
 
 /** The keys that trigger a search alias outside the omnibar. */
-type SearchAliasKeyOptions = {
+export type SearchAliasKeyOptions = {
   /** `<searchLeaderKey><alias>` searches the selection with the engine, without the omnibar. */
   searchLeaderKey?: string;
   /** `<searchLeaderKey><onlyThisSiteKey><alias>` limits that search to the current site. */
@@ -95,7 +95,7 @@ export type UserScriptApi = {
    */
   addSearchAlias: (alias: string, searchUrl: string, options?: SearchAliasOptions) => void;
   /** Removes a search engine added by `addSearchAlias`. */
-  removeSearchAlias: (alias: string, searchLeaderKey?: string, onlyThisSiteKey?: string) => void;
+  removeSearchAlias: (alias: string, options?: SearchAliasKeyOptions) => void;
   /**
    * Searches the selected text, or the clipboard when nothing is selected.
    *
