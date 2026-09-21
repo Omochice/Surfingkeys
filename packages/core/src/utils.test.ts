@@ -599,7 +599,7 @@ describe("mapInMode", () => {
     const code = () => {};
     mode.mappings.add(KeyboardUtils.encodeKeystroke("j"), { annotation: "down", code });
 
-    const old = mapInMode(mode, "x", "j", false);
+    const old = mapInMode(mode, { newKeystroke: "x", oldKeystroke: "j" }, false);
 
     expect(old).toBeDefined();
     const rebound = mode.mappings.find(KeyboardUtils.encodeKeystroke("x"));
@@ -614,7 +614,7 @@ describe("mapInMode", () => {
       group: "sessions",
     });
 
-    mapInMode(mode, "x", "j", false, "Custom");
+    mapInMode(mode, { newKeystroke: "x", oldKeystroke: "j", annotation: "Custom" }, false);
 
     const rebound = mode.mappings.find(KeyboardUtils.encodeKeystroke("x"));
     expect(rebound?.meta?.group).toBe("sessions");
@@ -623,14 +623,16 @@ describe("mapInMode", () => {
 
   it("returns undefined when the source mapping does not exist", () => {
     const mode = { name: "normal", mappings: new Trie() };
-    expect(mapInMode(mode, "x", "nonexistent", false)).toBeUndefined();
+    expect(
+      mapInMode(mode, { newKeystroke: "x", oldKeystroke: "nonexistent" }, false),
+    ).toBeUndefined();
   });
 
   it("does not create a mapping from a keystroke that is only a prefix of longer ones", () => {
     const mode = { name: "normal", mappings: new Trie() };
     mode.mappings.add(KeyboardUtils.encodeKeystroke("jk"), { annotation: "down", code: () => {} });
 
-    expect(mapInMode(mode, "x", "j", false)).toBeUndefined();
+    expect(mapInMode(mode, { newKeystroke: "x", oldKeystroke: "j" }, false)).toBeUndefined();
     expect(mode.mappings.find(KeyboardUtils.encodeKeystroke("x"))).toBeUndefined();
   });
 });
@@ -862,7 +864,11 @@ describe("mapInMode — additional branches", () => {
     const mode = { name: "normal", mappings: new Trie() };
     mode.mappings.add(KeyboardUtils.encodeKeystroke("k"), { annotation: "up" });
 
-    mapInMode(mode, "y", "k", false, ["Custom annotation", "param"]);
+    mapInMode(
+      mode,
+      { newKeystroke: "y", oldKeystroke: "k", annotation: ["Custom annotation", "param"] },
+      false,
+    );
 
     const rebound = mode.mappings.find(KeyboardUtils.encodeKeystroke("y"));
     expect(rebound?.meta?.annotation).toEqual(["Custom annotation", "param"]);

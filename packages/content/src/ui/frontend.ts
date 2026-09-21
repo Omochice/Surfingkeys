@@ -581,7 +581,7 @@ const Front = (() => {
     } else if (mode != null && Object.hasOwn(modes, mode)) {
       const targetMode = modes[mode];
       if (targetMode != null) {
-        mapInMode(targetMode, newKeystroke, oldKeystroke, isInUIFrame());
+        mapInMode(targetMode, { newKeystroke, oldKeystroke }, isInUIFrame());
       }
     }
   };

@@ -895,22 +895,20 @@ function normalizeAnnotation(annotation: string | string[]): string | string[] {
 
 function mapInMode(
   mode: { name: string; mappings: Trie },
-  newKeystroke: string,
-  oldKeystroke: string,
+  remap: { newKeystroke: string; oldKeystroke: string; annotation?: string | string[] | undefined },
   // Injected because this pure helper must not reach the WebExtension API itself.
   inUIFrame: boolean,
-  newAnnotation?: string | string[],
 ): Trie | undefined {
-  oldKeystroke = KeyboardUtils.encodeKeystroke(oldKeystroke);
+  const oldKeystroke = KeyboardUtils.encodeKeystroke(remap.oldKeystroke);
   const oldMap = mode.mappings.find(oldKeystroke);
   // A node without meta is only a prefix of longer mappings; copying it would bind a key to nothing.
   if (oldMap?.meta == null) return undefined;
-  newKeystroke = KeyboardUtils.encodeKeystroke(newKeystroke);
+  const newKeystroke = KeyboardUtils.encodeKeystroke(remap.newKeystroke);
   mode.mappings.remove(newKeystroke);
   // meta.word need to be new
   let meta: Omit<TrieMeta, "word"> = { ...oldMap.meta };
-  if (newAnnotation) {
-    meta = { ...meta, annotation: normalizeAnnotation(newAnnotation) };
+  if (remap.annotation) {
+    meta = { ...meta, annotation: normalizeAnnotation(remap.annotation) };
   }
   mode.mappings.add(newKeystroke, meta);
   if (!inUIFrame) {
