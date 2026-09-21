@@ -123,7 +123,7 @@ function createVisual(clipboard: ClipboardLike, hints: HintsLike, env: EngineEnv
   });
   mode.addEventListener("scroll", () => {
     matches.forEach((m) => {
-      const r = unwrapOr<DOMRectList | DOMRect[]>(getTextRect(m[0], m[1]), [])[0];
+      const r = unwrapOr<DOMRectList | DOMRect[]>(getTextRect({ node: m[0], offset: m[1] }), [])[0];
       if (r == null) {
         return;
       }
@@ -620,7 +620,7 @@ function createVisual(clipboard: ClipboardLike, hints: HintsLike, env: EngineEnv
     offset2: number,
   ): HTMLElement[] {
     const rects = unwrapOr<DOMRectList | DOMRect[]>(
-      getTextRect(node1, offset1, node2, offset2),
+      getTextRect({ node: node1, offset: offset1 }, { node: node2, offset: offset2 }),
       [],
     );
     if (rects.length > 100) {

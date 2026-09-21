@@ -730,28 +730,23 @@ function getTextNodePos(
   return pos;
 }
 
+/** One end of a DOM range: a node and an offset within it. */
+export type BoundaryPoint = { node: Node; offset: number };
+
 const focusedRange = document.createRange();
 function getTextRect(
-  node: Node,
-  startOffset: number,
-  endNodeOrOffset?: Node | number,
-  endOffset?: number,
+  start: BoundaryPoint,
+  end: BoundaryPoint = start,
 ): Result.Result<DOMRectList | DOMRect[], DomApiError> {
   return Result.try({
     try: () => {
       let rects: DOMRectList | DOMRect[] = [];
-      let start = startOffset;
-      while (rects.length === 0 && start >= 0) {
-        focusedRange.setStart(node, start);
-        if (endOffset != null && typeof endNodeOrOffset === "object") {
-          focusedRange.setEnd(endNodeOrOffset, endOffset);
-        } else if (typeof endNodeOrOffset === "number") {
-          focusedRange.setEnd(node, endNodeOrOffset);
-        } else {
-          focusedRange.setEnd(node, startOffset);
-        }
+      let startOffset = start.offset;
+      while (rects.length === 0 && startOffset >= 0) {
+        focusedRange.setStart(start.node, startOffset);
+        focusedRange.setEnd(end.node, end.offset);
         rects = focusedRange.getClientRects();
-        start--;
+        startOffset--;
       }
       return rects;
     },
@@ -765,7 +760,10 @@ function locateFocusNode(
   const sel = selection!;
   const focusElement = sel.focusNode!.parentElement!;
   scrollIntoViewIfNeeded(focusElement, true);
-  let r0 = unwrapOr<DOMRectList | DOMRect[]>(getTextRect(sel.focusNode!, sel.focusOffset), [])[0];
+  let r0 = unwrapOr<DOMRectList | DOMRect[]>(
+    getTextRect({ node: sel.focusNode!, offset: sel.focusOffset }),
+    [],
+  )[0];
   if (!r0 && sel.focusNode instanceof Element) {
     r0 = sel.focusNode.getBoundingClientRect();
   }
@@ -834,7 +832,10 @@ function getWordUnderCursor(mouseCursor?: boolean): string | null {
   if (selection.focusNode && selection.focusNode.textContent) {
     const range = getNearestWord(selection.focusNode.textContent, selection.focusOffset);
     const selRect = unwrapOr<DOMRectList | DOMRect[]>(
-      getTextRect(selection.focusNode, range[0], range[0] + range[1]),
+      getTextRect(
+        { node: selection.focusNode, offset: range[0] },
+        { node: selection.focusNode, offset: range[0] + range[1] },
+      ),
       [],
     )[0];
     const word = selection.focusNode.textContent.slice(range[0], range[0] + range[1]);
