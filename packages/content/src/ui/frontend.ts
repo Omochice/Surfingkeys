@@ -6,6 +6,7 @@ import { type FeatureGroup, featureGroups, isFeatureGroup } from "@sk/core/featu
 import KeyboardUtils from "@sk/core/keyboardUtils";
 import { ModeHandle, initModeHub } from "@sk/core/mode";
 import createModeGraph, { type ModeContext } from "@sk/core/modeGraph";
+import { reportError } from "@sk/core/report";
 import { isSpecialKeyOf, specialKeys } from "@sk/core/specialKeys";
 import type Trie from "@sk/core/trie";
 import {
@@ -23,7 +24,7 @@ import {
   setSanitizedContent,
   mapInMode,
 } from "@sk/core/utils";
-import { RUNTIME, runtime } from "@sk/messaging/runtime";
+import { request, RUNTIME, runtime } from "@sk/messaging/runtime";
 import { createSignal } from "solid-js";
 import { render } from "solid-js/web";
 import * as v from "valibot";
@@ -424,37 +425,36 @@ const Front = (() => {
   }
   function chooseTab(): void {
     const tabsThreshold = Math.min(runtime.conf.tabsThreshold, Math.ceil(window.innerWidth / 26));
-    RUNTIME(
-      "getTabs",
-      { queryInfo: { currentWindow: true }, tabsThreshold },
-      (response: { tabs: TabsTab[] }) => {
-        if (response.tabs.length > tabsThreshold) {
-          showElement(omnibarElement, () => {
-            omnibarElement.onShow({ type: "Tabs" });
-          });
-        } else if (response.tabs.length > 0) {
-          showElement(
-            tabsElement,
-            () => {
-              renderTabs(response.tabs);
-            },
-            (matched) => {
-              if (
-                matched &&
-                typeof matched === "object" &&
-                "windowId" in matched &&
-                "id" in matched
-              ) {
-                RUNTIME("focusTab", {
-                  windowId: matched.windowId,
-                  tabId: matched.id,
-                });
-              }
-            },
-          );
-        }
-      },
-    );
+    request<{ tabs: TabsTab[] }>("getTabs", {
+      queryInfo: { currentWindow: true },
+      tabsThreshold,
+    }).then((response) => {
+      if (response.tabs.length > tabsThreshold) {
+        showElement(omnibarElement, () => {
+          omnibarElement.onShow({ type: "Tabs" });
+        });
+      } else if (response.tabs.length > 0) {
+        showElement(
+          tabsElement,
+          () => {
+            renderTabs(response.tabs);
+          },
+          (matched) => {
+            if (
+              matched &&
+              typeof matched === "object" &&
+              "windowId" in matched &&
+              "id" in matched
+            ) {
+              RUNTIME("focusTab", {
+                windowId: matched.windowId,
+                tabId: matched.id,
+              });
+            }
+          },
+        );
+      }
+    }, reportError);
   }
   actions["chooseTab"] = chooseTab;
 
@@ -1090,17 +1090,13 @@ const Find = (() => {
       }
     };
     let findHistory: string[] = [];
-    RUNTIME(
-      "getSettings",
-      {
-        key: "findHistory",
-      },
-      (response: { settings: { findHistory: string[] } }) => {
-        userInput = "";
-        findHistory = response.settings.findHistory;
-        historyInc = findHistory.length;
-      },
-    );
+    request<{ settings: { findHistory: string[] } }>("getSettings", {
+      key: "findHistory",
+    }).then((response) => {
+      userInput = "";
+      findHistory = response.settings.findHistory;
+      historyInc = findHistory.length;
+    }, reportError);
     inputEl.onkeydown = (event) => {
       if (isSpecialKeyOf("<Esc>", event.sk_keyName ?? "")) {
         reset();

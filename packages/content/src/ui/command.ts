@@ -50,17 +50,13 @@ const createCommands = (normal: NormalLike, command: CommandFn, omnibar: Omnibar
   command(
     "listSession",
     () => {
-      RUNTIME(
-        "getSettings",
-        {
-          key: "sessions",
-        },
-        (response: { settings: { sessions: Record<string, unknown> } }) => {
-          omnibar.listResults(Object.keys(response.settings.sessions), (name) => {
-            return buildOmnibarResult(createElementWithContent("li", name), {});
-          });
-        },
-      );
+      request<{ settings: { sessions: Record<string, unknown> } }>("getSettings", {
+        key: "sessions",
+      }).then((response) => {
+        omnibar.listResults(Object.keys(response.settings.sessions), (name) => {
+          return buildOmnibarResult(createElementWithContent("li", name), {});
+        });
+      }, reportError);
     },
     { annotation: "list session" },
   );

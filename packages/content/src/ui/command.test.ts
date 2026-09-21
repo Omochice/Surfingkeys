@@ -86,15 +86,14 @@ beforeEach(() => {
 });
 
 describe("listSession", () => {
-  it("renders each session name as an OmnibarResult row", () => {
-    mockRUNTIME.mockImplementation((_action, _args, callback) => {
-      callback?.({ settings: { sessions: { work: {}, personal: {} } } });
-      return Result.succeed(undefined);
-    });
+  it("renders each session name as an OmnibarResult row", async () => {
+    mockRequest.mockResolvedValue({ settings: { sessions: { work: {}, personal: {} } } });
 
     const { handlers, listed } = setup();
     runCommand(handlers, "listSession");
+    await flush();
 
+    expect(mockRequest).toHaveBeenLastCalledWith("getSettings", { key: "sessions" });
     const rows = onlyBatch(listed);
     expect(rows.map((row) => row.data.text)).toEqual(["work", "personal"]);
     expect(rows[0]?.html).toContain("work");

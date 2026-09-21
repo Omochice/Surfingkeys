@@ -1,5 +1,4 @@
 import { isInUIFrame } from "@sk/adapter/platform-utils";
-import { reportOnFail } from "@sk/common/result";
 import createAPI from "@sk/core/api";
 import { applyDefaultMappings, registerDefaultExtras } from "@sk/core/applyDefaultMappings";
 import type { StoredSettings } from "@sk/core/conf";
@@ -16,7 +15,7 @@ import createNormal from "@sk/core/normal";
 import startScrollNodeObserver from "@sk/core/observer";
 import { reportError } from "@sk/core/report";
 import { generateQuickGuid, getRealEdit, showBanner } from "@sk/core/utils";
-import { request, RUNTIME, runtime } from "@sk/messaging/runtime";
+import { request, runtime } from "@sk/messaging/runtime";
 
 import { createEngineEnv } from "./common/createEngineEnv";
 import { hasLayoutOffsets } from "./common/dom";
@@ -201,48 +200,41 @@ function start(injectedAdapter?: BrowserAdapter): void {
         modes.front.attach();
       });
 
-      reportOnFail(
-        RUNTIME(
-          "tabURLAccessed",
-          {
-            title: document.title,
-            url: window.location.href,
-          },
-          (resp: { index: number }) => {
-            if (resp.index > 0) {
-              const showTabIndexInTitle = () => {
-                skipObserver = true;
-                userConfPromise.then((conf) => {
-                  document.title = myTabIndex + conf.tabIndicesSeparator + originalTitle;
-                });
-              };
+      request<{ index: number }>("tabURLAccessed", {
+        title: document.title,
+        url: window.location.href,
+      }).then((resp) => {
+        if (resp.index > 0) {
+          const showTabIndexInTitle = () => {
+            skipObserver = true;
+            userConfPromise.then((conf) => {
+              document.title = myTabIndex + conf.tabIndicesSeparator + originalTitle;
+            });
+          };
 
-              let myTabIndex = resp.index;
-              let skipObserver = false;
-              let originalTitle = document.title;
+          let myTabIndex = resp.index;
+          let skipObserver = false;
+          let originalTitle = document.title;
 
-              new MutationObserver(() => {
-                if (skipObserver) {
-                  skipObserver = false;
-                } else {
-                  originalTitle = document.title;
-                  showTabIndexInTitle();
-                }
-              }).observe(document.querySelector("title")!, { childList: true });
-
+          new MutationObserver(() => {
+            if (skipObserver) {
+              skipObserver = false;
+            } else {
+              originalTitle = document.title;
               showTabIndexInTitle();
-
-              runtime.on("tabIndexChange", (msg) => {
-                if (msg.index !== myTabIndex) {
-                  myTabIndex = msg.index;
-                  showTabIndexInTitle();
-                }
-              });
             }
-          },
-        ),
-        reportError,
-      );
+          }).observe(document.querySelector("title")!, { childList: true });
+
+          showTabIndexInTitle();
+
+          runtime.on("tabIndexChange", (msg) => {
+            if (msg.index !== myTabIndex) {
+              myTabIndex = msg.index;
+              showTabIndexInTitle();
+            }
+          });
+        }
+      }, reportError);
     });
   } else {
     document.addEventListener(

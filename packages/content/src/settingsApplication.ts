@@ -9,7 +9,7 @@ import type createNormal from "@sk/core/normal";
 import { reportError } from "@sk/core/report";
 import type { TrieMeta } from "@sk/core/trie";
 import { applyUserSettings } from "@sk/core/utils";
-import { RUNTIME, runtime } from "@sk/messaging/runtime";
+import { request, RUNTIME, runtime } from "@sk/messaging/runtime";
 
 type Api = ReturnType<typeof createAPI>;
 type Normal = ReturnType<typeof createNormal>;
@@ -67,38 +67,31 @@ function applyRuntimeConf(normal: Normal): void {
   ensureRegex("prevLinkRegex");
   ensureRegex("nextLinkRegex");
   ensureRegex("clickablePattern");
-  reportOnFail(
-    RUNTIME(
-      "getState",
-      {
-        blocklistPattern: runtime.conf.blocklistPattern || undefined,
-        lurkingPattern: runtime.conf.lurkingPattern || undefined,
-      },
-      (resp: { state: string }) => {
-        let state = resp.state;
-        if (state === "disabled") {
-          normal.disable();
-          dispatchSKEvent("front", ["showStatus", [undefined, undefined, ""]]);
-        } else if (state === "lurking") {
-          state = normal.startLurk();
-        } else {
-          normal.enable();
-          showModeStatus();
-        }
+  request<{ state: string }>("getState", {
+    blocklistPattern: runtime.conf.blocklistPattern || undefined,
+    lurkingPattern: runtime.conf.lurkingPattern || undefined,
+  }).then((resp) => {
+    let state = resp.state;
+    if (state === "disabled") {
+      normal.disable();
+      dispatchSKEvent("front", ["showStatus", [undefined, undefined, ""]]);
+    } else if (state === "lurking") {
+      state = normal.startLurk();
+    } else {
+      normal.enable();
+      showModeStatus();
+    }
 
-        if (window === top) {
-          reportOnFail(
-            RUNTIME("setSurfingkeysIcon", {
-              status: state,
-            }),
-            reportError,
-          );
-          dispatchSKEvent("front", ["showStatus", [undefined, undefined, ""]]);
-        }
-      },
-    ),
-    reportError,
-  );
+    if (window === top) {
+      reportOnFail(
+        RUNTIME("setSurfingkeysIcon", {
+          status: state,
+        }),
+        reportError,
+      );
+      dispatchSKEvent("front", ["showStatus", [undefined, undefined, ""]]);
+    }
+  }, reportError);
 }
 
 export function applySettings(api: Api, normal: Normal, stored: StoredSettings): void {
