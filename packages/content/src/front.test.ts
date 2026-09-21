@@ -305,7 +305,7 @@ describe("createFront getSearchSuggestions — non-function listSuggestion dispa
       (d) => Array.isArray(d) && d[0] === "getSearchSuggestions",
     );
     expect(matchingEvent).toBeDefined();
-    expect(matchingEvent?.[1]).toBe("https://en.wikipedia.org/w/suggest");
+    expect(matchingEvent?.[1]).toMatchObject({ url: "https://en.wikipedia.org/w/suggest" });
 
     cleanup();
   });
@@ -924,10 +924,8 @@ describe("createFront actions[getSearchSuggestions] — non-function dispatches 
 
     document.removeEventListener("surfingkeys:user", userListener);
 
-    // The non-function branch dispatches: ["getSearchSuggestions", url, response, ctx, callbackId]
     const evt = captured.find((d) => d[0] === "getSearchSuggestions");
     expect(evt).toBeDefined();
-    expect(typeof evt![4]).toBe("string");
-    expect((evt![4] as string).length).toBeGreaterThan(0);
+    expect(evt?.[1]).toMatchObject({ callbackId: expect.stringMatching(/.+/) });
   });
 });

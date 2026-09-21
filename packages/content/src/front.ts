@@ -231,13 +231,15 @@ function createFront(
 
           dispatchSKEvent("user", [
             "getSearchSuggestions",
-            message.url,
-            message.response,
             {
-              url: message.requestUrl,
-              query: message.query,
+              url: message.url,
+              response: message.response,
+              request: {
+                url: message.requestUrl,
+                query: message.query,
+              },
+              callbackId,
             },
-            callbackId,
           ]);
         });
       }

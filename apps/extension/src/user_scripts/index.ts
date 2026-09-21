@@ -134,12 +134,13 @@ initSKFunctionListener(
         }
       }
     },
-    getSearchSuggestions: async (
-      url: string,
-      response: unknown,
-      request: unknown,
-      callbackId: string,
-    ) => {
+    getSearchSuggestions: async (message: {
+      url: string;
+      response: unknown;
+      request: unknown;
+      callbackId: string;
+    }) => {
+      const { url, response, request, callbackId } = message;
       if (Object.hasOwn(functionsToListSuggestions, url)) {
         const fn = functionsToListSuggestions[url];
         if (!fn) return;
