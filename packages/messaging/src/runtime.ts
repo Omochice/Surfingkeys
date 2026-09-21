@@ -19,6 +19,35 @@ type RuntimeFn = {
   ): Result.Result<void, ChromeRuntimeError>;
 };
 
+const actionsRepeatBackground = [
+  "closeTab",
+  "nextTab",
+  "previousTab",
+  "moveTab",
+  "reloadTab",
+  "setZoom",
+  "closeTabLeft",
+  "closeTabRight",
+  "focusTabByIndex",
+];
+
+function buildPayload(
+  action: string,
+  args: Record<string, unknown> | null | undefined,
+  needResponse: boolean,
+): Record<string, unknown> {
+  const a: Record<string, unknown> = args || {};
+  a["action"] = action;
+  if (actionsRepeatBackground.includes(action)) {
+    // if the action can only be repeated in background, pass repeats to background with args,
+    // and set repeatCount.value 1, so that it won't be repeated in foreground's _handleMapKey
+    a["repeats"] = repeatCount.value;
+    repeatCount.value = 1;
+  }
+  a["needResponse"] = needResponse;
+  return a;
+}
+
 /**
  * Call background `action` with `args`, the `callback` will be executed with response from
  * background. Returns a `Result` so callers decide whether to surface failure to the user.
@@ -33,28 +62,9 @@ const RUNTIME: RuntimeFn = function <R = unknown>(
   args?: Record<string, unknown> | null,
   callback?: (response: R) => void,
 ): Result.Result<void, ChromeRuntimeError> {
-  const actionsRepeatBackground = [
-    "closeTab",
-    "nextTab",
-    "previousTab",
-    "moveTab",
-    "reloadTab",
-    "setZoom",
-    "closeTabLeft",
-    "closeTabRight",
-    "focusTabByIndex",
-  ];
-  const a: Record<string, unknown> = args || {};
-  a["action"] = action;
-  if (actionsRepeatBackground.includes(action)) {
-    // if the action can only be repeated in background, pass repeats to background with args,
-    // and set repeatCount.value 1, so that it won't be repeated in foreground's _handleMapKey
-    a["repeats"] = repeatCount.value;
-    repeatCount.value = 1;
-  }
+  const a = buildPayload(action, args, callback != null);
   return Result.try({
     try: (): void => {
-      a["needResponse"] = callback != null;
       if (callback) {
         // sendMessage reports most failures ("Receiving end does not exist",
         // "message port closed") asynchronously via lastError, which
