@@ -95,7 +95,7 @@ export type UserScriptApi = {
    */
   addSearchAlias: (alias: string, searchUrl: string, options?: SearchAliasOptions) => void;
   /** Removes a search engine added by `addSearchAlias`. */
-  removeSearchAlias: (alias: string, searchLeaderKey?: string, onlyThisSiteKey?: string) => void;
+  removeSearchAlias: (alias: string, options?: SearchAliasKeyOptions) => void;
   /**
    * Searches the selected text, or the clipboard when nothing is selected.
    *

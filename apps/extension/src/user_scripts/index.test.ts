@@ -361,15 +361,14 @@ describe("unmapAllExcept (via api returned by factory)", () => {
 describe("removeSearchAlias (via api returned by factory)", () => {
   it("dispatches a surfingkeys:api event with ['removeSearchAlias', alias, ...]", () => {
     const events = captureEvents("surfingkeys:api", () => {
-      capturedApi.removeSearchAlias("g", "s", "o");
+      capturedApi.removeSearchAlias("g", { searchLeaderKey: "s", onlyThisSiteKey: "o" });
     });
 
     const evt = events.find(
       (e) => Array.isArray(e.detail) && e.detail[0] === "removeSearchAlias" && e.detail[1] === "g",
     );
     expect(evt).not.toBeUndefined();
-    expect((evt as CustomEvent).detail[2]).toBe("s");
-    expect((evt as CustomEvent).detail[3]).toBe("o");
+    expect((evt as CustomEvent).detail[2]).toEqual({ searchLeaderKey: "s", onlyThisSiteKey: "o" });
   });
 });
 

@@ -562,6 +562,24 @@ describe("createAPI removeSearchAlias", () => {
     expect(node?.meta).toBeUndefined();
   });
 
+  it("removes the mappings of an alias added with custom keys", () => {
+    const ctx = makeCtx();
+    const api = createAPI(ctx as any, env);
+
+    api.addSearchAlias("r", "https://example.com/?q=", {
+      searchLeaderKey: "t",
+      onlyThisSiteKey: "n",
+    });
+
+    api.removeSearchAlias("r", { searchLeaderKey: "t", onlyThisSiteKey: "n" });
+
+    let node: any = ctx.normal.mappings;
+    for (const ch of "tnr") {
+      node = node?.find(ch);
+    }
+    expect(node?.meta).toBeUndefined();
+  });
+
   it("calls front.removeSearchAlias with the alias", () => {
     const ctx = makeCtx();
     const api = createAPI(ctx as any, env);

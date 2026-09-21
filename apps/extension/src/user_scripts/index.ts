@@ -20,6 +20,7 @@ import type {
   RemapInModeOptions,
   RemapOptions,
   SearchAliasOptions,
+  SearchAliasKeyOptions,
   SearchSelectedWithOptions,
   UserScriptApi,
   UserScriptSettings,
@@ -254,8 +255,8 @@ const api = {
   unmapAllExcept: (keystrokes: string[], options?: DomainOptions) => {
     dispatchSKEvent("api", ["unmapAllExcept", keystrokes, options]);
   },
-  removeSearchAlias: (alias: string, searchLeaderKey?: string, onlyThisSiteKey?: string) => {
-    dispatchSKEvent("api", ["removeSearchAlias", alias, searchLeaderKey, onlyThisSiteKey]);
+  removeSearchAlias: (alias: string, options?: SearchAliasKeyOptions) => {
+    dispatchSKEvent("api", ["removeSearchAlias", alias, options]);
   },
   searchSelectedWith: (searchUrl: string, options?: SearchSelectedWithOptions) => {
     dispatchSKEvent("api", ["searchSelectedWith", searchUrl, options]);

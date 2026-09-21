@@ -533,34 +533,24 @@ function createAPI(ctx: ModeContext, env: EngineEnv) {
    *
    * @example
    *   removeSearchAlias("d");
-   *
-   * @param {string} alias The alias of the search engine to be removed.
-   * @param {string} [searchLeaderKey=s] `<searchLeaderKey><alias>` in normal mode will search
-   *   selected text with this search engine directly without opening the omnibar, for example `sd`.
-   *   Default is `s`
-   * @param {string} [onlyThisSiteKey=o] `<searchLeaderKey><onlyThisSiteKey><alias>` in normal mode
-   *   will search selected text within current site with this search engine directly without
-   *   opening the omnibar, for example `sod`. Default is `o`
    */
-  function removeSearchAlias(
-    alias: string,
-    searchLeaderKey?: string,
-    onlyThisSiteKey?: string,
-  ): void {
+  function removeSearchAlias(alias: string, options?: SearchAliasKeyOptions): void {
+    const searchLeaderKey = options?.searchLeaderKey || "s";
+    const onlyThisSiteKey = options?.onlyThisSiteKey || "o";
     if (!isInUIFrame()) {
       front.removeSearchAlias?.(alias);
     }
-    unmap((searchLeaderKey || "s") + alias);
+    unmap(searchLeaderKey + alias);
     unmap("o" + alias);
-    vunmap((searchLeaderKey || "s") + alias);
-    unmap((searchLeaderKey || "s") + (onlyThisSiteKey || "o") + alias);
-    vunmap((searchLeaderKey || "s") + (onlyThisSiteKey || "o") + alias);
+    vunmap(searchLeaderKey + alias);
+    unmap(searchLeaderKey + onlyThisSiteKey + alias);
+    vunmap(searchLeaderKey + onlyThisSiteKey + alias);
     const capitalAlias = alias.toUpperCase();
     if (capitalAlias !== alias) {
-      unmap((searchLeaderKey || "s") + capitalAlias);
-      vunmap((searchLeaderKey || "s") + capitalAlias);
-      unmap((searchLeaderKey || "s") + (onlyThisSiteKey || "o") + capitalAlias);
-      vunmap((searchLeaderKey || "s") + (onlyThisSiteKey || "o") + capitalAlias);
+      unmap(searchLeaderKey + capitalAlias);
+      vunmap(searchLeaderKey + capitalAlias);
+      unmap(searchLeaderKey + onlyThisSiteKey + capitalAlias);
+      vunmap(searchLeaderKey + onlyThisSiteKey + capitalAlias);
     }
   }
 
