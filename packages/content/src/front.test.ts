@@ -252,13 +252,11 @@ describe("createFront addSearchAlias — getSearchSuggestions with function list
     const messageHandler = handler()!;
 
     const suggestionFn = vi.fn((_response: any, _ctx: any) => ["result1", "result2"]);
-    front.addSearchAlias(
-      "g",
-      "Google",
-      "https://google.com?q=",
-      "https://suggest.google.com/",
-      suggestionFn,
-    );
+    front.addSearchAlias("g", "https://google.com?q=", {
+      prompt: "Google",
+      suggestionUrl: "https://suggest.google.com/",
+      parseSuggestion: suggestionFn,
+    });
 
     messageHandler(
       makeContentEvent({
@@ -285,13 +283,11 @@ describe("createFront getSearchSuggestions — non-function listSuggestion dispa
     const messageHandler = handler()!;
 
     const nonFn = { notAFunction: true };
-    front.addSearchAlias(
-      "w",
-      "Wiki",
-      "https://en.wikipedia.org/",
-      "https://en.wikipedia.org/w/suggest",
-      nonFn as any,
-    );
+    front.addSearchAlias("w", "https://en.wikipedia.org/", {
+      prompt: "Wiki",
+      suggestionUrl: "https://en.wikipedia.org/w/suggest",
+      parseSuggestion: nonFn as any,
+    });
 
     const { detail, cleanup } = listenForSKEvent("user");
 
@@ -746,14 +742,12 @@ describe("createFront addSearchAlias — without suggestionURL skips listSuggest
     const messageHandler = handler()!;
     const postSpy = vi.spyOn(runtime, "postTopMessage").mockImplementation(() => {});
 
-    front.addSearchAlias("d", "DuckDuckGo", "https://duckduckgo.com/?q=");
-    front.addSearchAlias(
-      "s",
-      "Sentinel",
-      "https://sentinel.example.com/",
-      "https://sentinel.example.com/suggest",
-      vi.fn(() => ["suggested"]),
-    );
+    front.addSearchAlias("d", "https://duckduckgo.com/?q=", { prompt: "DuckDuckGo" });
+    front.addSearchAlias("s", "https://sentinel.example.com/", {
+      prompt: "Sentinel",
+      suggestionUrl: "https://sentinel.example.com/suggest",
+      parseSuggestion: vi.fn(() => ["suggested"]),
+    });
 
     const askFor = (url: string) =>
       messageHandler(
@@ -906,13 +900,11 @@ describe("createFront actions[getSearchSuggestions] — non-function dispatches 
     restoreMsg();
     const messageHandler = msgHandler()!;
 
-    front.addSearchAlias(
-      "z",
-      "Zeta",
-      "https://zeta.example.com/",
-      "https://zeta.example.com/suggest",
-      { notAFunction: true } as any,
-    );
+    front.addSearchAlias("z", "https://zeta.example.com/", {
+      prompt: "Zeta",
+      suggestionUrl: "https://zeta.example.com/suggest",
+      parseSuggestion: { notAFunction: true } as any,
+    });
 
     const captured: unknown[][] = [];
     const userListener = (e: Event) => {

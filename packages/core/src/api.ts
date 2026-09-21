@@ -62,6 +62,27 @@ export type RemapOptions = RemapInModeOptions & {
   group?: FeatureGroup;
 };
 
+export type SearchAliasKeyOptions = {
+  /** `<searchLeaderKey><alias>` searches the selection with the engine, without the omnibar. */
+  searchLeaderKey?: string;
+  /** `<searchLeaderKey><onlyThisSiteKey><alias>` limits that search to the current site. */
+  onlyThisSiteKey?: string;
+};
+
+export type SearchAliasOptions = SearchAliasKeyOptions & {
+  /** The caption shown in front of the omnibar. */
+  prompt?: string;
+  /** The query is appended to it to fetch the omnibar's suggestions. */
+  suggestionUrl?: string;
+  /** Turns the response from `suggestionUrl` into the list of suggestions. */
+  // User-provided suggestion parser; callers type its response/request for their own engine, which
+  // an `unknown` parameter would reject (contravariance).
+  // eslint-disable-next-line typescript/no-explicit-any
+  parseSuggestion?: (...args: any[]) => unknown;
+  skipMaps?: boolean;
+  faviconUrl?: string;
+};
+
 type MapkeyTarget = {
   mode: ModeWithMappings;
   // The section a mapping of this mode gets when it names none. Visual and Insert each own one,
@@ -439,80 +460,42 @@ function createAPI(ctx: ModeContext, env: EngineEnv) {
    * Add a search engine alias into Omnibar.
    *
    * @example
-   *   addSearchAlias(
-   *     "d",
-   *     "duckduckgo",
-   *     "https://duckduckgo.com/?q=",
-   *     "s",
-   *     "https://duckduckgo.com/ac/?q=",
-   *     function (response) {
-   *       var res = JSON.parse(response.text);
-   *       return res.map(function (r) {
+   *   addSearchAlias("d", "https://duckduckgo.com/?q=", {
+   *     prompt: "duckduckgo",
+   *     suggestionUrl: "https://duckduckgo.com/ac/?q=",
+   *     parseSuggestion: function (response) {
+   *       return JSON.parse(response.text).map(function (r) {
    *         return r.phrase;
    *       });
    *     },
-   *   );
+   *   });
    *
-   * @param {string} alias The key to trigger this search engine, one or several chars, used as
-   *   search alias, when you input the string and press `space` in omnibar, the search engine will
-   *   be triggered.
-   * @param {string} prompt A caption to be placed in front of the omnibar.
-   * @param {string} searchUrl The URL of the search engine, for example,
-   *   `https://www.s.com/search.html?query=`, if there are extra parameters for the search engine,
-   *   you can use it as `https://www.s.com/search.html?query={0}&type=cs` or
-   *   `https://www.s.com/search.html?type=cs&query=`(since order of URL parameters usually does not
-   *   matter).
-   * @param {string} [searchLeaderKey=s] `<searchLeaderKey><alias>` in normal mode will search
-   *   selected text with this search engine directly without opening the omnibar, for example `sd`.
-   *   Default is `s`
-   * @param {string} [suggestionUrl=null] The URL to fetch suggestions in omnibar when this search
-   *   engine is triggered. Default is `null`
-   * @param {function} [callbackToParseSuggestion=null] A function to parse the response from
-   *   `suggestionUrl` and return a list of strings as suggestions. Receives two arguments:
-   *   `response`, the first argument, is an object containing a property `text` which holds the
-   *   text of the response; and `request`, the second argument, is an object containing the
-   *   properties `query` which is the text of the query and `url` which is the formatted URL for
-   *   the request. Default is `null`
-   * @param {string} [onlyThisSiteKey=o] `<searchLeaderKey><onlyThisSiteKey><alias>` in normal mode
-   *   will search selected text within current site with this search engine directly without
-   *   opening the omnibar, for example `sod`. Default is `o`
-   * @param {object} [options=null] `faviconUrl` URL for favicon for this search engine, `skipMaps`
-   *   if `true` disable creating key mappings for this search engine. Default is `null`
+   * @param alias Typed in the omnibar and followed by `space` to switch to this engine.
+   * @param searchUrl The query is appended, or replaces `{0}` when the URL holds one.
+   * @throws When `alias` contains a non-ASCII character.
    */
-  function addSearchAlias(
-    alias: string,
-    prompt: string,
-    searchUrl: string,
-    searchLeaderKey?: string,
-    suggestionUrl?: string,
-    // User-provided suggestion parser; callers type its response/request for their own engine, which
-    // an `unknown` parameter would reject (contravariance).
-    // eslint-disable-next-line typescript/no-explicit-any
-    callbackToParseSuggestion?: (...args: any[]) => unknown,
-    onlyThisSiteKey?: string,
-    options?: { skipMaps?: boolean; faviconUrl?: string },
-  ): void {
+  function addSearchAlias(alias: string, searchUrl: string, options?: SearchAliasOptions): void {
     if (![...alias].every((c) => c.charCodeAt(0) <= 0x7f)) {
       throw `Invalid alias ${alias}, which must be ASCII characters.`;
     }
+    const { prompt = alias, suggestionUrl, parseSuggestion, skipMaps, faviconUrl } = options ?? {};
+    const searchLeaderKey = options?.searchLeaderKey || "s";
+    const onlyThisSiteKey = options?.onlyThisSiteKey || "o";
     if (!isInUIFrame() && front.addSearchAlias) {
-      front.addSearchAlias(
-        alias,
+      front.addSearchAlias(alias, searchUrl, {
         prompt,
-        searchUrl,
         suggestionUrl,
-        callbackToParseSuggestion,
-        options,
-      );
+        parseSuggestion,
+        faviconUrl,
+      });
     }
-    const skipMaps = options?.skipMaps ?? false;
     if (skipMaps) {
       return;
     }
     function ssw() {
       searchSelectedWith(searchUrl);
     }
-    mapkey((searchLeaderKey || "s") + alias, ssw, {
+    mapkey(searchLeaderKey + alias, ssw, {
       annotation: ["Search selected with {0}", prompt],
       group: "searchSelectedWith",
     });
@@ -523,25 +506,25 @@ function createAPI(ctx: ModeContext, env: EngineEnv) {
       },
       { annotation: ["Open Omnibar for {0} Search", prompt], group: "omnibar" },
     );
-    vmapkey((searchLeaderKey || "s") + alias, ssw);
+    vmapkey(searchLeaderKey + alias, ssw);
     function ssw2() {
       searchSelectedWith(searchUrl, { onlyThisSite: true });
     }
-    mapkey((searchLeaderKey || "s") + (onlyThisSiteKey || "o") + alias, ssw2);
-    vmapkey((searchLeaderKey || "s") + (onlyThisSiteKey || "o") + alias, ssw2);
+    mapkey(searchLeaderKey + onlyThisSiteKey + alias, ssw2);
+    vmapkey(searchLeaderKey + onlyThisSiteKey + alias, ssw2);
 
     const capitalAlias = alias.toUpperCase();
     if (capitalAlias !== alias) {
       const ssw4 = () => {
         searchSelectedWith(searchUrl, { interactive: true, alias });
       };
-      mapkey((searchLeaderKey || "s") + capitalAlias, ssw4);
-      vmapkey((searchLeaderKey || "s") + capitalAlias, ssw4);
+      mapkey(searchLeaderKey + capitalAlias, ssw4);
+      vmapkey(searchLeaderKey + capitalAlias, ssw4);
       const ssw5 = () => {
         searchSelectedWith(searchUrl, { onlyThisSite: true, interactive: true, alias });
       };
-      mapkey((searchLeaderKey || "s") + (onlyThisSiteKey || "o") + capitalAlias, ssw5);
-      vmapkey((searchLeaderKey || "s") + (onlyThisSiteKey || "o") + capitalAlias, ssw5);
+      mapkey(searchLeaderKey + onlyThisSiteKey + capitalAlias, ssw5);
+      vmapkey(searchLeaderKey + onlyThisSiteKey + capitalAlias, ssw5);
     }
   }
 

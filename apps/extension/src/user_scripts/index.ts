@@ -19,6 +19,7 @@ import type {
   MapkeyOptions,
   RemapInModeOptions,
   RemapOptions,
+  SearchAliasOptions,
   SearchSelectedWithOptions,
   UserScriptApi,
   UserScriptSettings,
@@ -196,32 +197,19 @@ initSKFunctionListener(
   true,
 );
 
-function addSearchAlias(
-  alias: string,
-  prompt: string,
-  searchUrl: string,
-  searchLeaderKey?: string,
-  suggestionUrl?: string,
-  callbackToParseSuggestion?: (response: unknown, request: unknown) => unknown,
-  onlyThisSiteKey?: string,
-  options?: Record<string, unknown>,
-) {
+function addSearchAlias(alias: string, searchUrl: string, options?: SearchAliasOptions) {
   if (![...alias].every((c) => c.charCodeAt(0) <= 0x7f)) {
     throw `Invalid alias ${alias}, which must be ASCII characters.`;
   }
-  if (suggestionUrl != null && callbackToParseSuggestion != null) {
-    functionsToListSuggestions[suggestionUrl] = callbackToParseSuggestion;
+  const { parseSuggestion, ...rest } = options ?? {};
+  if (rest.suggestionUrl != null && parseSuggestion != null) {
+    functionsToListSuggestions[rest.suggestionUrl] = parseSuggestion;
   }
   dispatchSKEvent("api", [
     "addSearchAlias",
     alias,
-    prompt,
     searchUrl,
-    searchLeaderKey,
-    suggestionUrl,
-    "user",
-    onlyThisSiteKey,
-    options,
+    { ...rest, parseSuggestion: "user" },
   ]);
 }
 
