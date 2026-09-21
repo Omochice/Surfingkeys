@@ -44,22 +44,36 @@ type AliasInfo = { prompt: string | { html: string } };
 
 type BasicMapping = { origin: string; annotation: string | string[] | undefined };
 
-export default function optionsMain(
-  RUNTIME: RuntimeFn,
-  KeyboardUtils: KeyboardUtilsLike,
-  ModeHandle: ModeCtor,
+type OptionsDeps = {
+  RUNTIME: RuntimeFn;
+  KeyboardUtils: KeyboardUtilsLike;
+  ModeHandle: ModeCtor;
   createElementWithContent: (
     tag: string,
     content?: string,
     attrs?: Record<string, string>,
-  ) => HTMLElement,
-  getBrowserName: () => string,
-  htmlEncode: (s: string) => string,
-  initL10n: (cb: (locale: (s: string) => string) => void) => void,
-  reportIssue: (title: string, desc: string) => void,
-  setSanitizedContent: (elm: Element, str: string) => void,
-  showBanner: (msg: string, timeout?: number) => void,
-): void {
+  ) => HTMLElement;
+  getBrowserName: () => string;
+  htmlEncode: (s: string) => string;
+  initL10n: (cb: (locale: (s: string) => string) => void) => void;
+  reportIssue: (title: string, desc: string) => void;
+  setSanitizedContent: (elm: Element, str: string) => void;
+  showBanner: (msg: string, timeout?: number) => void;
+};
+
+export default function optionsMain(deps: OptionsDeps): void {
+  const {
+    RUNTIME,
+    KeyboardUtils,
+    ModeHandle,
+    createElementWithContent,
+    getBrowserName,
+    htmlEncode,
+    initL10n,
+    reportIssue,
+    setSanitizedContent,
+    showBanner,
+  } = deps;
   let mappingsEditor: MappingsEditor | null = null;
   function getMappingsEditor(): MappingsEditor {
     if (mappingsEditor === null) {
