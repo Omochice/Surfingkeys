@@ -12,6 +12,7 @@
     "typescript/consistent-type-definitions": ["error", "type"],
     "no-unused-expressions": ["error", { "allowShortCircuit": true, "allowTernary": true }],
     "no-underscore-dangle": "error",
+    "max-params": ["warn", { "max": 3 }],
     "no-restricted-properties": [
       "error",
       {
