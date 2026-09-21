@@ -93,11 +93,7 @@ const RUNTIME: RuntimeFn = function <R = unknown>(
   });
 };
 
-/**
- * Call background `action` with `args` and resolve with its response.
- *
- * @throws A {@link ChromeRuntimeError} when the background cannot be reached.
- */
+/** Calls the background `action`; rejects with a {@link ChromeRuntimeError} if unreachable. */
 function request<R = unknown>(action: string, args?: Record<string, unknown>): Promise<R> {
   const a = buildPayload(action, args, true);
   return new Promise<R>((resolve, reject) => {
