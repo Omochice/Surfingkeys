@@ -33,9 +33,17 @@ describe("a settings snippet", () => {
     >();
   });
 
-  test("rejects a positional placeholder in place of the arguments", () => {
+  test("sends a fire-and-forget notification", () => {
+    expectTypeOf(api.notify("closeTab", { id: 1 })).toEqualTypeOf<void>();
     // @ts-expect-error -- null is not a record of arguments
-    api.RUNTIME("getTabURLs", null, (response) => response);
+    api.notify("closeTab", null);
+    // @ts-expect-error -- notify takes no callback
+    api.notify("closeTab", {}, (response: unknown) => response);
+  });
+
+  test("has no RUNTIME member", () => {
+    // @ts-expect-error -- RUNTIME is not a member of the api object
+    api.RUNTIME("closeTab");
   });
 
   test("assigns a documented setting", () => {

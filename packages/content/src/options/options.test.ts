@@ -1,4 +1,3 @@
-import { Result } from "@praha/byethrow";
 import { flush } from "@sk/test-support/helpers";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -29,10 +28,8 @@ function buildDOM(): void {
   `;
 }
 
-function makeRUNTIME() {
-  return vi.fn((_action: string, _args?: Record<string, unknown>, _cb?: (resp: any) => void) =>
-    Result.succeed(undefined),
-  );
+function makeNotify() {
+  return vi.fn((_action: string, _args?: Record<string, unknown>) => {});
 }
 
 function makeRequest() {
@@ -77,9 +74,9 @@ function makeCreateElementWithContent() {
   };
 }
 
-function initOptions(runtimeSpy = makeRUNTIME(), requestSpy = makeRequest()) {
+function initOptions(runtimeSpy = makeNotify(), requestSpy = makeRequest()) {
   optionsMain({
-    RUNTIME: runtimeSpy,
+    notify: runtimeSpy,
     request: requestSpy,
     KeyboardUtils: makeKeyboardUtils(),
     ModeHandle: makeMode() as any,
@@ -121,7 +118,7 @@ describe("options page initialization", () => {
 
   it("requests updateSettings with showAdvanced when the advanced toggler is clicked", () => {
     const request = makeRequest();
-    initOptions(makeRUNTIME(), request);
+    initOptions(makeNotify(), request);
     const toggler = document.getElementById("advancedToggler") as HTMLInputElement;
     toggler.checked = true;
     toggler.onclick!(new MouseEvent("click") as unknown as PointerEvent);
@@ -131,7 +128,7 @@ describe("options page initialization", () => {
 
   it("requests updateSettings with showAdvanced=false when toggler is unchecked before click", () => {
     const request = makeRequest();
-    initOptions(makeRUNTIME(), request);
+    initOptions(makeNotify(), request);
     const toggler = document.getElementById("advancedToggler") as HTMLInputElement;
     toggler.checked = false;
     toggler.onclick!(new MouseEvent("click") as unknown as PointerEvent);
@@ -154,7 +151,7 @@ describe("showAdvanced toggle behavior", () => {
     const request = vi.fn(() => Promise.resolve({ error: "something went wrong" }));
 
     optionsMain({
-      RUNTIME: makeRUNTIME() as any,
+      notify: makeNotify() as any,
       request: request as any,
       KeyboardUtils: makeKeyboardUtils(),
       ModeHandle: makeMode() as any,
@@ -197,7 +194,7 @@ describe("resetSettings button", () => {
 
   it("requests resetSettings on the second click", () => {
     const request = makeRequest();
-    initOptions(makeRUNTIME(), request);
+    initOptions(makeNotify(), request);
     const btn = document.getElementById("resetSettings") as HTMLElement;
     btn.innerText = "Reset";
     btn.onclick!(new MouseEvent("click") as unknown as PointerEvent);
@@ -285,8 +282,8 @@ describe("saveSettings via save_button", () => {
     document.body.innerHTML = "";
   });
 
-  it("calls RUNTIME updateSettings with snippets when saving without a local path", () => {
-    const RUNTIME = initOptions();
+  it("calls notify updateSettings with snippets when saving without a local path", () => {
+    const notify = initOptions();
     // Settings must be loaded first so mappingsEditor is created.
     fireUserSettingsLoaded({});
 
@@ -296,7 +293,7 @@ describe("saveSettings via save_button", () => {
     const saveBtn = document.getElementById("save_button") as HTMLInputElement;
     saveBtn.onclick!(new MouseEvent("click") as unknown as PointerEvent);
 
-    expect(RUNTIME).toHaveBeenCalledWith("updateSettings", {
+    expect(notify).toHaveBeenCalledWith("updateSettings", {
       settings: {
         snippets: "api.mapkey('x', 'test', function(){});",
         localPath: "",
@@ -306,7 +303,7 @@ describe("saveSettings via save_button", () => {
 
   it("requests loadSettingsFromUrl when a new localPath is set", () => {
     const request = makeRequest();
-    initOptions(makeRUNTIME(), request);
+    initOptions(makeNotify(), request);
     fireUserSettingsLoaded({});
 
     const localPathInput = document.getElementById("localPath") as HTMLInputElement;
@@ -332,7 +329,7 @@ describe("getURIPath (via saveSettings)", () => {
 
   it("prefixes a bare file path with file:///", () => {
     const request = makeRequest();
-    initOptions(makeRUNTIME(), request);
+    initOptions(makeNotify(), request);
     fireUserSettingsLoaded({});
 
     const localPathInput = document.getElementById("localPath") as HTMLInputElement;
@@ -348,7 +345,7 @@ describe("getURIPath (via saveSettings)", () => {
 
   it("leaves an http URL unchanged", () => {
     const request = makeRequest();
-    initOptions(makeRUNTIME(), request);
+    initOptions(makeNotify(), request);
     fireUserSettingsLoaded({});
 
     const localPathInput = document.getElementById("localPath") as HTMLInputElement;
@@ -364,7 +361,7 @@ describe("getURIPath (via saveSettings)", () => {
 
   it("converts a Windows-style backslash path to file:/// with forward slashes", () => {
     const request = makeRequest();
-    initOptions(makeRUNTIME(), request);
+    initOptions(makeNotify(), request);
     fireUserSettingsLoaded({});
 
     const localPathInput = document.getElementById("localPath") as HTMLInputElement;
@@ -393,7 +390,7 @@ describe("Firefox-specific localPathForSettings display", () => {
     localPathDiv.style.display = "none";
 
     optionsMain({
-      RUNTIME: makeRUNTIME() as any,
+      notify: makeNotify() as any,
       request: makeRequest() as any,
       KeyboardUtils: makeKeyboardUtils(),
       ModeHandle: makeMode() as any,
@@ -596,7 +593,7 @@ describe("KeyPicker keydown: Escape hides the picker", () => {
     const { ModeClass, instances } = makeTrackingMode();
 
     optionsMain({
-      RUNTIME: makeRUNTIME() as any,
+      notify: makeNotify() as any,
       request: makeRequest() as any,
       KeyboardUtils: makeKeyboardUtils(),
       ModeHandle: ModeClass as any,
@@ -638,7 +635,7 @@ describe("KeyPicker keydown: regular character appends to key", () => {
     const { ModeClass, instances } = makeTrackingMode();
 
     optionsMain({
-      RUNTIME: makeRUNTIME() as any,
+      notify: makeNotify() as any,
       request: makeRequest() as any,
       KeyboardUtils: makeKeyboardUtils(),
       ModeHandle: ModeClass as any,
@@ -668,11 +665,11 @@ describe("KeyPicker keydown: regular character appends to key", () => {
 // to KeyPicker.enter exactly as production does. Driving enter by clicking the returned element
 // exercises the controller's public surface without reaching into module internals.
 function renderBasicMappingKbd(origin: string, userSettings: Record<string, unknown> = {}) {
-  const RUNTIME = makeRUNTIME();
+  const notify = makeNotify();
   const { ModeClass, instances } = makeTrackingMode();
 
   optionsMain({
-    RUNTIME: RUNTIME as any,
+    notify: notify as any,
     request: makeRequest() as any,
     KeyboardUtils: makeKeyboardUtils(),
     ModeHandle: ModeClass as any,
@@ -700,7 +697,7 @@ function renderBasicMappingKbd(origin: string, userSettings: Record<string, unkn
 
   const basicMappingsDiv = document.getElementById("basicMappings") as HTMLElement;
   const kbd = basicMappingsDiv.querySelector(`kbd[data-origin="${origin}"]`) as HTMLElement;
-  return { RUNTIME, instances, kbd };
+  return { notify, instances, kbd };
 }
 
 describe("KeyPicker enter: show keyPicker and populate from kbd element", () => {
@@ -747,8 +744,8 @@ describe("KeyPicker keydown: Enter saves the mapping", () => {
     document.body.innerHTML = "";
   });
 
-  it("calls RUNTIME updateSettings with basicMappings when Enter is pressed after picking a key", () => {
-    const { RUNTIME, instances, kbd } = renderBasicMappingKbd("j");
+  it("calls notify updateSettings with basicMappings when Enter is pressed after picking a key", () => {
+    const { notify, instances, kbd } = renderBasicMappingKbd("j");
     kbd.innerText = "j";
 
     kbd.click();
@@ -758,7 +755,7 @@ describe("KeyPicker keydown: Enter saves the mapping", () => {
     kp.eventListeners["keydown"]?.({ keyCode: 65, sk_keyName: "k" });
     kp.eventListeners["keydown"]?.({ keyCode: 13, sk_keyName: "<Enter>" });
 
-    expect(RUNTIME).toHaveBeenCalledWith(
+    expect(notify).toHaveBeenCalledWith(
       "updateSettings",
       expect.objectContaining({
         settings: expect.objectContaining({ basicMappings: expect.any(Object) }),
@@ -780,7 +777,7 @@ describe("KeyPicker keydown: Backspace removes last character", () => {
     const { ModeClass, instances } = makeTrackingMode();
 
     optionsMain({
-      RUNTIME: makeRUNTIME() as any,
+      notify: makeNotify() as any,
       request: makeRequest() as any,
       KeyboardUtils: makeKeyboardUtils(),
       ModeHandle: ModeClass as any,
@@ -884,14 +881,14 @@ describe("renderSearchAlias: aliases with object prompt", () => {
     expect(searchAliases.innerHTML).toContain("Bing");
   });
 
-  it("toggling a search alias checkbox calls RUNTIME to update disabledSearchAliases", async () => {
+  it("toggling a search alias checkbox calls notify to update disabledSearchAliases", async () => {
     // Earlier tests leave their own optionsMain listeners on the document, so every
     // userSettingsLoaded event reaches all of them and several instances append checkboxes.
     // Clearing the container and taking the last checkbox isolates this instance's own row.
-    const RUNTIME = makeRUNTIME();
+    const notify = makeNotify();
 
     optionsMain({
-      RUNTIME: RUNTIME as any,
+      notify: notify as any,
       request: makeRequest() as any,
       KeyboardUtils: makeKeyboardUtils(),
       ModeHandle: makeMode() as any,
@@ -925,7 +922,7 @@ describe("renderSearchAlias: aliases with object prompt", () => {
     const lastCheckbox = checkboxes.at(-1)!;
     lastCheckbox.onchange!(new Event("change") as unknown as Event);
 
-    expect(RUNTIME).toHaveBeenCalledWith(
+    expect(notify).toHaveBeenCalledWith(
       "updateSettings",
       expect.objectContaining({
         settings: expect.objectContaining({ disabledSearchAliases: expect.any(Object) }),
@@ -955,7 +952,7 @@ describe("saveSettings: loadSettingsFromUrl callback updates snippets", () => {
     );
 
     optionsMain({
-      RUNTIME: makeRUNTIME() as any,
+      notify: makeNotify() as any,
       request: request as any,
       KeyboardUtils: makeKeyboardUtils(),
       ModeHandle: makeMode() as any,
@@ -993,7 +990,7 @@ describe("saveSettings: loadSettingsFromUrl callback updates snippets", () => {
     );
 
     optionsMain({
-      RUNTIME: makeRUNTIME() as any,
+      notify: makeNotify() as any,
       request: request as any,
       KeyboardUtils: makeKeyboardUtils(),
       ModeHandle: makeMode() as any,
@@ -1035,7 +1032,7 @@ describe("advancedToggler onclick — success arm shows/hides the advanced panel
   it("reveals the advanced panel and marks the toggler checked when the update succeeds", async () => {
     // An error-free response is what selects the success arm.
     const request = vi.fn(() => Promise.resolve({}));
-    initOptions(makeRUNTIME(), request as any);
+    initOptions(makeNotify(), request as any);
 
     const toggler = document.getElementById("advancedToggler") as HTMLInputElement;
     toggler.checked = true;

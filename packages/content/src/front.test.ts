@@ -407,7 +407,7 @@ describe("createFront registerInlineQuery — performInlineQuery dispatches user
   });
 });
 
-describe("createFront chooseTab — RUNTIME delegation", () => {
+describe("createFront chooseTab — notify delegation", () => {
   let savedSendMessage: unknown;
 
   beforeEach(() => {
@@ -418,7 +418,7 @@ describe("createFront chooseTab — RUNTIME delegation", () => {
     (globalThis as any).chrome.runtime.sendMessage = savedSendMessage;
   });
 
-  it("calls RUNTIME focusTabByIndex when the keymap's repeats is a non-empty string", () => {
+  it("calls notify focusTabByIndex when the keymap's repeats is a non-empty string", () => {
     const sendMessage = vi.fn();
     (globalThis as any).chrome.runtime.sendMessage = sendMessage;
 

@@ -16,7 +16,7 @@ describe("tabOpenLink", () => {
     vi.restoreAllMocks();
   });
 
-  it("opens each newline-separated URL via RUNTIME openLink when under the limit", () => {
+  it("opens each newline-separated URL via notify openLink when under the limit", () => {
     const sendMessage = vi
       .spyOn(chrome.runtime, "sendMessage")
       .mockImplementation((() => {}) as any);

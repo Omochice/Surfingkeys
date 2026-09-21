@@ -1,9 +1,7 @@
 import { isInUIFrame } from "@sk/adapter/platform-utils";
-import { reportOnFail } from "@sk/common/result";
 import { markSurfingKeysElement } from "@sk/core/domFlags";
 import { dispatchSKEvent } from "@sk/core/events";
 import { showModeStatus } from "@sk/core/mode";
-import { reportError } from "@sk/core/report";
 import type Trie from "@sk/core/trie";
 import {
   createElementWithContent,
@@ -16,7 +14,7 @@ import {
   requireElement,
 } from "@sk/core/utils";
 import { tabOpenLink } from "@sk/messaging/messagingActions";
-import { RUNTIME, runtime } from "@sk/messaging/runtime";
+import { notify, runtime } from "@sk/messaging/runtime";
 import * as v from "valibot";
 
 import { hasLayoutOffsets } from "./common/dom";
@@ -311,7 +309,7 @@ function createFront({ insert, normal, visual, browser }: FrontDeps) {
 
   self.chooseTab = () => {
     if (normal.keymap.repeats !== "") {
-      reportOnFail(RUNTIME("focusTabByIndex"), reportError);
+      notify("focusTabByIndex");
     } else {
       self.command({
         action: "chooseTab",
@@ -370,7 +368,7 @@ function createFront({ insert, normal, visual, browser }: FrontDeps) {
       hidePopup();
     } else if (inlineQuery) {
       query = query.toLocaleLowerCase();
-      reportOnFail(RUNTIME("updateInputHistory", { OmniQuery: query }), reportError);
+      notify("updateInputHistory", { OmniQuery: query });
 
       const callbackId = generateQuickGuid();
       skCallbacks[callbackId] = (res) => {
@@ -481,13 +479,10 @@ function createFront({ insert, normal, visual, browser }: FrontDeps) {
       }
       if (Object.keys(cloneUS).length > 0 && window === top) {
         // left settings are for background, need not broadcast the update, neither persist into storage
-        reportOnFail(
-          RUNTIME("updateSettings", {
-            scope: "snippets",
-            settings: cloneUS,
-          }),
-          reportError,
-        );
+        notify("updateSettings", {
+          scope: "snippets",
+          settings: cloneUS,
+        });
       }
     },
     querySelectedWord,
@@ -602,7 +597,7 @@ function createFront({ insert, normal, visual, browser }: FrontDeps) {
   });
 
   actions["omnibar_query_entered"] = (response: { query: string }) => {
-    reportOnFail(RUNTIME("updateInputHistory", { OmniQuery: response.query }), reportError);
+    notify("updateInputHistory", { OmniQuery: response.query });
     self.performInlineQuery(
       response.query,
       {

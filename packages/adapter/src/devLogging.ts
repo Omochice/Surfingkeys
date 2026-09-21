@@ -13,8 +13,8 @@ function relaySink(context: string): LogSink {
       level,
       args: args.map(toTransferable),
     };
-    // chrome.runtime is used raw rather than through @sk/messaging's RUNTIME: RUNTIME reports a
-    // failed send through reportError, which logs, which would re-enter this sink in a loop.
+    // chrome.runtime is used raw rather than through @sk/messaging's notify: notify sends
+    // without a callback, so it could not make the lastError read below.
     try {
       chrome.runtime.sendMessage(record, () => {
         // Reading lastError silences Chrome's "unchecked runtime.lastError" warning when the

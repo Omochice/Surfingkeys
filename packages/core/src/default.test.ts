@@ -5,10 +5,10 @@ import type { EngineEnv } from "./engineEnv";
 import { repeatCount } from "./repeatCount";
 
 const seam = vi.hoisted(() => {
-  const RUNTIME = Object.assign(vi.fn(), { repeats: 1 });
+  const notify = vi.fn();
   const request = vi.fn(() => new Promise<any>(() => {}));
   return {
-    RUNTIME,
+    notify,
     request,
     reportError: vi.fn(),
     dispatchSKEvent: vi.fn(),
@@ -54,7 +54,7 @@ import createDefaultMappings from "./default";
 // surfingkeys is a live getter so the per-test globalThis.chrome swaps below are
 // reflected at handler-invocation time.
 const makeEnv = (): EngineEnv => ({
-  RUNTIME: seam.RUNTIME,
+  notify: seam.notify,
   request: seam.request,
   isInUIFrame: () => false,
   reportIssue: () => {},
@@ -151,7 +151,7 @@ describe("default mappings registration", () => {
   });
 });
 
-describe("RUNTIME-delegating keys", () => {
+describe("notify-delegating keys", () => {
   const cases: Array<[string, string, unknown?]> = [
     ["zr", "setZoom", { zoomFactor: 0 }],
     ["zi", "setZoom", { zoomFactor: 0.1 }],
@@ -189,9 +189,9 @@ describe("RUNTIME-delegating keys", () => {
   it.each(cases)("%s sends the %s message", (key, subject, arg) => {
     fire(key);
     if (arg === undefined) {
-      expect(seam.RUNTIME).toHaveBeenLastCalledWith(subject);
+      expect(seam.notify).toHaveBeenLastCalledWith(subject);
     } else {
-      expect(seam.RUNTIME).toHaveBeenLastCalledWith(subject, arg);
+      expect(seam.notify).toHaveBeenLastCalledWith(subject, arg);
     }
   });
 });
@@ -434,7 +434,7 @@ describe("more mode delegations", () => {
 
   it("oi opens an incognito window for the current URL", () => {
     fire("oi");
-    expect(seam.RUNTIME).toHaveBeenLastCalledWith("openIncognito", { url: window.location.href });
+    expect(seam.notify).toHaveBeenLastCalledWith("openIncognito", { url: window.location.href });
   });
 
   it("af opens a link in an active new tab", () => {
@@ -762,7 +762,7 @@ describe(";pj restores settings from clipboard", () => {
     });
     fire(";pj");
     capturedCb!({ data: '{"theme":"dark"}' });
-    expect(seam.RUNTIME).toHaveBeenLastCalledWith("updateSettings", {
+    expect(seam.notify).toHaveBeenLastCalledWith("updateSettings", {
       settings: { theme: "dark" },
     });
   });
@@ -773,10 +773,10 @@ describe(";pj restores settings from clipboard", () => {
       capturedCb = cb;
     });
     fire(";pj");
-    seam.RUNTIME.mockClear();
+    seam.notify.mockClear();
     capturedCb!({ data: "not valid json" });
     expect(seam.utils.showBanner).toHaveBeenCalled();
-    expect(seam.RUNTIME).not.toHaveBeenCalled();
+    expect(seam.notify).not.toHaveBeenCalled();
   });
 });
 
@@ -815,15 +815,15 @@ describe("gp response focuses the playing tab", () => {
     seam.request.mockResolvedValueOnce({ tabs: [{ windowId: 1, id: 42 }] });
     fire("gp");
     await flush();
-    expect(seam.RUNTIME).toHaveBeenLastCalledWith("focusTab", { windowId: 1, tabId: 42 });
+    expect(seam.notify).toHaveBeenLastCalledWith("focusTab", { windowId: 1, tabId: 42 });
   });
 
   it("does not call focusTab when no audible tab is present", async () => {
     seam.request.mockResolvedValueOnce({ tabs: [] });
     fire("gp");
-    const callsBefore = seam.RUNTIME.mock.calls.length;
+    const callsBefore = seam.notify.mock.calls.length;
     await flush();
-    expect(seam.RUNTIME.mock.calls.length).toBe(callsBefore);
+    expect(seam.notify.mock.calls.length).toBe(callsBefore);
   });
 });
 
@@ -857,19 +857,19 @@ describe(";ph puts histories from clipboard", () => {
     });
     fire(";ph");
     capturedCb!({ data: "https://a.com\nhttps://b.com" });
-    expect(seam.RUNTIME).toHaveBeenLastCalledWith("addHistories", {
+    expect(seam.notify).toHaveBeenLastCalledWith("addHistories", {
       history: ["https://a.com", "https://b.com"],
     });
   });
 });
 
 describe(";di downloads an image via hint callback", () => {
-  it("sends a download RUNTIME message with the element src", () => {
+  it("sends a download notify message with the element src", () => {
     fire(";di");
     const calls = ctx.hints.create.mock.calls;
     const cb = calls.at(-1)[1] as (el: any) => void;
     cb({ src: "https://example.com/image.png" });
-    expect(seam.RUNTIME).toHaveBeenLastCalledWith("download", {
+    expect(seam.notify).toHaveBeenLastCalledWith("download", {
       url: "https://example.com/image.png",
     });
   });

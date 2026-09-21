@@ -618,9 +618,6 @@ importers:
 
   packages/messaging:
     dependencies:
-      '@praha/byethrow':
-        specifier: 'catalog:'
-        version: 0.12.0(typescript@7.0.2)
       '@sk/common':
         specifier: workspace:*
         version: link:../common

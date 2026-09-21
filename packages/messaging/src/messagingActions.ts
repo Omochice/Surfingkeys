@@ -1,7 +1,7 @@
 import { dispatchSKEvent } from "@sk/core/events";
 import { reportError } from "@sk/core/report";
 
-import { request, RUNTIME } from "./runtime";
+import { notify, request } from "./runtime";
 
 /**
  * Open links in new tabs.
@@ -34,21 +34,21 @@ function tabOpenLink(str: string | string[] | NodeList, simultaneousness: number
       `Do you really want to open all these ${urls.length} links?`,
       () => {
         urls.slice(0, simultaneousness).forEach((url) => {
-          RUNTIME("openLink", {
+          notify("openLink", {
             tab: {
               tabbed: true,
             },
             url: url,
           });
         });
-        RUNTIME("queueURLs", {
+        notify("queueURLs", {
           urls: urls.slice(simultaneousness),
         });
       },
     ]);
   } else {
     urls.forEach((url) => {
-      RUNTIME("openLink", {
+      notify("openLink", {
         tab: {
           tabbed: true,
         },

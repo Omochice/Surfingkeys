@@ -13,7 +13,7 @@ type Clipboard = {
 };
 
 function createClipboard(env: EngineEnv): Clipboard {
-  const { RUNTIME } = env;
+  const { notify } = env;
   const holder = document.createElement("textarea");
   holder.contentEditable = "true";
   markAutoFocus(holder);
@@ -91,7 +91,7 @@ function createClipboard(env: EngineEnv): Clipboard {
         });
         cb();
       } else {
-        RUNTIME("writeClipboard", { text });
+        notify("writeClipboard", { text });
         cb();
       }
     },

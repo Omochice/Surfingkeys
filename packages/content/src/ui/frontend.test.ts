@@ -66,12 +66,12 @@ vi.mock("@sk/core/applyDefaultMappings", () => ({
   registerDefaultExtras: vi.fn(),
 }));
 
-// Intercept RUNTIME and request so no chrome.runtime.sendMessage reaches the chrome stub.
+// Intercept notify and request so no chrome.runtime.sendMessage reaches the chrome stub.
 vi.mock("@sk/messaging/runtime", async (importOriginal) => {
   const orig = await importOriginal<typeof import("@sk/messaging/runtime")>();
   return {
     ...orig,
-    RUNTIME: vi.fn(() => ({ tag: "success", value: undefined })),
+    notify: vi.fn(),
     request: vi.fn(() => new Promise(() => {})),
   };
 });

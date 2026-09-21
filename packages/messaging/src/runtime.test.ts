@@ -1,9 +1,8 @@
-import { Result } from "@praha/byethrow";
 import { repeatCount } from "@sk/core/repeatCount";
 import { reportError } from "@sk/core/report";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-import { request, RUNTIME, runtime } from "./runtime";
+import { notify, request, runtime } from "./runtime";
 
 vi.mock("@sk/core/report", () => ({ reportError: vi.fn() }));
 
@@ -24,52 +23,24 @@ afterEach(() => {
   vi.clearAllMocks();
 });
 
-describe("RUNTIME", () => {
-  it("invokes the user callback with the response when no lastError is set", () => {
-    const response = { ok: true };
-    runtimeStub.sendMessage = vi.fn((_msg: unknown, cb?: (r: unknown) => void) => {
-      cb?.(response);
-    });
-    const userCallback = vi.fn();
-
-    const result = RUNTIME("getTabs", {}, userCallback);
-
-    expect(Result.isSuccess(result)).toBe(true);
-    expect(userCallback).toHaveBeenCalledWith(response);
-    expect(reportErrorMock).not.toHaveBeenCalled();
-  });
-
-  it("routes an async lastError through reportError instead of calling back with undefined", () => {
-    runtimeStub.lastError = { message: "Could not establish connection." };
-    runtimeStub.sendMessage = vi.fn((_msg: unknown, cb?: (r: unknown) => void) => {
-      cb?.(undefined);
-    });
-    const userCallback = vi.fn();
-
-    RUNTIME("getTabs", {}, userCallback);
-
-    expect(userCallback).not.toHaveBeenCalled();
-    expect(reportErrorMock).toHaveBeenCalledTimes(1);
-    expect(reportErrorMock).toHaveBeenCalledWith(
-      expect.objectContaining({
-        kind: "chrome-runtime",
-        op: "sendMessage:getTabs",
-        cause: "Could not establish connection.",
-      }),
-    );
-  });
-
-  it("returns a Failure when sendMessage throws synchronously", () => {
-    runtimeStub.sendMessage = vi.fn(() => {
-      throw new Error("Extension context invalidated.");
+describe("notify", () => {
+  it("sends the action and args without a callback and marks needResponse false", () => {
+    let sent: any;
+    let cbArg: unknown = "untouched";
+    runtimeStub.sendMessage = vi.fn((msg: unknown, cb?: (r: unknown) => void) => {
+      sent = msg;
+      cbArg = cb;
     });
 
-    const result = RUNTIME("getTabs", {}, vi.fn());
+    const returned = notify("getTabs", { queryInfo: { currentWindow: true } });
 
-    expect(Result.isFailure(result)).toBe(true);
-    if (Result.isFailure(result)) {
-      expect(result.error).toMatchObject({ kind: "chrome-runtime", op: "sendMessage:getTabs" });
-    }
+    expect(returned).toBeUndefined();
+    expect(sent).toMatchObject({
+      action: "getTabs",
+      queryInfo: { currentWindow: true },
+      needResponse: false,
+    });
+    expect(cbArg).toBeUndefined();
   });
 
   it("forwards repeats to the background and resets repeatCount.value for a background-repeat action", () => {
@@ -79,7 +50,7 @@ describe("RUNTIME", () => {
     });
     repeatCount.value = 5;
 
-    RUNTIME("closeTab");
+    notify("closeTab");
 
     expect(sent.repeats).toBe(5);
     expect(repeatCount.value).toBe(1);
@@ -92,39 +63,25 @@ describe("RUNTIME", () => {
     });
     repeatCount.value = 3;
 
-    RUNTIME("getTabs");
+    notify("getTabs");
 
     expect(sent.repeats).toBeUndefined();
     expect(repeatCount.value).toBe(3);
     repeatCount.value = 1;
   });
 
-  it("sends without a callback and marks needResponse false when no callback is given", () => {
-    let sent: any;
-    let cbArg: unknown = "untouched";
-    runtimeStub.sendMessage = vi.fn((msg: unknown, cb?: (r: unknown) => void) => {
-      sent = msg;
-      cbArg = cb;
+  it("warns on the console instead of reporting when sendMessage throws synchronously", () => {
+    const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
+    runtimeStub.sendMessage = vi.fn(() => {
+      throw new Error("Extension context invalidated.");
     });
 
-    const result = RUNTIME("getTabs");
+    expect(notify("getTabs")).toBeUndefined();
 
-    expect(Result.isSuccess(result)).toBe(true);
-    expect(sent.needResponse).toBe(false);
-    expect(cbArg).toBeUndefined();
-  });
-
-  it("falls back to 'unknown error' when lastError carries no message", () => {
-    runtimeStub.lastError = {} as { message: string };
-    runtimeStub.sendMessage = vi.fn((_msg: unknown, cb?: (r: unknown) => void) => {
-      cb?.(undefined);
-    });
-
-    RUNTIME("getTabs", {}, vi.fn());
-
-    expect(reportErrorMock).toHaveBeenCalledWith(
-      expect.objectContaining({ cause: "unknown error" }),
+    expect(warnSpy).toHaveBeenCalledWith(
+      "[runtime exception] sendMessage:getTabs: Error: Extension context invalidated.",
     );
+    expect(reportErrorMock).not.toHaveBeenCalled();
   });
 });
 
@@ -154,6 +111,15 @@ describe("request", () => {
       cause: "Could not establish connection.",
     });
     expect(reportErrorMock).not.toHaveBeenCalled();
+  });
+
+  it("falls back to 'unknown error' when lastError carries no message", async () => {
+    runtimeStub.lastError = {} as { message: string };
+    runtimeStub.sendMessage = vi.fn((_msg: unknown, cb?: (r: unknown) => void) => {
+      cb?.(undefined);
+    });
+
+    await expect(request("getTabs")).rejects.toMatchObject({ cause: "unknown error" });
   });
 
   it("rejects with a ChromeRuntimeError when sendMessage throws synchronously", async () => {

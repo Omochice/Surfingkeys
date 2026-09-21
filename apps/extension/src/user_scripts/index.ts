@@ -11,7 +11,7 @@ import {
   showPopup,
 } from "@sk/core/utils";
 import { httpRequest, tabOpenLink } from "@sk/messaging/messagingActions";
-import { request, RUNTIME } from "@sk/messaging/runtime";
+import { notify, request } from "@sk/messaging/runtime";
 
 import type {
   DomainOptions,
@@ -229,7 +229,7 @@ function createCssSelectorForElements(cssSelector: string, elements: unknown): n
 }
 
 const api = {
-  RUNTIME,
+  notify,
   request,
   addSearchAlias,
   addCommand,

@@ -2,7 +2,7 @@ import { LOG } from "@sk/adapter/log";
 import { isInUIFrame, reportIssue } from "@sk/adapter/platform-utils";
 import type { EngineEnv, SurfingkeysHost } from "@sk/core/engineEnv";
 import { tabOpenLink } from "@sk/messaging/messagingActions";
-import { request, RUNTIME } from "@sk/messaging/runtime";
+import { notify, request } from "@sk/messaging/runtime";
 
 /**
  * Build the concrete {@link EngineEnv} from the WebExtension seams. surfingkeys is a getter so it is
@@ -10,7 +10,7 @@ import { request, RUNTIME } from "@sk/messaging/runtime";
  */
 function createEngineEnv(): EngineEnv {
   return {
-    RUNTIME,
+    notify,
     request,
     isInUIFrame,
     reportIssue,

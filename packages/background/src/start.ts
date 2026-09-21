@@ -64,7 +64,7 @@ const gistCommentSchema = v.object({ body: v.string() });
 const gistCommentListSchema = v.array(v.object({ id: v.union([v.string(), v.number()]) }));
 
 // Every runtime message carries an `action` to dispatch on (set by the
-// content-script RUNTIME helper); `needResponse` flags whether the sender awaits.
+// content-script senders); `needResponse` flags whether the sender awaits.
 const messageEnvelopeSchema = v.object({
   action: v.string(),
   needResponse: v.optional(v.boolean()),

@@ -1,4 +1,3 @@
-import { Result } from "@praha/byethrow";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { conf } from "./conf";
@@ -8,7 +7,7 @@ import KeyboardUtils from "./keyboardUtils";
 
 // insert only reaches the seam via getExtensionURL (for the emoji data); the rest are inert stubs.
 const makeEnv = (): EngineEnv => ({
-  RUNTIME: () => Result.succeed(undefined),
+  notify: () => {},
   isInUIFrame: () => false,
   reportIssue: () => {},
   tabOpenLink: () => {},
