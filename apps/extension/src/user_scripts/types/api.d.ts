@@ -36,7 +36,7 @@ export type RemapOptions = RemapInModeOptions & {
 };
 
 /** The keys that trigger a search alias outside the omnibar. */
-export type SearchAliasKeyOptions = {
+type SearchAliasKeyOptions = {
   /** `<searchLeaderKey><alias>` searches the selection with the engine, without the omnibar. */
   searchLeaderKey?: string;
   /** `<searchLeaderKey><onlyThisSiteKey><alias>` limits that search to the current site. */
