@@ -47,7 +47,7 @@ describe("cmap (via api returned by factory)", () => {
 
   it("does not dispatch when domain regex does not match", () => {
     const events = captureEvents("surfingkeys:front", () => {
-      capturedApi.cmap("ctrl-n", "ctrl-j", /this-domain-will-never-match\.example/);
+      capturedApi.cmap("ctrl-n", "ctrl-j", { domain: /this-domain-will-never-match\.example/ });
     });
 
     const addMapkeyEvents = events.filter(
@@ -75,7 +75,7 @@ describe("cunmap (via api returned by factory)", () => {
 
   it("does not dispatch when domain regex does not match", () => {
     const events = captureEvents("surfingkeys:front", () => {
-      capturedApi.cunmap("<Ctrl-j>", /this-domain-will-never-match\.example/);
+      capturedApi.cunmap("<Ctrl-j>", { domain: /this-domain-will-never-match\.example/ });
     });
 
     const removeMapkeyEvents = events.filter(
@@ -180,9 +180,9 @@ describe("addCommand (via api returned by factory)", () => {
 });
 
 describe("map (via api returned by factory)", () => {
-  it("dispatches a surfingkeys:api event with ['map', newKeystroke, oldKeystroke, domain, annotation]", () => {
+  it("dispatches a surfingkeys:api event with ['map', newKeystroke, oldKeystroke, options]", () => {
     const events = captureEvents("surfingkeys:api", () => {
-      capturedApi.map("e", "E", undefined, "my map");
+      capturedApi.map("e", "E", { annotation: "my map" });
     });
 
     const evt = events.find(
@@ -193,7 +193,7 @@ describe("map (via api returned by factory)", () => {
         e.detail[2] === "E",
     );
     expect(evt).not.toBeUndefined();
-    expect((evt as CustomEvent).detail[4]).toBe("my map");
+    expect((evt as CustomEvent).detail[3]).toEqual({ annotation: "my map" });
   });
 });
 
@@ -291,17 +291,17 @@ describe("addSearchAlias (via api returned by factory)", () => {
 });
 
 describe("unmap (via api returned by factory)", () => {
-  it("dispatches a surfingkeys:api event with ['unmap', keystroke, domain]", () => {
+  it("dispatches a surfingkeys:api event with ['unmap', keystroke, options]", () => {
     const domain = /example\.com/;
     const events = captureEvents("surfingkeys:api", () => {
-      capturedApi.unmap("g", domain);
+      capturedApi.unmap("g", { domain });
     });
 
     const evt = events.find(
       (e) => Array.isArray(e.detail) && e.detail[0] === "unmap" && e.detail[1] === "g",
     );
     expect(evt).not.toBeUndefined();
-    expect((evt as CustomEvent).detail[2]).toBe(domain);
+    expect((evt as CustomEvent).detail[2]).toEqual({ domain });
   });
 });
 
@@ -332,16 +332,16 @@ describe("vunmap (via api returned by factory)", () => {
 });
 
 describe("unmapAllExcept (via api returned by factory)", () => {
-  it("dispatches a surfingkeys:api event with ['unmapAllExcept', keystrokes, domain]", () => {
+  it("dispatches a surfingkeys:api event with ['unmapAllExcept', keystrokes, options]", () => {
     const domain = /example\.com/;
     const events = captureEvents("surfingkeys:api", () => {
-      capturedApi.unmapAllExcept(["a", "b"], domain);
+      capturedApi.unmapAllExcept(["a", "b"], { domain });
     });
 
     const evt = events.find((e) => Array.isArray(e.detail) && e.detail[0] === "unmapAllExcept");
     expect(evt).not.toBeUndefined();
     expect((evt as CustomEvent).detail[1]).toEqual(["a", "b"]);
-    expect((evt as CustomEvent).detail[2]).toBe(domain);
+    expect((evt as CustomEvent).detail[2]).toEqual({ domain });
   });
 });
 

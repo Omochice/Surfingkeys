@@ -15,6 +15,24 @@ export type SearchSelectedWithOptions = {
   alias?: string;
 };
 
+/** Options accepted by `lmap`, `cmap` and the `unmap` family. */
+export type DomainOptions = {
+  /** Restricts the mapping to pages whose URL or origin matches. */
+  domain?: RegExp;
+};
+
+/** Options accepted by `imap` and `vmap`. */
+export type RemapInModeOptions = DomainOptions & {
+  /** Overrides the annotation of `oldKeystroke`. */
+  annotation?: string;
+};
+
+/** Options accepted by `map`. */
+export type RemapOptions = RemapInModeOptions & {
+  /** The help section this mapping is listed under; only read for a `:command` `oldKeystroke`. */
+  group?: string;
+};
+
 /** An inline query shown for the word under the cursor or the selection. */
 export type InlineQuery = {
   /** The endpoint the query is appended to, or a function building the full URL. */
@@ -34,15 +52,10 @@ type Mapkey = (
 ) => void;
 
 /** Maps a key sequence to the action another key sequence already has. */
-type Remap = (
-  newKeystroke: string,
-  oldKeystroke: string,
-  domain?: RegExp,
-  newAnnotation?: string,
-) => void;
+type Remap<Options> = (newKeystroke: string, oldKeystroke: string, options?: Options) => void;
 
 /** Removes the mapping of a key sequence in one mode. */
-type Unmap = (keystroke: string, domain?: RegExp) => void;
+type Unmap = (keystroke: string, options?: DomainOptions) => void;
 
 /** The `api` object a settings snippet receives when it runs as a user script. */
 export type UserScriptApi = {
@@ -86,15 +99,15 @@ export type UserScriptApi = {
   /** Maps keys in visual mode. */
   vmapkey: Mapkey;
   /** Remaps keys in normal mode. */
-  map: Remap;
+  map: Remap<RemapOptions>;
   /** Remaps keys in insert mode. */
-  imap: Remap;
+  imap: Remap<RemapInModeOptions>;
   /** Remaps keys in lurk mode. */
-  lmap: Remap;
+  lmap: Remap<DomainOptions>;
   /** Remaps keys in visual mode. */
-  vmap: Remap;
+  vmap: Remap<RemapInModeOptions>;
   /** Remaps keys in the omnibar. */
-  cmap: Remap;
+  cmap: Remap<DomainOptions>;
   /** Unmaps keys in normal mode. */
   unmap: Unmap;
   /** Unmaps keys in insert mode. */
@@ -104,7 +117,7 @@ export type UserScriptApi = {
   /** Unmaps keys in the omnibar. */
   cunmap: Unmap;
   /** Unmaps every normal-mode key except `keystrokes`. */
-  unmapAllExcept: (keystrokes: string[], domain?: RegExp) => void;
+  unmapAllExcept: (keystrokes: string[], options?: DomainOptions) => void;
   /** @param ignoreSize Counts an element with no drawn size as visible. */
   isElementPartiallyInViewport: (el: Element, ignoreSize?: boolean) => boolean;
   /** @returns The browser family the extension is running in. */
