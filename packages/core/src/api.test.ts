@@ -97,7 +97,7 @@ describe("createAPI mapkey", () => {
     const api = createAPI(ctx as any, env);
 
     const jscode = vi.fn();
-    api.mapkey("g", "Go somewhere", jscode);
+    api.mapkey("g", jscode, { annotation: "Go somewhere" });
 
     const encoded = KeyboardUtils.encodeKeystroke("g");
     const node = ctx.normal.mappings.find(encoded);
@@ -110,7 +110,7 @@ describe("createAPI mapkey", () => {
     const api = createAPI(ctx as any, env);
 
     const jscode = vi.fn();
-    api.mapkey("x", "test action", jscode);
+    api.mapkey("x", jscode, { annotation: "test action" });
 
     const encoded = KeyboardUtils.encodeKeystroke("x");
     const node = ctx.normal.mappings.find(encoded);
@@ -121,7 +121,10 @@ describe("createAPI mapkey", () => {
     const ctx = makeCtx();
     const api = createAPI(ctx as any, env);
 
-    api.mapkey("z", "unreachable", vi.fn(), { domain: /this-domain-will-never-match\.example/ });
+    api.mapkey("z", vi.fn(), {
+      annotation: "unreachable",
+      domain: /this-domain-will-never-match\.example/,
+    });
 
     const encoded = KeyboardUtils.encodeKeystroke("z");
     const node = ctx.normal.mappings.find(encoded);
@@ -132,18 +135,35 @@ describe("createAPI mapkey", () => {
     const ctx = makeCtx();
     const api = createAPI(ctx as any, env);
 
-    api.mapkey("r", "no repeat", vi.fn(), { repeatIgnore: true });
+    api.mapkey("r", vi.fn(), { annotation: "no repeat", repeatIgnore: true });
 
     const encoded = KeyboardUtils.encodeKeystroke("r");
     const node = ctx.normal.mappings.find(encoded);
     expect(node?.meta?.repeatIgnore).toBe(true);
   });
 
+  it("omitting annotation produces the same node as passing an empty string", () => {
+    const ctx = makeCtx();
+    const api = createAPI(ctx as any, env);
+
+    api.mapkey("m", vi.fn());
+    const withoutAnnotation = ctx.normal.mappings.find(KeyboardUtils.encodeKeystroke("m"))?.meta;
+
+    api.mapkey("n", vi.fn(), { annotation: "" });
+    const withEmptyAnnotation = ctx.normal.mappings.find(KeyboardUtils.encodeKeystroke("n"))?.meta;
+
+    expect(withoutAnnotation?.annotation).toBe(withEmptyAnnotation?.annotation);
+    expect(withoutAnnotation?.annotation).toBe("");
+  });
+
   it("takes the group from the options", () => {
     const ctx = makeCtx();
     const api = createAPI(ctx as any, env);
 
-    api.mapkey("f", "Search selected with Google", vi.fn(), { group: "searchSelectedWith" });
+    api.mapkey("f", vi.fn(), {
+      annotation: "Search selected with Google",
+      group: "searchSelectedWith",
+    });
 
     const encoded = KeyboardUtils.encodeKeystroke("f");
     const node = ctx.normal.mappings.find(encoded);
@@ -156,7 +176,7 @@ describe("createAPI vmapkey", () => {
     const ctx = makeCtx();
     const api = createAPI(ctx as any, env);
 
-    api.vmapkey("v", "visual action", vi.fn());
+    api.vmapkey("v", vi.fn(), { annotation: "visual action" });
 
     const encoded = KeyboardUtils.encodeKeystroke("v");
     expect(ctx.visual.mappings.find(encoded)).not.toBeUndefined();
@@ -167,7 +187,7 @@ describe("createAPI vmapkey", () => {
     const ctx = makeCtx();
     const api = createAPI(ctx as any, env);
 
-    api.vmapkey("q", "visual query", vi.fn());
+    api.vmapkey("q", vi.fn(), { annotation: "visual query" });
 
     const encoded = KeyboardUtils.encodeKeystroke("q");
     const node = ctx.visual.mappings.find(encoded);
@@ -180,7 +200,7 @@ describe("createAPI imapkey", () => {
     const ctx = makeCtx();
     const api = createAPI(ctx as any, env);
 
-    api.imapkey("i", "insert action", vi.fn());
+    api.imapkey("i", vi.fn(), { annotation: "insert action" });
 
     const encoded = KeyboardUtils.encodeKeystroke("i");
     expect(ctx.insert.mappings.find(encoded)).not.toBeUndefined();
@@ -193,7 +213,7 @@ describe("createAPI unmap", () => {
     const ctx = makeCtx();
     const api = createAPI(ctx as any, env);
 
-    api.mapkey("u", "test", vi.fn());
+    api.mapkey("u", vi.fn(), { annotation: "test" });
     const encoded = KeyboardUtils.encodeKeystroke("u");
     expect(ctx.normal.mappings.find(encoded)).not.toBeUndefined();
 
@@ -205,7 +225,7 @@ describe("createAPI unmap", () => {
     const ctx = makeCtx();
     const api = createAPI(ctx as any, env);
 
-    api.mapkey("w", "test", vi.fn());
+    api.mapkey("w", vi.fn(), { annotation: "test" });
     const encoded = KeyboardUtils.encodeKeystroke("w");
 
     api.unmap("w", { domain: /this-domain-will-never-match\.example/ });
@@ -219,7 +239,7 @@ describe("createAPI vunmap", () => {
     const ctx = makeCtx();
     const api = createAPI(ctx as any, env);
 
-    api.vmapkey("b", "visual test", vi.fn());
+    api.vmapkey("b", vi.fn(), { annotation: "visual test" });
     const encoded = KeyboardUtils.encodeKeystroke("b");
     expect(ctx.visual.mappings.find(encoded)).not.toBeUndefined();
 
@@ -233,7 +253,7 @@ describe("createAPI iunmap", () => {
     const ctx = makeCtx();
     const api = createAPI(ctx as any, env);
 
-    api.imapkey("j", "insert test", vi.fn());
+    api.imapkey("j", vi.fn(), { annotation: "insert test" });
     const encoded = KeyboardUtils.encodeKeystroke("j");
     expect(ctx.insert.mappings.find(encoded)).not.toBeUndefined();
 
@@ -247,8 +267,8 @@ describe("createAPI unmapAllExcept", () => {
     const ctx = makeCtx();
     const api = createAPI(ctx as any, env);
 
-    api.mapkey("a", "first", vi.fn());
-    api.mapkey("b", "second", vi.fn());
+    api.mapkey("a", vi.fn(), { annotation: "first" });
+    api.mapkey("b", vi.fn(), { annotation: "second" });
 
     api.unmapAllExcept(["a"]);
 
@@ -263,8 +283,8 @@ describe("createAPI unmapAllExcept", () => {
     const ctx = makeCtx();
     const api = createAPI(ctx as any, env);
 
-    api.imapkey("c", "insert c", vi.fn());
-    api.imapkey("d", "insert d", vi.fn());
+    api.imapkey("c", vi.fn(), { annotation: "insert c" });
+    api.imapkey("d", vi.fn(), { annotation: "insert d" });
 
     api.unmapAllExcept(["c"]);
 
@@ -709,8 +729,8 @@ describe("createAPI mapkey override and precedence", () => {
 
     const first = vi.fn();
     const second = vi.fn();
-    api.mapkey("g", "first", first);
-    api.mapkey("g", "second", second);
+    api.mapkey("g", first, { annotation: "first" });
+    api.mapkey("g", second, { annotation: "second" });
 
     const node = ctx.normal.mappings.find(KeyboardUtils.encodeKeystroke("g"));
     expect(node?.meta?.code).toBe(second);
@@ -721,8 +741,8 @@ describe("createAPI mapkey override and precedence", () => {
     const ctx = makeCtx();
     const api = createAPI(ctx as any, env);
 
-    api.mapkey("a", "leaf", vi.fn());
-    api.mapkey("ab", "longer", vi.fn());
+    api.mapkey("a", vi.fn(), { annotation: "leaf" });
+    api.mapkey("ab", vi.fn(), { annotation: "longer" });
 
     let node: any = ctx.normal.mappings;
     for (const ch of "ab") {
@@ -735,9 +755,9 @@ describe("createAPI mapkey override and precedence", () => {
     const ctx = makeCtx();
     const api = createAPI(ctx as any, env);
 
-    api.mapkey("ab", "deep", vi.fn());
+    api.mapkey("ab", vi.fn(), { annotation: "deep" });
     const aLeaf = vi.fn();
-    api.mapkey("a", "now-a-leaf", aLeaf);
+    api.mapkey("a", aLeaf, { annotation: "now-a-leaf" });
 
     const node = ctx.normal.mappings.find(KeyboardUtils.encodeKeystroke("a"));
     expect(node?.meta?.code).toBe(aLeaf);
@@ -828,7 +848,7 @@ describe("createAPI imap / vmap", () => {
     const ctx = makeCtx();
     const api = createAPI(ctx as any, env);
 
-    api.imapkey("i", "insert source", vi.fn());
+    api.imapkey("i", vi.fn(), { annotation: "insert source" });
     api.imap("p", "i");
 
     expect(ctx.insert.mappings.find(KeyboardUtils.encodeKeystroke("p"))?.meta).not.toBeUndefined();
@@ -838,7 +858,7 @@ describe("createAPI imap / vmap", () => {
     const ctx = makeCtx();
     const api = createAPI(ctx as any, env);
 
-    api.vmapkey("v", "visual source", vi.fn());
+    api.vmapkey("v", vi.fn(), { annotation: "visual source" });
     api.vmap("p", "v");
 
     expect(ctx.visual.mappings.find(KeyboardUtils.encodeKeystroke("p"))?.meta).not.toBeUndefined();
@@ -847,7 +867,7 @@ describe("createAPI imap / vmap", () => {
   it("imap does nothing when the domain does not match", () => {
     const ctx = makeCtx();
     const api = createAPI(ctx as any, env);
-    api.imapkey("i", "insert source", vi.fn());
+    api.imapkey("i", vi.fn(), { annotation: "insert source" });
     api.imap("p", "i", { domain: /this-domain-will-never-match\.example/ });
     expect(ctx.insert.mappings.find(KeyboardUtils.encodeKeystroke("p"))).toBeUndefined();
   });
@@ -855,7 +875,7 @@ describe("createAPI imap / vmap", () => {
   it("vmap does nothing when the domain does not match", () => {
     const ctx = makeCtx();
     const api = createAPI(ctx as any, env);
-    api.vmapkey("v", "visual source", vi.fn());
+    api.vmapkey("v", vi.fn(), { annotation: "visual source" });
     api.vmap("p", "v", { domain: /this-domain-will-never-match\.example/ });
     expect(ctx.visual.mappings.find(KeyboardUtils.encodeKeystroke("p"))).toBeUndefined();
   });
@@ -865,8 +885,8 @@ describe("createAPI unmapAllExcept domain guard", () => {
   it("keeps all mappings when the domain does not match", () => {
     const ctx = makeCtx();
     const api = createAPI(ctx as any, env);
-    api.mapkey("a", "first", vi.fn());
-    api.mapkey("b", "second", vi.fn());
+    api.mapkey("a", vi.fn(), { annotation: "first" });
+    api.mapkey("b", vi.fn(), { annotation: "second" });
 
     api.unmapAllExcept(["a"], { domain: /this-domain-will-never-match\.example/ });
 
@@ -880,7 +900,7 @@ describe("createAPI unmap-family domain guard (no-op when domain mismatches)", (
   it("iunmap keeps the insert mapping when the domain does not match", () => {
     const ctx = makeCtx();
     const api = createAPI(ctx as any, env);
-    api.imapkey("j", "insert", vi.fn());
+    api.imapkey("j", vi.fn(), { annotation: "insert" });
     api.iunmap("j", { domain: noMatch });
     expect(ctx.insert.mappings.find(KeyboardUtils.encodeKeystroke("j"))?.meta).not.toBeUndefined();
   });
@@ -888,7 +908,7 @@ describe("createAPI unmap-family domain guard (no-op when domain mismatches)", (
   it("vunmap keeps the visual mapping when the domain does not match", () => {
     const ctx = makeCtx();
     const api = createAPI(ctx as any, env);
-    api.vmapkey("b", "visual", vi.fn());
+    api.vmapkey("b", vi.fn(), { annotation: "visual" });
     api.vunmap("b", { domain: noMatch });
     expect(ctx.visual.mappings.find(KeyboardUtils.encodeKeystroke("b"))?.meta).not.toBeUndefined();
   });
@@ -949,7 +969,7 @@ describe("createAPI map feature group inheritance", () => {
   it("keeps the source mapping's feature group when aliasing a key", () => {
     const ctx = makeCtx();
     const api = createAPI(ctx as any, env);
-    api.mapkey("p", "Choose a tab", vi.fn(), { group: "tabs" });
+    api.mapkey("p", vi.fn(), { annotation: "Choose a tab", group: "tabs" });
 
     api.map("f", "p");
 
@@ -960,7 +980,7 @@ describe("createAPI map feature group inheritance", () => {
   it("keeps the source mapping's feature group when the alias renames the annotation", () => {
     const ctx = makeCtx();
     const api = createAPI(ctx as any, env);
-    api.mapkey("p", "Choose a tab", vi.fn(), { group: "tabs" });
+    api.mapkey("p", vi.fn(), { annotation: "Choose a tab", group: "tabs" });
 
     api.map("f", "p", { annotation: "Pick a tab" });
 
@@ -975,7 +995,7 @@ describe("createAPI mapkey default feature group", () => {
     const ctx = makeCtx();
     const api = createAPI(ctx as any, env);
 
-    api.mapkey("zz", "my plain help text", vi.fn());
+    api.mapkey("zz", vi.fn(), { annotation: "my plain help text" });
 
     const node = ctx.normal.mappings.find(KeyboardUtils.encodeKeystroke("zz"));
     expect(node?.meta?.group).toBe("misc");
@@ -985,7 +1005,7 @@ describe("createAPI mapkey default feature group", () => {
     const ctx = makeCtx();
     const api = createAPI(ctx as any, env);
 
-    api.imapkey("<Ctrl-y>", "insert action", vi.fn());
+    api.imapkey("<Ctrl-y>", vi.fn(), { annotation: "insert action" });
 
     const node = ctx.insert.mappings.find(KeyboardUtils.encodeKeystroke("<Ctrl-y>"));
     expect(node?.meta?.group).toBe("insertMode");
@@ -999,7 +1019,7 @@ describe("createAPI mapkey with an unknown group", () => {
     const api = createAPI(ctx as any, { ...env, log });
 
     // A user snippet is plain JavaScript, so the type of `group` proves nothing at runtime.
-    api.mapkey("zy", "typo group", vi.fn(), { group: "tabz" } as any);
+    api.mapkey("zy", vi.fn(), { annotation: "typo group", group: "tabz" } as any);
 
     const node = ctx.normal.mappings.find(KeyboardUtils.encodeKeystroke("zy"));
     expect(node?.meta?.group).toBe("misc");
@@ -1011,7 +1031,7 @@ describe("createAPI mapkey with an unknown group", () => {
     const log = vi.fn();
     const api = createAPI(ctx as any, { ...env, log });
 
-    api.vmapkey("zy", "typo group", vi.fn(), { group: "tabz" } as any);
+    api.vmapkey("zy", vi.fn(), { annotation: "typo group", group: "tabz" } as any);
 
     const node = ctx.visual.mappings.find(KeyboardUtils.encodeKeystroke("zy"));
     expect(node?.meta?.group).toBe("visualMode");

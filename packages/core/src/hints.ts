@@ -401,9 +401,13 @@ div.hint-scrollable {
    * The default `onHintKey` implementation.
    *
    * @example
-   *   mapkey('q', 'click on images', function() {
-   *   Hints.create("div.media_box img", Hints.dispatchMouseClick);
-   *   }, {domain: /weibo.com/i});
+   *   mapkey(
+   *     "q",
+   *     function () {
+   *       Hints.create("div.media_box img", Hints.dispatchMouseClick);
+   *     },
+   *     { annotation: "click on images", domain: /weibo.com/i },
+   *   );
    *
    * @param {HTMLElement} element The element for which the pressed hint is targeted.
    * @name Hints.dispatchMouseClick
@@ -669,9 +673,13 @@ div.hint-scrollable {
    * Click element or create hints for elements to click.
    *
    * @example
-   *   mapkey("zz", "Hide replies", function () {
-   *     Hints.click(document.querySelectorAll("#less-replies:not([hidden])"), true);
-   *   });
+   *   mapkey(
+   *     "zz",
+   *     function () {
+   *       Hints.click(document.querySelectorAll("#less-replies:not([hidden])"), true);
+   *     },
+   *     { annotation: "Hide replies" },
+   *   );
    *
    * @param links `string or array of HTMLElement`, click on it if there is only one in the array or
    *   `force` parameter is true, otherwise hints will be generated for them. If `links` is a
@@ -1124,13 +1132,12 @@ div.hint-scrollable {
    * @example
    *   mapkey(
    *     "yA",
-   *     "Copy a link URL to the clipboard",
    *     function () {
    *       Hints.create("*[href]", function (element) {
    *         Clipboard.write("[" + element.innerText + "](" + element.href + ")");
    *       });
    *     },
-   *     { group: "clipboard" },
+   *     { annotation: "Copy a link URL to the clipboard", group: "clipboard" },
    *   );
    *
    * @param cssSelector `string or array of HTMLElement`, if `links` is a string, it will be used as

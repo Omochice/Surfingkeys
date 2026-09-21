@@ -2,9 +2,13 @@ import { describe, expectTypeOf, test } from "vitest";
 
 describe("a settings snippet", () => {
   test("uses the documented api without importing anything", () => {
-    api.mapkey("<Ctrl-y>", "Show me the money", () => {
-      api.Front.showPopup("a well-known phrase");
-    });
+    api.mapkey(
+      "<Ctrl-y>",
+      () => {
+        api.Front.showPopup("a well-known phrase");
+      },
+      { annotation: "Show me the money" },
+    );
     api.map("gt", "T");
     expectTypeOf(api.Hints.create).returns.toEqualTypeOf<false | Promise<number>>();
   });

@@ -29,7 +29,11 @@ type KeyTarget = {
   annotation?: string | string[];
 };
 export type MapOptions = {
+  /** Help text shown by `?`; omitting it leaves the mapping out of the help. */
+  annotation?: string | string[];
+  /** Restricts the mapping to pages whose URL or origin matches. */
   domain?: RegExp;
+  /** Whether this action can be repeated by the dot command. */
   repeatIgnore?: boolean;
   codeHasParameter?: boolean;
   /** The help section this mapping is listed under; defaults by mode, and Misc for normal mode. */
@@ -123,7 +127,6 @@ function createAPI(ctx: ModeContext, env: EngineEnv) {
     target: MapkeyTarget,
     keys: string,
     binding: {
-      annotation: string | string[];
       // User keypress handler of arbitrary signature; `unknown[]` would reject user callbacks that
       // declare typed parameters (e.g. (mark: string) => void).
       // eslint-disable-next-line typescript/no-explicit-any
@@ -132,8 +135,11 @@ function createAPI(ctx: ModeContext, env: EngineEnv) {
     },
   ): void {
     const { mode, defaultGroup } = target;
-    const { annotation, jscode } = binding;
+    const { jscode } = binding;
     const options = binding.options || {};
+    // Left undefined, it would print as "undefined" in the override warning below and in the repeat
+    // confirmation.
+    const annotation = options.annotation ?? "";
     if (isDomainApplicable(options.domain)) {
       keys = KeyboardUtils.encodeKeystroke(keys);
       const old = mode.mappings.remove(keys);
@@ -180,86 +186,54 @@ function createAPI(ctx: ModeContext, env: EngineEnv) {
    * Create a shortcut in normal mode to execute your own action.
    *
    * @example
-   *   mapkey("<Space>", "pause/resume on youtube", function() {
+   *   mapkey("<Space>", function() {
    *   var btn = document.querySelector("button.ytp-ad-overlay-close-button") || document.querySelector("button.ytp-ad-skip-button") || document.querySelector('ytd-watch-flexy button.ytp-play-button');
    *   btn.click();
-   *   }, {domain: /youtube.com/i});
+   *   }, {annotation: "pause/resume on youtube", domain: /youtube.com/i});
    *
-   * @param {string} keys The key sequence for the shortcut.
-   * @param {string} annotation A help message to describe the action, which will displayed in help
-   *   opened by `?`.
-   * @param {function} jscode A Javascript function to be bound. If the function needs an argument,
-   *   next pressed key will be fed to the function.
-   * @param {object} [options=null] `domain`: regex, a Javascript regex pattern to identify the
-   *   domains that this mapping works, for example, `/github\.com/i` says that this mapping works
-   *   only for github.com, `repeatIgnore`: boolean, whether this action can be repeated by dot
-   *   command, `group`: string, the section of the help opened by `?` that lists this mapping, such
-   *   as `"tabs"` or `"clipboard"`. Default is `null`
+   * @param jscode If it takes a parameter, the next pressed key is fed to it.
    */
   function mapkey(
     keys: string,
-    annotation: string | string[],
     // User keypress handler of arbitrary signature; `unknown[]` would reject user callbacks that
     // declare typed parameters (e.g. (mark: string) => void).
     // eslint-disable-next-line typescript/no-explicit-any
     jscode: (...args: any[]) => void,
     options?: MapOptions,
   ): void {
-    mapkeyInMode(normalTarget, keys, { annotation, jscode, options });
+    mapkeyInMode(normalTarget, keys, { jscode, options });
   }
 
   /**
    * Create a shortcut in visual mode to execute your own action.
    *
-   * @param {string} keys The key sequence for the shortcut.
-   * @param {string} annotation A help message to describe the action, which will displayed in help
-   *   opened by `?`.
-   * @param {function} jscode A Javascript function to be bound. If the function needs an argument,
-   *   next pressed key will be fed to the function.
-   * @param {object} [options=null] `domain`: regex, a Javascript regex pattern to identify the
-   *   domains that this mapping works, for example, `/github\.com/i` says that this mapping works
-   *   only for github.com, `repeatIgnore`: boolean, whether this action can be repeated by dot
-   *   command, `group`: string, the section of the help opened by `?` that lists this mapping, such
-   *   as `"tabs"` or `"clipboard"`. Default is `null`
    * @see mapkey
    */
   function vmapkey(
     keys: string,
-    annotation: string | string[],
     // User keypress handler of arbitrary signature; `unknown[]` would reject user callbacks that
     // declare typed parameters (e.g. (mark: string) => void).
     // eslint-disable-next-line typescript/no-explicit-any
     jscode: (...args: any[]) => void,
     options?: MapOptions,
   ): void {
-    mapkeyInMode(visualTarget, keys, { annotation, jscode, options });
+    mapkeyInMode(visualTarget, keys, { jscode, options });
   }
 
   /**
    * Create a shortcut in insert mode to execute your own action.
    *
-   * @param {string} keys The key sequence for the shortcut.
-   * @param {string} annotation A help message to describe the action, which will displayed in help
-   *   opened by `?`.
-   * @param {function} jscode A Javascript function to be bound. If the function needs an argument,
-   *   next pressed key will be fed to the function.
-   * @param {object} [options=null] `domain`: regex, a Javascript regex pattern to identify the
-   *   domains that this mapping works, for example, `/github\.com/i` says that this mapping works
-   *   only for github.com, `repeatIgnore`: boolean, whether this action can be repeated by dot
-   *   command, `group`: string, the section of the help opened by `?` that lists this mapping, such
-   *   as `"tabs"` or `"clipboard"`. Default is `null`
    * @see mapkey
    */
   function imapkey(
     keys: string,
-    annotation: string | string[],
     // User keypress handler of arbitrary signature; `unknown[]` would reject user callbacks that
     // declare typed parameters (e.g. (mark: string) => void).
     // eslint-disable-next-line typescript/no-explicit-any
     jscode: (...args: any[]) => void,
     options?: MapOptions,
   ): void {
-    mapkeyInMode(insertTarget, keys, { annotation, jscode, options });
+    mapkeyInMode(insertTarget, keys, { jscode, options });
   }
 
   /**
@@ -538,36 +512,36 @@ function createAPI(ctx: ModeContext, env: EngineEnv) {
     function ssw() {
       searchSelectedWith(searchUrl);
     }
-    mapkey((searchLeaderKey || "s") + alias, ["Search selected with {0}", prompt], ssw, {
+    mapkey((searchLeaderKey || "s") + alias, ssw, {
+      annotation: ["Search selected with {0}", prompt],
       group: "searchSelectedWith",
     });
     mapkey(
       "o" + alias,
-      ["Open Omnibar for {0} Search", prompt],
       () => {
         front.openOmnibar({ type: "SearchEngine", extra: alias });
       },
-      { group: "omnibar" },
+      { annotation: ["Open Omnibar for {0} Search", prompt], group: "omnibar" },
     );
-    vmapkey((searchLeaderKey || "s") + alias, "", ssw);
+    vmapkey((searchLeaderKey || "s") + alias, ssw);
     function ssw2() {
       searchSelectedWith(searchUrl, { onlyThisSite: true });
     }
-    mapkey((searchLeaderKey || "s") + (onlyThisSiteKey || "o") + alias, "", ssw2);
-    vmapkey((searchLeaderKey || "s") + (onlyThisSiteKey || "o") + alias, "", ssw2);
+    mapkey((searchLeaderKey || "s") + (onlyThisSiteKey || "o") + alias, ssw2);
+    vmapkey((searchLeaderKey || "s") + (onlyThisSiteKey || "o") + alias, ssw2);
 
     const capitalAlias = alias.toUpperCase();
     if (capitalAlias !== alias) {
       const ssw4 = () => {
         searchSelectedWith(searchUrl, { interactive: true, alias });
       };
-      mapkey((searchLeaderKey || "s") + capitalAlias, "", ssw4);
-      vmapkey((searchLeaderKey || "s") + capitalAlias, "", ssw4);
+      mapkey((searchLeaderKey || "s") + capitalAlias, ssw4);
+      vmapkey((searchLeaderKey || "s") + capitalAlias, ssw4);
       const ssw5 = () => {
         searchSelectedWith(searchUrl, { onlyThisSite: true, interactive: true, alias });
       };
-      mapkey((searchLeaderKey || "s") + (onlyThisSiteKey || "o") + capitalAlias, "", ssw5);
-      vmapkey((searchLeaderKey || "s") + (onlyThisSiteKey || "o") + capitalAlias, "", ssw5);
+      mapkey((searchLeaderKey || "s") + (onlyThisSiteKey || "o") + capitalAlias, ssw5);
+      vmapkey((searchLeaderKey || "s") + (onlyThisSiteKey || "o") + capitalAlias, ssw5);
     }
   }
 
@@ -659,11 +633,10 @@ function createAPI(ctx: ModeContext, env: EngineEnv) {
     "normal:passThrough": normal.passThrough,
     "normal:scroll": normal.scroll,
     "visual:style": visual.style,
-    mapkey: (keys: string, annotation: string | string[], options: MapOptions) => {
+    mapkey: (keys: string, options: MapOptions) => {
       if (options.codeHasParameter) {
         mapkey(
           keys,
-          annotation,
           (key: string) => {
             dispatchSKEvent("user", ["callUserFunction", `normal:${keys}`, key]);
           },
@@ -672,7 +645,6 @@ function createAPI(ctx: ModeContext, env: EngineEnv) {
       } else {
         mapkey(
           keys,
-          annotation,
           () => {
             dispatchSKEvent("user", ["callUserFunction", `normal:${keys}`]);
           },
@@ -680,20 +652,18 @@ function createAPI(ctx: ModeContext, env: EngineEnv) {
         );
       }
     },
-    imapkey: (keys: string, annotation: string | string[], options: MapOptions) => {
+    imapkey: (keys: string, options: MapOptions) => {
       imapkey(
         keys,
-        annotation,
         () => {
           dispatchSKEvent("user", ["callUserFunction", `insert:${keys}`]);
         },
         options,
       );
     },
-    vmapkey: (keys: string, annotation: string | string[], options: MapOptions) => {
+    vmapkey: (keys: string, options: MapOptions) => {
       vmapkey(
         keys,
-        annotation,
         () => {
           dispatchSKEvent("user", ["callUserFunction", `visual:${keys}`]);
         },
