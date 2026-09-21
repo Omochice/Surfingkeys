@@ -133,9 +133,9 @@ const getTopURLPromise = new Promise<string>((resolve) => {
   if (window === top) {
     resolve(window.location.href);
   } else {
-    RUNTIME("getTopURL", null, (response: { url: string }) => {
+    request<{ url: string }>("getTopURL").then((response) => {
       resolve(response.url);
-    });
+    }, reportError);
   }
 });
 
