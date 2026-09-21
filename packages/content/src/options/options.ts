@@ -11,6 +11,7 @@ type RuntimeFn = <R = unknown>(
   args?: Record<string, unknown> | null,
   callback?: (resp: R) => void,
 ) => Result.Result<void, ChromeRuntimeError>;
+type RequestFn = <R = unknown>(action: string, args?: Record<string, unknown>) => Promise<R>;
 type KeyboardUtilsLike = {
   encodeKeystroke(k: string): string;
   decodeKeystroke(k: string): string;
@@ -46,6 +47,7 @@ type BasicMapping = { origin: string; annotation: string | string[] | undefined 
 
 type OptionsDeps = {
   RUNTIME: RuntimeFn;
+  request: RequestFn;
   KeyboardUtils: KeyboardUtilsLike;
   ModeHandle: ModeCtor;
   createElementWithContent: (

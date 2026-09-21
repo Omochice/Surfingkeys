@@ -87,6 +87,8 @@ export type UserScriptApi = {
     args?: Record<string, unknown> | null,
     callback?: (response: R) => void,
   ) => void;
+  /** Calls the background `action`; rejects when the background cannot be reached. */
+  request: <R = unknown>(action: string, args?: Record<string, unknown>) => Promise<R>;
   /**
    * Adds a search engine reachable from the omnibar and from `searchLeaderKey` + `alias`.
    *

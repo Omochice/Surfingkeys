@@ -4,11 +4,11 @@ import { conf, getCaseSensitive } from "@sk/core/conf";
 import { repeatCount } from "@sk/core/repeatCount";
 import { reportError } from "@sk/core/report";
 
-// This module is the messaging service. It deliberately keeps the raw,
+// This module is the messaging service. Fire-and-forget sends keep the raw,
 // callback-based chrome.runtime API rather than the promise-based
-// BrowserAdapter: RUNTIME is used fire-and-forget (no callback) in many places,
-// and the polyfill's promise form would turn every such call's
-// "message port closed" into an unhandled rejection. onMessage stays here too
+// BrowserAdapter: the polyfill's promise form would turn every callback-less
+// call's "message port closed" into an unhandled rejection. request wraps that
+// same send for callers that do handle a rejection. onMessage stays here too
 // for the same callback contract.
 
 type RuntimeFn = {
@@ -18,6 +18,35 @@ type RuntimeFn = {
     callback?: (response: R) => void,
   ): Result.Result<void, ChromeRuntimeError>;
 };
+
+const actionsRepeatBackground = [
+  "closeTab",
+  "nextTab",
+  "previousTab",
+  "moveTab",
+  "reloadTab",
+  "setZoom",
+  "closeTabLeft",
+  "closeTabRight",
+  "focusTabByIndex",
+];
+
+function buildPayload(
+  action: string,
+  args: Record<string, unknown> | null | undefined,
+  needResponse: boolean,
+): Record<string, unknown> {
+  const a: Record<string, unknown> = args || {};
+  a["action"] = action;
+  if (actionsRepeatBackground.includes(action)) {
+    // if the action can only be repeated in background, pass repeats to background with args,
+    // and set repeatCount.value 1, so that it won't be repeated in foreground's _handleMapKey
+    a["repeats"] = repeatCount.value;
+    repeatCount.value = 1;
+  }
+  a["needResponse"] = needResponse;
+  return a;
+}
 
 /**
  * Call background `action` with `args`, the `callback` will be executed with response from
@@ -33,28 +62,9 @@ const RUNTIME: RuntimeFn = function <R = unknown>(
   args?: Record<string, unknown> | null,
   callback?: (response: R) => void,
 ): Result.Result<void, ChromeRuntimeError> {
-  const actionsRepeatBackground = [
-    "closeTab",
-    "nextTab",
-    "previousTab",
-    "moveTab",
-    "reloadTab",
-    "setZoom",
-    "closeTabLeft",
-    "closeTabRight",
-    "focusTabByIndex",
-  ];
-  const a: Record<string, unknown> = args || {};
-  a["action"] = action;
-  if (actionsRepeatBackground.includes(action)) {
-    // if the action can only be repeated in background, pass repeats to background with args,
-    // and set repeatCount.value 1, so that it won't be repeated in foreground's _handleMapKey
-    a["repeats"] = repeatCount.value;
-    repeatCount.value = 1;
-  }
+  const a = buildPayload(action, args, callback != null);
   return Result.try({
     try: (): void => {
-      a["needResponse"] = callback != null;
       if (callback) {
         // sendMessage reports most failures ("Receiving end does not exist",
         // "message port closed") asynchronously via lastError, which
@@ -82,6 +92,31 @@ const RUNTIME: RuntimeFn = function <R = unknown>(
     catch: (cause) => chromeRuntimeError(`sendMessage:${action}`, cause),
   });
 };
+
+/** Calls the background `action`; rejects with a {@link ChromeRuntimeError} if unreachable. */
+function request<R = unknown>(action: string, args?: Record<string, unknown>): Promise<R> {
+  const a = buildPayload(action, args, true);
+  return new Promise<R>((resolve, reject) => {
+    try {
+      chrome.runtime.sendMessage(a, (response: R) => {
+        if (chrome.runtime.lastError) {
+          reject(
+            chromeRuntimeError(
+              `sendMessage:${action}`,
+              chrome.runtime.lastError.message ?? "unknown error",
+            ),
+          );
+          return;
+        }
+        resolve(response);
+      });
+    } catch (error) {
+      // A throw inside the executor rejects with the raw value, which would hand
+      // the caller's rejection handler something reportError cannot format.
+      reject(chromeRuntimeError(`sendMessage:${action}`, error));
+    }
+  });
+}
 
 type MessageHandler = (
   // Dispatch registry: handlers narrow the message themselves; a shared `unknown` parameter would
@@ -141,4 +176,4 @@ const runtime = {
   getCaseSensitive,
 };
 
-export { RUNTIME, runtime };
+export { request, RUNTIME, runtime };
