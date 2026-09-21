@@ -1,4 +1,5 @@
 import { Result } from "@praha/byethrow";
+import { flush } from "@sk/test-support/helpers";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { conf } from "./conf";
@@ -804,7 +805,7 @@ describe("createNormal toggleBlocklist", () => {
     });
   }
 
-  it("sends RUNTIME toggleBlocklist when location is not an extension page", () => {
+  it("sends toggleBlocklist when location is not an extension page", () => {
     // document.location.href in jsdom is e.g. "http://localhost/" which does not
     // start with the extension origin returned by browser.runtime.getURL("/") = "/"
     const sendMessage = makeSendMessage({ state: "enabled", url: "http://example.com/" });
@@ -820,7 +821,7 @@ describe("createNormal toggleBlocklist", () => {
     (globalThis as any).chrome.runtime.sendMessage = () => {};
   });
 
-  it("dispatches a banner with the url when state is enabled", () => {
+  it("dispatches a banner with the url when state is enabled", async () => {
     const url = "http://example.com/page";
     const sendMessage = makeSendMessage({ state: "enabled", url });
     (globalThis as any).chrome.runtime.sendMessage = sendMessage;
@@ -833,6 +834,7 @@ describe("createNormal toggleBlocklist", () => {
 
     const normal = createNormal(insertStub, env);
     normal.toggleBlocklist();
+    await flush();
 
     document.removeEventListener("surfingkeys:front", capture);
     (globalThis as any).chrome.runtime.sendMessage = () => {};
@@ -844,7 +846,7 @@ describe("createNormal toggleBlocklist", () => {
     expect(bannerEvents[0]!.detail[1]).toContain(url);
   });
 
-  it("dispatches a banner indicating disabled when state is disabled (per-site)", () => {
+  it("dispatches a banner indicating disabled when state is disabled (per-site)", async () => {
     const url = "http://example.com/page";
     const sendMessage = makeSendMessage({ state: "disabled", url, blocklist: {} });
     (globalThis as any).chrome.runtime.sendMessage = sendMessage;
@@ -857,6 +859,7 @@ describe("createNormal toggleBlocklist", () => {
 
     const normal = createNormal(insertStub, env);
     normal.toggleBlocklist();
+    await flush();
 
     document.removeEventListener("surfingkeys:front", capture);
     (globalThis as any).chrome.runtime.sendMessage = () => {};
@@ -868,7 +871,7 @@ describe("createNormal toggleBlocklist", () => {
     expect(bannerEvents[0]!.detail[1]).toContain("OFF");
   });
 
-  it("dispatches a globally-disabled banner when the blocklist contains '.*'", () => {
+  it("dispatches a globally-disabled banner when the blocklist contains '.*'", async () => {
     const sendMessage = makeSendMessage({
       state: "disabled",
       url: "http://example.com/",
@@ -884,6 +887,7 @@ describe("createNormal toggleBlocklist", () => {
 
     const normal = createNormal(insertStub, env);
     normal.toggleBlocklist();
+    await flush();
 
     document.removeEventListener("surfingkeys:front", capture);
     (globalThis as any).chrome.runtime.sendMessage = () => {};

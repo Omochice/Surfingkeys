@@ -1,6 +1,7 @@
 import { dispatchSKEvent } from "@sk/core/events";
+import { reportError } from "@sk/core/report";
 
-import { RUNTIME } from "./runtime";
+import { request, RUNTIME } from "./runtime";
 
 /**
  * Open links in new tabs.
@@ -62,7 +63,7 @@ function httpRequest<R = unknown>(
   onSuccess: (response: R) => void,
 ): void {
   args["method"] = "get";
-  RUNTIME("request", args, onSuccess);
+  request<R>("request", args).then(onSuccess, reportError);
 }
 
 export { httpRequest, tabOpenLink };
