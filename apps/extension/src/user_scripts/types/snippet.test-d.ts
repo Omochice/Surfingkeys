@@ -27,6 +27,12 @@ describe("a settings snippet", () => {
     api.removeSearchAlias("d", { onlyThisSiteKey: "o" });
   });
 
+  test("resolves a background request with the requested type", () => {
+    expectTypeOf(api.request<{ urls: string[] }>("getTabURLs")).toEqualTypeOf<
+      Promise<{ urls: string[] }>
+    >();
+  });
+
   test("assigns a documented setting", () => {
     settings.hintAlign = "left";
     expectTypeOf(settings).toHaveProperty("scrollStepSize");

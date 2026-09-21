@@ -88,6 +88,11 @@ export type UserScriptApi = {
     callback?: (response: R) => void,
   ) => void;
   /**
+   * Calls the background `action` with `args` and resolves with its response; rejects when the
+   * background cannot be reached.
+   */
+  request: <R = unknown>(action: string, args?: Record<string, unknown>) => Promise<R>;
+  /**
    * Adds a search engine reachable from the omnibar and from `searchLeaderKey` + `alias`.
    *
    * @param searchUrl The query is appended, or replaces `{0}` when the URL holds one.

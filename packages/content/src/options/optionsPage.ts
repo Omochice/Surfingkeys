@@ -8,13 +8,14 @@ import {
   setSanitizedContent,
   showBanner,
 } from "@sk/core/utils";
-import { RUNTIME } from "@sk/messaging/runtime";
+import { request, RUNTIME } from "@sk/messaging/runtime";
 
 import { start } from "../content";
 import optionsMain from "./options";
 
 optionsMain({
   RUNTIME,
+  request,
   KeyboardUtils,
   ModeHandle,
   createElementWithContent,

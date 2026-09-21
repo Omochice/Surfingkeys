@@ -4,11 +4,11 @@ import { conf, getCaseSensitive } from "@sk/core/conf";
 import { repeatCount } from "@sk/core/repeatCount";
 import { reportError } from "@sk/core/report";
 
-// This module is the messaging service. It deliberately keeps the raw,
+// This module is the messaging service. Fire-and-forget sends keep the raw,
 // callback-based chrome.runtime API rather than the promise-based
-// BrowserAdapter: RUNTIME is used fire-and-forget (no callback) in many places,
-// and the polyfill's promise form would turn every such call's
-// "message port closed" into an unhandled rejection. onMessage stays here too
+// BrowserAdapter: the polyfill's promise form would turn every callback-less
+// call's "message port closed" into an unhandled rejection. request wraps that
+// same send for callers that do handle a rejection. onMessage stays here too
 // for the same callback contract.
 
 type RuntimeFn = {
@@ -93,6 +93,35 @@ const RUNTIME: RuntimeFn = function <R = unknown>(
   });
 };
 
+/**
+ * Call background `action` with `args` and resolve with its response.
+ *
+ * @throws A {@link ChromeRuntimeError} when the background cannot be reached.
+ */
+function request<R = unknown>(action: string, args?: Record<string, unknown>): Promise<R> {
+  const a = buildPayload(action, args, true);
+  return new Promise<R>((resolve, reject) => {
+    try {
+      chrome.runtime.sendMessage(a, (response: R) => {
+        if (chrome.runtime.lastError) {
+          reject(
+            chromeRuntimeError(
+              `sendMessage:${action}`,
+              chrome.runtime.lastError.message ?? "unknown error",
+            ),
+          );
+          return;
+        }
+        resolve(response);
+      });
+    } catch (error) {
+      // A throw inside the executor rejects with the raw value, which would hand
+      // the caller's rejection handler something reportError cannot format.
+      reject(chromeRuntimeError(`sendMessage:${action}`, error));
+    }
+  });
+}
+
 type MessageHandler = (
   // Dispatch registry: handlers narrow the message themselves; a shared `unknown` parameter would
   // reject handlers declared with their own concrete message type (contravariance).
@@ -151,4 +180,4 @@ const runtime = {
   getCaseSensitive,
 };
 
-export { RUNTIME, runtime };
+export { request, RUNTIME, runtime };

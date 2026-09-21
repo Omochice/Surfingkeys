@@ -3,7 +3,7 @@ import { repeatCount } from "@sk/core/repeatCount";
 import { reportError } from "@sk/core/report";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-import { RUNTIME, runtime } from "./runtime";
+import { request, RUNTIME, runtime } from "./runtime";
 
 vi.mock("@sk/core/report", () => ({ reportError: vi.fn() }));
 
@@ -125,6 +125,61 @@ describe("RUNTIME", () => {
     expect(reportErrorMock).toHaveBeenCalledWith(
       expect.objectContaining({ cause: "unknown error" }),
     );
+  });
+});
+
+describe("request", () => {
+  it("resolves with the response and marks the message as needing one", async () => {
+    const response = { ok: true };
+    let sent: any;
+    runtimeStub.sendMessage = vi.fn((msg: unknown, cb?: (r: unknown) => void) => {
+      sent = msg;
+      cb?.(response);
+    });
+
+    await expect(request("getTabs")).resolves.toBe(response);
+    expect(sent.action).toBe("getTabs");
+    expect(sent.needResponse).toBe(true);
+  });
+
+  it("rejects with a ChromeRuntimeError on an async lastError without reporting it", async () => {
+    runtimeStub.lastError = { message: "Could not establish connection." };
+    runtimeStub.sendMessage = vi.fn((_msg: unknown, cb?: (r: unknown) => void) => {
+      cb?.(undefined);
+    });
+
+    await expect(request("getTabs")).rejects.toMatchObject({
+      kind: "chrome-runtime",
+      op: "sendMessage:getTabs",
+      cause: "Could not establish connection.",
+    });
+    expect(reportErrorMock).not.toHaveBeenCalled();
+  });
+
+  it("rejects with a ChromeRuntimeError when sendMessage throws synchronously", async () => {
+    runtimeStub.sendMessage = vi.fn(() => {
+      throw new Error("Extension context invalidated.");
+    });
+
+    await expect(request("getTabs")).rejects.toMatchObject({
+      kind: "chrome-runtime",
+      op: "sendMessage:getTabs",
+    });
+    expect(reportErrorMock).not.toHaveBeenCalled();
+  });
+
+  it("forwards repeats to the background and resets repeatCount.value for a background-repeat action", async () => {
+    let sent: any;
+    runtimeStub.sendMessage = vi.fn((msg: unknown, cb?: (r: unknown) => void) => {
+      sent = msg;
+      cb?.(undefined);
+    });
+    repeatCount.value = 5;
+
+    await request("closeTab");
+
+    expect(sent.repeats).toBe(5);
+    expect(repeatCount.value).toBe(1);
   });
 });
 
