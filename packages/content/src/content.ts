@@ -16,7 +16,7 @@ import createNormal from "@sk/core/normal";
 import startScrollNodeObserver from "@sk/core/observer";
 import { reportError } from "@sk/core/report";
 import { generateQuickGuid, getRealEdit, showBanner } from "@sk/core/utils";
-import { RUNTIME, runtime } from "@sk/messaging/runtime";
+import { request, RUNTIME, runtime } from "@sk/messaging/runtime";
 
 import { createEngineEnv } from "./common/createEngineEnv";
 import { hasLayoutOffsets } from "./common/dom";
@@ -79,8 +79,8 @@ function initModules(): Modes {
   }
 
   dispatchSKEvent("defaultSettingsLoaded", { normal, api });
-  reportOnFail(
-    RUNTIME("getSettings", null, (response: { settings: StoredSettings }) => {
+  request<{ settings: StoredSettings }>("getSettings").then(
+    (response) => {
       const settings = response.settings;
       applySettings(api, normal, settings);
       const disabledSearchAliases = settings.disabledSearchAliases;
@@ -95,7 +95,7 @@ function initModules(): Modes {
       // Requested after the stored settings are applied; a snippet that ran before them would
       // have its own conf values overwritten by the stored ones.
       requestUserScript();
-    }),
+    },
     (error) => {
       // The settings fetch failed, so userSettingsApplied will never fire; release the buffered
       // keys anyway so input is not held forever. The snippet is still worth applying: it is the
