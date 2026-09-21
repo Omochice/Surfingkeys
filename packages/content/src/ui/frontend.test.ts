@@ -119,7 +119,7 @@ beforeEach(() => {
 function dispatchFrontendMessage(data: Record<string, unknown>): void {
   window.dispatchEvent(
     new MessageEvent("message", {
-      data: { surfingkeys_frontend_data: data },
+      data: { surfingkeysFrontendData: data },
     }),
   );
 }
@@ -214,10 +214,10 @@ describe("actions['addMapkey'] — specialKeys path", () => {
     specialKeys["<Esc>"] = ["<Esc>"];
   });
 
-  it("pushes a new keystroke onto specialKeys when old_keystroke matches", () => {
+  it("pushes a new keystroke onto specialKeys when oldKeystroke matches", () => {
     Front.actions["addMapkey"]({
-      old_keystroke: "<Alt-s>",
-      new_keystroke: "<Alt-m>",
+      oldKeystroke: "<Alt-s>",
+      newKeystroke: "<Alt-m>",
       mode: "Normal",
     });
     expect(specialKeys["<Alt-s>"]).toContain("<Alt-m>");
@@ -226,8 +226,8 @@ describe("actions['addMapkey'] — specialKeys path", () => {
   it("does not touch specialKeys when the mode name is unknown", () => {
     const before = specialKeys["<Esc>"]!.slice();
     Front.actions["addMapkey"]({
-      old_keystroke: "NonExistentKey",
-      new_keystroke: "x",
+      oldKeystroke: "NonExistentKey",
+      newKeystroke: "x",
       mode: "UnknownMode",
     });
     expect(specialKeys["<Esc>"]).toEqual(before);
@@ -257,10 +257,10 @@ describe("actions['removeMapkey']", () => {
 });
 
 describe("window message handler", () => {
-  it("ignores messages without surfingkeys_frontend_data", () => {
+  it("ignores messages without surfingkeysFrontendData", () => {
     const before = Front.topOrigin;
     window.dispatchEvent(
-      new MessageEvent("message", { data: { other_data: { action: "initFrontend" } } }),
+      new MessageEvent("message", { data: { otherData: { action: "initFrontend" } } }),
     );
     expect(Front.topOrigin).toBe(before);
   });
@@ -280,7 +280,7 @@ describe("window message handler", () => {
     Front.topOrigin = "https://cb-test.example.com";
     let capturedId: string | undefined;
     const spy = vi.spyOn(window.top!, "postMessage").mockImplementation((data: any) => {
-      capturedId = data?.surfingkeys_uihost_data?.id;
+      capturedId = data?.surfingkeysUiHostData?.id;
     });
 
     const cbResults: any[] = [];
@@ -313,9 +313,9 @@ describe("window message handler", () => {
       ack: true,
     });
 
-    const ackMsg = posted.find((m) => m?.surfingkeys_uihost_data?.action === "initFrontendAck");
+    const ackMsg = posted.find((m) => m?.surfingkeysUiHostData?.action === "initFrontendAck");
     expect(ackMsg).toBeDefined();
-    expect(ackMsg.surfingkeys_uihost_data.toContent).toBe(true);
+    expect(ackMsg.surfingkeysUiHostData.toContent).toBe(true);
 
     // Restore via the spy so window.top.postMessage returns to the original
     // method, not a bound wrapper that would leak into later tests.
@@ -361,7 +361,7 @@ describe("Front.contentCommand", () => {
     Front.topOrigin = "https://guid-test.example.com";
     const ids: string[] = [];
     vi.spyOn(window.top!, "postMessage").mockImplementation((data: any) => {
-      const inner = data?.surfingkeys_uihost_data;
+      const inner = data?.surfingkeysUiHostData;
       if (inner?.id) ids.push(inner.id);
     });
 
@@ -378,7 +378,7 @@ describe("Front.contentCommand", () => {
     Front.topOrigin = "https://toContent-test.example.com";
     let posted: any;
     vi.spyOn(window.top!, "postMessage").mockImplementation((data: any) => {
-      posted = data?.surfingkeys_uihost_data;
+      posted = data?.surfingkeysUiHostData;
     });
 
     Front.contentCommand({ action: "ping" });
@@ -406,7 +406,7 @@ describe("actions['addCommand']", () => {
     Front.topOrigin = "https://proxy-cmd-test.example.com";
     const posted: any[] = [];
     vi.spyOn(window.top!, "postMessage").mockImplementation((data: any) => {
-      posted.push(data?.surfingkeys_uihost_data);
+      posted.push(data?.surfingkeysUiHostData);
     });
 
     Front.actions["addCommand"]({ name: "proxied", description: "" });
@@ -441,21 +441,21 @@ describe("actions['showBanner']", () => {
     vi.useFakeTimers();
     const banner = document.getElementById("sk_banner")!;
     banner.style.display = "none";
-    Front.actions["showBanner"]({ content: "Test banner", linger_time: 2000 });
+    Front.actions["showBanner"]({ content: "Test banner", lingerTime: 2000 });
     expect(banner.style.display).not.toBe("none");
   });
 
-  it("hides the banner automatically after linger_time", () => {
+  it("hides the banner automatically after lingerTime", () => {
     vi.useFakeTimers();
     const banner = document.getElementById("sk_banner")!;
     banner.style.display = "none";
-    Front.actions["showBanner"]({ content: "Linger test", linger_time: 500 });
+    Front.actions["showBanner"]({ content: "Linger test", lingerTime: 500 });
     expect(banner.style.display).not.toBe("none");
     vi.advanceTimersByTime(600);
     expect(banner.style.display).toBe("none");
   });
 
-  it("uses the default linger_time of 1600ms when none is given", () => {
+  it("uses the default lingerTime of 1600ms when none is given", () => {
     vi.useFakeTimers();
     const banner = document.getElementById("sk_banner")!;
     banner.style.display = "none";
@@ -567,7 +567,7 @@ describe("window message handler — persistent callback (returns true)", () => 
     Front.topOrigin = "https://stay-test.example.com";
     let capturedId: string | undefined;
     const spy = vi.spyOn(window.top!, "postMessage").mockImplementation((data: any) => {
-      capturedId = data?.surfingkeys_uihost_data?.id;
+      capturedId = data?.surfingkeysUiHostData?.id;
     });
 
     const seen: unknown[] = [];
@@ -619,9 +619,9 @@ describe("Find — ArrowUp/ArrowDown history recall", () => {
     } as KeyboardEventInit);
     findInput.dispatchEvent(upArrowEvent);
 
-    const updateMsg = posted.find((m) => m?.surfingkeys_uihost_data?.action === "visualUpdate");
+    const updateMsg = posted.find((m) => m?.surfingkeysUiHostData?.action === "visualUpdate");
     expect(updateMsg).toBeDefined();
-    expect(updateMsg.surfingkeys_uihost_data.query).toBe("recalled query");
+    expect(updateMsg.surfingkeysUiHostData.query).toBe("recalled query");
     expect(findInput.value).toBe("recalled query");
   });
 });
@@ -631,7 +631,7 @@ describe("actions['getUsage'] feature group placement", () => {
     Front.topOrigin = "https://usage-test.example.com";
     let html = "";
     vi.spyOn(window.top!, "postMessage").mockImplementation((data: any) => {
-      html = data?.surfingkeys_uihost_data?.data ?? "";
+      html = data?.surfingkeysUiHostData?.data ?? "";
     });
     Front.actions["getUsage"]({ metas, id: 1 });
     return html;

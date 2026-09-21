@@ -16,7 +16,7 @@ export type OmnibarResult = {
     query?: string | undefined;
     windowId?: number | undefined;
     folderId?: string | undefined;
-    folder_name?: string | undefined;
+    folderName?: string | undefined;
     cmd?: string | undefined;
     folder?: string | undefined;
     text: string;

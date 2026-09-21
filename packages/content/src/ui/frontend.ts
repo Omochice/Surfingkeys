@@ -44,7 +44,7 @@ import createOmnibar from "./omnibar";
 // side is external data; validate its shape before dispatching. looseObject
 // preserves unknown keys so the payload reaches handlers (typed `any`) intact.
 const frontendMessageEnvelopeSchema = v.looseObject({
-  surfingkeys_frontend_data: v.looseObject({
+  surfingkeysFrontendData: v.looseObject({
     action: v.optional(v.string()),
     id: v.optional(v.union([v.string(), v.number()])),
     ack: v.optional(v.unknown()),
@@ -153,11 +153,11 @@ const Front = (() => {
       args["ack"] = true;
       callbacks[id] = successById;
     }
-    top!.postMessage({ surfingkeys_uihost_data: args }, self.topOrigin);
+    top!.postMessage({ surfingkeysUiHostData: args }, self.topOrigin);
   }
 
   function postMessage(args: Record<string, unknown>): void {
-    top!.postMessage({ surfingkeys_uihost_data: args }, self.topOrigin);
+    top!.postMessage({ surfingkeysUiHostData: args }, self.topOrigin);
   }
 
   let pressedHintKeys = "";
@@ -218,7 +218,7 @@ const Front = (() => {
         state = this;
         top!.postMessage(
           {
-            surfingkeys_uihost_data: {
+            surfingkeysUiHostData: {
               action: "setFrontFrame",
               pointerEvents: pointerEvents,
               frameHeight: frameHeight,
@@ -567,21 +567,21 @@ const Front = (() => {
     hints.setCharacters(characters);
   };
   actions["addMapkey"] = (message: unknown) => {
-    const { old_keystroke, new_keystroke, mode } = v.parse(
+    const { oldKeystroke, newKeystroke, mode } = v.parse(
       v.object({
-        old_keystroke: v.string(),
-        new_keystroke: v.string(),
+        oldKeystroke: v.string(),
+        newKeystroke: v.string(),
         mode: v.optional(v.string()),
       }),
       message,
     );
-    const specialKey = specialKeys[old_keystroke];
+    const specialKey = specialKeys[oldKeystroke];
     if (specialKey != null) {
-      specialKey.push(new_keystroke);
+      specialKey.push(newKeystroke);
     } else if (mode != null && Object.hasOwn(modes, mode)) {
       const targetMode = modes[mode];
       if (targetMode != null) {
-        mapInMode(targetMode, new_keystroke, old_keystroke, isInUIFrame());
+        mapInMode(targetMode, newKeystroke, oldKeystroke, isInUIFrame());
       }
     }
   };
@@ -625,7 +625,7 @@ const Front = (() => {
         `<p style='float:right; width:100%; text-align:right'><a href='https://github.com/brookhong/surfingkeys' target='_blank' style='color:#0095dd'>${moreHelp}</a></p>`;
       top!.postMessage(
         {
-          surfingkeys_uihost_data: {
+          surfingkeysUiHostData: {
             data: usageHtml,
             toContent: true,
             id: id,
@@ -706,14 +706,14 @@ const Front = (() => {
     banner,
   );
 
-  function showBanner(content: string, linger_time?: number) {
+  function showBanner(content: string, lingerTime?: number) {
     setBannerText(content);
     banner.style.cssText = "";
     banner.style.display = "";
     banner.style.top = "0px";
     self.flush();
 
-    const timems = linger_time || 1600;
+    const timems = lingerTime || 1600;
     setTimeout(() => {
       setBannerText("");
       banner.style.cssText = "";
@@ -722,11 +722,11 @@ const Front = (() => {
     }, timems);
   }
   actions["showBanner"] = (message: unknown) => {
-    const { content, linger_time } = v.parse(
-      v.object({ content: v.string(), linger_time: v.optional(v.number()) }),
+    const { content, lingerTime } = v.parse(
+      v.object({ content: v.string(), lingerTime: v.optional(v.number()) }),
       message,
     );
-    showBanner(content, linger_time);
+    showBanner(content, lingerTime);
   };
   actions["showBubble"] = (message: {
     position: {
@@ -923,7 +923,7 @@ const Front = (() => {
       if (!parsed.success) {
         return;
       }
-      const message = parsed.output.surfingkeys_frontend_data;
+      const message = parsed.output.surfingkeysFrontendData;
       const id = message.id;
       const f = id == null ? undefined : callbacks[id];
       if (f) {
@@ -937,7 +937,7 @@ const Front = (() => {
         if (message.ack) {
           top!.postMessage(
             {
-              surfingkeys_uihost_data: {
+              surfingkeysUiHostData: {
                 data: ret,
                 action: message.action + "Ack",
                 toContent: true,

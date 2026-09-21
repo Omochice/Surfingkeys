@@ -7,7 +7,7 @@ import * as v from "valibot";
 // data; validate its shape before dispatching or forwarding. looseObject keeps
 // unknown keys so the message forwarded to the frontend retains all its fields.
 const uihostMessageEnvelopeSchema = v.looseObject({
-  surfingkeys_uihost_data: v.looseObject({
+  surfingkeysUiHostData: v.looseObject({
     action: v.optional(v.string()),
     origin: v.optional(v.string()),
     toFrontend: v.optional(v.unknown()),
@@ -68,9 +68,9 @@ function createUiHost(adapter: BrowserLike, onload: (uiHost: UiHost) => void): v
     if (!parsed.success) {
       return;
     }
-    const message = parsed.output.surfingkeys_uihost_data;
+    const message = parsed.output.surfingkeysUiHostData;
     if (message.toFrontend) {
-      iframe.contentWindow!.postMessage({ surfingkeys_frontend_data: message }, frontEndURL);
+      iframe.contentWindow!.postMessage({ surfingkeysFrontendData: message }, frontEndURL);
       if (
         message.toFrontend &&
         event.source &&
@@ -82,7 +82,7 @@ function createUiHost(adapter: BrowserLike, onload: (uiHost: UiHost) => void): v
         if (activeContent) {
           activeContent.window.postMessage(
             {
-              surfingkeys_content_data: {
+              surfingkeysContentData: {
                 action: "deactivated",
                 reason: `${message.action}@${event.timeStamp}`,
               },
@@ -100,7 +100,7 @@ function createUiHost(adapter: BrowserLike, onload: (uiHost: UiHost) => void): v
 
         activeContent.window.postMessage(
           {
-            surfingkeys_content_data: {
+            surfingkeysContentData: {
               action: "activated",
               reason: `${message.action}@${event.timeStamp}`,
             },
@@ -114,7 +114,7 @@ function createUiHost(adapter: BrowserLike, onload: (uiHost: UiHost) => void): v
         action(message);
       }
     } else if (message.toContent && activeContent) {
-      activeContent.window.postMessage({ surfingkeys_content_data: message }, activeContent.origin);
+      activeContent.window.postMessage({ surfingkeysContentData: message }, activeContent.origin);
     }
     event.stopImmediatePropagation();
   }
@@ -124,7 +124,7 @@ function createUiHost(adapter: BrowserLike, onload: (uiHost: UiHost) => void): v
     () => {
       iframe.contentWindow!.postMessage(
         {
-          surfingkeys_frontend_data: {
+          surfingkeysFrontendData: {
             action: "initFrontend",
             ack: true,
             winSize: [window.innerWidth, window.innerHeight],
@@ -169,7 +169,7 @@ function createUiHost(adapter: BrowserLike, onload: (uiHost: UiHost) => void): v
         } else {
           activeContent.window.postMessage(
             {
-              surfingkeys_content_data: {
+              surfingkeysContentData: {
                 action: "getBackFocus",
               },
             },
@@ -199,7 +199,7 @@ function createUiHost(adapter: BrowserLike, onload: (uiHost: UiHost) => void): v
   uiHost.tryDetach = () => {
     iframe.contentWindow!.postMessage(
       {
-        surfingkeys_frontend_data: {
+        surfingkeysFrontendData: {
           action: "destroyFrontend",
           ack: true,
           origin: getDocumentOrigin(),
@@ -211,7 +211,7 @@ function createUiHost(adapter: BrowserLike, onload: (uiHost: UiHost) => void): v
   actions["destroyFrontendAck"] = (response) => {
     if (response.data === true) {
       runtime.postTopMessage({
-        surfingkeys_content_data: {
+        surfingkeysContentData: {
           action: "frontendDestroyed",
         },
       });

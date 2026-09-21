@@ -37,7 +37,7 @@ const frontMessageSchema = v.looseObject({
   origin: v.optional(v.string()),
 });
 const frontMessageEnvelopeSchema = v.looseObject({
-  surfingkeys_content_data: v.optional(frontMessageSchema),
+  surfingkeysContentData: v.optional(frontMessageSchema),
   dictorium_data: v.optional(frontMessageSchema),
 });
 
@@ -105,7 +105,7 @@ function createFront(
       callbacks[id] = successById;
     }
     if (window !== top) {
-      runtime.postTopMessage({ surfingkeys_uihost_data: args });
+      runtime.postTopMessage({ surfingkeysUiHostData: args });
     } else {
       if (!frontendPromise) {
         // no need to create frontend iframe if the action is to hide key stroke
@@ -116,7 +116,7 @@ function createFront(
         newFrontEnd();
       }
       frontendPromise?.then(() => {
-        runtime.postTopMessage({ surfingkeys_uihost_data: args });
+        runtime.postTopMessage({ surfingkeysUiHostData: args });
       });
     }
   };
@@ -377,7 +377,7 @@ function createFront(
       };
       requireElement<HTMLIFrameElement>("#proxyFrame").contentWindow!.postMessage(
         {
-          surfingkeys_content_data: {
+          surfingkeysContentData: {
             action: "performInlineQuery",
             pos: pos,
             query: query,
@@ -485,12 +485,12 @@ function createFront(
       }
     },
     querySelectedWord,
-    addMapkey: (mode: string, new_keystroke: string, old_keystroke: string) => {
+    addMapkey: (mode: string, newKeystroke: string, oldKeystroke: string) => {
       applyUICommand({
         action: "addMapkey",
         mode: mode,
-        new_keystroke: new_keystroke,
-        old_keystroke: old_keystroke,
+        newKeystroke: newKeystroke,
+        oldKeystroke: oldKeystroke,
       });
     },
     removeMapkey: (mode: string, keystroke: string) => {
@@ -528,11 +528,11 @@ function createFront(
         action: "openFinder",
       });
     },
-    showBanner: (msg: string, linger_time?: number) => {
+    showBanner: (msg: string, lingerTime?: number) => {
       self.command({
         action: "showBanner",
         content: msg,
-        linger_time: linger_time,
+        lingerTime: lingerTime,
       });
     },
     showBubble: (
@@ -711,7 +711,7 @@ function createFront(
       if (!parsed.success) {
         return;
       }
-      const message = parsed.output.surfingkeys_content_data ?? parsed.output.dictorium_data;
+      const message = parsed.output.surfingkeysContentData ?? parsed.output.dictorium_data;
       if (message == null) {
         return;
       }
@@ -724,7 +724,7 @@ function createFront(
             // unreliable across origins, so the assertion is kept to reach Window.postMessage.
             (event.source as Window).postMessage(
               {
-                surfingkeys_content_data: {
+                surfingkeysContentData: {
                   action: "performInlineQueryResult",
                   pos: pos,
                   result: queryResult,
@@ -755,7 +755,7 @@ function createFront(
             }
             ret.then((data: unknown) =>
               runtime.postTopMessage({
-                surfingkeys_uihost_data: {
+                surfingkeysUiHostData: {
                   data,
                   toFrontend: true,
                   origin: message.origin,

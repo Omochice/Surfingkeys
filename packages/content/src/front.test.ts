@@ -110,7 +110,7 @@ function makeContentEvent(
   overrides: Partial<MessageEventInit> = {},
 ): MessageEvent {
   return new MessageEvent("message", {
-    data: { surfingkeys_content_data: payload },
+    data: { surfingkeysContentData: payload },
     origin: window.location.origin,
     ...overrides,
   });
@@ -615,7 +615,7 @@ describe("createFront window message handler — stopImmediatePropagation behavi
     expect(stopSpy).not.toHaveBeenCalled();
   });
 
-  it("calls stopImmediatePropagation for surfingkeys_content_data messages", () => {
+  it("calls stopImmediatePropagation for surfingkeysContentData messages", () => {
     const { handler, restore } = captureMessageHandler();
     createFront(makeInsert(), makeNormal(), null, makeVisual(), makeBrowser());
     restore();
@@ -714,7 +714,7 @@ describe("createFront actions[getPageText] — ack path posts body text", () => 
     await Promise.resolve();
 
     const postedArg = postSpy.mock.calls[0]?.[0] as any;
-    expect(postedArg?.surfingkeys_uihost_data?.data).toBe("hello from body");
+    expect(postedArg?.surfingkeysUiHostData?.data).toBe("hello from body");
 
     delete (document.body as any).innerText;
     postSpy.mockRestore();
@@ -803,7 +803,7 @@ describe("createFront window message — frontendDestroyed resets frontend", () 
     mockCreateUiHost.mockClear();
     messageHandler(
       new MessageEvent("message", {
-        data: { surfingkeys_content_data: { action: "frontendDestroyed" } },
+        data: { surfingkeysContentData: { action: "frontendDestroyed" } },
         origin: window.location.origin,
       }),
     );

@@ -64,7 +64,7 @@ describe("createUiHost window message handler — activeContent origin", () => {
     const source = { postMessage: vi.fn() };
 
     onMessage(
-      fakeEvent({ surfingkeys_uihost_data: { toFrontend: true, action: "showStatus" } }, source),
+      fakeEvent({ surfingkeysUiHostData: { toFrontend: true, action: "showStatus" } }, source),
     );
 
     // A missing origin is not a valid postMessage targetOrigin, so the
@@ -80,7 +80,7 @@ describe("createUiHost window message handler — activeContent origin", () => {
     onMessage(
       fakeEvent(
         {
-          surfingkeys_uihost_data: {
+          surfingkeysUiHostData: {
             toFrontend: true,
             action: "showStatus",
             origin: "https://example.com",
@@ -92,7 +92,7 @@ describe("createUiHost window message handler — activeContent origin", () => {
 
     expect(source.postMessage).toHaveBeenCalledWith(
       expect.objectContaining({
-        surfingkeys_content_data: expect.objectContaining({ action: "activated" }),
+        surfingkeysContentData: expect.objectContaining({ action: "activated" }),
       }),
       "https://example.com",
     );
@@ -106,7 +106,7 @@ describe("createUiHost window message handler — activeContent origin", () => {
 
       onMessage(
         fakeEvent(
-          { surfingkeys_uihost_data: { toFrontend: true, action: "showStatus", origin } },
+          { surfingkeysUiHostData: { toFrontend: true, action: "showStatus", origin } },
           source,
         ),
       );
@@ -122,14 +122,14 @@ describe("createUiHost window message handler — activeContent origin", () => {
 
     onMessage(
       fakeEvent(
-        { surfingkeys_uihost_data: { toFrontend: true, action: "showStatus", origin: "" } },
+        { surfingkeysUiHostData: { toFrontend: true, action: "showStatus", origin: "" } },
         hostile,
       ),
     );
     onMessage(
       fakeEvent(
         {
-          surfingkeys_uihost_data: {
+          surfingkeysUiHostData: {
             toFrontend: true,
             action: "showStatus",
             origin: "https://example.com",
@@ -141,7 +141,7 @@ describe("createUiHost window message handler — activeContent origin", () => {
 
     expect(page.postMessage).toHaveBeenCalledWith(
       expect.objectContaining({
-        surfingkeys_content_data: expect.objectContaining({ action: "activated" }),
+        surfingkeysContentData: expect.objectContaining({ action: "activated" }),
       }),
       "https://example.com",
     );
@@ -171,7 +171,7 @@ describe("createUiHost window message handler — setFrontFrame values", () => {
 
       onMessage(
         fakeEvent(
-          { surfingkeys_uihost_data: message },
+          { surfingkeysUiHostData: message },
           { postMessage: vi.fn() },
           stopImmediatePropagation,
         ),
@@ -189,7 +189,7 @@ describe("createUiHost window message handler — setFrontFrame values", () => {
     onMessage(
       fakeEvent(
         {
-          surfingkeys_uihost_data: {
+          surfingkeysUiHostData: {
             action: "setFrontFrame",
             frameHeight: "100%",
             pointerEvents: "all",
@@ -231,7 +231,7 @@ const uihostMessageArb = fc.record(
   { requiredKeys: [] },
 );
 
-const envelopeArb = fc.record({ surfingkeys_uihost_data: uihostMessageArb });
+const envelopeArb = fc.record({ surfingkeysUiHostData: uihostMessageArb });
 
 const removeHosts = (): void => {
   document.documentElement.querySelectorAll(":scope > div").forEach((d) => d.remove());
@@ -279,10 +279,10 @@ function bootWithFrameRecorder(): {
 }
 
 const contentPayload = (payload: unknown): Record<string, unknown> | undefined => {
-  if (typeof payload !== "object" || payload == null || !("surfingkeys_content_data" in payload)) {
+  if (typeof payload !== "object" || payload == null || !("surfingkeysContentData" in payload)) {
     return undefined;
   }
-  const { surfingkeys_content_data: data } = payload;
+  const { surfingkeysContentData: data } = payload;
   return typeof data === "object" && data != null && !Array.isArray(data)
     ? Object.fromEntries(Object.entries(data))
     : undefined;
@@ -313,7 +313,7 @@ describe("createUiHost window message handler — fuzzed window messages", () =>
     const withoutEnvelope = fc
       .oneof(fc.anything(), fc.jsonValue())
       .filter(
-        (data) => typeof data !== "object" || data == null || !("surfingkeys_uihost_data" in data),
+        (data) => typeof data !== "object" || data == null || !("surfingkeysUiHostData" in data),
       );
 
     fc.assert(
@@ -352,12 +352,12 @@ describe("createUiHost window message handler — fuzzed window messages", () =>
   it("does not activate the content window for any forwarded action when origin is absent", () => {
     const withoutOrigin = fc.record(
       {
-        surfingkeys_uihost_data: fc.record({
+        surfingkeysUiHostData: fc.record({
           action: actionArb,
           toFrontend: fc.anything().filter((value) => Boolean(value)),
         }),
       },
-      { requiredKeys: ["surfingkeys_uihost_data"] },
+      { requiredKeys: ["surfingkeysUiHostData"] },
     );
 
     fc.assert(
@@ -388,8 +388,8 @@ describe("createUiHost window message handler — fuzzed window messages", () =>
             // A forwarded `toContent` payload is the attacker's own object, which may itself claim
             // `action: "activated"`. Tagging every generated payload tells the two apart.
             const tagged = {
-              surfingkeys_uihost_data: {
-                ...envelope.surfingkeys_uihost_data,
+              surfingkeysUiHostData: {
+                ...envelope.surfingkeysUiHostData,
                 probeId: `step-${at}`,
               },
             };
@@ -406,7 +406,7 @@ describe("createUiHost window message handler — fuzzed window messages", () =>
             expect(active).toBeLessThanOrEqual(1);
           });
 
-          const probe = { surfingkeys_uihost_data: { toContent: true, probeId: "probe" } };
+          const probe = { surfingkeysUiHostData: { toContent: true, probeId: "probe" } };
           onMessage(fakeEvent(probe, newSource(log).stub));
           const reached = sources.filter((source) =>
             source.posts.some((record) => contentPayload(record.payload)?.["probeId"] === "probe"),
