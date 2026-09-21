@@ -180,7 +180,7 @@ describe("addCommand (via api returned by factory)", () => {
 });
 
 describe("map (via api returned by factory)", () => {
-  it("dispatches a surfingkeys:api event with ['map', new_keystroke, old_keystroke, domain, annotation]", () => {
+  it("dispatches a surfingkeys:api event with ['map', newKeystroke, oldKeystroke, domain, annotation]", () => {
     const events = captureEvents("surfingkeys:api", () => {
       capturedApi.map("e", "E", undefined, "my map");
     });
@@ -242,7 +242,7 @@ describe("vmap (via api returned by factory)", () => {
 });
 
 describe("addSearchAlias (via api returned by factory)", () => {
-  it("dispatches a surfingkeys:api event containing the alias and search_url", () => {
+  it("dispatches a surfingkeys:api event containing the alias and searchUrl", () => {
     const events = captureEvents("surfingkeys:api", () => {
       capturedApi.addSearchAlias("g", "Google", "https://www.google.com/search?q=");
     });
@@ -273,7 +273,7 @@ describe("addSearchAlias (via api returned by factory)", () => {
     }).toThrow();
   });
 
-  it("passes suggestion_url through to the dispatch detail", () => {
+  it("passes suggestionUrl through to the dispatch detail", () => {
     const events = captureEvents("surfingkeys:api", () => {
       capturedApi.addSearchAlias(
         "b",
