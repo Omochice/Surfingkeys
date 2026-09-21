@@ -29,9 +29,8 @@ function buildDOM(): void {
 }
 
 function makeRUNTIME() {
-  return vi.fn(
-    (_action: string, _args?: Record<string, unknown> | null, _cb?: (resp: any) => void) =>
-      Result.succeed(undefined),
+  return vi.fn((_action: string, _args?: Record<string, unknown>, _cb?: (resp: any) => void) =>
+    Result.succeed(undefined),
   );
 }
 

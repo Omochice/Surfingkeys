@@ -8,7 +8,7 @@ import { hide, requireElement, show } from "@sk/core/utils";
 
 type RuntimeFn = <R = unknown>(
   action: string,
-  args?: Record<string, unknown> | null,
+  args?: Record<string, unknown>,
   callback?: (resp: R) => void,
 ) => Result.Result<void, ChromeRuntimeError>;
 type RequestFn = <R = unknown>(action: string, args?: Record<string, unknown>) => Promise<R>;

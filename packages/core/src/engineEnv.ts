@@ -9,7 +9,7 @@ export type SurfingkeysHost = {
 
 type RuntimeSend = <R = unknown>(
   action: string,
-  args?: Record<string, unknown> | null,
+  args?: Record<string, unknown>,
   callback?: (response: R) => void,
 ) => Result.Result<void, ChromeRuntimeError>;
 

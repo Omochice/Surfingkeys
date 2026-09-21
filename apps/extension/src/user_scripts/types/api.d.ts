@@ -84,7 +84,7 @@ export type UserScriptApi = {
   /** Calls the background `action` with `args`; `callback` receives the response. */
   RUNTIME: <R = unknown>(
     action: string,
-    args?: Record<string, unknown> | null,
+    args?: Record<string, unknown>,
     callback?: (response: R) => void,
   ) => void;
   /** Calls the background `action`; rejects when the background cannot be reached. */
