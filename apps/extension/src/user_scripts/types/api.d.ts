@@ -91,8 +91,12 @@ export type UserScriptApi = {
    */
   searchSelectedWith: (searchUrl: string, options?: SearchSelectedWithOptions) => void;
   /** Adds a command to the omnibar's command mode. */
-  // eslint-disable-next-line typescript/no-explicit-any -- user command callback of arbitrary signature
-  addCommand: (name: string, description: string, action: (...args: any[]) => void) => void;
+  addCommand: (
+    name: string,
+    // eslint-disable-next-line typescript/no-explicit-any -- user command callback of arbitrary signature
+    action: (...args: any[]) => void,
+    options?: { description?: string },
+  ) => void;
   /** Maps keys in normal mode. */
   mapkey: Mapkey;
   /** Maps keys in insert mode. */
