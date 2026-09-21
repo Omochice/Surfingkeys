@@ -64,13 +64,14 @@ type QueryPos = { top: number; left: number; height: number; width: number };
 
 type ListSuggestionFn = (response: unknown, opts: { url: string; query: string }) => unknown;
 
-function createFront(
-  insert: InsertLike,
-  normal: NormalLike,
-  _hints: unknown,
-  visual: VisualLike,
-  browser: BrowserLike,
-) {
+type FrontDeps = {
+  insert: InsertLike;
+  normal: NormalLike;
+  visual: VisualLike;
+  browser: BrowserLike;
+};
+
+function createFront({ insert, normal, visual, browser }: FrontDeps) {
   // Structural self: the dynamic front stub is built up with dozens of expando methods across this
   // factory and consumed untyped across the postMessage boundary; typing it needs a full rewrite.
   // eslint-disable-next-line typescript/no-explicit-any

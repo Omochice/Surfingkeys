@@ -54,7 +54,7 @@ function initModules(): Modes {
   // Dormant until an "observer" event turns it on, so its setup order relative
   // to hints/visual does not matter.
   startScrollNodeObserver(normal);
-  const front = createFront(insert, normal, hints, visual, adapter);
+  const front = createFront({ insert, normal, visual, browser: adapter });
 
   const ctx: ModeContext = { clipboard, insert, normal, hints, visual, front };
   const api = createAPI(ctx, engineEnv);
