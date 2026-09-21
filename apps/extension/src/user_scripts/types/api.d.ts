@@ -15,28 +15,22 @@ export type SearchSelectedWithOptions = {
   alias?: string;
 };
 
-/** Options accepted by `map`. */
-export type RemapOptions = {
-  /** Restricts the mapping to pages whose URL or origin matches. */
-  domain?: RegExp;
-  /** Overrides the annotation of `oldKeystroke` if given. */
-  annotation?: string;
-  /** The help section this mapping is listed under; only read for a `:command` `oldKeystroke`. */
-  group?: string;
-};
-
-/** Options accepted by `imap` and `vmap`. */
-export type RemapInModeOptions = {
-  /** Restricts the mapping to pages whose URL or origin matches. */
-  domain?: RegExp;
-  /** Overrides the annotation of `oldKeystroke` if given. */
-  annotation?: string;
-};
-
 /** Options accepted by `lmap`, `cmap` and the `unmap` family. */
 export type DomainOptions = {
   /** Restricts the mapping to pages whose URL or origin matches. */
   domain?: RegExp;
+};
+
+/** Options accepted by `imap` and `vmap`. */
+export type RemapInModeOptions = DomainOptions & {
+  /** Overrides the annotation of `oldKeystroke`. */
+  annotation?: string;
+};
+
+/** Options accepted by `map`. */
+export type RemapOptions = RemapInModeOptions & {
+  /** The help section this mapping is listed under; only read for a `:command` `oldKeystroke`. */
+  group?: string;
 };
 
 /** An inline query shown for the word under the cursor or the selection. */
@@ -57,22 +51,8 @@ type Mapkey = (
   options?: MapkeyOptions,
 ) => void;
 
-/** Maps a key sequence to the action another key sequence already has, in normal mode. */
-type Remap = (newKeystroke: string, oldKeystroke: string, options?: RemapOptions) => void;
-
-/** Maps a key sequence to the action another key sequence already has, in insert or visual mode. */
-type RemapInMode = (
-  newKeystroke: string,
-  oldKeystroke: string,
-  options?: RemapInModeOptions,
-) => void;
-
-/** Maps a key sequence to the action another key sequence already has, in lurk mode or the omnibar. */
-type RemapDomainOnly = (
-  newKeystroke: string,
-  oldKeystroke: string,
-  options?: DomainOptions,
-) => void;
+/** Maps a key sequence to the action another key sequence already has. */
+type Remap<Options> = (newKeystroke: string, oldKeystroke: string, options?: Options) => void;
 
 /** Removes the mapping of a key sequence in one mode. */
 type Unmap = (keystroke: string, options?: DomainOptions) => void;
@@ -119,15 +99,15 @@ export type UserScriptApi = {
   /** Maps keys in visual mode. */
   vmapkey: Mapkey;
   /** Remaps keys in normal mode. */
-  map: Remap;
+  map: Remap<RemapOptions>;
   /** Remaps keys in insert mode. */
-  imap: RemapInMode;
+  imap: Remap<RemapInModeOptions>;
   /** Remaps keys in lurk mode. */
-  lmap: RemapDomainOnly;
+  lmap: Remap<DomainOptions>;
   /** Remaps keys in visual mode. */
-  vmap: RemapInMode;
+  vmap: Remap<RemapInModeOptions>;
   /** Remaps keys in the omnibar. */
-  cmap: RemapDomainOnly;
+  cmap: Remap<DomainOptions>;
   /** Unmaps keys in normal mode. */
   unmap: Unmap;
   /** Unmaps keys in insert mode. */

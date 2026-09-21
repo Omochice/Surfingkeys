@@ -44,19 +44,18 @@ export type SearchSelectedWithOptions = {
   alias?: string;
 };
 
-export type RemapOptions = {
-  domain?: RegExp;
-  annotation?: string;
-  group?: FeatureGroup;
-};
-
-export type RemapInModeOptions = {
-  domain?: RegExp;
-  annotation?: string;
-};
-
 export type DomainOptions = {
   domain?: RegExp;
+};
+
+export type RemapInModeOptions = DomainOptions & {
+  /** Overrides the annotation of `oldKeystroke`. */
+  annotation?: string;
+};
+
+export type RemapOptions = RemapInModeOptions & {
+  /** Only read for a `:command` `oldKeystroke`; a key alias keeps the section of its key. */
+  group?: FeatureGroup;
 };
 
 function createAPI(ctx: ModeContext, env: EngineEnv) {
@@ -244,11 +243,6 @@ function createAPI(ctx: ModeContext, env: EngineEnv) {
    *
    * @param {string} newKeystroke A key sequence to replace
    * @param {string} oldKeystroke A key sequence to be replaced
-   * @param {object} [options=null] `domain`: regex, a Javascript regex pattern to identify the
-   *   domains that this mapping works, `annotation`: string, use it instead of the annotation from
-   *   oldKeystroke if provided, `group`: string, the section of the help opened by `?` that lists
-   *   this mapping, such as `"tabs"`, only read when oldKeystroke is a `:command`, since a key
-   *   alias takes the section of the key it replaces. Default is `null`
    */
   function map(newKeystroke: string, oldKeystroke: string, options?: RemapOptions): void {
     const { domain, annotation, group } = options ?? {};
@@ -291,8 +285,6 @@ function createAPI(ctx: ModeContext, env: EngineEnv) {
    *   unmap("<<", { domain: /youtube.com/ });
    *
    * @param {string} keystroke A key sequence to be removed.
-   * @param {object} [options=null] `domain`: regex, a Javascript regex pattern to identify the
-   *   domains that this mapping will be removed. Default is `null`
    */
   function unmap(keystroke: string, options?: DomainOptions): void {
     const { domain } = options ?? {};
@@ -322,8 +314,6 @@ function createAPI(ctx: ModeContext, env: EngineEnv) {
    *   unmapAllExcept(["E", "R", "T"], { domain: /google.com|twitter.com/ });
    *
    * @param {array} keystrokes The keybindings you want to keep.
-   * @param {object} [options=null] `domain`: regex, a Javascript regex pattern to identify the
-   *   domains that this mapping will be removed. Default is `null`
    */
   function unmapAllExcept(keystrokes: string[], options?: DomainOptions): void {
     const { domain } = options ?? {};
@@ -350,9 +340,6 @@ function createAPI(ctx: ModeContext, env: EngineEnv) {
    *
    * @param {string} newKeystroke A key sequence to replace
    * @param {string} oldKeystroke A key sequence to be replaced
-   * @param {object} [options=null] `domain`: regex, a Javascript regex pattern to identify the
-   *   domains that this mapping works, `annotation`: string, use it instead of the annotation from
-   *   oldKeystroke if provided. Default is `null`
    * @see map
    */
   function imap(newKeystroke: string, oldKeystroke: string, options?: RemapInModeOptions): void {
@@ -366,8 +353,6 @@ function createAPI(ctx: ModeContext, env: EngineEnv) {
    * Unmap a key sequence in insert mode.
    *
    * @param {string} keystroke A key sequence to be removed.
-   * @param {object} [options=null] `domain`: regex, a Javascript regex pattern to identify the
-   *   domains that this mapping will be removed. Default is `null`
    * @see unmap
    */
   function iunmap(keystroke: string, options?: DomainOptions): void {
@@ -382,8 +367,6 @@ function createAPI(ctx: ModeContext, env: EngineEnv) {
    *
    * @param {string} newKeystroke A key sequence to replace
    * @param {string} oldKeystroke A key sequence to be replaced
-   * @param {object} [options=null] `domain`: regex, a Javascript regex pattern to identify the
-   *   domains that this mapping works. Default is `null`
    * @see map
    */
   function cmap(newKeystroke: string, oldKeystroke: string, options?: DomainOptions): void {
@@ -400,8 +383,6 @@ function createAPI(ctx: ModeContext, env: EngineEnv) {
    *   cunmap("<Ctrl-j>");
    *
    * @param {string} keystroke A key sequence to be removed.
-   * @param {object} [options=null] `domain`: regex, a Javascript regex pattern to identify the
-   *   domains that this mapping will be removed. Default is `null`
    * @see unmap
    */
   function cunmap(keystroke: string, options?: DomainOptions): void {
@@ -416,9 +397,6 @@ function createAPI(ctx: ModeContext, env: EngineEnv) {
    *
    * @param {string} newKeystroke A key sequence to replace
    * @param {string} oldKeystroke A key sequence to be replaced
-   * @param {object} [options=null] `domain`: regex, a Javascript regex pattern to identify the
-   *   domains that this mapping works, `annotation`: string, use it instead of the annotation from
-   *   oldKeystroke if provided. Default is `null`
    * @see map
    */
   function vmap(newKeystroke: string, oldKeystroke: string, options?: RemapInModeOptions): void {
@@ -432,8 +410,6 @@ function createAPI(ctx: ModeContext, env: EngineEnv) {
    * Unmap a key sequence in visual mode.
    *
    * @param {string} keystroke A key sequence to be removed.
-   * @param {object} [options=null] `domain`: regex, a Javascript regex pattern to identify the
-   *   domains that this mapping will be removed. Default is `null`
    * @see unmap
    */
   function vunmap(keystroke: string, options?: DomainOptions): void {
@@ -448,8 +424,6 @@ function createAPI(ctx: ModeContext, env: EngineEnv) {
    *
    * @param {string} newKeystroke A key sequence to replace
    * @param {string} oldKeystroke A key sequence to be replaced
-   * @param {object} [options=null] `domain`: regex, a Javascript regex pattern to identify the
-   *   domains that this mapping works. Default is `null`
    * @see map
    */
   function lmap(newKeystroke: string, oldKeystroke: string, options?: DomainOptions): void {
