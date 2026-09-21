@@ -1,5 +1,7 @@
 /** Options accepted by the `mapkey` family. */
 export type MapkeyOptions = {
+  /** Help text shown by `?`; omitting it leaves the mapping out of the help. */
+  annotation?: string | string[];
   /** Restricts the mapping to pages whose URL or origin matches. */
   domain?: RegExp;
   codeHasParameter?: number;
@@ -45,7 +47,6 @@ export type InlineQuery = {
 /** Maps a key sequence to a function in one mode. */
 type Mapkey = (
   keys: string,
-  annotation: string | string[],
   // eslint-disable-next-line typescript/no-explicit-any -- user keypress handler of arbitrary signature
   jscode: any,
   options?: MapkeyOptions,

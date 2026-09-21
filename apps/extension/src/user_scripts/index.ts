@@ -50,36 +50,34 @@ function cunmap(keystroke: string, options?: DomainOptions) {
 
 const userDefinedFunctions: Record<string, (...args: unknown[]) => void> = {};
 // eslint-disable-next-line typescript/no-explicit-any -- user keypress handler of arbitrary signature
-function mapkey(keys: string, annotation: string | string[], jscode: any, options?: MapkeyOptions) {
+function mapkey(keys: string, jscode: any, options?: MapkeyOptions) {
   if (!options || isDomainApplicable(options.domain)) {
     const opt = options || {};
     userDefinedFunctions[`normal:${keys}`] = jscode;
     opt.codeHasParameter = jscode.length;
-    dispatchSKEvent("api", ["mapkey", keys, annotation, opt]);
+    dispatchSKEvent("api", ["mapkey", keys, opt]);
   }
 }
 function imapkey(
   keys: string,
-  annotation: string | string[],
   // eslint-disable-next-line typescript/no-explicit-any -- user keypress handler of arbitrary signature
   jscode: any,
   options?: MapkeyOptions,
 ) {
   if (!options || isDomainApplicable(options.domain)) {
     userDefinedFunctions[`insert:${keys}`] = jscode;
-    dispatchSKEvent("api", ["imapkey", keys, annotation, options]);
+    dispatchSKEvent("api", ["imapkey", keys, options]);
   }
 }
 function vmapkey(
   keys: string,
-  annotation: string | string[],
   // eslint-disable-next-line typescript/no-explicit-any -- user keypress handler of arbitrary signature
   jscode: any,
   options?: MapkeyOptions,
 ) {
   if (!options || isDomainApplicable(options.domain)) {
     userDefinedFunctions[`visual:${keys}`] = jscode;
-    dispatchSKEvent("api", ["vmapkey", keys, annotation, options]);
+    dispatchSKEvent("api", ["vmapkey", keys, options]);
   }
 }
 

@@ -86,10 +86,10 @@ describe("cunmap (via api returned by factory)", () => {
 });
 
 describe("mapkey (via api returned by factory)", () => {
-  it("dispatches a surfingkeys:api event with ['mapkey', keys, annotation, opts]", () => {
+  it("dispatches a surfingkeys:api event with ['mapkey', keys, opts]", () => {
     const jscode = vi.fn();
     const events = captureEvents("surfingkeys:api", () => {
-      capturedApi.mapkey("g", "Go somewhere", jscode);
+      capturedApi.mapkey("g", jscode, { annotation: "Go somewhere" });
     });
 
     const evt = events.find(
@@ -97,14 +97,15 @@ describe("mapkey (via api returned by factory)", () => {
         Array.isArray(e.detail) &&
         e.detail[0] === "mapkey" &&
         e.detail[1] === "g" &&
-        e.detail[2] === "Go somewhere",
+        (e.detail[2] as { annotation?: unknown }).annotation === "Go somewhere",
     );
     expect(evt).not.toBeUndefined();
   });
 
   it("does not dispatch when domain option regex does not match", () => {
     const events = captureEvents("surfingkeys:api", () => {
-      capturedApi.mapkey("z", "unreachable", vi.fn(), {
+      capturedApi.mapkey("z", vi.fn(), {
+        annotation: "unreachable",
         domain: /this-domain-will-never-match\.example/,
       });
     });
@@ -115,9 +116,9 @@ describe("mapkey (via api returned by factory)", () => {
 });
 
 describe("imapkey (via api returned by factory)", () => {
-  it("dispatches a surfingkeys:api event with ['imapkey', keys, annotation, opts]", () => {
+  it("dispatches a surfingkeys:api event with ['imapkey', keys, opts]", () => {
     const events = captureEvents("surfingkeys:api", () => {
-      capturedApi.imapkey("i", "Insert mode action", vi.fn());
+      capturedApi.imapkey("i", vi.fn(), { annotation: "Insert mode action" });
     });
 
     const evt = events.find(
@@ -125,7 +126,7 @@ describe("imapkey (via api returned by factory)", () => {
         Array.isArray(e.detail) &&
         e.detail[0] === "imapkey" &&
         e.detail[1] === "i" &&
-        e.detail[2] === "Insert mode action",
+        (e.detail[2] as { annotation?: unknown }).annotation === "Insert mode action",
     );
     expect(evt).not.toBeUndefined();
   });
@@ -133,7 +134,8 @@ describe("imapkey (via api returned by factory)", () => {
   it("does not dispatch when domain option regex does not match", () => {
     // Distinct key from the registration test above (registries persist across tests).
     const events = captureEvents("surfingkeys:api", () => {
-      capturedApi.imapkey("qz", "unreachable", vi.fn(), {
+      capturedApi.imapkey("qz", vi.fn(), {
+        annotation: "unreachable",
         domain: /this-domain-will-never-match\.example/,
       });
     });
@@ -146,9 +148,9 @@ describe("imapkey (via api returned by factory)", () => {
 });
 
 describe("vmapkey (via api returned by factory)", () => {
-  it("dispatches a surfingkeys:api event with ['vmapkey', keys, annotation, opts]", () => {
+  it("dispatches a surfingkeys:api event with ['vmapkey', keys, opts]", () => {
     const events = captureEvents("surfingkeys:api", () => {
-      capturedApi.vmapkey("v", "Visual mode action", vi.fn());
+      capturedApi.vmapkey("v", vi.fn(), { annotation: "Visual mode action" });
     });
 
     const evt = events.find(
@@ -156,7 +158,7 @@ describe("vmapkey (via api returned by factory)", () => {
         Array.isArray(e.detail) &&
         e.detail[0] === "vmapkey" &&
         e.detail[1] === "v" &&
-        e.detail[2] === "Visual mode action",
+        (e.detail[2] as { annotation?: unknown }).annotation === "Visual mode action",
     );
     expect(evt).not.toBeUndefined();
   });
@@ -517,7 +519,7 @@ function fireUser(detail: unknown[], target: EventTarget = document): void {
 describe("surfingkeys:user — callUserFunction", () => {
   it("invokes the registered user function with the passed parameter", () => {
     const jscode = vi.fn();
-    capturedApi.mapkey("gx", "run", jscode);
+    capturedApi.mapkey("gx", jscode, { annotation: "run" });
 
     fireUser(["callUserFunction", "normal:gx", { foo: 1 }]);
 
@@ -526,7 +528,7 @@ describe("surfingkeys:user — callUserFunction", () => {
 
   it("does nothing for a key that was never registered", () => {
     const jscode = vi.fn();
-    capturedApi.mapkey("gy", "run", jscode);
+    capturedApi.mapkey("gy", jscode, { annotation: "run" });
 
     fireUser(["callUserFunction", "normal:never-registered", {}]);
 
@@ -535,7 +537,7 @@ describe("surfingkeys:user — callUserFunction", () => {
 
   it("does not register the user function when the mapkey domain does not match", () => {
     const jscode = vi.fn();
-    capturedApi.mapkey("gz", "run", jscode, { domain: /never-match\.example/ });
+    capturedApi.mapkey("gz", jscode, { annotation: "run", domain: /never-match\.example/ });
 
     fireUser(["callUserFunction", "normal:gz", {}]);
 

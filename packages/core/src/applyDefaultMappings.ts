@@ -18,13 +18,13 @@ const youtubeSuggestSchema = v.tupleWithRest(
 /** Register the data-driven default mappings onto `api`. */
 export function applyDefaultMappings(api: SurfingkeysApi, mappings: DefaultMappings): void {
   for (const [keys, def] of Object.entries(mappings.vmap)) {
-    api.vmapkey(keys, def.annotation, def.code, { ...def.options, group: def.group });
+    api.vmapkey(keys, def.code, { annotation: def.annotation, ...def.options, group: def.group });
   }
   for (const [keys, def] of Object.entries(mappings.imap)) {
-    api.imapkey(keys, def.annotation, def.code, { ...def.options, group: def.group });
+    api.imapkey(keys, def.code, { annotation: def.annotation, ...def.options, group: def.group });
   }
   for (const [keys, def] of Object.entries(mappings.nmap)) {
-    api.mapkey(keys, def.annotation, def.code, { ...def.options, group: def.group });
+    api.mapkey(keys, def.code, { annotation: def.annotation, ...def.options, group: def.group });
   }
 }
 

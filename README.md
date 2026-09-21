@@ -7,11 +7,15 @@ Surfingkeys is another web browser(including Google Chrome, Chromium based brows
 Surfingkeys is created with all settings described in Javascript, so it's easy for anyone to map any keystrokes to their own defined Javascript function. For example,
 
 ```javascript
-api.mapkey("<Ctrl-y>", "Show me the money", function () {
-  api.Front.showPopup(
-    "a well-known phrase uttered by characters in the 1996 film Jerry Maguire (Escape to close).",
-  );
-});
+api.mapkey(
+  "<Ctrl-y>",
+  function () {
+    api.Front.showPopup(
+      "a well-known phrase uttered by characters in the 1996 film Jerry Maguire (Escape to close).",
+    );
+  },
+  { annotation: "Show me the money" },
+);
 ```
 
 Surfingkeys is doing its best to make full use of keyboard for web browsing, but there are some limitations from Google Chrome itself, please see [Brook Build of Chromium](https://brookhong.github.io/2021/04/18/brook-build-of-chromium.html) for a more thorough experience.
@@ -322,9 +326,13 @@ There is also `settings.tabsThreshold` here. When total of opened tabs exceeds `
 If you prefer to use omnibar always, use below mapping:
 
 ```javascript
-api.mapkey("<Space>", "Choose a tab with omnibar", function () {
-  api.Front.openOmnibar({ type: "Tabs" });
-});
+api.mapkey(
+  "<Space>",
+  function () {
+    api.Front.openOmnibar({ type: "Tabs" });
+  },
+  { annotation: "Choose a tab with omnibar" },
+);
 ```
 
 which works same as:
@@ -449,11 +457,10 @@ All keystrokes in normal mode are repeatable by dot, except those keystrokes map
 ```javascript
 api.mapkey(
   "se",
-  "My magic se",
   function () {
     // your code here
   },
-  { repeatIgnore: true, group: "scroll" },
+  { annotation: "My magic se", repeatIgnore: true, group: "scroll" },
 );
 ```
 

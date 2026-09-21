@@ -98,7 +98,8 @@ beforeEach(() => {
   registry = new Map();
   allRegs = [];
   remaps = [];
-  const record = (mode: string) => (keys: string, annotation: any, cb: any, options: any) => {
+  const record = (mode: string) => (keys: string, cb: any, options: any) => {
+    const annotation = options?.annotation;
     registry.set(keys, { mode, annotation, cb, options });
     allRegs.push({ keys, mode, annotation, cb, options });
   };
@@ -222,7 +223,8 @@ describe("front-delegating keys", () => {
 describe("iframe front lacking content-only members", () => {
   const wireIframeLikeMappings = () => {
     const iframeRegistry = new Map<string, Registration>();
-    const record = (mode: string) => (keys: string, annotation: any, cb: any, options: any) => {
+    const record = (mode: string) => (keys: string, cb: any, options: any) => {
+      const annotation = options?.annotation;
       iframeRegistry.set(`${mode}:${keys}`, { mode, annotation, cb, options });
     };
     const iframeApi: any = {
@@ -1723,8 +1725,8 @@ describe("Firefox-only mappings", () => {
     const firefoxRegistry = new Map<string, Registration>();
     const ffApi = {
       ...api,
-      mapkey: (keys: string, annotation: any, cb: any, options: any) =>
-        firefoxRegistry.set(keys, { mode: "normal", annotation, cb, options }),
+      mapkey: (keys: string, cb: any, options: any) =>
+        firefoxRegistry.set(keys, { mode: "normal", annotation: options?.annotation, cb, options }),
     };
     applyDefaultMappings(
       ffApi as any,
@@ -1739,8 +1741,8 @@ describe("Firefox-only mappings", () => {
     const otherRegistry = new Map<string, Registration>();
     const otherApi = {
       ...api,
-      mapkey: (keys: string, annotation: any, cb: any, options: any) =>
-        otherRegistry.set(keys, { mode: "normal", annotation, cb, options }),
+      mapkey: (keys: string, cb: any, options: any) =>
+        otherRegistry.set(keys, { mode: "normal", annotation: options?.annotation, cb, options }),
     };
     applyDefaultMappings(
       otherApi as any,
@@ -1807,7 +1809,7 @@ describe("createDefaultMappings returns data keyed by mode then key", () => {
     const defaults = createDefaultMappings(ctx, makeEnv(), api.searchSelectedWith);
     const source = defaults.nmap["f"];
 
-    api.mapkey("p", source.annotation, source.code, source.options);
+    api.mapkey("p", source.code, { annotation: source.annotation, ...source.options });
 
     const rebound = registry.get("p");
     expect(rebound).toBeDefined();
