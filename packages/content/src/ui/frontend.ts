@@ -608,7 +608,7 @@ const Front = (() => {
         args: args,
       });
     };
-    omnibarCommand(message.name, message.description, proxyAction);
+    omnibarCommand(message.name, proxyAction, { annotation: message.description });
   };
   actions["getUsage"] = (message: unknown) => {
     // The ack flag the dispatcher may attach is irrelevant here; only metas and the correlation id

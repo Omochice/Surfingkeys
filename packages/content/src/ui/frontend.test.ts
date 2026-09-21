@@ -397,9 +397,13 @@ describe("actions['addCommand']", () => {
     Front.actions["addCommand"]({ name: "myCmd", description: "Does my thing" });
 
     expect(omnibarCommandSpy).toHaveBeenCalledOnce();
-    const [name, description] = omnibarCommandSpy.mock.calls[0] as [string, string, unknown];
+    const [name, , options] = omnibarCommandSpy.mock.calls[0] as [
+      string,
+      unknown,
+      { annotation: string },
+    ];
     expect(name).toBe("myCmd");
-    expect(description).toBe("Does my thing");
+    expect(options.annotation).toBe("Does my thing");
   });
 
   it("proxy action dispatches executeUserCommand via contentCommand", () => {
@@ -411,8 +415,7 @@ describe("actions['addCommand']", () => {
 
     Front.actions["addCommand"]({ name: "proxied", description: "" });
 
-    // The third argument to omnibar.command is the proxy function.
-    const proxyFn = omnibarCommandSpy.mock.calls.at(-1)?.[2] as (...args: any[]) => void;
+    const proxyFn = omnibarCommandSpy.mock.calls.at(-1)?.[1] as (...args: any[]) => void;
     proxyFn("arg1", "arg2");
 
     const msg = posted.find((m) => m?.action === "executeUserCommand");

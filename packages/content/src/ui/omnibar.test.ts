@@ -421,9 +421,13 @@ describe("createOmnibar — addHandler / Commands integration", () => {
     runtime.conf.focusFirstCandidate = false;
     runtime.conf.omnibarPosition = "middle";
 
-    omnibar.command?.("greet", "Greet somebody", (args: string[]) => {
-      executedArgs = args;
-    });
+    omnibar.command?.(
+      "greet",
+      (args: string[]) => {
+        executedArgs = args;
+      },
+      { annotation: "Greet somebody" },
+    );
   });
 
   beforeEach(() => {
@@ -437,7 +441,7 @@ describe("createOmnibar — addHandler / Commands integration", () => {
   });
 
   it("a second executeCommand call routes the correct args to the correct command", () => {
-    omnibar.command?.("tabopen", "Open a tab", () => {});
+    omnibar.command?.("tabopen", () => {}, { annotation: "Open a tab" });
     front.actions["executeCommand"]({ cmdline: "greet Alice" });
     expect(executedArgs).toEqual(["Alice"]);
   });
@@ -1094,9 +1098,9 @@ describe("Commands handler — onInput lists matching commands", () => {
   it("onInput lists commands whose name contains the current input", () => {
     const { omnibar, ui } = makeOmnibar();
 
-    omnibar.command?.("tabopen", "Open a tab", () => {});
-    omnibar.command?.("tabnew", "New tab", () => {});
-    omnibar.command?.("quit", "Quit browser", () => {});
+    omnibar.command?.("tabopen", () => {}, { annotation: "Open a tab" });
+    omnibar.command?.("tabnew", () => {}, { annotation: "New tab" });
+    omnibar.command?.("quit", () => {}, { annotation: "Quit browser" });
 
     mockRUNTIME.mockImplementation((_action: any, _args: any, cb?: any) => {
       if (_action === "getSettings" && cb) {
@@ -1135,7 +1139,7 @@ describe("Commands handler — onInput lists matching commands", () => {
 
   it("Commands.onEnter sends RUNTIME updateInputHistory with the cmdline", () => {
     const { omnibar, ui } = makeOmnibar();
-    omnibar.command?.("greet2", "Greet", () => {});
+    omnibar.command?.("greet2", () => {}, { annotation: "Greet" });
     omnibar.input.value = "";
 
     mockRUNTIME.mockImplementation((_action: any, _args: any, cb?: any) => {
@@ -2216,7 +2220,7 @@ describe("Commands handler — onInput with no matching candidates", () => {
   it("does not call listResults when no commands match the query", () => {
     const { omnibar, ui } = makeOmnibar();
 
-    omnibar.command?.("tabopen", "Open a tab", () => {});
+    omnibar.command?.("tabopen", () => {}, { annotation: "Open a tab" });
     mockRUNTIME.mockImplementation((_action: any, _args: any, cb?: any) => {
       if (_action === "getSettings" && cb) cb({ settings: { cmdHistory: [] } });
       return Result.succeed(undefined);
