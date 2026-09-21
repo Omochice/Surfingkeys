@@ -422,26 +422,25 @@ function createNormal(insert: InsertLike, env: EngineEnv): NormalMode {
 
   const toggleBlocklist = (): void => {
     if (document.location.href.indexOf(getExtensionURL("/")) !== 0) {
-      RUNTIME(
+      request<{ state: string; blocklist: Record<string, unknown>; url?: string }>(
         "toggleBlocklist",
         {
           blocklistPattern: conf.blocklistPattern || "",
         },
-        (resp: { state: string; blocklist: Record<string, unknown>; url?: string }) => {
-          if (resp.state === "disabled") {
-            if (Object.hasOwn(resp.blocklist, ".*")) {
-              showBanner(
-                "Surfingkeys is globally disabled, please enable it globally from popup menu.",
-                3000,
-              );
-            } else {
-              showBanner("Surfingkeys turned OFF for " + resp.url, 3000);
-            }
+      ).then((resp) => {
+        if (resp.state === "disabled") {
+          if (Object.hasOwn(resp.blocklist, ".*")) {
+            showBanner(
+              "Surfingkeys is globally disabled, please enable it globally from popup menu.",
+              3000,
+            );
           } else {
-            showBanner("Surfingkeys turned ON for " + resp.url, 3000);
+            showBanner("Surfingkeys turned OFF for " + resp.url, 3000);
           }
-        },
-      );
+        } else {
+          showBanner("Surfingkeys turned ON for " + resp.url, 3000);
+        }
+      }, reportError);
     } else {
       showBanner("You could not toggle Surfingkeys on its own pages.", 3000);
     }

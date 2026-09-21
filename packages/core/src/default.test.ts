@@ -354,9 +354,7 @@ describe("tabOpenLink keys (Chrome)", () => {
   });
 });
 
-describe("RUNTIME keys that pass a response handler", () => {
-  // The RUNTIME mock never invokes the response callback, so only the outgoing
-  // message is observable.
+describe("request keys that pass a response handler", () => {
   const cases: Array<[string, string, unknown]> = [
     ["yj", "getSettings", { key: "RAW" }],
     ["yQ", "getSettings", { key: "OmniQueryHistory" }],
@@ -367,7 +365,7 @@ describe("RUNTIME keys that pass a response handler", () => {
 
   it.each(cases)("%s sends %s with the expected payload", (key, subject, arg) => {
     fire(key);
-    expect(seam.RUNTIME.mock.lastCall!.slice(0, 2)).toEqual([subject, arg]);
+    expect(seam.request).toHaveBeenLastCalledWith(subject, arg);
   });
 });
 
@@ -743,17 +741,12 @@ describe(";pp pastes HTML via clipboard callback", () => {
   });
 });
 
-describe("yj response callback writes JSON settings to clipboard", () => {
-  it("passes response.settings through JSON.stringify with regExpReplacer and writes to clipboard", () => {
-    let capturedCb: ((r: { settings: unknown }) => void) | null = null;
-    seam.RUNTIME.mockImplementationOnce(
-      (_subj: string, _arg: unknown, cb: (r: { settings: unknown }) => void) => {
-        capturedCb = cb;
-      },
-    );
-    fire("yj");
+describe("yj response writes JSON settings to clipboard", () => {
+  it("passes response.settings through JSON.stringify with regExpReplacer and writes to clipboard", async () => {
+    seam.request.mockResolvedValueOnce({ settings: { foo: "bar" } });
     seam.utils.regExpReplacer.mockImplementation((_k: string, v: unknown) => v);
-    capturedCb!({ settings: { foo: "bar" } });
+    fire("yj");
+    await flush();
     const written = ctx.clipboard.write.mock.calls.at(-1)![0] as string;
     expect(written).toContain('"foo"');
     expect(written).toContain('"bar"');
@@ -808,79 +801,50 @@ describe("yY writes tab URLs to clipboard", () => {
   });
 });
 
-describe("yQ response callback writes query history to clipboard", () => {
-  it("joins OmniQueryHistory entries with newlines", () => {
-    let capturedCb: ((r: { settings: { OmniQueryHistory: string[] } }) => void) | null = null;
-    seam.RUNTIME.mockImplementationOnce(
-      (
-        _subj: string,
-        _arg: unknown,
-        cb: (r: { settings: { OmniQueryHistory: string[] } }) => void,
-      ) => {
-        capturedCb = cb;
-      },
-    );
+describe("yQ response writes query history to clipboard", () => {
+  it("joins OmniQueryHistory entries with newlines", async () => {
+    seam.request.mockResolvedValueOnce({ settings: { OmniQueryHistory: ["query1", "query2"] } });
     fire("yQ");
-    capturedCb!({ settings: { OmniQueryHistory: ["query1", "query2"] } });
+    await flush();
     expect(ctx.clipboard.write).toHaveBeenLastCalledWith("query1\nquery2");
   });
 });
 
-describe("gp response callback focuses the playing tab", () => {
-  it("sends focusTab when an audible tab is present", () => {
-    let capturedCb: ((r: { tabs?: { windowId: number; id: number }[] }) => void) | null = null;
-    seam.RUNTIME.mockImplementationOnce(
-      (
-        _subj: string,
-        _arg: unknown,
-        cb: (r: { tabs?: { windowId: number; id: number }[] }) => void,
-      ) => {
-        capturedCb = cb;
-      },
-    );
+describe("gp response focuses the playing tab", () => {
+  it("sends focusTab when an audible tab is present", async () => {
+    seam.request.mockResolvedValueOnce({ tabs: [{ windowId: 1, id: 42 }] });
     fire("gp");
-    capturedCb!({ tabs: [{ windowId: 1, id: 42 }] });
+    await flush();
     expect(seam.RUNTIME).toHaveBeenLastCalledWith("focusTab", { windowId: 1, tabId: 42 });
   });
 
-  it("does not call focusTab when no audible tab is present", () => {
-    let capturedCb: ((r: { tabs?: unknown[] }) => void) | null = null;
-    seam.RUNTIME.mockImplementationOnce(
-      (_subj: string, _arg: unknown, cb: (r: { tabs?: unknown[] }) => void) => {
-        capturedCb = cb;
-      },
-    );
+  it("does not call focusTab when no audible tab is present", async () => {
+    seam.request.mockResolvedValueOnce({ tabs: [] });
     fire("gp");
     const callsBefore = seam.RUNTIME.mock.calls.length;
-    capturedCb!({ tabs: [] });
+    await flush();
     expect(seam.RUNTIME.mock.calls.length).toBe(callsBefore);
   });
 });
 
-describe("yd response callback writes download URLs to clipboard", () => {
-  it("joins in-progress download URLs with commas", () => {
-    let capturedCb: ((r: { downloads: { url: string }[] }) => void) | null = null;
-    seam.RUNTIME.mockImplementationOnce(
-      (_subj: string, _arg: unknown, cb: (r: { downloads: { url: string }[] }) => void) => {
-        capturedCb = cb;
-      },
-    );
+describe("yd response writes download URLs to clipboard", () => {
+  it("joins in-progress download URLs with commas", async () => {
+    seam.request.mockResolvedValueOnce({
+      downloads: [{ url: "https://file1.zip" }, { url: "https://file2.zip" }],
+    });
     fire("yd");
-    capturedCb!({ downloads: [{ url: "https://file1.zip" }, { url: "https://file2.zip" }] });
+    await flush();
     expect(ctx.clipboard.write).toHaveBeenLastCalledWith("https://file1.zip,https://file2.zip");
   });
 });
 
-describe(";yh response callback writes history URLs to clipboard", () => {
-  it("joins history URLs with newlines", () => {
-    let capturedCb: ((r: { history: { url: string }[] }) => void) | null = null;
-    seam.RUNTIME.mockImplementationOnce(
-      (_subj: string, _arg: unknown, cb: (r: { history: { url: string }[] }) => void) => {
-        capturedCb = cb;
-      },
-    );
+describe(";yh response writes history URLs to clipboard", () => {
+  it("joins history URLs with newlines", async () => {
+    seam.request.mockResolvedValueOnce({
+      history: [{ url: "https://visited.com" }, { url: "https://other.com" }],
+    });
     fire(";yh");
-    capturedCb!({ history: [{ url: "https://visited.com" }, { url: "https://other.com" }] });
+    await flush();
     expect(ctx.clipboard.write).toHaveBeenLastCalledWith("https://visited.com\nhttps://other.com");
   });
 });

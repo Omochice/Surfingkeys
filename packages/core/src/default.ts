@@ -1188,10 +1188,11 @@ function defineGoToPlayingTab(env: EngineEnv): ModalMappingDef {
       group: "pageNavigation",
       annotation: "Go to the playing tab",
       code: () => {
-        env.RUNTIME(
-          "getTabs",
-          { queryInfo: { audible: true } },
-          (response: { tabs?: { windowId: number; id: number }[] }) => {
+        env
+          .request<{ tabs?: { windowId: number; id: number }[] }>("getTabs", {
+            queryInfo: { audible: true },
+          })
+          .then((response) => {
             const tab = response.tabs?.[0];
             if (tab) {
               env.RUNTIME("focusTab", {
@@ -1199,8 +1200,7 @@ function defineGoToPlayingTab(env: EngineEnv): ModalMappingDef {
                 tabId: tab.id,
               });
             }
-          },
-        );
+          }, reportError);
       },
       options: { repeatIgnore: true },
     },
@@ -1415,15 +1415,13 @@ function defineCopySettings(ctx: ModeContext, env: EngineEnv): ModalMappingDef {
       group: "clipboard",
       annotation: "Copy current settings",
       code: () => {
-        env.RUNTIME(
-          "getSettings",
-          {
+        env
+          .request<{ settings: unknown }>("getSettings", {
             key: "RAW",
-          },
-          (response: { settings: unknown }) => {
+          })
+          .then((response) => {
             ctx.clipboard.write(JSON.stringify(response.settings, regExpReplacer, 4));
-          },
-        );
+          }, reportError);
       },
     },
   };
@@ -1549,15 +1547,13 @@ function defineCopyOmniQueryHistory(ctx: ModeContext, env: EngineEnv): ModalMapp
       group: "clipboard",
       annotation: "Copy all query history of OmniQuery.",
       code: () => {
-        env.RUNTIME(
-          "getSettings",
-          {
+        env
+          .request<{ settings: { OmniQueryHistory: string[] } }>("getSettings", {
             key: "OmniQueryHistory",
-          },
-          (response: { settings: { OmniQueryHistory: string[] } }) => {
+          })
+          .then((response) => {
             ctx.clipboard.write(response.settings.OmniQueryHistory.join("\n"));
-          },
-        );
+          }, reportError);
       },
     },
   };
@@ -2073,12 +2069,11 @@ function defineCopyDownloadingUrl(ctx: ModeContext, env: EngineEnv): ModalMappin
       group: "clipboard",
       annotation: "Copy current downloading URL",
       code: () => {
-        env.RUNTIME(
-          "getDownloads",
-          {
+        env
+          .request("getDownloads", {
             query: { state: "in_progress" },
-          },
-          (response) => {
+          })
+          .then((response) => {
             const { downloads } = v.parse(
               v.object({ downloads: v.array(v.object({ url: v.optional(v.string()) })) }),
               response,
@@ -2087,8 +2082,7 @@ function defineCopyDownloadingUrl(ctx: ModeContext, env: EngineEnv): ModalMappin
               return o.url ?? "";
             });
             ctx.clipboard.write(items.join(","));
-          },
-        );
+          }, reportError);
       },
     },
   };
@@ -2164,13 +2158,13 @@ function defineYankHistories(ctx: ModeContext, env: EngineEnv): ModalMappingDef 
       group: "misc",
       annotation: "Yank histories",
       code: () => {
-        env.RUNTIME("getHistory", {}, (response) => {
+        env.request("getHistory", {}).then((response) => {
           const { history } = v.parse(
             v.object({ history: v.array(v.object({ url: v.optional(v.string()) })) }),
             response,
           );
           ctx.clipboard.write(history.map((h) => h.url ?? "").join("\n"));
-        });
+        }, reportError);
       },
     },
   };
