@@ -37,7 +37,6 @@ type HintsLike = {
 
 type Match = [Node, number, HTMLElement[]];
 
-/** A boundary point as a `Selection` reports it, where the node is absent while nothing is selected. */
 type NullableBoundaryPoint = { node: Node | null; offset: number };
 
 type VisualMode = {
