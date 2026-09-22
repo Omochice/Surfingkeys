@@ -789,7 +789,7 @@ function defineZoomReset(env: EngineEnv): ModalMappingDef {
       group: "tabs",
       annotation: "zoom reset",
       code: () => {
-        env.RUNTIME("setZoom", {
+        env.notify("setZoom", {
           zoomFactor: 0,
         });
       },
@@ -805,7 +805,7 @@ function defineZoomIn(env: EngineEnv): ModalMappingDef {
       group: "tabs",
       annotation: "zoom in",
       code: () => {
-        env.RUNTIME("setZoom", {
+        env.notify("setZoom", {
           zoomFactor: 0.1,
         });
       },
@@ -821,7 +821,7 @@ function defineZoomOut(env: EngineEnv): ModalMappingDef {
       group: "tabs",
       annotation: "zoom out",
       code: () => {
-        env.RUNTIME("setZoom", {
+        env.notify("setZoom", {
           zoomFactor: -0.1,
         });
       },
@@ -837,7 +837,7 @@ function defineSaveSessionAndQuit(env: EngineEnv): ModalMappingDef {
       group: "sessions",
       annotation: "Save session and quit",
       code: () => {
-        env.RUNTIME("createSession", {
+        env.notify("createSession", {
           name: "LAST",
           quitAfterSaved: true,
         });
@@ -854,7 +854,7 @@ function defineRestoreLastSession(env: EngineEnv): ModalMappingDef {
       group: "sessions",
       annotation: "Restore last session",
       code: () => {
-        env.RUNTIME("openSession", {
+        env.notify("openSession", {
           name: "LAST",
         });
       },
@@ -1086,7 +1086,7 @@ function defineTogglePinTab(env: EngineEnv): ModalMappingDef {
       group: "tabs",
       annotation: "pin/unpin current tab",
       code: () => {
-        env.RUNTIME("togglePinTab");
+        env.notify("togglePinTab");
       },
     },
   };
@@ -1100,7 +1100,7 @@ function defineToggleMuteTab(env: EngineEnv): ModalMappingDef {
       group: "tabs",
       annotation: "mute/unmute current tab",
       code: () => {
-        env.RUNTIME("muteTab");
+        env.notify("muteTab");
       },
     },
   };
@@ -1114,7 +1114,7 @@ function defineTabHistoryBack(env: EngineEnv): ModalMappingDef {
       group: "pageNavigation",
       annotation: "Go one tab history back",
       code: () => {
-        env.RUNTIME("historyTab", { backward: true });
+        env.notify("historyTab", { backward: true });
       },
       options: { repeatIgnore: true },
     },
@@ -1129,7 +1129,7 @@ function defineTabHistoryForward(env: EngineEnv): ModalMappingDef {
       group: "pageNavigation",
       annotation: "Go one tab history forward",
       code: () => {
-        env.RUNTIME("historyTab", { backward: false });
+        env.notify("historyTab", { backward: false });
       },
       options: { repeatIgnore: true },
     },
@@ -1144,7 +1144,7 @@ function defineGoToLastUsedTab(env: EngineEnv): ModalMappingDef {
       group: "pageNavigation",
       annotation: "Go to last used tab",
       code: () => {
-        env.RUNTIME("goToLastTab");
+        env.notify("goToLastTab");
       },
     },
   };
@@ -1158,7 +1158,7 @@ function defineGoToFirstActivatedTab(env: EngineEnv): ModalMappingDef {
       group: "pageNavigation",
       annotation: "Go to first activated tab",
       code: () => {
-        env.RUNTIME("historyTab", { index: 0 });
+        env.notify("historyTab", { index: 0 });
       },
       options: { repeatIgnore: true },
     },
@@ -1173,7 +1173,7 @@ function defineGoToLastActivatedTab(env: EngineEnv): ModalMappingDef {
       group: "pageNavigation",
       annotation: "Go to last activated tab",
       code: () => {
-        env.RUNTIME("historyTab", { index: -1 });
+        env.notify("historyTab", { index: -1 });
       },
       options: { repeatIgnore: true },
     },
@@ -1195,7 +1195,7 @@ function defineGoToPlayingTab(env: EngineEnv): ModalMappingDef {
           .then((response) => {
             const tab = response.tabs?.[0];
             if (tab) {
-              env.RUNTIME("focusTab", {
+              env.notify("focusTab", {
                 windowId: tab.windowId,
                 tabId: tab.id,
               });
@@ -1245,7 +1245,7 @@ function defineReloadPage(env: EngineEnv): ModalMappingDef {
       group: "pageNavigation",
       annotation: "Reload the page",
       code: () => {
-        env.RUNTIME("reloadTab", { nocache: false });
+        env.notify("reloadTab", { nocache: false });
       },
     },
   };
@@ -1259,7 +1259,7 @@ function defineOpenIncognitoWindow(env: EngineEnv): ModalMappingDef {
       group: "omnibar",
       annotation: "Open incognito window",
       code: () => {
-        env.RUNTIME("openIncognito", {
+        env.notify("openIncognito", {
           url: window.location.href,
         });
       },
@@ -1336,7 +1336,7 @@ function defineCloseTab(env: EngineEnv): ModalMappingDef {
       group: "tabs",
       annotation: "Close current tab",
       code: () => {
-        env.RUNTIME("closeTab");
+        env.notify("closeTab");
       },
     },
   };
@@ -1384,7 +1384,7 @@ function defineClearQueueUrls(env: EngineEnv): ModalMappingDef {
       group: "clipboard",
       annotation: "Clear all URLs in queue to be opened",
       code: () => {
-        env.RUNTIME("clearQueueURLs");
+        env.notify("clearQueueURLs");
       },
     },
   };
@@ -1441,7 +1441,7 @@ function defineRestoreSettings(ctx: ModeContext, env: EngineEnv): ModalMappingDe
             showBanner("Clipboard does not contain valid settings data.");
             return;
           }
-          env.RUNTIME("updateSettings", { settings: result.output });
+          env.notify("updateSettings", { settings: result.output });
         });
       },
     },
@@ -1456,7 +1456,7 @@ function defineDuplicateTab(env: EngineEnv): ModalMappingDef {
       group: "tabs",
       annotation: "Duplicate current tab",
       code: () => {
-        env.RUNTIME("duplicateTab");
+        env.notify("duplicateTab");
       },
     },
   };
@@ -1470,7 +1470,7 @@ function defineDuplicateTabBackground(env: EngineEnv): ModalMappingDef {
       group: "tabs",
       annotation: "Duplicate current tab in background",
       code: () => {
-        env.RUNTIME("duplicateTab", { active: false });
+        env.notify("duplicateTab", { active: false });
       },
     },
   };
@@ -1704,7 +1704,7 @@ function defineCloseTabLeft(env: EngineEnv): ModalMappingDef {
       group: "tabs",
       annotation: "Close tab on left",
       code: () => {
-        env.RUNTIME("closeTabLeft");
+        env.notify("closeTabLeft");
       },
     },
   };
@@ -1718,7 +1718,7 @@ function defineCloseTabRight(env: EngineEnv): ModalMappingDef {
       group: "tabs",
       annotation: "Close tab on right",
       code: () => {
-        env.RUNTIME("closeTabRight");
+        env.notify("closeTabRight");
       },
     },
   };
@@ -1732,7 +1732,7 @@ function defineCloseAllTabsLeft(env: EngineEnv): ModalMappingDef {
       group: "tabs",
       annotation: "Close all tabs on left",
       code: () => {
-        env.RUNTIME("closeTabsToLeft");
+        env.notify("closeTabsToLeft");
       },
     },
   };
@@ -1746,7 +1746,7 @@ function defineCloseAllTabsRight(env: EngineEnv): ModalMappingDef {
       group: "tabs",
       annotation: "Close all tabs on right",
       code: () => {
-        env.RUNTIME("closeTabsToRight");
+        env.notify("closeTabsToRight");
       },
     },
   };
@@ -1760,7 +1760,7 @@ function defineCloseOtherTabs(env: EngineEnv): ModalMappingDef {
       group: "tabs",
       annotation: "Close all tabs except current one",
       code: () => {
-        env.RUNTIME("tabOnly");
+        env.notify("tabOnly");
       },
     },
   };
@@ -1774,7 +1774,7 @@ function defineClosePlayingTab(env: EngineEnv): ModalMappingDef {
       group: "tabs",
       annotation: "Close playing tab",
       code: () => {
-        env.RUNTIME("closeAudibleTab");
+        env.notify("closeAudibleTab");
       },
     },
   };
@@ -1874,7 +1874,7 @@ function defineRestoreClosedTab(env: EngineEnv): ModalMappingDef {
       group: "tabs",
       annotation: "Restore closed tab",
       code: () => {
-        env.RUNTIME("openLast");
+        env.notify("openLast");
       },
     },
   };
@@ -2023,7 +2023,7 @@ function defineGatherAllTabs(env: EngineEnv): ModalMappingDef {
       group: "tabs",
       annotation: "Gather all tabs into current window",
       code: () => {
-        env.RUNTIME("gatherWindows");
+        env.notify("gatherWindows");
       },
     },
   };
@@ -2037,7 +2037,7 @@ function defineMoveTabLeft(env: EngineEnv): ModalMappingDef {
       group: "tabs",
       annotation: "Move current tab to left",
       code: () => {
-        env.RUNTIME("moveTab", {
+        env.notify("moveTab", {
           step: -1,
         });
       },
@@ -2053,7 +2053,7 @@ function defineMoveTabRight(env: EngineEnv): ModalMappingDef {
       group: "tabs",
       annotation: "Move current tab to right",
       code: () => {
-        env.RUNTIME("moveTab", {
+        env.notify("moveTab", {
           step: 1,
         });
       },
@@ -2096,7 +2096,7 @@ function defineViewPageSource(env: EngineEnv): ModalMappingDef {
       group: "chromeUrls",
       annotation: "View page source",
       code: () => {
-        env.RUNTIME("viewSource", { tab: { tabbed: true } });
+        env.notify("viewSource", { tab: { tabbed: true } });
       },
     },
   };
@@ -2111,7 +2111,7 @@ function defineDownloadImage(ctx: ModeContext, env: EngineEnv): ModalMappingDef 
       annotation: "Download image",
       code: () => {
         ctx.hints.create("img", (element: HTMLImageElement) => {
-          env.RUNTIME("download", {
+          env.notify("download", {
             url: element.src,
           });
         });
@@ -2128,7 +2128,7 @@ function defineCloseDownloadsShelf(env: EngineEnv): ModalMappingDef {
       group: "chromeUrls",
       annotation: "Close Downloads Shelf",
       code: () => {
-        env.RUNTIME("closeDownloadsShelf", { clearHistory: true });
+        env.notify("closeDownloadsShelf", { clearHistory: true });
       },
     },
   };
@@ -2142,7 +2142,7 @@ function defineDeleteOldHistory(env: EngineEnv): ModalMappingDef {
       group: "misc",
       annotation: "Delete history older than 30 days",
       code: () => {
-        env.RUNTIME("deleteHistoryOlderThan", {
+        env.notify("deleteHistoryOlderThan", {
           days: 30,
         });
       },
@@ -2179,7 +2179,7 @@ function definePutHistories(ctx: ModeContext, env: EngineEnv): ModalMappingDef {
       annotation: "Put histories from clipboard",
       code: () => {
         ctx.clipboard.read((response) => {
-          env.RUNTIME("addHistories", { history: response.data.split("\n") });
+          env.notify("addHistories", { history: response.data.split("\n") });
         });
       },
     },
@@ -2194,7 +2194,7 @@ function defineRemoveBookmark(env: EngineEnv): ModalMappingDef {
       group: "misc",
       annotation: "Remove bookmark for current page",
       code: () => {
-        env.RUNTIME("removeBookmark");
+        env.notify("removeBookmark");
       },
     },
   };

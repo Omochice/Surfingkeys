@@ -1,6 +1,5 @@
-import { Result } from "@praha/byethrow";
 import { reportError } from "@sk/core/report";
-import { request, RUNTIME } from "@sk/messaging/runtime";
+import { notify, request } from "@sk/messaging/runtime";
 import { flush } from "@sk/test-support/helpers";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -8,19 +7,19 @@ import createCommands from "./command";
 import type { OmnibarResult } from "./omnibarResult";
 
 // Intercept background calls so the command handlers can be driven with canned responses
-// instead of reaching chrome.runtime. The return must be a real Result for callers that inspect it.
+// instead of reaching chrome.runtime.
 vi.mock("@sk/messaging/runtime", async (importOriginal) => {
   const orig = await importOriginal<typeof import("@sk/messaging/runtime")>();
   return {
     ...orig,
-    RUNTIME: vi.fn(() => Result.succeed(undefined)),
+    notify: vi.fn(),
     request: vi.fn(() => new Promise(() => {})),
   };
 });
 
 vi.mock("@sk/core/report", () => ({ reportError: vi.fn() }));
 
-const mockRUNTIME = vi.mocked(RUNTIME);
+const mockNotify = vi.mocked(notify);
 const mockRequest = vi.mocked(request);
 const mockReportError = vi.mocked(reportError);
 
@@ -78,8 +77,7 @@ function onlyBatch(listed: OmnibarResult[][]): OmnibarResult[] {
 }
 
 beforeEach(() => {
-  mockRUNTIME.mockReset();
-  mockRUNTIME.mockReturnValue(Result.succeed(undefined));
+  mockNotify.mockReset();
   mockRequest.mockReset();
   mockRequest.mockImplementation(() => new Promise(() => {}));
   mockReportError.mockReset();

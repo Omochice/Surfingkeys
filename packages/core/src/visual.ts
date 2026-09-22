@@ -78,7 +78,7 @@ function buildFindRegExp(query: string): RegExp {
 }
 
 function createVisual(clipboard: ClipboardLike, hints: HintsLike, env: EngineEnv): VisualMode {
-  const { RUNTIME } = env;
+  const { notify } = env;
   const mode = new ModeHandle("Visual");
   const mappings = new Trie();
   const keymap = createKeymap(() => mappings, { enableRepeats: true });
@@ -786,7 +786,7 @@ function createVisual(clipboard: ClipboardLike, hints: HintsLike, env: EngineEnv
       if (query && query.length && query !== ".") {
         self.hideCursor();
         const pos: [Node | null, number] = [selection.focusNode, selection.focusOffset];
-        RUNTIME("updateInputHistory", { find: query });
+        notify("updateInputHistory", { find: query });
         self.visualClear();
         highlight(buildFindRegExp(query));
         selection.setPosition(pos[0], pos[1]);

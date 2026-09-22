@@ -1,4 +1,3 @@
-import { Result } from "@praha/byethrow";
 import * as fc from "fast-check";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -17,7 +16,7 @@ import {
 // isInUIFrame and reportIssue, so tests override just those.
 function makeTestEnv(overrides: Partial<EngineEnv> = {}): EngineEnv {
   return {
-    RUNTIME: () => Result.succeed(undefined),
+    notify: () => {},
     isInUIFrame: () => false,
     reportIssue: vi.fn(),
     tabOpenLink: () => {},

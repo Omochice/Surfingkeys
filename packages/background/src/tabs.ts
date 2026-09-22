@@ -6,8 +6,8 @@ import * as v from "valibot";
 import type { BackgroundConf, BrowserAdapter, MessageHandler } from "./start";
 import { createTabHistory } from "./tabHistory";
 
-// Repeat-count actions carry `repeats` (injected by the content-script RUNTIME
-// helper); validate it rather than trusting the cross-process payload.
+// Repeat-count actions carry `repeats` (injected by the content-script senders);
+// validate it rather than trusting the cross-process payload.
 const repeatsSchema = v.object({ repeats: v.optional(v.number()) });
 const reloadTabSchema = v.object({
   repeats: v.optional(v.number()),

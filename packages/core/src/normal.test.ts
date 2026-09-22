@@ -1,4 +1,3 @@
-import { Result } from "@praha/byethrow";
 import { flush } from "@sk/test-support/helpers";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -12,17 +11,11 @@ import { repeatCount } from "./repeatCount";
 import { getScrollableElements } from "./scrollDetection";
 
 // normal asserts real seam behaviour (chrome.runtime.sendMessage spies, extension-URL checks), so its
-// stub env forwards RUNTIME to chrome.runtime.sendMessage and resolves getExtensionURL via
+// stub env forwards notify to chrome.runtime.sendMessage and resolves getExtensionURL via
 // chrome.runtime.getURL, keeping those assertions intact without depending on the chrome seams.
 const env: EngineEnv = {
-  RUNTIME: (action, args, callback) => {
-    const message = { ...args, action, needResponse: callback != null };
-    if (callback) {
-      chrome.runtime.sendMessage(message, callback);
-    } else {
-      chrome.runtime.sendMessage(message);
-    }
-    return Result.succeed();
+  notify: (action, args) => {
+    chrome.runtime.sendMessage({ ...args, action, needResponse: false });
   },
   request: (action, args) =>
     new Promise((resolve) => {
@@ -578,7 +571,7 @@ describe("createNormal jumpVIMark", () => {
     expect(scrollTarget().scrollLeft).toBe(50);
   });
 
-  it(String.raw`non-\' mark sends RUNTIME jumpVIMark with the mark character`, () => {
+  it(String.raw`non-\' mark sends notify jumpVIMark with the mark character`, () => {
     const sendMessage = vi.fn();
     (globalThis as any).chrome.runtime.sendMessage = sendMessage;
     const normal = createNormal(insertStub, env);
@@ -593,7 +586,7 @@ describe("createNormal jumpVIMark", () => {
 });
 
 describe("createNormal moveTab", () => {
-  it("sends RUNTIME moveTab with the given position", () => {
+  it("sends notify moveTab with the given position", () => {
     const sendMessage = vi.fn();
     (globalThis as any).chrome.runtime.sendMessage = sendMessage;
     const normal = createNormal(insertStub, env);
@@ -608,7 +601,7 @@ describe("createNormal moveTab", () => {
 });
 
 describe("createNormal addVIMark", () => {
-  it("sends RUNTIME addVIMark with the correct mark shape", () => {
+  it("sends notify addVIMark with the correct mark shape", () => {
     const sendMessage = vi.fn();
     (globalThis as any).chrome.runtime.sendMessage = sendMessage;
     Object.defineProperty(document, "scrollingElement", {
@@ -778,7 +771,7 @@ describe("createNormal built-in mapping registration", () => {
 });
 
 describe("createNormal rotateFrame", () => {
-  it("sends RUNTIME nextFrame with the window frameId", () => {
+  it("sends notify nextFrame with the window frameId", () => {
     const sendMessage = vi.fn();
     (globalThis as any).chrome.runtime.sendMessage = sendMessage;
     (window as any).frameId = 42;
@@ -1078,7 +1071,7 @@ describe("createPassThrough mousedown and focus handlers", () => {
 });
 
 describe("createNormal revertToLurk", () => {
-  it("sends RUNTIME setSurfingkeysIcon with status lurking when window === top", () => {
+  it("sends notify setSurfingkeysIcon with status lurking when window === top", () => {
     const sendMessage = vi.fn();
     (globalThis as any).chrome.runtime.sendMessage = sendMessage;
     const normal = createNormal(insertStub, env);

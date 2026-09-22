@@ -1,6 +1,6 @@
 import { Result } from "@praha/byethrow";
 import { attachFaviconToImgSrc } from "@sk/adapter/platform-utils";
-import { decodeError, reportOnFail, unwrapOr } from "@sk/common/result";
+import { decodeError, unwrapOr } from "@sk/common/result";
 import { filterByTitleOrUrl, regexFromString } from "@sk/common/utils";
 import { debounce } from "@sk/core/debounce";
 import type { DebouncedFunction } from "@sk/core/debounce";
@@ -25,7 +25,7 @@ import {
   tryDecodeURI,
   tryDecodeURIComponent,
 } from "@sk/core/utils";
-import { request, RUNTIME, runtime } from "@sk/messaging/runtime";
+import { notify, request, runtime } from "@sk/messaging/runtime";
 import { createEffect, createRoot, createSignal } from "solid-js";
 import { render } from "solid-js/web";
 
@@ -225,7 +225,7 @@ type OmnibarMode = Omnibar & {
  * page, so no scroll position is captured.
  */
 function addVIMark(mark: string, url: string): void {
-  RUNTIME("addVIMark", { mark: { [mark]: { url, scrollLeft: 0, scrollTop: 0 } } });
+  notify("addVIMark", { mark: { [mark]: { url, scrollLeft: 0, scrollTop: 0 } } });
 }
 
 function createOmnibar(front: OmnibarFront, clipboard: { write(text: string): void }): OmnibarMode {
@@ -556,10 +556,7 @@ function createOmnibar(front: OmnibarFront, clipboard: { write(text: string): vo
       return;
     }
     if (d.url) {
-      reportOnFail(
-        RUNTIME("openLink", { tab: { tabbed: true, active: true }, url: d.url }),
-        reportError,
-      );
+      notify("openLink", { tab: { tabbed: true, active: true }, url: d.url });
     } else {
       setQuery(d.query ?? "");
       self.input.focus();
@@ -900,24 +897,18 @@ function createOmnibar(front: OmnibarFront, clipboard: { write(text: string): vo
     }
     if (type === "T") {
       const parts = uid.split(":");
-      reportOnFail(
-        RUNTIME("focusTab", {
-          windowId: Number.parseInt(parts[0] ?? ""),
-          tabId: Number.parseInt(parts[1] ?? ""),
-        }),
-        reportError,
-      );
+      notify("focusTab", {
+        windowId: Number.parseInt(parts[0] ?? ""),
+        tabId: Number.parseInt(parts[1] ?? ""),
+      });
     } else if (url && url.length) {
-      reportOnFail(
-        RUNTIME("openLink", {
-          tab: {
-            tabbed: handler.tabbed,
-            active: handler.activeTab,
-          },
-          url: url,
-        }),
-        reportError,
-      );
+      notify("openLink", {
+        tab: {
+          tabbed: handler.tabbed,
+          active: handler.activeTab,
+        },
+        url: url,
+      });
     }
     return handler.activeTab;
   };
@@ -1168,16 +1159,13 @@ function OpenBookmarks(omnibar: Omnibar): OpenBookmarksHandler {
           const subItems = response.bookmarks;
           for (const m of subItems) {
             if (m.url) {
-              reportOnFail(
-                RUNTIME("openLink", {
-                  tab: {
-                    tabbed: true,
-                    active: false,
-                  },
-                  url: m.url,
-                }),
-                reportError,
-              );
+              notify("openLink", {
+                tab: {
+                  tabbed: true,
+                  active: false,
+                },
+                url: m.url,
+              });
             }
           }
         },
@@ -1477,12 +1465,9 @@ function OpenTabs(omnibar: Omnibar): OmnibarHandler {
     if (args && args.action === "gather") {
       self.prompt = "Gather filtered tabs into current window";
       self.onEnter = () => {
-        reportOnFail(
-          RUNTIME("gatherTabs", {
-            tabs: omnibar.getItems(),
-          }),
-          reportError,
-        );
+        notify("gatherTabs", {
+          tabs: omnibar.getItems(),
+        });
         return true;
       };
       getTabsArgs = { queryInfo: { currentWindow: false } };
@@ -1558,7 +1543,7 @@ function CloseTabs(omnibar: Omnibar): OmnibarHandler {
       }
     });
     if (tabIds.length > 0) {
-      reportOnFail(RUNTIME("closeTabByIds", { tabIds: tabIds }), reportError);
+      notify("closeTabByIds", { tabIds: tabIds });
     }
     return true;
   };
@@ -1586,7 +1571,7 @@ function OpenWindows(omnibar: Omnibar, front: OmnibarFront): OmnibarHandler {
     if (fi && fi.data.windowId != null) {
       windowId = fi.data.windowId;
     }
-    reportOnFail(RUNTIME("moveToWindow", { windowId }), reportError);
+    notify("moveToWindow", { windowId });
     return true;
   };
   self.onOpen = () => {
@@ -1597,7 +1582,7 @@ function OpenWindows(omnibar: Omnibar, front: OmnibarFront): OmnibarHandler {
   self.onInput = () => {
     windowsPromise?.then((cached) => {
       if (cached.length === 0) {
-        reportOnFail(RUNTIME("moveToWindow", { windowId: -1 }), reportError);
+        notify("moveToWindow", { windowId: -1 });
         front.hidePopup();
       }
       let filtered = cached;
@@ -1726,16 +1711,13 @@ function SearchEngine(omnibar: Omnibar, front: OmnibarFront): SearchEngineHandle
     } else {
       url = constructSearchURL(self.url ?? "", encodeURIComponent(omnibar.input.value));
     }
-    reportOnFail(
-      RUNTIME("openLink", {
-        tab: {
-          tabbed: self.tabbed,
-          active: self.activeTab,
-        },
-        url: url,
-      }),
-      reportError,
-    );
+    notify("openLink", {
+      tab: {
+        tabbed: self.tabbed,
+        active: self.activeTab,
+      },
+      url: url,
+    });
     return self.activeTab;
   };
   function listSuggestions(suggestions: SearchSuggestion[]) {
@@ -1904,7 +1886,7 @@ function Commands(omnibar: Omnibar, front: OmnibarFront): OmnibarHandler {
     const ret = false;
     const cmdline = omnibar.input.value;
     if (cmdline.length) {
-      reportOnFail(RUNTIME("updateInputHistory", { cmd: cmdline }), reportError);
+      notify("updateInputHistory", { cmd: cmdline });
       execute(cmdline);
       omnibar.setQuery("");
     }

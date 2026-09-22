@@ -1,23 +1,12 @@
-import { Result } from "@praha/byethrow";
-import { type ChromeRuntimeError, chromeRuntimeError } from "@sk/common/result";
+import { chromeRuntimeError } from "@sk/common/result";
 import { conf, getCaseSensitive } from "@sk/core/conf";
 import { repeatCount } from "@sk/core/repeatCount";
 import { reportError } from "@sk/core/report";
 
-// This module is the messaging service. Fire-and-forget sends keep the raw,
-// callback-based chrome.runtime API rather than the promise-based
-// BrowserAdapter: the polyfill's promise form would turn every callback-less
-// call's "message port closed" into an unhandled rejection. request wraps that
-// same send for callers that do handle a rejection. onMessage stays here too
-// for the same callback contract.
-
-type RuntimeFn = {
-  <R = unknown>(
-    action: string,
-    args?: Record<string, unknown>,
-    callback?: (response: R) => void,
-  ): Result.Result<void, ChromeRuntimeError>;
-};
+// notify stays on the raw, callback-less chrome.runtime.sendMessage rather than the
+// promise-based BrowserAdapter: the polyfill's promise form would turn every unanswered
+// send into an unhandled rejection. request wraps that same callback-form send for
+// callers that do handle a rejection. onMessage stays here for the same callback contract.
 
 const actionsRepeatBackground = [
   "closeTab",
@@ -48,52 +37,19 @@ function buildPayload(
   return a;
 }
 
-/**
- * Call background `action` with `args`, the `callback` will be executed with response from
- * background. Returns a `Result` so callers decide whether to surface failure to the user.
- *
- * @example
- *   RUNTIME("getTabs", { queryInfo: { currentWindow: true } }, (response) => {
- *     console.log(response);
- *   });
- */
-const RUNTIME: RuntimeFn = function <R = unknown>(
-  action: string,
-  args?: Record<string, unknown>,
-  callback?: (response: R) => void,
-): Result.Result<void, ChromeRuntimeError> {
-  const a = buildPayload(action, args, callback != null);
-  return Result.try({
-    try: (): void => {
-      if (callback) {
-        // sendMessage reports most failures ("Receiving end does not exist",
-        // "message port closed") asynchronously via lastError, which
-        // Result.try's synchronous catch never sees. Reading it here routes the
-        // failure through reportError and silences Chrome's "Unchecked
-        // runtime.lastError" warning.
-        chrome.runtime.sendMessage(a, (response: R) => {
-          if (chrome.runtime.lastError) {
-            // Pass message, not the object: formatMessage stringifies the cause,
-            // turning { message } into "[object Object]".
-            reportError(
-              chromeRuntimeError(
-                `sendMessage:${action}`,
-                chrome.runtime.lastError.message ?? "unknown error",
-              ),
-            );
-            return;
-          }
-          callback(response);
-        });
-      } else {
-        chrome.runtime.sendMessage(a);
-      }
-    },
-    catch: (cause) => chromeRuntimeError(`sendMessage:${action}`, cause),
-  });
-};
+/** Calls the background `action` without waiting for a response. */
+function notify(action: string, args?: Record<string, unknown>): void {
+  const a = buildPayload(action, args, false);
+  try {
+    chrome.runtime.sendMessage(a);
+  } catch (error) {
+    // A send throws on every key press in a page whose extension was reloaded, so raising
+    // the banner here would repeat it per key.
+    console.warn(`[runtime exception] sendMessage:${action}: ${String(error)}`);
+  }
+}
 
-/** Calls the background `action`; rejects with a {@link ChromeRuntimeError} if unreachable. */
+/** Calls the background `action`; rejects with a ChromeRuntimeError if unreachable. */
 function request<R = unknown>(action: string, args?: Record<string, unknown>): Promise<R> {
   const a = buildPayload(action, args, true);
   return new Promise<R>((resolve, reject) => {
@@ -176,4 +132,4 @@ const runtime = {
   getCaseSensitive,
 };
 
-export { request, RUNTIME, runtime };
+export { notify, request, runtime };

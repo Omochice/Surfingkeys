@@ -93,7 +93,7 @@ type MapkeyTarget = {
 
 function createAPI(ctx: ModeContext, env: EngineEnv) {
   const { clipboard, insert, normal, hints, visual, front } = ctx;
-  const { RUNTIME, isInUIFrame, tabOpenLink, log: LOG } = env;
+  const { notify, isInUIFrame, tabOpenLink, log: LOG } = env;
   // registerInlineQuery is exposed as a callable API entry, so it needs a function value rather than
   // a guarded call. The iframe front omits it (inline queries act on the hosting page, which the
   // iframe lacks), so it falls back to a no-op there instead of registering an undefined handler.
@@ -645,7 +645,7 @@ function createAPI(ctx: ModeContext, env: EngineEnv) {
     },
   });
   return {
-    RUNTIME,
+    notify,
     addSearchAlias,
     cmap,
     cunmap,

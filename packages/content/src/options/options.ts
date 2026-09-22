@@ -1,16 +1,10 @@
-import { Result } from "@praha/byethrow";
-import { type ChromeRuntimeError, reportOnFail } from "@sk/common/result";
 import type { StoredSettings } from "@sk/core/conf";
 // Type-only: the ModeHandle constructor itself is injected through optionsMain's parameters.
 import type { ModeHandle } from "@sk/core/mode";
 import { reportError } from "@sk/core/report";
 import { hide, requireElement, show } from "@sk/core/utils";
 
-type RuntimeFn = <R = unknown>(
-  action: string,
-  args?: Record<string, unknown>,
-  callback?: (resp: R) => void,
-) => Result.Result<void, ChromeRuntimeError>;
+type NotifyFn = (action: string, args?: Record<string, unknown>) => void;
 type RequestFn = <R = unknown>(action: string, args?: Record<string, unknown>) => Promise<R>;
 type KeyboardUtilsLike = {
   encodeKeystroke(k: string): string;
@@ -46,7 +40,7 @@ type AliasInfo = { prompt: string | { html: string } };
 type BasicMapping = { origin: string; annotation: string | string[] | undefined };
 
 type OptionsDeps = {
-  RUNTIME: RuntimeFn;
+  notify: NotifyFn;
   request: RequestFn;
   KeyboardUtils: KeyboardUtilsLike;
   ModeHandle: ModeCtor;
@@ -65,7 +59,7 @@ type OptionsDeps = {
 
 export default function optionsMain(deps: OptionsDeps): void {
   const {
-    RUNTIME,
+    notify,
     request,
     KeyboardUtils,
     ModeHandle,
@@ -228,15 +222,12 @@ export default function optionsMain(deps: OptionsDeps): void {
         }
       }, reportError);
     } else {
-      reportOnFail(
-        RUNTIME("updateSettings", {
-          settings: {
-            snippets: settingsCode,
-            localPath: getURIPath(localPathInput.value),
-          },
-        }),
-        reportError,
-      );
+      notify("updateSettings", {
+        settings: {
+          snippets: settingsCode,
+          localPath: getURIPath(localPathInput.value),
+        },
+      });
 
       showBanner("Settings saved", 1000);
     }
@@ -370,14 +361,11 @@ export default function optionsMain(deps: OptionsDeps): void {
             disabledSearchAliases[key] = prompt;
           }
 
-          reportOnFail(
-            RUNTIME("updateSettings", {
-              settings: {
-                disabledSearchAliases,
-              },
-            }),
-            reportError,
-          );
+          notify("updateSettings", {
+            settings: {
+              disabledSearchAliases,
+            },
+          });
         };
       }
     });
@@ -456,14 +444,11 @@ export default function optionsMain(deps: OptionsDeps): void {
             realDefMap[el.dataset["origin"]!] = n!;
           }
         });
-        reportOnFail(
-          RUNTIME("updateSettings", {
-            settings: {
-              basicMappings: realDefMap,
-            },
-          }),
-          reportError,
-        );
+        notify("updateSettings", {
+          settings: {
+            basicMappings: realDefMap,
+          },
+        });
       } else {
         const keyName = event.sk_keyName ?? "";
         if (keyName.length > 1) {

@@ -1,4 +1,3 @@
-import { Result } from "@praha/byethrow";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { conf } from "./conf";
@@ -6,10 +5,10 @@ import type { EngineEnv } from "./engineEnv";
 import KeyboardUtils from "./keyboardUtils";
 import createVisual from "./visual";
 
-// visual reaches the seam only via RUNTIME (find-history update); the rest are inert stubs.
+// visual reaches the seam only via notify (find-history update); the rest are inert stubs.
 function makeEnv(): EngineEnv {
   return {
-    RUNTIME: () => Result.succeed(undefined),
+    notify: () => {},
     isInUIFrame: () => false,
     reportIssue: () => {},
     tabOpenLink: () => {},

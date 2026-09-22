@@ -24,7 +24,7 @@ import {
   setSanitizedContent,
   mapInMode,
 } from "@sk/core/utils";
-import { request, RUNTIME, runtime } from "@sk/messaging/runtime";
+import { notify, request, runtime } from "@sk/messaging/runtime";
 import { createSignal } from "solid-js";
 import { render } from "solid-js/web";
 import * as v from "valibot";
@@ -446,7 +446,7 @@ const Front = (() => {
               "windowId" in matched &&
               "id" in matched
             ) {
-              RUNTIME("focusTab", {
+              notify("focusTab", {
                 windowId: matched.windowId,
                 tabId: matched.id,
               });
@@ -1110,7 +1110,7 @@ const Find = (() => {
             query = String.raw`\b` + query + String.raw`\b`;
           }
           reset();
-          RUNTIME("updateInputHistory", { find: query });
+          notify("updateInputHistory", { find: query });
           Front.visualCommand({
             action: "visualEnter",
             query: query,

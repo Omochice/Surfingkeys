@@ -1,6 +1,6 @@
 import { Result } from "@praha/byethrow";
 import { LOG } from "@sk/adapter/log";
-import { reportOnFail, userCodeError } from "@sk/common/result";
+import { userCodeError } from "@sk/common/result";
 import type createAPI from "@sk/core/api";
 import type { StoredSettings } from "@sk/core/conf";
 import { dispatchSKEvent } from "@sk/core/events";
@@ -9,7 +9,7 @@ import type createNormal from "@sk/core/normal";
 import { reportError } from "@sk/core/report";
 import type { TrieMeta } from "@sk/core/trie";
 import { applyUserSettings } from "@sk/core/utils";
-import { request, RUNTIME, runtime } from "@sk/messaging/runtime";
+import { notify, request, runtime } from "@sk/messaging/runtime";
 
 type Api = ReturnType<typeof createAPI>;
 type Normal = ReturnType<typeof createNormal>;
@@ -83,12 +83,9 @@ function applyRuntimeConf(normal: Normal): void {
     }
 
     if (window === top) {
-      reportOnFail(
-        RUNTIME("setSurfingkeysIcon", {
-          status: state,
-        }),
-        reportError,
-      );
+      notify("setSurfingkeysIcon", {
+        status: state,
+      });
       dispatchSKEvent("front", ["showStatus", [undefined, undefined, ""]]);
     }
   }, reportError);

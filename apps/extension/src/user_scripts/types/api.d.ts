@@ -81,13 +81,9 @@ type Unmap = (keystroke: string, options?: DomainOptions) => void;
 
 /** The `api` object a settings snippet receives when it runs as a user script. */
 export type UserScriptApi = {
-  /** Calls the background `action` with `args`; `callback` receives the response. */
-  RUNTIME: <R = unknown>(
-    action: string,
-    args?: Record<string, unknown>,
-    callback?: (response: R) => void,
-  ) => void;
-  /** Calls the background `action`; rejects when the background cannot be reached. */
+  /** Calls the background `action` without waiting for a response. */
+  notify: (action: string, args?: Record<string, unknown>) => void;
+  /** Calls the background `action` and waits; rejects when the background cannot be reached. */
   request: <R = unknown>(action: string, args?: Record<string, unknown>) => Promise<R>;
   /**
    * Adds a search engine reachable from the omnibar and from `searchLeaderKey` + `alias`.

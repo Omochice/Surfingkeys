@@ -1,7 +1,7 @@
 import type { FeatureGroup } from "@sk/core/featureGroup";
 import { reportError } from "@sk/core/report";
 import { createElementWithContent } from "@sk/core/utils";
-import { request, RUNTIME } from "@sk/messaging/runtime";
+import { notify, request } from "@sk/messaging/runtime";
 
 import { buildOmnibarResult } from "./omnibarResult";
 import type { OmnibarResult } from "./omnibarResult";
@@ -31,7 +31,7 @@ const createCommands = (normal: NormalLike, command: CommandFn, omnibar: Omnibar
   command(
     "quit",
     () => {
-      RUNTIME("quit");
+      notify("quit");
     },
     { annotation: "quit chrome", group: "sessions" },
   );
@@ -43,7 +43,7 @@ const createCommands = (normal: NormalLike, command: CommandFn, omnibar: Omnibar
         return;
       }
       const update: Record<string, unknown[]> = { [key]: [] };
-      RUNTIME("updateInputHistory", update);
+      notify("updateInputHistory", update);
     },
     { annotation: "clearHistory <find|cmd|...>" },
   );
@@ -63,7 +63,7 @@ const createCommands = (normal: NormalLike, command: CommandFn, omnibar: Omnibar
   command(
     "createSession",
     (args) => {
-      RUNTIME("createSession", {
+      notify("createSession", {
         name: args[0],
       });
     },
@@ -72,7 +72,7 @@ const createCommands = (normal: NormalLike, command: CommandFn, omnibar: Omnibar
   command(
     "deleteSession",
     (args) => {
-      RUNTIME("deleteSession", {
+      notify("deleteSession", {
         name: args[0],
       });
       return true; // to close omnibar after the command executed.
@@ -82,7 +82,7 @@ const createCommands = (normal: NormalLike, command: CommandFn, omnibar: Omnibar
   command(
     "openSession",
     (args) => {
-      RUNTIME("openSession", {
+      notify("openSession", {
         name: args[0],
       });
     },
@@ -102,7 +102,7 @@ const createCommands = (normal: NormalLike, command: CommandFn, omnibar: Omnibar
   command(
     "clearQueueURLs",
     () => {
-      RUNTIME("clearQueueURLs");
+      notify("clearQueueURLs");
     },
     { annotation: "clear URLs in queue waiting for open" },
   );

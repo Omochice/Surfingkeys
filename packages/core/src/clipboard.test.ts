@@ -1,4 +1,3 @@
-import { Result } from "@praha/byethrow";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import type { EngineEnv } from "./engineEnv";
@@ -20,10 +19,10 @@ import { getBrowserName, showBanner } from "./utils";
 
 const mockGetBrowserName = vi.mocked(getBrowserName);
 const mockShowBanner = vi.mocked(showBanner);
-const mockRUNTIME = vi.fn(() => Result.succeed(undefined));
+const mockNotify = vi.fn();
 
 const makeEnv = (): EngineEnv => ({
-  RUNTIME: mockRUNTIME,
+  notify: mockNotify,
   isInUIFrame: () => false,
   reportIssue: () => {},
   tabOpenLink: () => {},
@@ -36,7 +35,7 @@ describe("Clipboard.write on Chrome", () => {
   beforeEach(() => {
     mockGetBrowserName.mockReturnValue("Chrome");
     mockShowBanner.mockClear();
-    mockRUNTIME.mockClear();
+    mockNotify.mockClear();
     // jsdom does not implement execCommand; define it so spyOn can override it.
     if (!document.execCommand) {
       Object.defineProperty(document, "execCommand", {
@@ -57,10 +56,10 @@ describe("Clipboard.write on Chrome", () => {
     expect(mockShowBanner).toHaveBeenCalledWith("Copied: hello world");
   });
 
-  it("does not call RUNTIME for Chrome (uses execCommand path)", () => {
+  it("does not call notify for Chrome (uses execCommand path)", () => {
     const clipboard = createClipboard(makeEnv());
     clipboard.write("some text");
-    expect(mockRUNTIME).not.toHaveBeenCalled();
+    expect(mockNotify).not.toHaveBeenCalled();
   });
 });
 
@@ -68,16 +67,16 @@ describe("Clipboard.write on Firefox", () => {
   beforeEach(() => {
     mockGetBrowserName.mockReturnValue("Firefox");
     mockShowBanner.mockClear();
-    mockRUNTIME.mockClear();
+    mockNotify.mockClear();
   });
 
-  it("calls RUNTIME('writeClipboard') with the text", () => {
+  it("calls notify('writeClipboard') with the text", () => {
     const clipboard = createClipboard(makeEnv());
     clipboard.write("firefox text");
-    expect(mockRUNTIME).toHaveBeenCalledWith("writeClipboard", { text: "firefox text" });
+    expect(mockNotify).toHaveBeenCalledWith("writeClipboard", { text: "firefox text" });
   });
 
-  it("still shows a banner after RUNTIME call", () => {
+  it("still shows a banner after notify call", () => {
     const clipboard = createClipboard(makeEnv());
     clipboard.write("firefox text");
     expect(mockShowBanner).toHaveBeenCalledWith("Copied: firefox text");

@@ -1,4 +1,3 @@
-import { Result } from "@praha/byethrow";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import createAPI from "./api";
@@ -7,16 +6,10 @@ import KeyboardUtils from "./keyboardUtils";
 import Trie from "./trie";
 
 // api delegates tab-opening to env.tabOpenLink, so the stub exposes it as a spy the tests assert
-// against; RUNTIME forwards to chrome.runtime.sendMessage to keep any other messaging inert.
+// against; notify forwards to chrome.runtime.sendMessage to keep any other messaging inert.
 const env: EngineEnv = {
-  RUNTIME: (action, args, callback) => {
-    const message = { ...args, action, needResponse: callback != null };
-    if (callback) {
-      chrome.runtime.sendMessage(message, callback);
-    } else {
-      chrome.runtime.sendMessage(message);
-    }
-    return Result.succeed();
+  notify: (action, args) => {
+    chrome.runtime.sendMessage({ ...args, action, needResponse: false });
   },
   isInUIFrame: () => false,
   reportIssue: () => {},

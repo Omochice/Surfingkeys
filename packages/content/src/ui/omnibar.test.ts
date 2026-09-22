@@ -1,21 +1,19 @@
-import { Result } from "@praha/byethrow";
-import { request, RUNTIME, runtime } from "@sk/messaging/runtime";
+import { notify, request, runtime } from "@sk/messaging/runtime";
 import { flush } from "@sk/test-support/helpers";
 import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 
 import createOmnibar from "./omnibar";
 
-// The mocked return value must be a real @praha/byethrow Result so reportOnFail works.
 vi.mock("@sk/messaging/runtime", async (importOriginal) => {
   const orig = await importOriginal<typeof import("@sk/messaging/runtime")>();
   return {
     ...orig,
-    RUNTIME: vi.fn(() => Result.succeed(undefined)),
+    notify: vi.fn(),
     request: vi.fn(() => new Promise(() => {})),
   };
 });
 
-const mockRUNTIME = vi.mocked(RUNTIME);
+const mockNotify = vi.mocked(notify);
 const mockRequest = vi.mocked(request);
 
 beforeEach(() => {
@@ -440,7 +438,6 @@ describe("createOmnibar — addHandler / Commands integration", () => {
 
   beforeEach(() => {
     executedArgs = undefined;
-    mockRUNTIME.mockImplementation(() => Result.succeed(undefined));
   });
 
   it("executeCommand dispatched via front.actions runs the registered command", () => {
@@ -580,12 +577,11 @@ describe("createOmnibar — Ctrl-c clipboard copy paths", () => {
 
 describe("createOmnibar — Ctrl-m vim-like mark creation", () => {
   beforeEach(() => {
-    mockRUNTIME.mockReset();
-    mockRUNTIME.mockImplementation(() => Result.succeed(undefined));
+    mockNotify.mockReset();
     localStorage.clear();
   });
 
-  it("routes the focused result's url to the addVIMark RUNTIME channel under the pressed key", () => {
+  it("routes the focused result's url to the addVIMark notify channel under the pressed key", () => {
     buildOmnibarDOM();
     const omnibar = createOmnibar(makeFront(), makeClipboard());
     omnibar.input = stubInput("");
@@ -602,7 +598,7 @@ describe("createOmnibar — Ctrl-m vim-like mark creation", () => {
     expect(ctrlM).toBeDefined();
     ctrlM!("q");
 
-    const call = mockRUNTIME.mock.calls.find((c) => c[0] === "addVIMark");
+    const call = mockNotify.mock.calls.find((c) => c[0] === "addVIMark");
     expect(call).toBeDefined();
     expect(call?.[1]).toEqual({
       mark: { q: { url: "https://mark.example.com", scrollLeft: 0, scrollTop: 0 } },
@@ -625,14 +621,13 @@ describe("createOmnibar — Ctrl-m vim-like mark creation", () => {
     const ctrlM = getMappingByAnnotation(omnibar, "Create vim-like mark for selected item");
     ctrlM!("q");
 
-    expect(mockRUNTIME.mock.calls.find((c) => c[0] === "addVIMark")).toBeUndefined();
+    expect(mockNotify.mock.calls.find((c) => c[0] === "addVIMark")).toBeUndefined();
   });
 });
 
 describe("createOmnibar — AddBookmark.onInput folder filtering", () => {
   beforeEach(() => {
-    mockRUNTIME.mockReset();
-    mockRUNTIME.mockImplementation(() => Result.succeed(undefined));
+    mockNotify.mockReset();
     localStorage.clear();
   });
 
@@ -664,8 +659,7 @@ describe("createOmnibar — AddBookmark.onInput folder filtering", () => {
 
 describe("createOmnibar — OpenURLs onReset sort order toggling", () => {
   beforeEach(() => {
-    mockRUNTIME.mockReset();
-    mockRUNTIME.mockImplementation(() => Result.succeed(undefined));
+    mockNotify.mockReset();
     localStorage.clear();
   });
 
@@ -750,14 +744,13 @@ function fireEnter(omnibar: any) {
   omnibar.input.dispatchEvent(enterEvent);
 }
 
-describe("OpenTabs handler — onOpen/onInput lists filtered tabs via RUNTIME('getTabs')", () => {
+describe("OpenTabs handler — onOpen/onInput lists filtered tabs via request getTabs", () => {
   beforeEach(() => {
-    mockRUNTIME.mockReset();
-    mockRUNTIME.mockImplementation(() => Result.succeed(undefined));
+    mockNotify.mockReset();
     localStorage.clear();
   });
 
-  it("populates results with tabs returned by RUNTIME getTabs", async () => {
+  it("populates results with tabs returned by request getTabs", async () => {
     const { omnibar, ui } = makeOmnibar();
     runtime.conf.tabsThreshold = 100;
 
@@ -818,10 +811,9 @@ describe("OpenTabs handler — onOpen/onInput lists filtered tabs via RUNTIME('g
   });
 });
 
-describe("CloseTabs handler — onOpen fires RUNTIME getTabs and resolves cachedPromise", () => {
+describe("CloseTabs handler — onOpen fires request getTabs and resolves cachedPromise", () => {
   beforeEach(() => {
-    mockRUNTIME.mockReset();
-    mockRUNTIME.mockImplementation(() => Result.succeed(undefined));
+    mockNotify.mockReset();
     localStorage.clear();
   });
 
@@ -849,7 +841,7 @@ describe("CloseTabs handler — onOpen fires RUNTIME getTabs and resolves cached
     expect(urls).toContain("https://example.com/page");
   });
 
-  it("onEnter sends RUNTIME closeTabByIds with all visible tab IDs", async () => {
+  it("onEnter sends notify closeTabByIds with all visible tab IDs", async () => {
     const { omnibar, ui } = makeOmnibar();
 
     const tabs = [
@@ -861,11 +853,10 @@ describe("CloseTabs handler — onOpen fires RUNTIME getTabs and resolves cached
     mockRequest.mockImplementation((action: any) =>
       action === "getTabs" ? Promise.resolve({ tabs }) : new Promise(() => {}),
     );
-    mockRUNTIME.mockImplementation((_action: any, _args: any) => {
+    mockNotify.mockImplementation((_action: any, _args: any) => {
       if (_action === "closeTabByIds") {
         runtimeCall = { action: _action, args: _args };
       }
-      return Result.succeed(undefined);
     });
 
     ui.onShow({ type: "CloseTabs" });
@@ -881,12 +872,11 @@ describe("CloseTabs handler — onOpen fires RUNTIME getTabs and resolves cached
 
 describe("OpenWindows handler — onInput builds window results", () => {
   beforeEach(() => {
-    mockRUNTIME.mockReset();
-    mockRUNTIME.mockImplementation(() => Result.succeed(undefined));
+    mockNotify.mockReset();
     localStorage.clear();
   });
 
-  it("populates one result per window returned by RUNTIME getWindows", async () => {
+  it("populates one result per window returned by request getWindows", async () => {
     const { omnibar, ui } = makeOmnibar();
 
     const windows = [
@@ -940,7 +930,7 @@ describe("OpenWindows handler — onInput builds window results", () => {
     expect(result?.data.url).toBe("https://x.com\nhttps://y.com");
   });
 
-  it("onEnter calls RUNTIME moveToWindow with the focused window's id", async () => {
+  it("onEnter calls notify moveToWindow with the focused window's id", async () => {
     const { omnibar, ui } = makeOmnibar();
     runtime.conf.focusFirstCandidate = true;
 
@@ -955,11 +945,10 @@ describe("OpenWindows handler — onInput builds window results", () => {
     mockRequest.mockImplementation((action: any) =>
       action === "getWindows" ? Promise.resolve({ windows }) : new Promise(() => {}),
     );
-    mockRUNTIME.mockImplementation((_action: any, _args: any) => {
+    mockNotify.mockImplementation((_action: any, _args: any) => {
       if (_action === "moveToWindow") {
         moveToWindowArg = _args;
       }
-      return Result.succeed(undefined);
     });
 
     ui.onShow({ type: "Windows" });
@@ -973,18 +962,17 @@ describe("OpenWindows handler — onInput builds window results", () => {
     expect(moveToWindowArg.windowId).toBe(99);
   });
 
-  it("when zero windows are returned, calls RUNTIME moveToWindow(-1) and hides popup", async () => {
+  it("when zero windows are returned, calls notify moveToWindow(-1) and hides popup", async () => {
     const { front, ui } = makeOmnibar();
 
     let moveToWindowArg: any = null;
     mockRequest.mockImplementation((action: any) =>
       action === "getWindows" ? Promise.resolve({ windows: [] }) : new Promise(() => {}),
     );
-    mockRUNTIME.mockImplementation((_action: any, _args: any) => {
+    mockNotify.mockImplementation((_action: any, _args: any) => {
       if (_action === "moveToWindow") {
         moveToWindowArg = _args;
       }
-      return Result.succeed(undefined);
     });
 
     ui.onShow({ type: "Windows" });
@@ -997,8 +985,7 @@ describe("OpenWindows handler — onInput builds window results", () => {
 
 describe("OpenVIMarks handler — onOpen lists marks from settings", () => {
   beforeEach(() => {
-    mockRUNTIME.mockReset();
-    mockRUNTIME.mockImplementation(() => Result.succeed(undefined));
+    mockNotify.mockReset();
     localStorage.clear();
   });
 
@@ -1065,8 +1052,7 @@ describe("OpenVIMarks handler — onOpen lists marks from settings", () => {
 
 describe("Commands handler — onInput lists matching commands", () => {
   beforeEach(() => {
-    mockRUNTIME.mockReset();
-    mockRUNTIME.mockImplementation(() => Result.succeed(undefined));
+    mockNotify.mockReset();
     localStorage.clear();
   });
 
@@ -1112,7 +1098,7 @@ describe("Commands handler — onInput lists matching commands", () => {
     expect(cmds).toContain("quit");
   });
 
-  it("Commands.onEnter sends RUNTIME updateInputHistory with the cmdline", () => {
+  it("Commands.onEnter sends notify updateInputHistory with the cmdline", () => {
     const { omnibar, ui } = makeOmnibar();
     omnibar.command?.("greet2", () => {}, { annotation: "Greet" });
     omnibar.input.value = "";
@@ -1124,12 +1110,12 @@ describe("Commands handler — onInput lists matching commands", () => {
     );
 
     ui.onShow({ type: "Commands" });
-    mockRUNTIME.mockClear();
+    mockNotify.mockClear();
 
     omnibar.input.value = "greet2 Alice";
     fireEnter(omnibar);
 
-    const histCall = mockRUNTIME.mock.calls.find((c) => c[0] === "updateInputHistory");
+    const histCall = mockNotify.mock.calls.find((c) => c[0] === "updateInputHistory");
     expect(histCall).toBeDefined();
     expect(histCall?.[1]).toMatchObject({ cmd: "greet2 Alice" });
   });
@@ -1137,8 +1123,7 @@ describe("Commands handler — onInput lists matching commands", () => {
 
 describe("OmniQuery handler — onOpen/onInput/onEnter", () => {
   beforeEach(() => {
-    mockRUNTIME.mockReset();
-    mockRUNTIME.mockImplementation(() => Result.succeed(undefined));
+    mockNotify.mockReset();
     localStorage.clear();
   });
 
@@ -1299,12 +1284,11 @@ describe("OmniQuery handler — onOpen/onInput/onEnter", () => {
 
 describe("OpenBookmarks handler — onInput + onResponse", () => {
   beforeEach(() => {
-    mockRUNTIME.mockReset();
-    mockRUNTIME.mockImplementation(() => Result.succeed(undefined));
+    mockNotify.mockReset();
     localStorage.clear();
   });
 
-  it("onInput sends RUNTIME getBookmarks with the current query and caseSensitive flag", () => {
+  it("onInput sends request getBookmarks with the current query and caseSensitive flag", () => {
     const { omnibar, ui } = makeOmnibar();
 
     const folders = [{ id: "1", title: "/Bar/" }];
@@ -1321,7 +1305,7 @@ describe("OpenBookmarks handler — onInput + onResponse", () => {
     omnibar.input.value = "";
     ui.onShow({ type: "Bookmarks" });
 
-    mockRUNTIME.mockClear();
+    mockNotify.mockClear();
     mockRequest.mockImplementation((action: any) =>
       action === "getBookmarks" ? Promise.resolve({ bookmarks }) : new Promise(() => {}),
     );
@@ -1361,12 +1345,11 @@ describe("OpenBookmarks handler — onInput + onResponse", () => {
 
 describe("OpenURLs handler — Enter opens a typed URL in the current tab", () => {
   beforeEach(() => {
-    mockRUNTIME.mockReset();
-    mockRUNTIME.mockImplementation(() => Result.succeed(undefined));
+    mockNotify.mockReset();
     localStorage.clear();
   });
 
-  it("sends RUNTIME openLink with { tab: { tabbed: false, active: true }, url } and a boolean tabbed", () => {
+  it("sends notify openLink with { tab: { tabbed: false, active: true }, url } and a boolean tabbed", () => {
     const { omnibar, ui } = makeOmnibar();
 
     ui.onShow({ type: "URLs", tabbed: false });
@@ -1374,7 +1357,7 @@ describe("OpenURLs handler — Enter opens a typed URL in the current tab", () =
 
     fireEnter(omnibar);
 
-    const openLinkArgs = mockRUNTIME.mock.calls.find((c) => c[0] === "openLink")?.[1];
+    const openLinkArgs = mockNotify.mock.calls.find((c) => c[0] === "openLink")?.[1];
     expect(openLinkArgs).toEqual({
       tab: { tabbed: false, active: true },
       url: "https://example.com",
@@ -1389,8 +1372,7 @@ describe("OpenURLs handler — Enter opens a typed URL in the current tab", () =
 
 describe("SearchEngine handler — onInput without suggestionURL clears results", () => {
   beforeEach(() => {
-    mockRUNTIME.mockReset();
-    mockRUNTIME.mockImplementation(() => Result.succeed(undefined));
+    mockNotify.mockReset();
     localStorage.clear();
     vi.useFakeTimers();
   });
@@ -1417,7 +1399,7 @@ describe("SearchEngine handler — onInput without suggestionURL clears results"
     expect(omnibar.results().length).toBe(0);
   });
 
-  it("with suggestionURL and omnibarSuggestion=true, dispatches RUNTIME request after timeout", () => {
+  it("with suggestionURL and omnibarSuggestion=true, dispatches the suggestion request after timeout", () => {
     const { omnibar, front, ui } = makeOmnibar();
     runtime.conf.omnibarSuggestion = true;
     runtime.conf.omnibarSuggestionTimeout = 300;
@@ -1431,7 +1413,7 @@ describe("SearchEngine handler — onInput without suggestionURL clears results"
 
     ui.onShow({ type: "SearchEngine", extra: "s" });
 
-    mockRUNTIME.mockClear();
+    mockNotify.mockClear();
     omnibar.input.value = "hello";
     omnibar.triggerInput();
 
@@ -1448,12 +1430,11 @@ describe("SearchEngine handler — onInput without suggestionURL clears results"
 
 describe("AddBookmark handler — onEnter creates bookmark in focused folder", () => {
   beforeEach(() => {
-    mockRUNTIME.mockReset();
-    mockRUNTIME.mockImplementation(() => Result.succeed(undefined));
+    mockNotify.mockReset();
     localStorage.clear();
   });
 
-  it("onEnter calls RUNTIME createBookmark with the folder from focusedResult", async () => {
+  it("onEnter calls request createBookmark with the folder from focusedResult", async () => {
     const { omnibar, ui } = makeOmnibar();
     runtime.conf.focusFirstCandidate = true;
 
@@ -1490,8 +1471,7 @@ describe("AddBookmark handler — onEnter creates bookmark in focused folder", (
 
 describe("OpenUserURLs handler — onOpen/onInput", () => {
   beforeEach(() => {
-    mockRUNTIME.mockReset();
-    mockRUNTIME.mockImplementation(() => Result.succeed(undefined));
+    mockNotify.mockReset();
     localStorage.clear();
   });
 
@@ -1528,14 +1508,13 @@ describe("OpenUserURLs handler — onOpen/onInput", () => {
   });
 });
 
-describe("OpenURLs (History) handler — onOpen calls RUNTIME getHistory and lists results", () => {
+describe("OpenURLs (History) handler — onOpen calls request getHistory and lists results", () => {
   beforeEach(() => {
-    mockRUNTIME.mockReset();
-    mockRUNTIME.mockImplementation(() => Result.succeed(undefined));
+    mockNotify.mockReset();
     localStorage.clear();
   });
 
-  it("lists history items returned by RUNTIME getHistory", async () => {
+  it("lists history items returned by request getHistory", async () => {
     const { omnibar, ui } = makeOmnibar();
     runtime.conf.omnibarHistoryCacheSize = 100;
     runtime.conf.historyMostUsedOrder = false;
@@ -1605,8 +1584,7 @@ describe("createOmnibar — detectAndInsertURLItem urlPat1 fallback", () => {
 
 describe("createOmnibar — Ctrl-c copy paths", () => {
   beforeEach(() => {
-    mockRUNTIME.mockReset();
-    mockRUNTIME.mockImplementation(() => Result.succeed(undefined));
+    mockNotify.mockReset();
     localStorage.clear();
   });
 
@@ -1669,8 +1647,7 @@ describe("createOmnibar — Ctrl-c copy paths", () => {
 
 describe("createOmnibar — Ctrl-r triggers handler.onReset", () => {
   beforeEach(() => {
-    mockRUNTIME.mockReset();
-    mockRUNTIME.mockImplementation(() => Result.succeed(undefined));
+    mockNotify.mockReset();
     localStorage.clear();
   });
 
@@ -1703,8 +1680,7 @@ describe("createOmnibar — Ctrl-r triggers handler.onReset", () => {
 
 describe("createOmnibar — Ctrl-j toggles omnibarPosition between middle and bottom", () => {
   beforeEach(() => {
-    mockRUNTIME.mockReset();
-    mockRUNTIME.mockImplementation(() => Result.succeed(undefined));
+    mockNotify.mockReset();
   });
 
   it("switches from middle to bottom and calls front.hidePopup", () => {
@@ -1741,8 +1717,7 @@ describe("createOmnibar — Ctrl-j toggles omnibarPosition between middle and bo
 
 describe("createOmnibar — onHide calls handler.onClose", () => {
   beforeEach(() => {
-    mockRUNTIME.mockReset();
-    mockRUNTIME.mockImplementation(() => Result.succeed(undefined));
+    mockNotify.mockReset();
     localStorage.clear();
   });
 
@@ -1775,8 +1750,7 @@ describe("createOmnibar — onHide calls handler.onClose", () => {
 
 describe("createOmnibar — Tab/Shift-Tab cycle through results", () => {
   beforeEach(() => {
-    mockRUNTIME.mockReset();
-    mockRUNTIME.mockImplementation(() => Result.succeed(undefined));
+    mockNotify.mockReset();
     localStorage.clear();
     HTMLElement.prototype.scrollIntoView = vi.fn();
     (HTMLElement.prototype as any).scrollIntoViewIfNeeded = vi.fn();
@@ -1835,15 +1809,13 @@ describe("createOmnibar — Tab/Shift-Tab cycle through results", () => {
 
 describe("createOmnibar — Ctrl-n/Ctrl-p with handler.rotateInput", () => {
   beforeEach(() => {
-    mockRUNTIME.mockReset();
-    mockRUNTIME.mockImplementation(() => Result.succeed(undefined));
+    mockNotify.mockReset();
     localStorage.clear();
   });
 
   it("Ctrl-n calls handler.rotateInput(false) when handler provides it", () => {
     // Inject a handler with rotateInput via makeOmnibar so we get a real DOM input
     const rotateInput = vi.fn();
-    mockRUNTIME.mockImplementation(() => Result.succeed(undefined));
     const { omnibar, ui } = makeOmnibar();
     omnibar.addHandler("TestRotate", {
       prompt: "test",
@@ -1897,8 +1869,7 @@ describe("createOmnibar — Ctrl-n/Ctrl-p with handler.rotateInput", () => {
 
 describe("createOmnibar — Ctrl-d deletes the focused item", () => {
   beforeEach(() => {
-    mockRUNTIME.mockReset();
-    mockRUNTIME.mockImplementation(() => Result.succeed(undefined));
+    mockNotify.mockReset();
     localStorage.clear();
     runtime.conf.focusFirstCandidate = true;
   });
@@ -1954,14 +1925,13 @@ describe("createOmnibar — Ctrl-d deletes the focused item", () => {
 
     getMappingByAnnotation(omnibar, "Delete focused item from bookmark or history")!();
 
-    expect(mockRUNTIME).not.toHaveBeenCalledWith("removeURL", expect.anything(), expect.anything());
+    expect(mockNotify).not.toHaveBeenCalledWith("removeURL", expect.anything(), expect.anything());
   });
 });
 
 describe("SearchEngine handler — onOpen with site: prefix sets selection range", () => {
   beforeEach(() => {
-    mockRUNTIME.mockReset();
-    mockRUNTIME.mockImplementation(() => Result.succeed(undefined));
+    mockNotify.mockReset();
     localStorage.clear();
     vi.useFakeTimers();
   });
@@ -1992,8 +1962,7 @@ describe("SearchEngine handler — onOpen with site: prefix sets selection range
 
 describe("SearchEngine handler — listSuggestions with html/url-keyed items", () => {
   beforeEach(() => {
-    mockRUNTIME.mockReset();
-    mockRUNTIME.mockImplementation(() => Result.succeed(undefined));
+    mockNotify.mockReset();
     localStorage.clear();
     vi.useFakeTimers();
   });
@@ -2071,12 +2040,11 @@ describe("SearchEngine handler — listSuggestions with html/url-keyed items", (
 
 describe("SearchEngine — addSearchAlias icon loading paths", () => {
   beforeEach(() => {
-    mockRUNTIME.mockReset();
-    mockRUNTIME.mockImplementation(() => Result.succeed(undefined));
+    mockNotify.mockReset();
     localStorage.clear();
   });
 
-  it("uses stored searchEngineIcon from localStorage without issuing a RUNTIME request", () => {
+  it("uses stored searchEngineIcon from localStorage without issuing a request", () => {
     buildOmnibarDOM();
     const front = makeFront();
     front.topOrigin = "https://example.com";
@@ -2102,13 +2070,13 @@ describe("SearchEngine — addSearchAlias icon loading paths", () => {
     expect((aliasMap["g"].prompt as any).html).toContain("data:image/png;base64,ICON");
   });
 
-  it("skips RUNTIME requestImage when topOrigin does not start with http", () => {
+  it("skips the requestImage request when topOrigin does not start with http", () => {
     buildOmnibarDOM();
     const front = makeFront();
     front.topOrigin = "chrome-extension://abc123";
     createOmnibar(front, makeClipboard());
 
-    mockRUNTIME.mockClear();
+    mockNotify.mockClear();
     front.actions["addSearchAlias"]({
       alias: "h",
       prompt: "GitHub",
@@ -2149,8 +2117,7 @@ describe("SearchEngine — addSearchAlias icon loading paths", () => {
 
 describe("Commands handler — onInput with no matching candidates", () => {
   beforeEach(() => {
-    mockRUNTIME.mockReset();
-    mockRUNTIME.mockImplementation(() => Result.succeed(undefined));
+    mockNotify.mockReset();
     localStorage.clear();
   });
 
@@ -2189,8 +2156,7 @@ describe("Commands handler — onInput with no matching candidates", () => {
 
 describe("OmniQuery handler — onOpen with arg when dictEnabled is set", () => {
   beforeEach(() => {
-    mockRUNTIME.mockReset();
-    mockRUNTIME.mockImplementation(() => Result.succeed(undefined));
+    mockNotify.mockReset();
     localStorage.clear();
   });
 
@@ -2219,8 +2185,7 @@ describe("OmniQuery handler — onOpen with arg when dictEnabled is set", () => 
 
 describe("OpenWindows handler — onInput filters windows by query", () => {
   beforeEach(() => {
-    mockRUNTIME.mockReset();
-    mockRUNTIME.mockImplementation(() => Result.succeed(undefined));
+    mockNotify.mockReset();
     localStorage.clear();
   });
 
@@ -2255,8 +2220,7 @@ describe("OpenWindows handler — onInput filters windows by query", () => {
 
 describe("OpenTabs handler — onOpen with filter arg", () => {
   beforeEach(() => {
-    mockRUNTIME.mockReset();
-    mockRUNTIME.mockImplementation(() => Result.succeed(undefined));
+    mockNotify.mockReset();
     localStorage.clear();
   });
 
@@ -2279,8 +2243,7 @@ describe("OpenTabs handler — onOpen with filter arg", () => {
 
 describe("createOmnibar — listResults respects handler.focusFirstCandidate", () => {
   beforeEach(() => {
-    mockRUNTIME.mockReset();
-    mockRUNTIME.mockImplementation(() => Result.succeed(undefined));
+    mockNotify.mockReset();
     localStorage.clear();
   });
 
@@ -2307,8 +2270,7 @@ describe("createOmnibar — listResults respects handler.focusFirstCandidate", (
 
 describe("createOmnibar — pagination mappings Ctrl-. and Ctrl-,", () => {
   beforeEach(() => {
-    mockRUNTIME.mockReset();
-    mockRUNTIME.mockImplementation(() => Result.succeed(undefined));
+    mockNotify.mockReset();
     localStorage.clear();
   });
 
@@ -2453,8 +2415,7 @@ describe("createOmnibar — listResultPage showFolder branch", () => {
 
 describe("createOmnibar — onShow with initialQuery", () => {
   beforeEach(() => {
-    mockRUNTIME.mockReset();
-    mockRUNTIME.mockImplementation(() => Result.succeed(undefined));
+    mockNotify.mockReset();
     localStorage.clear();
   });
 
@@ -2472,7 +2433,7 @@ describe("createOmnibar — onShow with initialQuery", () => {
     ui.onShow({ type: "URLs", initialQuery: "https://example.com/path", tabbed: false });
     fireEnter(omnibar);
 
-    expect(mockRUNTIME).toHaveBeenCalledWith("openLink", {
+    expect(mockNotify).toHaveBeenCalledWith("openLink", {
       tab: { tabbed: false, active: true },
       url: "https://example.com/path",
     });
@@ -2481,12 +2442,11 @@ describe("createOmnibar — onShow with initialQuery", () => {
 
 describe("createOmnibar — openFocused", () => {
   beforeEach(() => {
-    mockRUNTIME.mockReset();
-    mockRUNTIME.mockImplementation(() => Result.succeed(undefined));
+    mockNotify.mockReset();
     localStorage.clear();
   });
 
-  it("calls RUNTIME focusTab when the focused result has a T-type uid", () => {
+  it("calls notify focusTab when the focused result has a T-type uid", () => {
     buildOmnibarDOM();
     const front = makeFront();
     const omnibar = createOmnibar(front, makeClipboard());
@@ -2504,10 +2464,10 @@ describe("createOmnibar — openFocused", () => {
 
     omnibar.openFocused({ tabbed: true, activeTab: true });
 
-    expect(mockRUNTIME).toHaveBeenLastCalledWith("focusTab", { windowId: 3, tabId: 77 });
+    expect(mockNotify).toHaveBeenLastCalledWith("focusTab", { windowId: 3, tabId: 77 });
   });
 
-  it("calls RUNTIME openLink with URL when no focused result and input is a URL", () => {
+  it("calls notify openLink with URL when no focused result and input is a URL", () => {
     buildOmnibarDOM();
     const front = makeFront();
     const omnibar = createOmnibar(front, makeClipboard());
@@ -2527,7 +2487,7 @@ describe("createOmnibar — openFocused", () => {
 
     omnibar.openFocused({ tabbed: true, activeTab: true });
 
-    expect(mockRUNTIME).toHaveBeenLastCalledWith("openLink", {
+    expect(mockNotify).toHaveBeenLastCalledWith("openLink", {
       tab: { tabbed: true, active: true },
       url: "https://directurl.example.com",
     });

@@ -128,7 +128,7 @@ function createDisabled(normal: NormalMode): DisabledMode {
   return self;
 }
 
-function createLurk(normal: NormalMode, RUNTIME: EngineEnv["RUNTIME"]): LurkMode {
+function createLurk(normal: NormalMode, notify: EngineEnv["notify"]): LurkMode {
   const mode = new ModeHandle("Lurk");
   const mappings = new Trie();
   const keymap = createKeymap(() => mappings);
@@ -136,7 +136,7 @@ function createLurk(normal: NormalMode, RUNTIME: EngineEnv["RUNTIME"]): LurkMode
   function enterNormal() {
     normal.enter();
     if (window === top) {
-      RUNTIME("setSurfingkeysIcon", {
+      notify("setSurfingkeysIcon", {
         status: "enabled",
       });
     }
@@ -249,7 +249,7 @@ function createPassThrough(): PassThroughMode {
 }
 
 function createNormal(insert: InsertLike, env: EngineEnv): NormalMode {
-  const { RUNTIME, request, isInUIFrame, getExtensionURL } = env;
+  const { notify, request, isInUIFrame, getExtensionURL } = env;
   const mode = new ModeHandle("Normal");
   const mappings = new Trie();
 
@@ -281,7 +281,7 @@ function createNormal(insert: InsertLike, env: EngineEnv): NormalMode {
     let state = "lurking";
     if (!lurk) {
       mode.exit();
-      lurk = createLurk(self, RUNTIME);
+      lurk = createLurk(self, notify);
       lurkMaps!.forEach((lurkMap) => {
         mapInMode(lurk!, { newKeystroke: lurkMap[0], oldKeystroke: lurkMap[1] }, isInUIFrame());
         lurk!.mappings.remove(KeyboardUtils.encodeKeystroke(lurkMap[1]));
@@ -297,7 +297,7 @@ function createNormal(insert: InsertLike, env: EngineEnv): NormalMode {
     // peeking exit to keep modes such hints above normal.
     mode.exit(true);
     if (window === top) {
-      RUNTIME("setSurfingkeysIcon", {
+      notify("setSurfingkeysIcon", {
         status: "lurking",
       });
     }
@@ -828,7 +828,7 @@ function createNormal(insert: InsertLike, env: EngineEnv): NormalMode {
   };
 
   const rotateFrame = (): void => {
-    RUNTIME("nextFrame", {
+    notify("nextFrame", {
       frameId: window.frameId,
     });
   };
@@ -850,7 +850,7 @@ function createNormal(insert: InsertLike, env: EngineEnv): NormalMode {
   };
 
   function saveLastKeys(): void {
-    RUNTIME("localData", {
+    notify("localData", {
       data: {
         lastKeys: lastKeys,
       },
@@ -873,7 +873,7 @@ function createNormal(insert: InsertLike, env: EngineEnv): NormalMode {
         scrollTop: document.scrollingElement!.scrollTop,
       },
     };
-    RUNTIME("addVIMark", { mark: mo });
+    notify("addVIMark", { mark: mo });
     showBanner(`Mark '${mark}' added for: ${url}.`);
   };
 
@@ -899,14 +899,14 @@ function createNormal(insert: InsertLike, env: EngineEnv): NormalMode {
         }
       }
     } else {
-      RUNTIME("jumpVIMark", {
+      notify("jumpVIMark", {
         mark: mark,
       });
     }
   };
 
   const moveTab = (pos: number): void => {
-    RUNTIME("moveTab", {
+    notify("moveTab", {
       position: pos,
     });
   };
@@ -1179,7 +1179,7 @@ function createNormal(insert: InsertLike, env: EngineEnv): NormalMode {
     group: "tabs",
     repeatIgnore: true,
     code: () => {
-      RUNTIME("previousTab");
+      notify("previousTab");
     },
   });
   mappings.add("R", {
@@ -1187,7 +1187,7 @@ function createNormal(insert: InsertLike, env: EngineEnv): NormalMode {
     group: "tabs",
     repeatIgnore: true,
     code: () => {
-      RUNTIME("nextTab");
+      notify("nextTab");
     },
   });
 

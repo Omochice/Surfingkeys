@@ -1,17 +1,10 @@
-import type { Result } from "@praha/byethrow";
-import type { ChromeRuntimeError } from "@sk/common/result";
-
 /** The companion native API (chrome.surfingkeys), present only in environments that inject it. */
 export type SurfingkeysHost = {
   translateCurrentPage(): void;
   sendMouseEvent(type: number, x: number, y: number, button: number): void;
 };
 
-type RuntimeSend = <R = unknown>(
-  action: string,
-  args?: Record<string, unknown>,
-  callback?: (response: R) => void,
-) => Result.Result<void, ChromeRuntimeError>;
+type RuntimeNotify = (action: string, args?: Record<string, unknown>) => void;
 
 type RuntimeRequest = <R = unknown>(action: string, args?: Record<string, unknown>) => Promise<R>;
 
@@ -20,7 +13,7 @@ type RuntimeRequest = <R = unknown>(action: string, args?: Record<string, unknow
  * engine owns its required contract and never imports the chrome seams directly.
  */
 export type EngineEnv = {
-  RUNTIME: RuntimeSend;
+  notify: RuntimeNotify;
   /** Rejects with a ChromeRuntimeError when the background cannot be reached. */
   request: RuntimeRequest;
   /** Whether the current frame is the Surfingkeys UI iframe. */
