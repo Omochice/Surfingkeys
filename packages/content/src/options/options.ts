@@ -162,24 +162,17 @@ export default function optionsMain(deps: OptionsDeps): void {
 
   advancedToggler.onclick = () => {
     const newFlag = advancedToggler.checked;
-    reportOnFail(
-      RUNTIME(
-        "updateSettings",
-        {
-          settings: {
-            showAdvanced: newFlag,
-          },
-        },
-        (resp: { error?: string }) => {
-          if (resp.error) {
-            showBanner(resp.error, 3000);
-          } else {
-            showAdvanced(newFlag);
-          }
-        },
-      ),
-      reportError,
-    );
+    request<{ error?: string }>("updateSettings", {
+      settings: {
+        showAdvanced: newFlag,
+      },
+    }).then((resp) => {
+      if (resp.error) {
+        showBanner(resp.error, 3000);
+      } else {
+        showAdvanced(newFlag);
+      }
+    }, reportError);
   };
   const resetBtn = requireElement("#resetSettings");
   resetBtn.onclick = () => {
@@ -219,25 +212,21 @@ export default function optionsMain(deps: OptionsDeps): void {
     const settingsCode = getMappingsEditor().getValue();
     const localPath = getURIPath(localPathInput.value.trim());
     if (localPath.length && localPath !== localPathSaved) {
-      reportOnFail(
-        RUNTIME(
-          "loadSettingsFromUrl",
-          {
-            url: localPath,
-          },
-          (res: StoredSettings & { status?: number | string; snippets?: string }) => {
-            showBanner(res.status + " to load settings from " + localPath, 5000);
-            renderKeyMappings(res);
-            if (res.snippets && res.snippets.length) {
-              localPathSaved = localPath;
-              getMappingsEditor().setValue(res.snippets, -1);
-            } else if (settingsCode === "") {
-              getMappingsEditor().setValue(sample, -1);
-            }
-          },
-        ),
-        reportError,
-      );
+      request<StoredSettings & { status?: number | string; snippets?: string }>(
+        "loadSettingsFromUrl",
+        {
+          url: localPath,
+        },
+      ).then((res) => {
+        showBanner(res.status + " to load settings from " + localPath, 5000);
+        renderKeyMappings(res);
+        if (res.snippets && res.snippets.length) {
+          localPathSaved = localPath;
+          getMappingsEditor().setValue(res.snippets, -1);
+        } else if (settingsCode === "") {
+          getMappingsEditor().setValue(sample, -1);
+        }
+      }, reportError);
     } else {
       reportOnFail(
         RUNTIME("updateSettings", {

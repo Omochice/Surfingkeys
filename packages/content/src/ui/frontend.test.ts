@@ -13,7 +13,8 @@
 import { featureGroups } from "@sk/core/featureGroup";
 import KeyboardUtils from "@sk/core/keyboardUtils";
 import { specialKeys } from "@sk/core/specialKeys";
-import { RUNTIME, runtime } from "@sk/messaging/runtime";
+import { request, runtime } from "@sk/messaging/runtime";
+import { flush } from "@sk/test-support/helpers";
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 
 // createSignal becomes a plain [getter, setter] pair so the IIFE can call the setters without
@@ -65,12 +66,13 @@ vi.mock("@sk/core/applyDefaultMappings", () => ({
   registerDefaultExtras: vi.fn(),
 }));
 
-// Intercept RUNTIME so no chrome.runtime.sendMessage reaches the chrome stub.
+// Intercept RUNTIME and request so no chrome.runtime.sendMessage reaches the chrome stub.
 vi.mock("@sk/messaging/runtime", async (importOriginal) => {
   const orig = await importOriginal<typeof import("@sk/messaging/runtime")>();
   return {
     ...orig,
     RUNTIME: vi.fn(() => ({ tag: "success", value: undefined })),
+    request: vi.fn(() => new Promise(() => {})),
   };
 });
 
@@ -594,21 +596,17 @@ describe("Find — ArrowUp/ArrowDown history recall", () => {
     Front.statusBar.querySelector("#sk_find")?.remove();
   });
 
-  it("sends the recalled history entry as the visualUpdate query", () => {
+  it("sends the recalled history entry as the visualUpdate query", async () => {
     // The solid-js/web mock stubs `render`, so StatusBar.show() mounts nothing; the input that
     // Find.open() queries has to be seeded by hand.
     const findInput = document.createElement("input");
     findInput.id = "sk_find";
     Front.statusBar.appendChild(findInput);
 
-    vi.mocked(RUNTIME).mockImplementationOnce((action, _args, callback) => {
-      if (action === "getSettings" && callback) {
-        callback({ settings: { findHistory: ["recalled query"] } });
-      }
-      return { tag: "success", value: undefined };
-    });
+    vi.mocked(request).mockResolvedValueOnce({ settings: { findHistory: ["recalled query"] } });
 
     Front.actions["openFinder"]();
+    await flush();
 
     Front.topOrigin = "https://find-history-test.example.com";
     const posted: any[] = [];

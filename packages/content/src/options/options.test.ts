@@ -1,4 +1,5 @@
 import { Result } from "@praha/byethrow";
+import { flush } from "@sk/test-support/helpers";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import optionsMain from "./options";
@@ -118,30 +119,24 @@ describe("options page initialization", () => {
     document.body.innerHTML = "";
   });
 
-  it("calls RUNTIME to update settings with showAdvanced when the advanced toggler is clicked", () => {
-    const RUNTIME = initOptions();
+  it("requests updateSettings with showAdvanced when the advanced toggler is clicked", () => {
+    const request = makeRequest();
+    initOptions(makeRUNTIME(), request);
     const toggler = document.getElementById("advancedToggler") as HTMLInputElement;
     toggler.checked = true;
     toggler.onclick!(new MouseEvent("click") as unknown as PointerEvent);
 
-    expect(RUNTIME).toHaveBeenCalledWith(
-      "updateSettings",
-      { settings: { showAdvanced: true } },
-      expect.any(Function),
-    );
+    expect(request).toHaveBeenCalledWith("updateSettings", { settings: { showAdvanced: true } });
   });
 
-  it("calls RUNTIME with showAdvanced=false when toggler is unchecked before click", () => {
-    const RUNTIME = initOptions();
+  it("requests updateSettings with showAdvanced=false when toggler is unchecked before click", () => {
+    const request = makeRequest();
+    initOptions(makeRUNTIME(), request);
     const toggler = document.getElementById("advancedToggler") as HTMLInputElement;
     toggler.checked = false;
     toggler.onclick!(new MouseEvent("click") as unknown as PointerEvent);
 
-    expect(RUNTIME).toHaveBeenCalledWith(
-      "updateSettings",
-      { settings: { showAdvanced: false } },
-      expect.any(Function),
-    );
+    expect(request).toHaveBeenCalledWith("updateSettings", { settings: { showAdvanced: false } });
   });
 });
 
@@ -154,16 +149,13 @@ describe("showAdvanced toggle behavior", () => {
     document.body.innerHTML = "";
   });
 
-  it("showBanner is called with the error from RUNTIME callback when error occurs", () => {
+  it("showBanner is called with the error from the updateSettings response", async () => {
     const showBanner = vi.fn();
-    const RUNTIME = vi.fn((_action: string, _args: any, cb?: (r: any) => void) => {
-      cb?.({ error: "something went wrong" });
-      return Result.succeed(undefined);
-    });
+    const request = vi.fn(() => Promise.resolve({ error: "something went wrong" }));
 
     optionsMain({
-      RUNTIME: RUNTIME as any,
-      request: makeRequest() as any,
+      RUNTIME: makeRUNTIME() as any,
+      request: request as any,
       KeyboardUtils: makeKeyboardUtils(),
       ModeHandle: makeMode() as any,
       createElementWithContent: makeCreateElementWithContent(),
@@ -180,6 +172,7 @@ describe("showAdvanced toggle behavior", () => {
     const toggler = document.getElementById("advancedToggler") as HTMLInputElement;
     toggler.checked = true;
     toggler.onclick!(new MouseEvent("click") as unknown as PointerEvent);
+    await flush();
 
     expect(showBanner).toHaveBeenCalledWith("something went wrong", 3000);
   });
@@ -311,8 +304,9 @@ describe("saveSettings via save_button", () => {
     });
   });
 
-  it("calls RUNTIME loadSettingsFromUrl when a new localPath is set", () => {
-    const RUNTIME = initOptions();
+  it("requests loadSettingsFromUrl when a new localPath is set", () => {
+    const request = makeRequest();
+    initOptions(makeRUNTIME(), request);
     fireUserSettingsLoaded({});
 
     const localPathInput = document.getElementById("localPath") as HTMLInputElement;
@@ -321,11 +315,9 @@ describe("saveSettings via save_button", () => {
     const saveBtn = document.getElementById("save_button") as HTMLInputElement;
     saveBtn.onclick!(new MouseEvent("click") as unknown as PointerEvent);
 
-    expect(RUNTIME).toHaveBeenCalledWith(
-      "loadSettingsFromUrl",
-      { url: "https://example.com/settings.js" },
-      expect.any(Function),
-    );
+    expect(request).toHaveBeenCalledWith("loadSettingsFromUrl", {
+      url: "https://example.com/settings.js",
+    });
   });
 });
 
@@ -339,7 +331,8 @@ describe("getURIPath (via saveSettings)", () => {
   });
 
   it("prefixes a bare file path with file:///", () => {
-    const RUNTIME = initOptions();
+    const request = makeRequest();
+    initOptions(makeRUNTIME(), request);
     fireUserSettingsLoaded({});
 
     const localPathInput = document.getElementById("localPath") as HTMLInputElement;
@@ -348,15 +341,14 @@ describe("getURIPath (via saveSettings)", () => {
     const saveBtn = document.getElementById("save_button") as HTMLInputElement;
     saveBtn.onclick!(new MouseEvent("click") as unknown as PointerEvent);
 
-    expect(RUNTIME).toHaveBeenCalledWith(
-      "loadSettingsFromUrl",
-      { url: "file:///home/user/settings.js" },
-      expect.any(Function),
-    );
+    expect(request).toHaveBeenCalledWith("loadSettingsFromUrl", {
+      url: "file:///home/user/settings.js",
+    });
   });
 
   it("leaves an http URL unchanged", () => {
-    const RUNTIME = initOptions();
+    const request = makeRequest();
+    initOptions(makeRUNTIME(), request);
     fireUserSettingsLoaded({});
 
     const localPathInput = document.getElementById("localPath") as HTMLInputElement;
@@ -365,15 +357,14 @@ describe("getURIPath (via saveSettings)", () => {
     const saveBtn = document.getElementById("save_button") as HTMLInputElement;
     saveBtn.onclick!(new MouseEvent("click") as unknown as PointerEvent);
 
-    expect(RUNTIME).toHaveBeenCalledWith(
-      "loadSettingsFromUrl",
-      { url: "http://example.com/settings.js" },
-      expect.any(Function),
-    );
+    expect(request).toHaveBeenCalledWith("loadSettingsFromUrl", {
+      url: "http://example.com/settings.js",
+    });
   });
 
   it("converts a Windows-style backslash path to file:/// with forward slashes", () => {
-    const RUNTIME = initOptions();
+    const request = makeRequest();
+    initOptions(makeRUNTIME(), request);
     fireUserSettingsLoaded({});
 
     const localPathInput = document.getElementById("localPath") as HTMLInputElement;
@@ -382,11 +373,9 @@ describe("getURIPath (via saveSettings)", () => {
     const saveBtn = document.getElementById("save_button") as HTMLInputElement;
     saveBtn.onclick!(new MouseEvent("click") as unknown as PointerEvent);
 
-    expect(RUNTIME).toHaveBeenCalledWith(
-      "loadSettingsFromUrl",
-      { url: "file:///C:/Users/user/settings.js" },
-      expect.any(Function),
-    );
+    expect(request).toHaveBeenCalledWith("loadSettingsFromUrl", {
+      url: "file:///C:/Users/user/settings.js",
+    });
   });
 });
 
@@ -954,17 +943,20 @@ describe("saveSettings: loadSettingsFromUrl callback updates snippets", () => {
     document.body.innerHTML = "";
   });
 
-  it("updates the textarea with snippets returned from loadSettingsFromUrl", () => {
-    const RUNTIME = vi.fn((action: string, _args: any, cb?: (r: any) => void) => {
-      if (action === "loadSettingsFromUrl") {
-        cb?.({ status: "200 OK", snippets: "// remote settings", renderKeyMappings: () => {} });
-      }
-      return Result.succeed(undefined);
-    });
+  it("updates the textarea with snippets returned from loadSettingsFromUrl", async () => {
+    const request = vi.fn((action: string) =>
+      action === "loadSettingsFromUrl"
+        ? Promise.resolve({
+            status: "200 OK",
+            snippets: "// remote settings",
+            renderKeyMappings: () => {},
+          })
+        : new Promise<any>(() => {}),
+    );
 
     optionsMain({
-      RUNTIME: RUNTIME as any,
-      request: makeRequest() as any,
+      RUNTIME: makeRUNTIME() as any,
+      request: request as any,
       KeyboardUtils: makeKeyboardUtils(),
       ModeHandle: makeMode() as any,
       createElementWithContent: makeCreateElementWithContent(),
@@ -985,24 +977,24 @@ describe("saveSettings: loadSettingsFromUrl callback updates snippets", () => {
 
     const saveBtn = document.getElementById("save_button") as HTMLInputElement;
     saveBtn.onclick!(new MouseEvent("click") as unknown as PointerEvent);
+    await flush();
 
     const textarea = document.getElementById("mappings") as HTMLTextAreaElement;
     expect(textarea.value).toBe("// remote settings");
   });
 
-  it("falls back to the sample snippet when the remote response has no snippets and the editor is empty", () => {
-    const RUNTIME = vi.fn((action: string, _args: any, cb?: (r: any) => void) => {
-      if (action === "loadSettingsFromUrl") {
-        // Omitting snippets, together with the emptied editor below, is what selects
-        // the arm that restores the sample snippet.
-        cb?.({ status: "200 OK", renderKeyMappings: () => {} });
-      }
-      return Result.succeed(undefined);
-    });
+  it("falls back to the sample snippet when the remote response has no snippets and the editor is empty", async () => {
+    // Omitting snippets, together with the emptied editor below, is what selects
+    // the arm that restores the sample snippet.
+    const request = vi.fn((action: string) =>
+      action === "loadSettingsFromUrl"
+        ? Promise.resolve({ status: "200 OK", renderKeyMappings: () => {} })
+        : new Promise<any>(() => {}),
+    );
 
     optionsMain({
-      RUNTIME: RUNTIME as any,
-      request: makeRequest() as any,
+      RUNTIME: makeRUNTIME() as any,
+      request: request as any,
       KeyboardUtils: makeKeyboardUtils(),
       ModeHandle: makeMode() as any,
       createElementWithContent: makeCreateElementWithContent(),
@@ -1025,6 +1017,7 @@ describe("saveSettings: loadSettingsFromUrl callback updates snippets", () => {
 
     const saveBtn = document.getElementById("save_button") as HTMLInputElement;
     saveBtn.onclick!(new MouseEvent("click") as unknown as PointerEvent);
+    await flush();
 
     expect(textarea.value).toBe("sample snippet");
   });
@@ -1039,17 +1032,15 @@ describe("advancedToggler onclick — success arm shows/hides the advanced panel
     document.body.innerHTML = "";
   });
 
-  it("reveals the advanced panel and marks the toggler checked when the update succeeds", () => {
-    const RUNTIME = vi.fn((_action: string, _args: any, cb?: (r: any) => void) => {
-      // An error-free response is what selects the success arm.
-      cb?.({});
-      return Result.succeed(undefined);
-    });
-    initOptions(RUNTIME);
+  it("reveals the advanced panel and marks the toggler checked when the update succeeds", async () => {
+    // An error-free response is what selects the success arm.
+    const request = vi.fn(() => Promise.resolve({}));
+    initOptions(makeRUNTIME(), request as any);
 
     const toggler = document.getElementById("advancedToggler") as HTMLInputElement;
     toggler.checked = true;
     toggler.onclick!(new MouseEvent("click") as unknown as PointerEvent);
+    await flush();
 
     const advancedDiv = document.getElementById("advancedSetting") as HTMLElement;
     const basicDiv = document.getElementById("basicSettings") as HTMLElement;
