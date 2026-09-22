@@ -115,7 +115,14 @@ beforeEach(() => {
       el.style.display = "none";
     }
   }
+  // jsdom's window.focus only logs "Not implemented" to stderr, which would bury real
+  // failures printed by the surfaces that turn interactive during these tests.
+  vi.spyOn(window, "focus").mockImplementation(() => {});
   Front.actions["initFrontend"]({ origin: window.location.origin, winSize: [1280, 800] });
+});
+
+afterEach(() => {
+  vi.restoreAllMocks();
 });
 
 function dispatchFrontendMessage(data: Record<string, unknown>): void {

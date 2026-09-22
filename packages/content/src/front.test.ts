@@ -602,9 +602,12 @@ describe("createFront runtime.on focusFrame — highlights when frameId matches"
     // jsdom does not implement scrollIntoView — stub it.
     document.body.scrollIntoView = vi.fn();
 
+    const focus = vi.spyOn(window, "focus").mockImplementation(() => {});
+
     (window as any).frameId = "frame-42";
     focusFrameHandler!({ frameId: "frame-42" }, undefined, () => {});
 
+    expect(focus).toHaveBeenCalledOnce();
     const frameEl = document.getElementById("sk_frame");
     expect(frameEl).not.toBeNull();
   });
