@@ -1145,9 +1145,14 @@ describe("createNormal captureElement", () => {
       value: document.documentElement,
       configurable: true,
     });
+    // captureElement asks for a 2D context before any capture arrives, and jsdom only logs
+    // "Not implemented" for it; installing the `canvas` package to satisfy that would add a
+    // native build dependency for tests that never reach the drawing in img.onload.
+    vi.spyOn(HTMLCanvasElement.prototype, "getContext").mockImplementation(() => null);
   });
 
   afterEach(() => {
+    vi.restoreAllMocks();
     vi.useRealTimers();
     Reflect.deleteProperty(document, "scrollingElement");
   });
