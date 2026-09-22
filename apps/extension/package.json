@@ -40,7 +40,7 @@
     "@sk/test-support": "workspace:*",
     "@sk/types": "workspace:*",
     "@types/chrome": "catalog:",
-    "@types/node": "25.9.7",
+    "@types/node": "25.9.8",
     "@wxt-dev/module-solid": "1.1.4",
     "jsdom": "catalog:",
     "lightningcss": "1.33.0",
