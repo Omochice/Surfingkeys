@@ -18,12 +18,13 @@ export function createEmojiPrompt(emojiURL: string): CursorPrompt {
     },
     matches: (c: string, query: string) => (c.split("\t")[1] ?? "").includes(query),
     fetcher: () =>
-      new Promise<string[]>((r) => {
-        fetch(emojiURL)
-          .then((res) => res.text())
-          .then((text) => {
-            r(text.split("\n"));
-          });
-      }),
+      fetch(emojiURL)
+        .then((res) => {
+          if (!res.ok) {
+            throw new Error(`Failed to fetch emoji data: ${res.status}`);
+          }
+          return res.text();
+        })
+        .then((text) => text.split("\n")),
   });
 }

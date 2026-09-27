@@ -105,10 +105,16 @@ class CursorPrompt {
     if (this.data) {
       this.#render();
     } else if (this.fetcher) {
-      this.fetcher().then((res) => {
-        this.data = res;
-        this.#render();
-      });
+      this.fetcher()
+        .then((res) => {
+          this.data = res;
+          this.#render();
+        })
+        .catch(() => {
+          // Leave `data` unset so the next activate() retries the fetch instead of getting stuck
+          // with an open prompt that can never show candidates.
+          this.close();
+        });
     }
 
     this.#suppressKeyup = false;
@@ -215,7 +221,8 @@ class CursorPrompt {
     if (query.length < this.threshold || query[0] === " ") {
       this.element.remove();
     } else {
-      const choices = this.data!.filter((c) => this.matches(c, query))
+      const choices = (this.data ?? [])
+        .filter((c) => this.matches(c, query))
         .slice(0, 5)
         .map(this.renderer)
         .join("");

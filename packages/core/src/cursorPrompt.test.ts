@@ -99,6 +99,44 @@ describe("CursorPrompt activate (native input)", () => {
     expect(cp.data).toEqual(["resolved_item"]);
     cp.close();
   });
+
+  it("closes the prompt when the fetcher rejects, leaving data unset so a later activation retries", async () => {
+    let reject!: (reason: unknown) => void;
+    const fetcherPromise = new Promise<string[]>((_resolve, r) => {
+      reject = r;
+    });
+    const fetcher = vi.fn(() => fetcherPromise);
+    input.value = "x@";
+    input.setSelectionRange(2, 2);
+    const cp = new CursorPrompt({ renderer, picker, matches, fetcher });
+    const closeSpy = vi.spyOn(cp, "close");
+
+    cp.activate(input);
+    reject(new Error("network error"));
+    await fetcherPromise.catch(() => {});
+    await Promise.resolve();
+
+    expect(closeSpy).toHaveBeenCalled();
+    expect(cp.data).toBeUndefined();
+
+    cp.activate(input);
+    expect(fetcher).toHaveBeenCalledTimes(2);
+    cp.close();
+  });
+
+  it("does not throw from onKeyUp when the fetcher has not resolved yet", () => {
+    const fetcher = vi.fn(() => new Promise<string[]>(() => {}));
+    input.value = "x@";
+    input.setSelectionRange(2, 2);
+    const cp = new CursorPrompt({ renderer, picker, matches, fetcher });
+    cp.activate(input);
+
+    input.value = "x@e";
+    input.setSelectionRange(3, 3);
+
+    expect(() => cp.onKeyUp()).not.toThrow();
+    cp.close();
+  });
 });
 
 describe("CursorPrompt onEnter (native input)", () => {

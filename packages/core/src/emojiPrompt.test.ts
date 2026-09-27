@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { createEmojiPrompt } from "./emojiPrompt";
 
@@ -77,5 +77,21 @@ describe("createEmojiPrompt", () => {
     emojiPrompt.onKeyUp();
 
     expect(document.body.contains(emojiPrompt.element)).toBe(false);
+  });
+});
+
+describe("createEmojiPrompt fetcher", () => {
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  it("rejects when the tsv fetch response is not ok", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () => ({ ok: false, status: 404, text: async () => "Not Found" }) as Response),
+    );
+    const emojiPrompt = createEmojiPrompt("unused://emoji.tsv");
+
+    await expect(emojiPrompt.fetcher()).rejects.toThrow();
   });
 });
