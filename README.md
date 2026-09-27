@@ -188,7 +188,7 @@ api.imap(";;", "<Ctrl-'>"); // press semicolon twice to toggle quote.
 
 #### Emoji completion
 
-When user inputs a colon and 2(set by `settings.startToShowEmoji`) characters such as `:gr` in insert mode, Surfingkeys will try to find matched emoji, and list them out if there are some found. Matching is against each emoji's CLDR short name with spaces replaced by underscores, e.g. `grinning_face`.
+When user inputs a colon and 2 (set by `settings.startToShowEmoji`) characters, such as `:gr`, in insert mode, Surfingkeys will try to find matched emoji, and list them out if there are some found. Matching is against each emoji's CLDR short name with spaces replaced by underscores, e.g. `grinning_face`.
 
 ![emoji](https://cloud.githubusercontent.com/assets/288207/23602453/924ed762-028b-11e7-86f3-bf315c0a2499.gif)
 
