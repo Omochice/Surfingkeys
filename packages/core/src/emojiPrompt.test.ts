@@ -2,6 +2,16 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { createEmojiPrompt } from "./emojiPrompt";
 
+// jsdom does not implement Element#innerText (it silently no-ops), so the real htmlEncode, which
+// renders through it, always returns "" here; stand in with the escaping a real browser produces.
+vi.mock("./utils", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("./utils")>();
+  return {
+    ...actual,
+    htmlEncode: (s: string) => s.replaceAll("&", "&amp;").replaceAll("<", "&lt;"),
+  };
+});
+
 // jsdom has no layout engine, so scrollIntoView and getBoundingClientRect, which
 // activate() reaches through its render path, are not functional.
 function stubLayout(): () => void {
@@ -16,7 +26,12 @@ function stubLayout(): () => void {
   };
 }
 
-const fixtures = ["0x1f600\tgrinning", "0x1f601\tgrin", "0x1f602\tjoy"];
+const fixtures: [string, string, string][] = [
+  ["😀", "grinning_face", "grinning face"],
+  ["😁", "beaming_face_with_smiling_eyes", "beaming face with smiling eyes"],
+  ["😂", "face_with_tears_of_joy", "face with tears of joy"],
+  ["🇧🇦", "flag_bosnia_herzegovina", "flag: Bosnia & Herzegovina"],
+];
 
 describe("createEmojiPrompt", () => {
   let input: HTMLInputElement;
@@ -34,25 +49,59 @@ describe("createEmojiPrompt", () => {
     document.body.replaceChildren();
   });
 
-  it("renders candidates matching the query typed after the activator", () => {
-    const emojiPrompt = createEmojiPrompt("unused://emoji.tsv");
+  it("renders the candidate matching the query typed after the activator", () => {
+    const emojiPrompt = createEmojiPrompt("unused://emoji.json");
 
     input.value = ":";
     input.setSelectionRange(1, 1);
     emojiPrompt.activate(input, { data: fixtures, threshold: 2 });
 
-    input.value = ":gri";
-    input.setSelectionRange(4, 4);
+    input.value = ":grin";
+    input.setSelectionRange(5, 5);
     emojiPrompt.onKeyUp();
 
     const rendered = Array.from(emojiPrompt.element.children).map((el) => el.textContent);
-    expect(rendered).toEqual(["😀grinning", "😁grin"]);
+    expect(rendered).toEqual(["😀grinning face"]);
 
     emojiPrompt.close();
   });
 
-  it("does not match a query found only in the codepoint column", () => {
-    const emojiPrompt = createEmojiPrompt("unused://emoji.tsv");
+  it("matches by slug rather than the raw emoji character or display name", () => {
+    const emojiPrompt = createEmojiPrompt("unused://emoji.json");
+
+    input.value = ":";
+    input.setSelectionRange(1, 1);
+    emojiPrompt.activate(input, { data: fixtures, threshold: 2 });
+
+    input.value = ":bosnia";
+    input.setSelectionRange(7, 7);
+    emojiPrompt.onKeyUp();
+
+    const rendered = Array.from(emojiPrompt.element.children).map((el) => el.textContent);
+    expect(rendered).toEqual(["🇧🇦flag: Bosnia & Herzegovina"]);
+
+    emojiPrompt.close();
+  });
+
+  it("HTML-escapes the rendered name", () => {
+    const emojiPrompt = createEmojiPrompt("unused://emoji.json");
+
+    input.value = ":";
+    input.setSelectionRange(1, 1);
+    emojiPrompt.activate(input, { data: fixtures, threshold: 2 });
+
+    input.value = ":bosnia";
+    input.setSelectionRange(7, 7);
+    emojiPrompt.onKeyUp();
+
+    expect(emojiPrompt.element.innerHTML).toContain("Bosnia &amp; Herzegovina");
+    expect(emojiPrompt.element.innerHTML).not.toContain("Bosnia & Herzegovina");
+
+    emojiPrompt.close();
+  });
+
+  it("does not match a query found only in the raw emoji character", () => {
+    const emojiPrompt = createEmojiPrompt("unused://emoji.json");
 
     input.value = ":";
     input.setSelectionRange(1, 1);
@@ -65,8 +114,8 @@ describe("createEmojiPrompt", () => {
     expect(document.body.contains(emojiPrompt.element)).toBe(false);
   });
 
-  it("does not match the '0x' codepoint prefix", () => {
-    const emojiPrompt = createEmojiPrompt("unused://emoji.tsv");
+  it("does not match a query found only in the display name", () => {
+    const emojiPrompt = createEmojiPrompt("unused://emoji.json");
 
     input.value = ":";
     input.setSelectionRange(1, 1);
@@ -85,12 +134,22 @@ describe("createEmojiPrompt fetcher", () => {
     vi.unstubAllGlobals();
   });
 
-  it("rejects when the tsv fetch response is not ok", async () => {
+  it("rejects when the emoji.json fetch response is not ok", async () => {
     vi.stubGlobal(
       "fetch",
-      vi.fn(async () => ({ ok: false, status: 404, text: async () => "Not Found" }) as Response),
+      vi.fn(async () => ({ ok: false, status: 404 })),
     );
-    const emojiPrompt = createEmojiPrompt("unused://emoji.tsv");
+    const emojiPrompt = createEmojiPrompt("unused://emoji.json");
+
+    await expect(emojiPrompt.fetcher()).rejects.toThrow();
+  });
+
+  it("rejects when the fetched JSON does not match the expected tuple shape", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () => ({ ok: true, json: async () => ({ unexpected: "shape" }) })),
+    );
+    const emojiPrompt = createEmojiPrompt("unused://emoji.json");
 
     await expect(emojiPrompt.fetcher()).rejects.toThrow();
   });

@@ -1,30 +1,30 @@
-import CursorPrompt from "./cursorPrompt";
+import * as v from "valibot";
 
-/** Build the CursorPrompt that completes emoji names against the tsv fetched from `emojiURL`. */
-export function createEmojiPrompt(emojiURL: string): CursorPrompt<string> {
-  return new CursorPrompt({
-    renderer: (c: string) => {
-      const fields = c.split("\t");
-      const codepoints = fields[0];
-      if (codepoints == null) {
-        return "";
-      }
-      const parsedUnicodeEmoji = String.fromCodePoint(...codepoints.split(",").map(Number));
-      return `<div><span>${parsedUnicodeEmoji}</span>${fields[1]}</div>`;
-    },
+import CursorPrompt from "./cursorPrompt";
+import { htmlEncode } from "./utils";
+
+type EmojiEntry = [emoji: string, slug: string, name: string];
+
+const emojiDataSchema = v.array(v.tuple([v.string(), v.string(), v.string()]));
+
+/** Build the CursorPrompt that completes emoji names against the json fetched from `emojiURL`. */
+export function createEmojiPrompt(emojiURL: string): CursorPrompt<EmojiEntry> {
+  return new CursorPrompt<EmojiEntry>({
+    renderer: ([emoji, , name]) => `<div><span>${emoji}</span>${htmlEncode(name)}</div>`,
     picker: (elm: Element) => {
       const child = elm.firstElementChild;
       return child instanceof HTMLElement ? child.innerText : "";
     },
-    matches: (c: string, query: string) => (c.split("\t")[1] ?? "").includes(query),
+    // Users type the CLDR slug (e.g. "grinning_face"), not the display name, so match on it alone.
+    matches: ([, slug], query) => slug.includes(query),
     fetcher: () =>
       fetch(emojiURL)
         .then((res) => {
           if (!res.ok) {
             throw new Error(`Failed to fetch emoji data: ${res.status}`);
           }
-          return res.text();
+          return res.json();
         })
-        .then((text) => text.split("\n")),
+        .then((json: unknown) => v.parse(emojiDataSchema, json)),
   });
 }

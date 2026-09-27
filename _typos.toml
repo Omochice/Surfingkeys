@@ -11,6 +11,3 @@ Hhttp = "Hhttp"
 Hhttps = "Hhttps"
 abd = "abd"
 fo = "fo"
-
-[files]
-extend-exclude = ["apps/extension/public/pages/emoji.tsv"]

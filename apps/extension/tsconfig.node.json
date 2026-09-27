@@ -3,5 +3,5 @@
   "compilerOptions": {
     "types": ["node"]
   },
-  "include": ["generate-icons.ts", "wxt.config.ts"]
+  "include": ["generate-emoji.ts", "generate-icons.ts", "wxt.config.ts"]
 }

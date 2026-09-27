@@ -230,7 +230,7 @@ function createInsert(env: EngineEnv): InsertMode {
     },
   });
 
-  const emojiPrompt = createEmojiPrompt(env.getExtensionURL("pages/emoji.tsv"));
+  const emojiPrompt = createEmojiPrompt(env.getExtensionURL("pages/emoji.json"));
 
   const enableEmojiInsertion = (): void => {
     mappings.add(":", {
