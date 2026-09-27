@@ -7,7 +7,7 @@ const picker = (el: Element) => el.textContent ?? "";
 
 describe("CursorPrompt constructor", () => {
   it("creates a div element with class sk_cursor_prompt", () => {
-    const cp = new CursorPrompt(renderer, picker, async () => []);
+    const cp = new CursorPrompt({ renderer, picker, fetcher: async () => [] });
     expect(cp.element.tagName).toBe("DIV");
     expect(cp.element.classList.contains("sk_cursor_prompt")).toBe(true);
   });
@@ -46,7 +46,7 @@ describe("CursorPrompt activate (native input)", () => {
   it("detects a native input (has selectionStart + value)", () => {
     input.value = "@foo";
     input.setSelectionRange(4, 4);
-    const cp = new CursorPrompt(renderer, picker, async () => []);
+    const cp = new CursorPrompt({ renderer, picker, fetcher: async () => [] });
     cp.activate(input, { data: ["foo", "bar"] });
     expect(cp.isNativeInput).toBe(true);
     cp.close();
@@ -55,7 +55,7 @@ describe("CursorPrompt activate (native input)", () => {
   it("records the activator character from position matchStart-1", () => {
     input.value = "hello@";
     input.setSelectionRange(6, 6);
-    const cp = new CursorPrompt(renderer, picker, async () => []);
+    const cp = new CursorPrompt({ renderer, picker, fetcher: async () => [] });
     cp.activate(input, { data: ["world"] });
     expect(cp.activator).toBe("@");
     cp.close();
@@ -65,7 +65,7 @@ describe("CursorPrompt activate (native input)", () => {
     const fetcher = vi.fn(async () => []);
     input.value = "x@";
     input.setSelectionRange(2, 2);
-    const cp = new CursorPrompt(renderer, picker, fetcher);
+    const cp = new CursorPrompt({ renderer, picker, fetcher });
     cp.activate(input, { data: ["apple", "apricot", "banana"] });
     expect(fetcher).not.toHaveBeenCalled();
     cp.close();
@@ -75,7 +75,7 @@ describe("CursorPrompt activate (native input)", () => {
     const fetcher = vi.fn(async () => ["fetched"]);
     input.value = "x@";
     input.setSelectionRange(2, 2);
-    const cp = new CursorPrompt(renderer, picker, fetcher);
+    const cp = new CursorPrompt({ renderer, picker, fetcher });
     cp.activate(input);
     expect(fetcher).toHaveBeenCalledOnce();
     cp.close();
@@ -89,7 +89,7 @@ describe("CursorPrompt activate (native input)", () => {
     const fetcher = vi.fn(() => fetcherPromise);
     input.value = "x@";
     input.setSelectionRange(2, 2);
-    const cp = new CursorPrompt(renderer, picker, fetcher);
+    const cp = new CursorPrompt({ renderer, picker, fetcher });
     cp.activate(input);
     expect(cp.data).toBeUndefined();
     resolve(["resolved_item"]);
@@ -116,7 +116,7 @@ describe("CursorPrompt onEnter (native input)", () => {
   it("inserts the picked value into the input at the match position", () => {
     input.value = "hello ";
     input.setSelectionRange(6, 6);
-    const cp = new CursorPrompt(renderer, picker, async () => []);
+    const cp = new CursorPrompt({ renderer, picker, fetcher: async () => [] });
     // The state below is set directly to bypass the render path, which needs layout.
     cp.insertOffset = 0;
     cp.isNativeInput = true;
@@ -137,7 +137,7 @@ describe("CursorPrompt onEnter (native input)", () => {
   it("replaces the mid-word partial with the chosen candidate", () => {
     input.value = "say @fo";
     input.setSelectionRange(7, 7);
-    const cp = new CursorPrompt(renderer, picker, async () => []);
+    const cp = new CursorPrompt({ renderer, picker, fetcher: async () => [] });
     cp.isNativeInput = true;
     cp.parentElement = input as unknown as HTMLElement;
     cp.matchStart = 5;
@@ -156,7 +156,7 @@ describe("CursorPrompt onEnter (native input)", () => {
   it("resets matchStart to -1 after enter", () => {
     input.value = "@x";
     input.setSelectionRange(2, 2);
-    const cp = new CursorPrompt(renderer, picker, async () => []);
+    const cp = new CursorPrompt({ renderer, picker, fetcher: async () => [] });
     cp.isNativeInput = true;
     cp.parentElement = input as unknown as HTMLElement;
     cp.matchStart = 1;
@@ -178,7 +178,7 @@ describe("CursorPrompt close", () => {
   });
 
   it("removes the prompt element from the DOM", () => {
-    const cp = new CursorPrompt(renderer, picker, async () => []);
+    const cp = new CursorPrompt({ renderer, picker, fetcher: async () => [] });
     document.body.appendChild(cp.element);
     expect(document.body.contains(cp.element)).toBe(true);
     cp.close();
@@ -192,7 +192,7 @@ describe("CursorPrompt rotate", () => {
   });
 
   it("moves the selected class to the next item on forward rotation", () => {
-    const cp = new CursorPrompt(renderer, picker, async () => []);
+    const cp = new CursorPrompt({ renderer, picker, fetcher: async () => [] });
     const a = document.createElement("div");
     a.className = "selected";
     a.textContent = "alpha";
@@ -207,7 +207,7 @@ describe("CursorPrompt rotate", () => {
   });
 
   it("wraps around from last to first on forward rotation", () => {
-    const cp = new CursorPrompt(renderer, picker, async () => []);
+    const cp = new CursorPrompt({ renderer, picker, fetcher: async () => [] });
     const a = document.createElement("div");
     a.textContent = "alpha";
     const b = document.createElement("div");
@@ -222,7 +222,7 @@ describe("CursorPrompt rotate", () => {
   });
 
   it("moves selection backward on backward rotation", () => {
-    const cp = new CursorPrompt(renderer, picker, async () => []);
+    const cp = new CursorPrompt({ renderer, picker, fetcher: async () => [] });
     const a = document.createElement("div");
     a.textContent = "alpha";
     const b = document.createElement("div");
@@ -237,7 +237,7 @@ describe("CursorPrompt rotate", () => {
   });
 
   it("calls onEnter immediately when only one item exists", () => {
-    const cp = new CursorPrompt(renderer, picker, async () => []);
+    const cp = new CursorPrompt({ renderer, picker, fetcher: async () => [] });
     const input = document.createElement("input");
     document.body.appendChild(input);
     cp.isNativeInput = true;
@@ -272,7 +272,7 @@ describe("CursorPrompt onKeyUp", () => {
   it("removes the element when the cursor retreats before matchStart", () => {
     input.value = "@foo";
     input.setSelectionRange(2, 2);
-    const cp = new CursorPrompt(renderer, picker, async () => []);
+    const cp = new CursorPrompt({ renderer, picker, fetcher: async () => [] });
     cp.isNativeInput = true;
     cp.parentElement = input as unknown as HTMLElement;
     cp.matchStart = 4;
@@ -287,7 +287,7 @@ describe("CursorPrompt onKeyUp", () => {
   it("removes the element when the activator character is no longer present", () => {
     input.value = "Xfoo";
     input.setSelectionRange(4, 4);
-    const cp = new CursorPrompt(renderer, picker, async () => []);
+    const cp = new CursorPrompt({ renderer, picker, fetcher: async () => [] });
     cp.isNativeInput = true;
     cp.parentElement = input as unknown as HTMLElement;
     cp.matchStart = 1;
@@ -302,7 +302,7 @@ describe("CursorPrompt onKeyUp", () => {
   it("does nothing when matchStart is -1 (prompt is inactive)", () => {
     input.value = "hello";
     input.setSelectionRange(5, 5);
-    const cp = new CursorPrompt(renderer, picker, async () => []);
+    const cp = new CursorPrompt({ renderer, picker, fetcher: async () => [] });
     cp.isNativeInput = true;
     cp.parentElement = input as unknown as HTMLElement;
     cp.matchStart = -1;
@@ -326,7 +326,7 @@ describe("CursorPrompt insertOffset", () => {
     input.value = "@foo";
     input.setSelectionRange(4, 4);
 
-    const cp = new CursorPrompt(renderer, picker, async () => []);
+    const cp = new CursorPrompt({ renderer, picker, fetcher: async () => [] });
     cp.isNativeInput = true;
     cp.parentElement = input as unknown as HTMLElement;
     cp.matchStart = 1;

@@ -231,8 +231,8 @@ function createInsert(env: EngineEnv): InsertMode {
   });
 
   const emojiURL = env.getExtensionURL("pages/emoji.tsv");
-  const emojiPrompt = new CursorPrompt(
-    (c: string) => {
+  const emojiPrompt = new CursorPrompt({
+    renderer: (c: string) => {
       const fields = c.split("\t");
       const codepoints = fields[0];
       if (codepoints == null) {
@@ -241,11 +241,11 @@ function createInsert(env: EngineEnv): InsertMode {
       const parsedUnicodeEmoji = String.fromCodePoint(...codepoints.split(",").map(Number));
       return `<div><span>${parsedUnicodeEmoji}</span>${fields[1]}</div>`;
     },
-    (elm: Element) => {
+    picker: (elm: Element) => {
       const child = elm.firstElementChild;
       return child instanceof HTMLElement ? child.innerText : "";
     },
-    () =>
+    fetcher: () =>
       new Promise<string[]>((r) => {
         fetch(emojiURL)
           .then((res) => res.text())
@@ -253,7 +253,7 @@ function createInsert(env: EngineEnv): InsertMode {
             r(text.split("\n"));
           });
       }),
-  );
+  });
 
   const enableEmojiInsertion = (): void => {
     mappings.add(":", {

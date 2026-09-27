@@ -15,6 +15,12 @@ type Fetcher = () => Promise<string[]>;
 
 type InputLike = HTMLInputElement | HTMLTextAreaElement;
 
+type CursorPromptOptions = {
+  renderer: Renderer;
+  picker: Picker;
+  fetcher: Fetcher;
+};
+
 class CursorPrompt {
   element: HTMLElement;
   renderer: Renderer;
@@ -30,7 +36,7 @@ class CursorPrompt {
   data?: string[];
   #suppressKeyup = false;
 
-  constructor(renderer: Renderer, picker: Picker, fetcher: Fetcher) {
+  constructor({ renderer, picker, fetcher }: CursorPromptOptions) {
     this.element = createElementWithContent("div", "", {
       class: "sk_cursor_prompt",
       style: "display: block; opacity: 1;",
