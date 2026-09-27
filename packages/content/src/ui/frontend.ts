@@ -473,7 +473,7 @@ const Front = (() => {
     return annotation ?? "";
   }
 
-  function buildUsage(metas: UsageMeta[], cb: (result: { groups: string[] }) => void) {
+  function buildUsage(metas: UsageMeta[]): string[] {
     const itemsByGroup = new Map<FeatureGroup, string[]>();
     const addItem = (group: FeatureGroup, item: string): void => {
       const items = itemsByGroup.get(group);
@@ -504,7 +504,7 @@ const Front = (() => {
       }
     });
     // <Usage> wraps each of these in its own <div> and renders the footer link itself.
-    const groups = featureGroups
+    return featureGroups
       .map(({ key, title }) => {
         const items = itemsByGroup.get(key);
         return items == null
@@ -512,15 +512,14 @@ const Front = (() => {
           : `<div class=feature_name><span>${title}</span></div>${items.join("")}`;
       })
       .filter((s) => s.length);
-    cb({ groups });
   }
 
-  const [usage, setUsage] = createSignal<{ groups: string[] }>({ groups: [] });
+  const [usageGroups, setUsageGroups] = createSignal<string[]>([]);
   render(
     () =>
       UsageView({
         get groups() {
-          return usage().groups;
+          return usageGroups();
         },
       }),
     usageElement,
@@ -533,7 +532,7 @@ const Front = (() => {
   actions["showUsage"] = (message: unknown) => {
     const { metas } = v.parse(v.object({ metas: v.array(usageMetaSchema) }), message);
     showElement(usageElement, () => {
-      buildUsage(metas, setUsage);
+      setUsageGroups(buildUsage(metas));
     });
   };
   actions["applyUserSettings"] = (message: { userSettings: Record<string, unknown> }) => {
@@ -603,23 +602,23 @@ const Front = (() => {
       v.object({ metas: v.array(usageMetaSchema), id: v.unknown() }),
       message,
     );
-    buildUsage(metas, ({ groups }) => {
-      // Content wants the help as one HTML string, so the wrappers <Usage> renders are reassembled
-      // here and must stay in sync with it.
-      const usageHtml =
-        groups.map((g) => `<div>${g}</div>`).join("") +
-        `<p style='float:right; width:100%; text-align:right'><a href='https://github.com/brookhong/surfingkeys' target='_blank' style='color:#0095dd'>More help</a></p>`;
-      top!.postMessage(
-        {
-          surfingkeysUiHostData: {
-            data: usageHtml,
-            toContent: true,
-            id: id,
-          },
+    // Content wants the help as one HTML string, so the wrappers <Usage> renders are reassembled
+    // here and must stay in sync with it.
+    const usageHtml =
+      buildUsage(metas)
+        .map((g) => `<div>${g}</div>`)
+        .join("") +
+      `<p style='float:right; width:100%; text-align:right'><a href='https://github.com/brookhong/surfingkeys' target='_blank' style='color:#0095dd'>More help</a></p>`;
+    top!.postMessage(
+      {
+        surfingkeysUiHostData: {
+          data: usageHtml,
+          toContent: true,
+          id: id,
         },
-        self.topOrigin,
-      );
-    });
+      },
+      self.topOrigin,
+    );
   };
 
   const [popupHtml, setPopupHtml] = createSignal("");
