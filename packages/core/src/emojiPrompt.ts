@@ -1,7 +1,7 @@
 import CursorPrompt from "./cursorPrompt";
 
 /** Build the CursorPrompt that completes emoji names against the tsv fetched from `emojiURL`. */
-export function createEmojiPrompt(emojiURL: string): CursorPrompt {
+export function createEmojiPrompt(emojiURL: string): CursorPrompt<string> {
   return new CursorPrompt({
     renderer: (c: string) => {
       const fields = c.split("\t");

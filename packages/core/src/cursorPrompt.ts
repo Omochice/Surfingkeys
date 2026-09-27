@@ -9,26 +9,26 @@ import {
   setSanitizedContent,
 } from "./utils";
 
-type Renderer = (choice: string) => string;
+type Renderer<T> = (choice: T) => string;
 type Picker = (selected: Element) => string;
-type Fetcher = () => Promise<string[]>;
-type Matches = (choice: string, query: string) => boolean;
+type Fetcher<T> = () => Promise<T[]>;
+type Matches<T> = (choice: T, query: string) => boolean;
 
 type InputLike = HTMLInputElement | HTMLTextAreaElement;
 
-type CursorPromptOptions = {
-  renderer: Renderer;
+type CursorPromptOptions<T> = {
+  renderer: Renderer<T>;
   picker: Picker;
-  fetcher: Fetcher;
-  matches: Matches;
+  fetcher: Fetcher<T>;
+  matches: Matches<T>;
 };
 
-class CursorPrompt {
+class CursorPrompt<T> {
   element: HTMLElement;
-  renderer: Renderer;
+  renderer: Renderer<T>;
   picker: Picker;
-  fetcher: Fetcher;
-  matches: Matches;
+  fetcher: Fetcher<T>;
+  matches: Matches<T>;
   mode!: ModeHandle;
   insertOffset = 0;
   threshold = 0;
@@ -36,10 +36,10 @@ class CursorPrompt {
   isNativeInput = false;
   matchStart = -1;
   activator: string | undefined = "";
-  data?: string[];
+  data?: T[];
   #suppressKeyup = false;
 
-  constructor({ renderer, picker, fetcher, matches }: CursorPromptOptions) {
+  constructor({ renderer, picker, fetcher, matches }: CursorPromptOptions<T>) {
     this.element = createElementWithContent("div", "", {
       class: "sk_cursor_prompt",
       style: "display: block; opacity: 1;",
@@ -81,7 +81,7 @@ class CursorPrompt {
 
   activate(
     parentElement: HTMLElement,
-    options?: { data?: string[]; threshold?: number; insertOffset?: number },
+    options?: { data?: T[]; threshold?: number; insertOffset?: number },
   ): void {
     const { data, threshold, insertOffset } = options ?? {};
     this.insertOffset = insertOffset || 0;
