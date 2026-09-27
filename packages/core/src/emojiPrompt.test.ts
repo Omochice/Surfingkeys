@@ -50,4 +50,32 @@ describe("createEmojiPrompt", () => {
 
     emojiPrompt.close();
   });
+
+  it("does not match a query found only in the codepoint column", () => {
+    const emojiPrompt = createEmojiPrompt("unused://emoji.tsv");
+
+    input.value = ":";
+    input.setSelectionRange(1, 1);
+    emojiPrompt.activate(input, { data: fixtures, threshold: 2 });
+
+    input.value = ":1f6";
+    input.setSelectionRange(4, 4);
+    emojiPrompt.onKeyUp();
+
+    expect(document.body.contains(emojiPrompt.element)).toBe(false);
+  });
+
+  it("does not match the '0x' codepoint prefix", () => {
+    const emojiPrompt = createEmojiPrompt("unused://emoji.tsv");
+
+    input.value = ":";
+    input.setSelectionRange(1, 1);
+    emojiPrompt.activate(input, { data: fixtures, threshold: 2 });
+
+    input.value = ":0x";
+    input.setSelectionRange(3, 3);
+    emojiPrompt.onKeyUp();
+
+    expect(document.body.contains(emojiPrompt.element)).toBe(false);
+  });
 });

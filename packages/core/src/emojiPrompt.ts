@@ -16,6 +16,7 @@ export function createEmojiPrompt(emojiURL: string): CursorPrompt {
       const child = elm.firstElementChild;
       return child instanceof HTMLElement ? child.innerText : "";
     },
+    matches: (c: string, query: string) => (c.split("\t")[1] ?? "").includes(query),
     fetcher: () =>
       new Promise<string[]>((r) => {
         fetch(emojiURL)

@@ -12,6 +12,7 @@ import {
 type Renderer = (choice: string) => string;
 type Picker = (selected: Element) => string;
 type Fetcher = () => Promise<string[]>;
+type Matches = (choice: string, query: string) => boolean;
 
 type InputLike = HTMLInputElement | HTMLTextAreaElement;
 
@@ -19,6 +20,7 @@ type CursorPromptOptions = {
   renderer: Renderer;
   picker: Picker;
   fetcher: Fetcher;
+  matches: Matches;
 };
 
 class CursorPrompt {
@@ -26,6 +28,7 @@ class CursorPrompt {
   renderer: Renderer;
   picker: Picker;
   fetcher: Fetcher;
+  matches: Matches;
   mode!: ModeHandle;
   insertOffset = 0;
   threshold = 0;
@@ -36,7 +39,7 @@ class CursorPrompt {
   data?: string[];
   #suppressKeyup = false;
 
-  constructor({ renderer, picker, fetcher }: CursorPromptOptions) {
+  constructor({ renderer, picker, fetcher, matches }: CursorPromptOptions) {
     this.element = createElementWithContent("div", "", {
       class: "sk_cursor_prompt",
       style: "display: block; opacity: 1;",
@@ -44,6 +47,7 @@ class CursorPrompt {
     this.renderer = renderer;
     this.picker = picker;
     this.fetcher = fetcher;
+    this.matches = matches;
     this.initMode();
   }
 
@@ -211,7 +215,7 @@ class CursorPrompt {
     if (query.length < this.threshold || query[0] === " ") {
       this.element.remove();
     } else {
-      const choices = this.data!.filter((c) => c.includes(query))
+      const choices = this.data!.filter((c) => this.matches(c, query))
         .slice(0, 5)
         .map(this.renderer)
         .join("");
