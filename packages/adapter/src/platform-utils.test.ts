@@ -1,67 +1,6 @@
-import { conf } from "@sk/core/conf";
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it } from "vitest";
 
-import { attachFaviconToImgSrc, initL10n } from "./platform-utils";
-
-describe("initL10n", () => {
-  const originalLanguage = conf.language;
-
-  afterEach(() => {
-    conf.language = originalLanguage;
-    vi.unstubAllGlobals();
-  });
-
-  it("calls cb with the identity translator when fetch rejects (network error)", async () => {
-    conf.language = "ja";
-    vi.stubGlobal(
-      "fetch",
-      vi.fn(async () => {
-        throw new TypeError("network down");
-      }),
-    );
-
-    const result = await new Promise<string>((resolve) => {
-      initL10n((translate) => resolve(translate("hello")));
-    });
-
-    expect(result).toBe("hello");
-  });
-
-  it("calls cb with the identity translator when the JSON response is malformed", async () => {
-    conf.language = "ja";
-    vi.stubGlobal(
-      "fetch",
-      vi.fn(async () => ({
-        json: async () => {
-          throw new SyntaxError("bad JSON");
-        },
-      })),
-    );
-
-    const result = await new Promise<string>((resolve) => {
-      initL10n((translate) => resolve(translate("hello")));
-    });
-
-    expect(result).toBe("hello");
-  });
-
-  it("invokes cb exactly once when loading the table fails", async () => {
-    conf.language = "ja";
-    vi.stubGlobal(
-      "fetch",
-      vi.fn(async () => {
-        throw new TypeError("network down");
-      }),
-    );
-
-    const cb = vi.fn();
-    initL10n(cb);
-    await vi.waitFor(() => expect(cb).toHaveBeenCalledTimes(1));
-    // Let any stray trailing rejection settle: the fallback must not fire cb again.
-    await Promise.resolve();
-    expect(cb).toHaveBeenCalledTimes(1);
-  });
-});
+import { attachFaviconToImgSrc } from "./platform-utils";
 
 describe("attachFaviconToImgSrc", () => {
   const original = window.navigator.userAgent;

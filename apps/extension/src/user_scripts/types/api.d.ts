@@ -259,8 +259,6 @@ export type UserScriptSettings = {
   ignoredFrameHosts?: string[];
   /** Network errors for which Surfingkeys shows its own error page; `["*"]` means all. */
   interceptedErrors?: string[];
-  /** Language of the usage popover. */
-  language?: string;
   /** Mode to fall back to after yanking text in visual mode; `""` stays put. */
   modeAfterYank?: "" | "Caret" | "Normal";
   /** Origins where a mouse text selection is turned into a query. */

@@ -9,8 +9,6 @@ export type UsageProps = {
    * the `#sk_usage>div` column layout keeps applying.
    */
   groups: string[];
-  /** Localized "More help" link text. */
-  moreHelp: string;
 };
 
 /** The usage/help panel (#sk_usage), shown for `?`. */
@@ -24,7 +22,7 @@ export const Usage: Component<UsageProps> = (props) => {
           target="_blank"
           style={{ color: "#0095dd" }}
         >
-          {props.moreHelp}
+          More help
         </a>
       </p>
     </>

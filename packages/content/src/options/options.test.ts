@@ -83,7 +83,6 @@ function initOptions(runtimeSpy = makeNotify(), requestSpy = makeRequest()) {
     createElementWithContent: makeCreateElementWithContent(),
     getBrowserName: () => "Chrome",
     htmlEncode: (s: string) => s,
-    initL10n: (cb: (locale: (s: string) => string) => void) => cb((s) => s),
     reportIssue: (_title: string, _desc: string) => {},
     setSanitizedContent: (elm: Element, str: string) => {
       elm.innerHTML = str;
@@ -158,7 +157,6 @@ describe("showAdvanced toggle behavior", () => {
       createElementWithContent: makeCreateElementWithContent(),
       getBrowserName: () => "Chrome",
       htmlEncode: (s: string) => s,
-      initL10n: (cb: (locale: (s: string) => string) => void) => cb((s) => s),
       reportIssue: (_title: string, _desc: string) => {},
       setSanitizedContent: (elm: Element, str: string) => {
         elm.innerHTML = str;
@@ -397,7 +395,6 @@ describe("Firefox-specific localPathForSettings display", () => {
       createElementWithContent: makeCreateElementWithContent(),
       getBrowserName: () => "Firefox",
       htmlEncode: (s: string) => s,
-      initL10n: (cb: (locale: (s: string) => string) => void) => cb((s) => s),
       reportIssue: (_title: string, _desc: string) => {},
       setSanitizedContent: (elm: Element, str: string) => {
         elm.innerHTML = str;
@@ -600,7 +597,6 @@ describe("KeyPicker keydown: Escape hides the picker", () => {
       createElementWithContent: makeCreateElementWithContent(),
       getBrowserName: () => "Chrome",
       htmlEncode: (s: string) => s,
-      initL10n: (cb: (locale: (s: string) => string) => void) => cb((s) => s),
       reportIssue: (_title: string, _desc: string) => {},
       setSanitizedContent: (elm: Element, str: string) => {
         elm.innerHTML = str;
@@ -642,7 +638,6 @@ describe("KeyPicker keydown: regular character appends to key", () => {
       createElementWithContent: makeCreateElementWithContent(),
       getBrowserName: () => "Chrome",
       htmlEncode: (s: string) => s,
-      initL10n: (cb: (locale: (s: string) => string) => void) => cb((s) => s),
       reportIssue: (_title: string, _desc: string) => {},
       setSanitizedContent: (elm: Element, str: string) => {
         elm.innerHTML = str;
@@ -676,7 +671,6 @@ function renderBasicMappingKbd(origin: string, userSettings: Record<string, unkn
     createElementWithContent: makeCreateElementWithContent(),
     getBrowserName: () => "Chrome",
     htmlEncode: (s: string) => s,
-    initL10n: (cb: (locale: (s: string) => string) => void) => cb((s) => s),
     reportIssue: (_title: string, _desc: string) => {},
     setSanitizedContent: (elm: Element, str: string) => {
       elm.innerHTML = str;
@@ -784,7 +778,6 @@ describe("KeyPicker keydown: Backspace removes last character", () => {
       createElementWithContent: makeCreateElementWithContent(),
       getBrowserName: () => "Chrome",
       htmlEncode: (s: string) => s,
-      initL10n: (cb: (locale: (s: string) => string) => void) => cb((s) => s),
       reportIssue: (_title: string, _desc: string) => {},
       setSanitizedContent: (elm: Element, str: string) => {
         elm.innerHTML = str;
@@ -895,7 +888,6 @@ describe("renderSearchAlias: aliases with object prompt", () => {
       createElementWithContent: makeCreateElementWithContent(),
       getBrowserName: () => "Chrome",
       htmlEncode: (s: string) => s,
-      initL10n: (cb: (locale: (s: string) => string) => void) => cb((s) => s),
       reportIssue: (_title: string, _desc: string) => {},
       setSanitizedContent: (elm: Element, str: string) => {
         elm.innerHTML = str;
@@ -959,7 +951,6 @@ describe("saveSettings: loadSettingsFromUrl callback updates snippets", () => {
       createElementWithContent: makeCreateElementWithContent(),
       getBrowserName: () => "Chrome",
       htmlEncode: (s: string) => s,
-      initL10n: (cb: (locale: (s: string) => string) => void) => cb((s) => s),
       reportIssue: (_title: string, _desc: string) => {},
       setSanitizedContent: (elm: Element, str: string) => {
         elm.innerHTML = str;
@@ -997,7 +988,6 @@ describe("saveSettings: loadSettingsFromUrl callback updates snippets", () => {
       createElementWithContent: makeCreateElementWithContent(),
       getBrowserName: () => "Chrome",
       htmlEncode: (s: string) => s,
-      initL10n: (cb: (locale: (s: string) => string) => void) => cb((s) => s),
       reportIssue: (_title: string, _desc: string) => {},
       setSanitizedContent: (elm: Element, str: string) => {
         elm.innerHTML = str;

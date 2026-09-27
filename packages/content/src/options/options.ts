@@ -51,7 +51,6 @@ type OptionsDeps = {
   ) => HTMLElement;
   getBrowserName: () => string;
   htmlEncode: (s: string) => string;
-  initL10n: (cb: (locale: (s: string) => string) => void) => void;
   reportIssue: (title: string, desc: string) => void;
   setSanitizedContent: (elm: Element, str: string) => void;
   showBanner: (msg: string, timeout?: number) => void;
@@ -66,7 +65,6 @@ export default function optionsMain(deps: OptionsDeps): void {
     createElementWithContent,
     getBrowserName,
     htmlEncode,
-    initL10n,
     reportIssue,
     setSanitizedContent,
     showBanner,
@@ -372,25 +370,23 @@ export default function optionsMain(deps: OptionsDeps): void {
   }
 
   function renderKeyMappings(settings: StoredSettings): void {
-    initL10n((locale) => {
-      const customization = basicMappings.map((w) => {
-        let newKey: string | undefined = w.origin;
-        if (settings.basicMappings && Object.hasOwn(settings.basicMappings, w.origin)) {
-          newKey = settings.basicMappings[w.origin];
-        }
-        const annotation = typeof w.annotation === "string" ? w.annotation : "";
-        return `<div>
-                    <span class=annotation>${locale(annotation)}</span>
+    const customization = basicMappings.map((w) => {
+      let newKey: string | undefined = w.origin;
+      if (settings.basicMappings && Object.hasOwn(settings.basicMappings, w.origin)) {
+        newKey = settings.basicMappings[w.origin];
+      }
+      const annotation = typeof w.annotation === "string" ? w.annotation : "";
+      return `<div>
+                    <span class=annotation>${annotation}</span>
                     <span class=kbd-span><kbd data-origin="${w.origin}" data-custom="${newKey ?? ""}">${newKey ? htmlEncode(newKey) : "🚫"}</kbd></span>
                 </div>`;
-      });
+    });
 
-      setSanitizedContent(basicMappingsDiv, customization.join(""));
-      basicMappingsDiv.querySelectorAll("kbd").forEach((d) => {
-        d.onclick = () => {
-          KeyPicker.enter(d);
-        };
-      });
+    setSanitizedContent(basicMappingsDiv, customization.join(""));
+    basicMappingsDiv.querySelectorAll("kbd").forEach((d) => {
+      d.onclick = () => {
+        KeyPicker.enter(d);
+      };
     });
   }
 

@@ -12,12 +12,7 @@ const groups = [
 
 describe("Usage", () => {
   it("renders one div per group plus the more-help link", () => {
-    const { container } = render(() => (
-      <Usage
-        groups={groups}
-        moreHelp="More help"
-      />
-    ));
+    const { container } = render(() => <Usage groups={groups} />);
 
     expect(container.querySelectorAll("div.feature_name").length).toBe(2);
     expect(container.querySelector("kbd")?.textContent).toBe("t");
@@ -29,12 +24,7 @@ describe("Usage", () => {
   });
 
   it("sanitizes each group's HTML", () => {
-    const { container } = render(() => (
-      <Usage
-        groups={["<div>ok</div><script>1</script>"]}
-        moreHelp="More help"
-      />
-    ));
+    const { container } = render(() => <Usage groups={["<div>ok</div><script>1</script>"]} />);
 
     expect(container.querySelector("script")).toBeNull();
   });

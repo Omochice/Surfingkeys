@@ -1,4 +1,4 @@
-import { initL10n, reportIssue } from "@sk/adapter/platform-utils";
+import { reportIssue } from "@sk/adapter/platform-utils";
 import KeyboardUtils from "@sk/core/keyboardUtils";
 import { ModeHandle } from "@sk/core/mode";
 import {
@@ -21,7 +21,6 @@ optionsMain({
   createElementWithContent,
   getBrowserName,
   htmlEncode,
-  initL10n,
   reportIssue,
   setSanitizedContent,
   showBanner,

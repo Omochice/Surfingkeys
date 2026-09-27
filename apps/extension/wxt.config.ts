@@ -135,10 +135,10 @@ export default defineConfig({
   manifest: ({ browser, mode }) => {
     const permissions = [...basePermissions];
     // Resources the content script / injected pages fetch by extension URL:
-    // the sandboxed iframe page and the emoji/l10n data. Chrome adds the
+    // the sandboxed iframe page and the emoji data. Chrome adds the
     // built-in favicon endpoint and the user-scripts api bundle (emitted by
     // the build:done hook above).
-    const webResources = ["frontend.html", "pages/emoji.tsv", "pages/l10n.json"];
+    const webResources = ["frontend.html", "pages/emoji.tsv"];
     // Heterogeneous manifest JSON handed straight back to wxt; constraining the values adds no
     // runtime type safety.
     // eslint-disable-next-line typescript/no-explicit-any
