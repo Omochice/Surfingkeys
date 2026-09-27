@@ -1,6 +1,8 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import CursorPrompt from "./cursorPrompt";
+import type { EngineEnv } from "./engineEnv";
+import { initModeHub } from "./mode";
 
 const renderer = (choice: string) => `<div class="item">${choice}</div>`;
 const picker = (el: Element) => el.textContent ?? "";
@@ -379,5 +381,104 @@ describe("CursorPrompt insertOffset", () => {
     cp.onEnter();
 
     expect(input.value).toBe("bar");
+  });
+});
+
+describe("CursorPrompt keys while no candidate is shown", () => {
+  const env: EngineEnv = {
+    notify: () => {},
+    isInUIFrame: () => false,
+    reportIssue: () => {},
+    tabOpenLink: () => {},
+    getExtensionURL: (path: string) => path,
+    log: () => {},
+    surfingkeys: undefined,
+  };
+  let input: HTMLInputElement;
+  let restoreLayout: () => void;
+  let errors: unknown[];
+  const recordError = (e: ErrorEvent) => {
+    errors.push(e.error);
+    e.preventDefault();
+  };
+
+  beforeEach(() => {
+    initModeHub(env);
+    document.body.replaceChildren();
+    input = document.createElement("input");
+    document.body.appendChild(input);
+    restoreLayout = stubLayout();
+    errors = [];
+    window.addEventListener("error", recordError);
+  });
+
+  afterEach(() => {
+    window.removeEventListener("error", recordError);
+    restoreLayout();
+    document.body.replaceChildren();
+  });
+
+  function activateAfter(text: string): CursorPrompt<string> {
+    input.value = text;
+    input.setSelectionRange(text.length, text.length);
+    const cp = new CursorPrompt({ renderer, picker, matches, fetcher: async () => [] });
+    cp.activate(input, { data: ["apple", "apricot"], threshold: 2 });
+    return cp;
+  }
+
+  function typeTo(text: string): void {
+    input.value = text;
+    input.setSelectionRange(text.length, text.length);
+    window.dispatchEvent(new KeyboardEvent("keyup", { key: text.at(-1) ?? "" }));
+  }
+
+  function press(key: string, keyCode: number): KeyboardEvent {
+    const event = new KeyboardEvent("keydown", { key, keyCode, cancelable: true });
+    window.dispatchEvent(event);
+    return event;
+  }
+
+  it("lets Enter through when the query is still below the threshold", () => {
+    const cp = activateAfter("Note:");
+
+    const enter = press("Enter", 13);
+
+    expect(errors).toEqual([]);
+    expect(enter.defaultPrevented).toBe(false);
+    expect(input.value).toBe("Note:");
+    cp.close();
+  });
+
+  it("lets Tab through when nothing matches", () => {
+    const cp = activateAfter("@");
+    typeTo("@zz");
+
+    const tab = press("Tab", 9);
+
+    expect(errors).toEqual([]);
+    expect(tab.defaultPrevented).toBe(false);
+    cp.close();
+  });
+
+  it("does not insert a candidate that stopped matching", () => {
+    const cp = activateAfter("@");
+    typeTo("@ap");
+    typeTo("@apz");
+
+    const enter = press("Enter", 13);
+
+    expect(enter.defaultPrevented).toBe(false);
+    expect(input.value).toBe("@apz");
+    cp.close();
+  });
+
+  it("still takes Enter to insert the selected candidate", () => {
+    activateAfter("@");
+    typeTo("@ap");
+
+    const enter = press("Enter", 13);
+
+    expect(enter.defaultPrevented).toBe(true);
+    expect(input.value).toBe("@apple");
   });
 });

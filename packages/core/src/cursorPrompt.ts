@@ -67,15 +67,29 @@ class CursorPrompt<T> {
     mappings.add(KeyboardUtils.encodeKeystroke("<Esc>"), {
       code: () => this.close(),
     });
-    mappings.add(KeyboardUtils.encodeKeystroke("<Enter>"), {
-      code: () => this.onEnter(),
+    // The prompt stays active while nothing is shown so that candidates can appear as the user
+    // keeps typing; these keys therefore act only on visible candidates and otherwise reach the
+    // page, where closing the prompt instead would stop completion right after the activator.
+    const whenShown = (action: () => void) => ({
+      stopPropagation: () => this.#isShown(),
+      code: () => {
+        if (this.#isShown()) {
+          action();
+        }
+      },
     });
-    mappings.add(KeyboardUtils.encodeKeystroke("<Tab>"), {
-      code: () => this.rotate(false),
-    });
-    mappings.add(KeyboardUtils.encodeKeystroke("<Shift-Tab>"), {
-      code: () => this.rotate(true),
-    });
+    mappings.add(
+      KeyboardUtils.encodeKeystroke("<Enter>"),
+      whenShown(() => this.onEnter()),
+    );
+    mappings.add(
+      KeyboardUtils.encodeKeystroke("<Tab>"),
+      whenShown(() => this.rotate(false)),
+    );
+    mappings.add(
+      KeyboardUtils.encodeKeystroke("<Shift-Tab>"),
+      whenShown(() => this.rotate(true)),
+    );
     this.mode = mode;
   }
 
@@ -201,6 +215,12 @@ class CursorPrompt<T> {
       }
     }
     this.#suppressKeyup = false;
+  }
+
+  // #render detaches the element without clearing it when nothing matches, so the stale children
+  // cannot tell whether candidates are on screen.
+  #isShown(): boolean {
+    return this.element.isConnected;
   }
 
   close(): void {
