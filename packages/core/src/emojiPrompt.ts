@@ -7,7 +7,7 @@ type EmojiEntry = [emoji: string, slug: string, name: string];
 
 const emojiDataSchema = v.array(v.tuple([v.string(), v.string(), v.string()]));
 
-/** Build the CursorPrompt that completes emoji names against the json fetched from `emojiURL`. */
+/** Build the CursorPrompt that completes emoji names against the JSON fetched from `emojiURL`. */
 export function createEmojiPrompt(emojiURL: string): CursorPrompt<EmojiEntry> {
   return new CursorPrompt<EmojiEntry>({
     renderer: ([emoji, , name]) => `<div><span>${emoji}</span>${htmlEncode(name)}</div>`,
