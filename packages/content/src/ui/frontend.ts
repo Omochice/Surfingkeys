@@ -458,14 +458,14 @@ const Front = (() => {
   }
   actions["chooseTab"] = chooseTab;
 
-  // The annotation is either a plain string or a [format, ...args] tuple localizeAnnotation expands.
+  // The annotation is either a plain string or a [format, ...args] tuple formatAnnotation expands.
   type UsageMeta = {
     word: string;
     group?: string | undefined;
     annotation?: string | string[] | undefined;
   };
 
-  function localizeAnnotation(annotation: string | string[] | undefined): string {
+  function formatAnnotation(annotation: string | string[] | undefined): string {
     if (Array.isArray(annotation)) {
       const [fmt, ...args] = annotation;
       return format(fmt ?? "", ...args);
@@ -498,7 +498,7 @@ const Front = (() => {
     metas = metas.concat(getAnnotations(omnibar.mappings));
     metas.forEach((meta) => {
       const w = KeyboardUtils.decodeKeystroke(meta.word);
-      const annotation = localizeAnnotation(meta.annotation);
+      const annotation = formatAnnotation(meta.annotation);
       const item = `<div><span class=kbd-span><kbd>${htmlEncode(w)}</kbd></span><span class=annotation>${annotation}</span></div>`;
       // The metas arrive over the message boundary, so a key naming no section is dropped rather
       // than given a heading of its own.
@@ -861,7 +861,7 @@ const Front = (() => {
         if (candidate == null) {
           return "";
         }
-        const annotation = localizeAnnotation(candidate.annotation);
+        const annotation = formatAnnotation(candidate.annotation);
         if (annotation) {
           const nextKey = w.slice(keyHints.accumulated.length);
           return `<div><span class=kbd-span><kbd>${htmlEncode(KeyboardUtils.decodeKeystroke(keyHints.accumulated))}<span class=candidates>${htmlEncode(KeyboardUtils.decodeKeystroke(nextKey))}</span></kbd></span><span class=annotation>${annotation}</span></div>`;
