@@ -1,4 +1,4 @@
-import { attachFaviconToImgSrc, initL10n, isInUIFrame } from "@sk/adapter/platform-utils";
+import { attachFaviconToImgSrc, isInUIFrame } from "@sk/adapter/platform-utils";
 import createAPI from "@sk/core/api";
 import { applyDefaultMappings, registerDefaultExtras } from "@sk/core/applyDefaultMappings";
 import createDefaultMappings from "@sk/core/default";
@@ -465,62 +465,57 @@ const Front = (() => {
     annotation?: string | string[] | undefined;
   };
 
-  function localizeAnnotation(
-    locale: (s: string) => string,
-    annotation: string | string[] | undefined,
-  ): string {
+  function localizeAnnotation(annotation: string | string[] | undefined): string {
     if (Array.isArray(annotation)) {
       const [fmt, ...args] = annotation;
-      return format(locale(fmt ?? ""), ...args);
+      return format(fmt ?? "", ...args);
     }
-    return locale(annotation ?? "");
+    return annotation ?? "";
   }
 
   function buildUsage(
     metas: UsageMeta[],
     cb: (result: { groups: string[]; moreHelp: string }) => void,
   ) {
-    initL10n((locale) => {
-      const itemsByGroup = new Map<FeatureGroup, string[]>();
-      const addItem = (group: FeatureGroup, item: string): void => {
-        const items = itemsByGroup.get(group);
-        if (items != null) {
-          items.push(item);
-        } else {
-          itemsByGroup.set(group, [item]);
-        }
-      };
-
-      const toggleKey = specialKeys["<Alt-s>"]?.at(-1);
-      if (toggleKey != null) {
-        addItem(
-          "help",
-          `<div><span class=kbd-span><kbd>${htmlEncode(toggleKey)}</kbd></span><span class=annotation>${locale("Toggle SurfingKeys on current site")}</span></div>`,
-        );
+    const itemsByGroup = new Map<FeatureGroup, string[]>();
+    const addItem = (group: FeatureGroup, item: string): void => {
+      const items = itemsByGroup.get(group);
+      if (items != null) {
+        items.push(item);
+      } else {
+        itemsByGroup.set(group, [item]);
       }
+    };
 
-      metas = metas.concat(getAnnotations(omnibar.mappings));
-      metas.forEach((meta) => {
-        const w = KeyboardUtils.decodeKeystroke(meta.word);
-        const annotation = localizeAnnotation(locale, meta.annotation);
-        const item = `<div><span class=kbd-span><kbd>${htmlEncode(w)}</kbd></span><span class=annotation>${annotation}</span></div>`;
-        // The metas arrive over the message boundary, so a key naming no section is dropped rather
-        // than given a heading of its own.
-        if (isFeatureGroup(meta.group)) {
-          addItem(meta.group, item);
-        }
-      });
-      // <Usage> wraps each of these in its own <div> and renders the footer link itself.
-      const groups = featureGroups
-        .map(({ key, title }) => {
-          const items = itemsByGroup.get(key);
-          return items == null
-            ? ""
-            : `<div class=feature_name><span>${locale(title)}</span></div>${items.join("")}`;
-        })
-        .filter((s) => s.length);
-      cb({ groups, moreHelp: locale("More help") });
+    const toggleKey = specialKeys["<Alt-s>"]?.at(-1);
+    if (toggleKey != null) {
+      addItem(
+        "help",
+        `<div><span class=kbd-span><kbd>${htmlEncode(toggleKey)}</kbd></span><span class=annotation>Toggle SurfingKeys on current site</span></div>`,
+      );
+    }
+
+    metas = metas.concat(getAnnotations(omnibar.mappings));
+    metas.forEach((meta) => {
+      const w = KeyboardUtils.decodeKeystroke(meta.word);
+      const annotation = localizeAnnotation(meta.annotation);
+      const item = `<div><span class=kbd-span><kbd>${htmlEncode(w)}</kbd></span><span class=annotation>${annotation}</span></div>`;
+      // The metas arrive over the message boundary, so a key naming no section is dropped rather
+      // than given a heading of its own.
+      if (isFeatureGroup(meta.group)) {
+        addItem(meta.group, item);
+      }
     });
+    // <Usage> wraps each of these in its own <div> and renders the footer link itself.
+    const groups = featureGroups
+      .map(({ key, title }) => {
+        const items = itemsByGroup.get(key);
+        return items == null
+          ? ""
+          : `<div class=feature_name><span>${title}</span></div>${items.join("")}`;
+      })
+      .filter((s) => s.length);
+    cb({ groups, moreHelp: "More help" });
   }
 
   const [usage, setUsage] = createSignal<{ groups: string[]; moreHelp: string }>({
@@ -858,30 +853,28 @@ const Front = (() => {
   };
 
   function showRichHints(keyHints: KeyHints) {
-    initL10n((locale) => {
-      const candidates = keyHints.candidates;
-      const words = Object.keys(candidates)
-        .toSorted()
-        .map((w) => {
-          const candidate = candidates[w];
-          if (candidate == null) {
-            return "";
-          }
-          const annotation = localizeAnnotation(locale, candidate.annotation);
-          if (annotation) {
-            const nextKey = w.slice(keyHints.accumulated.length);
-            return `<div><span class=kbd-span><kbd>${htmlEncode(KeyboardUtils.decodeKeystroke(keyHints.accumulated))}<span class=candidates>${htmlEncode(KeyboardUtils.decodeKeystroke(nextKey))}</span></kbd></span><span class=annotation>${annotation}</span></div>`;
-          } else {
-            return "";
-          }
-        })
-        .join("");
-      if (words.length > 0 && pendingHint) {
-        setKeystrokeHtml(words);
-        setKeystrokeRich(true);
-        self.flush();
-      }
-    });
+    const candidates = keyHints.candidates;
+    const words = Object.keys(candidates)
+      .toSorted()
+      .map((w) => {
+        const candidate = candidates[w];
+        if (candidate == null) {
+          return "";
+        }
+        const annotation = localizeAnnotation(candidate.annotation);
+        if (annotation) {
+          const nextKey = w.slice(keyHints.accumulated.length);
+          return `<div><span class=kbd-span><kbd>${htmlEncode(KeyboardUtils.decodeKeystroke(keyHints.accumulated))}<span class=candidates>${htmlEncode(KeyboardUtils.decodeKeystroke(nextKey))}</span></kbd></span><span class=annotation>${annotation}</span></div>`;
+        } else {
+          return "";
+        }
+      })
+      .join("");
+    if (words.length > 0 && pendingHint) {
+      setKeystrokeHtml(words);
+      setKeystrokeRich(true);
+      self.flush();
+    }
   }
   actions["showKeystroke"] = (message: { keyHints: KeyHints }) => {
     if (keystroke.style.display !== "none" && keystrokeRich()) {

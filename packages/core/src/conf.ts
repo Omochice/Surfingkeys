@@ -25,7 +25,6 @@ type RuntimeConf = {
   hintExplicit: boolean;
   hintShiftNonActive: boolean;
   historyMostUsedOrder: boolean;
-  language: string | undefined;
   lastQuery: string;
   modeAfterYank: string;
   nextLinkRegex: RegExp;
@@ -106,7 +105,6 @@ const conf: RuntimeConf = {
   hintExplicit: false,
   hintShiftNonActive: false,
   historyMostUsedOrder: true,
-  language: undefined,
   lastQuery: "",
   modeAfterYank: "",
   nextLinkRegex: /(\b(next)\b)|下页|下一页|后页|下頁|下一頁|後頁|>>|»/i,
