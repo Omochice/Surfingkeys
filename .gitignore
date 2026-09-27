@@ -5,6 +5,7 @@ dist/
 coverage/
 custom_metrics_bundle_size.json
 apps/extension/public/icons/*.png
+apps/extension/public/pages/emoji.json
 .DS_Store
 .vscode/
 jsconfig.json

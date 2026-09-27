@@ -9,17 +9,26 @@ import {
   setSanitizedContent,
 } from "./utils";
 
-type Renderer = (choice: string) => string;
+type Renderer<T> = (choice: T) => string;
 type Picker = (selected: Element) => string;
-type Fetcher = () => Promise<string[]>;
+type Fetcher<T> = () => Promise<T[]>;
+type Matches<T> = (choice: T, query: string) => boolean;
 
 type InputLike = HTMLInputElement | HTMLTextAreaElement;
 
-class CursorPrompt {
-  element: HTMLElement;
-  renderer: Renderer;
+type CursorPromptOptions<T> = {
+  renderer: Renderer<T>;
   picker: Picker;
-  fetcher: Fetcher;
+  fetcher: Fetcher<T>;
+  matches: Matches<T>;
+};
+
+class CursorPrompt<T> {
+  element: HTMLElement;
+  renderer: Renderer<T>;
+  picker: Picker;
+  fetcher: Fetcher<T>;
+  matches: Matches<T>;
   mode!: ModeHandle;
   insertOffset = 0;
   threshold = 0;
@@ -27,10 +36,10 @@ class CursorPrompt {
   isNativeInput = false;
   matchStart = -1;
   activator: string | undefined = "";
-  data?: string[];
+  data?: T[];
   #suppressKeyup = false;
 
-  constructor(renderer: Renderer, picker: Picker, fetcher: Fetcher) {
+  constructor({ renderer, picker, fetcher, matches }: CursorPromptOptions<T>) {
     this.element = createElementWithContent("div", "", {
       class: "sk_cursor_prompt",
       style: "display: block; opacity: 1;",
@@ -38,6 +47,7 @@ class CursorPrompt {
     this.renderer = renderer;
     this.picker = picker;
     this.fetcher = fetcher;
+    this.matches = matches;
     this.initMode();
   }
 
@@ -57,21 +67,35 @@ class CursorPrompt {
     mappings.add(KeyboardUtils.encodeKeystroke("<Esc>"), {
       code: () => this.close(),
     });
-    mappings.add(KeyboardUtils.encodeKeystroke("<Enter>"), {
-      code: () => this.onEnter(),
+    // The prompt stays active while nothing is shown so that candidates can appear as the user
+    // keeps typing; these keys therefore act only on visible candidates and otherwise reach the
+    // page, where closing the prompt instead would stop completion right after the activator.
+    const whenShown = (action: () => void) => ({
+      stopPropagation: () => this.#isShown(),
+      code: () => {
+        if (this.#isShown()) {
+          action();
+        }
+      },
     });
-    mappings.add(KeyboardUtils.encodeKeystroke("<Tab>"), {
-      code: () => this.rotate(false),
-    });
-    mappings.add(KeyboardUtils.encodeKeystroke("<Shift-Tab>"), {
-      code: () => this.rotate(true),
-    });
+    mappings.add(
+      KeyboardUtils.encodeKeystroke("<Enter>"),
+      whenShown(() => this.onEnter()),
+    );
+    mappings.add(
+      KeyboardUtils.encodeKeystroke("<Tab>"),
+      whenShown(() => this.rotate(false)),
+    );
+    mappings.add(
+      KeyboardUtils.encodeKeystroke("<Shift-Tab>"),
+      whenShown(() => this.rotate(true)),
+    );
     this.mode = mode;
   }
 
   activate(
     parentElement: HTMLElement,
-    options?: { data?: string[]; threshold?: number; insertOffset?: number },
+    options?: { data?: T[]; threshold?: number; insertOffset?: number },
   ): void {
     const { data, threshold, insertOffset } = options ?? {};
     this.insertOffset = insertOffset || 0;
@@ -95,10 +119,16 @@ class CursorPrompt {
     if (this.data) {
       this.#render();
     } else if (this.fetcher) {
-      this.fetcher().then((res) => {
-        this.data = res;
-        this.#render();
-      });
+      this.fetcher()
+        .then((res) => {
+          this.data = res;
+          this.#render();
+        })
+        .catch(() => {
+          // Leave `data` unset so the next activate() retries the fetch instead of getting stuck
+          // with an open prompt that can never show candidates.
+          this.close();
+        });
     }
 
     this.#suppressKeyup = false;
@@ -187,6 +217,12 @@ class CursorPrompt {
     this.#suppressKeyup = false;
   }
 
+  // #render detaches the element without clearing it when nothing matches, so the stale children
+  // cannot tell whether candidates are on screen.
+  #isShown(): boolean {
+    return this.element.isConnected;
+  }
+
   close(): void {
     this.element.remove();
     this.mode.exit();
@@ -205,7 +241,8 @@ class CursorPrompt {
     if (query.length < this.threshold || query[0] === " ") {
       this.element.remove();
     } else {
-      const choices = this.data!.filter((c) => c.includes(query))
+      const choices = (this.data ?? [])
+        .filter((c) => this.matches(c, query))
         .slice(0, 5)
         .map(this.renderer)
         .join("");

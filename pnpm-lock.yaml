@@ -349,6 +349,9 @@ importers:
       typescript:
         specifier: 'catalog:'
         version: 7.0.2
+      unicode-emoji-json:
+        specifier: 0.9.0
+        version: 0.9.0
       vite:
         specifier: 8.3.1
         version: 8.3.1(@types/node@25.9.8)(jiti@2.7.0)(yaml@2.9.1)
@@ -2982,6 +2985,9 @@ packages:
     resolution: {integrity: sha512-/y4/bH9YNU5hi9NIrpOuvGXFcxrj3CMrV+/AYpowAYTpHn8gX/XPFjNy766FPoYY0miQhdW977JFWKGNhBdwyQ==}
     engines: {node: '>=22.19.0'}
 
+  unicode-emoji-json@0.9.0:
+    resolution: {integrity: sha512-HdrQW/7SdbXUsTd8uTATv7LvQJkCSgbAgRCDCtOhQ6xn3EAx+xZHQtRniOXWJK3ywIqPegkNhP4U4EbuFsiQng==}
+
   unimport@6.5.0:
     resolution: {integrity: sha512-t0KLJLRbebz3f7NrQe+vy2ObeugVeM1XqI2oeYnauddmHSglYj3U6bxOJ65IbXmOFkcAGFJK2OyGH7aqHPM6Ug==}
     engines: {node: '>=18.12.0'}
@@ -5224,6 +5230,8 @@ snapshots:
   undici-types@7.24.6: {}
 
   undici@8.10.2: {}
+
+  unicode-emoji-json@0.9.0: {}
 
   unimport@6.5.0(oxc-parser@0.150.0)(rolldown@1.2.9)(vite@8.3.1(@types/node@25.9.8)(jiti@2.7.0)(yaml@2.9.1)):
     dependencies:

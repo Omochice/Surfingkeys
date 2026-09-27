@@ -188,7 +188,7 @@ api.imap(";;", "<Ctrl-'>"); // press semicolon twice to toggle quote.
 
 #### Emoji completion
 
-When user inputs a colon and 2(set by `settings.startToShowEmoji`) characters such as `:gr` in insert mode, Surfingkeys will try to find matched emoji, and list them out if there are some found.
+When user inputs a colon and 2 (set by `settings.startToShowEmoji`) characters, such as `:gr`, in insert mode, Surfingkeys will try to find matched emoji, and list them out if there are some found. Matching is against each emoji's slug from unicode-emoji-json, its CLDR short name lowercased with punctuation dropped and words joined by underscores, e.g. `grinning_face` or `upside_down_face` for "upside-down face".
 
 ![emoji](https://cloud.githubusercontent.com/assets/288207/23602453/924ed762-028b-11e7-86f3-bf315c0a2499.gif)
 
@@ -204,7 +204,7 @@ If you'd like emoji suggestions popup as soon as you input colon, use below:
 settings.startToShowEmoji = 0;
 ```
 
-[Complete list of Emoji](https://github.com/brookhong/Surfingkeys/blob/master/src/pages/emoji.tsv)
+[Complete list of Emoji](https://github.com/muan/unicode-emoji-json)
 
 ### Find
 

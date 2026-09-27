@@ -6,6 +6,7 @@ import { visualizer } from "rollup-plugin-visualizer";
 import { build as viteBuild } from "vite";
 import { defineConfig } from "wxt";
 
+import { generateEmoji } from "./generate-emoji.js";
 import { generateIcons } from "./generate-icons.js";
 
 const basePermissions = [
@@ -61,6 +62,7 @@ export default defineConfig({
   hooks: {
     "build:before": async () => {
       await generateIcons();
+      await generateEmoji();
     },
     // content.css ships as a single shared stylesheet (public/content.css,
     // copied to the root), injected by the content script and referenced by
@@ -138,7 +140,7 @@ export default defineConfig({
     // the sandboxed iframe page and the emoji data. Chrome adds the
     // built-in favicon endpoint and the user-scripts api bundle (emitted by
     // the build:done hook above).
-    const webResources = ["frontend.html", "pages/emoji.tsv"];
+    const webResources = ["frontend.html", "pages/emoji.json"];
     // Heterogeneous manifest JSON handed straight back to wxt; constraining the values adds no
     // runtime type safety.
     // eslint-disable-next-line typescript/no-explicit-any
