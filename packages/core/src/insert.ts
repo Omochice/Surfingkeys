@@ -2,7 +2,7 @@ import { Result } from "@praha/byethrow";
 import { domApiError } from "@sk/common/result";
 
 import { conf } from "./conf";
-import CursorPrompt from "./cursorPrompt";
+import { createEmojiPrompt } from "./emojiPrompt";
 import type { EngineEnv } from "./engineEnv";
 import KeyboardUtils from "./keyboardUtils";
 import { type Keymap, createKeymap } from "./keymap";
@@ -230,30 +230,7 @@ function createInsert(env: EngineEnv): InsertMode {
     },
   });
 
-  const emojiURL = env.getExtensionURL("pages/emoji.tsv");
-  const emojiPrompt = new CursorPrompt({
-    renderer: (c: string) => {
-      const fields = c.split("\t");
-      const codepoints = fields[0];
-      if (codepoints == null) {
-        return "";
-      }
-      const parsedUnicodeEmoji = String.fromCodePoint(...codepoints.split(",").map(Number));
-      return `<div><span>${parsedUnicodeEmoji}</span>${fields[1]}</div>`;
-    },
-    picker: (elm: Element) => {
-      const child = elm.firstElementChild;
-      return child instanceof HTMLElement ? child.innerText : "";
-    },
-    fetcher: () =>
-      new Promise<string[]>((r) => {
-        fetch(emojiURL)
-          .then((res) => res.text())
-          .then((text) => {
-            r(text.split("\n"));
-          });
-      }),
-  });
+  const emojiPrompt = createEmojiPrompt(env.getExtensionURL("pages/emoji.tsv"));
 
   const enableEmojiInsertion = (): void => {
     mappings.add(":", {
