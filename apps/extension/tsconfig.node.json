@@ -3,5 +3,11 @@
   "compilerOptions": {
     "types": ["node"]
   },
-  "include": ["generate-emoji.ts", "generate-icons.ts", "wxt.config.ts"]
+  "include": [
+    "collect-licenses.test.ts",
+    "collect-licenses.ts",
+    "generate-emoji.ts",
+    "generate-icons.ts",
+    "wxt.config.ts"
+  ]
 }

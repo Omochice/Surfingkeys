@@ -6,8 +6,13 @@ import { visualizer } from "rollup-plugin-visualizer";
 import { build as viteBuild } from "vite";
 import { defineConfig } from "wxt";
 
+import { createLicenseCollector } from "./collect-licenses.js";
 import { generateEmoji } from "./generate-emoji.js";
 import { generateIcons } from "./generate-icons.js";
+
+// WXT runs one Vite build per entrypoint group; a collector created per build would only
+// see the last group and drop the notices of the others.
+const licenses = createLicenseCollector();
 
 const basePermissions = [
   "nativeMessaging",
@@ -51,6 +56,7 @@ export default defineConfig({
       cssMinify: "lightningcss",
     },
     plugins: [
+      licenses.plugin,
       visualizer({
         filename: "dist/bundle-stats.html",
         template: "treemap",
@@ -112,26 +118,29 @@ export default defineConfig({
         });
         await writeFile(cssPath, code);
       }
-      if (wxt.config.browser !== "chrome") return;
-      await viteBuild({
-        configFile: false,
-        logLevel: "warn",
-        mode: wxt.config.mode,
-        // This lib build only emits api.js; without disabling publicDir Vite
-        // re-copies public/ into outDir and clobbers the minified content.css
-        // written above.
-        publicDir: false,
-        build: {
-          outDir: wxt.config.outDir,
-          emptyOutDir: false,
-          minify: wxt.config.mode === "production",
-          lib: {
-            entry: path.resolve(wxt.config.root, "src/user_scripts/index.ts"),
-            formats: ["es"],
-            fileName: () => "api.js",
+      if (wxt.config.browser === "chrome") {
+        await viteBuild({
+          configFile: false,
+          logLevel: "warn",
+          mode: wxt.config.mode,
+          // This lib build only emits api.js; without disabling publicDir Vite
+          // re-copies public/ into outDir and clobbers the minified content.css
+          // written above.
+          publicDir: false,
+          plugins: [licenses.plugin],
+          build: {
+            outDir: wxt.config.outDir,
+            emptyOutDir: false,
+            minify: wxt.config.mode === "production",
+            lib: {
+              entry: path.resolve(wxt.config.root, "src/user_scripts/index.ts"),
+              formats: ["es"],
+              fileName: () => "api.js",
+            },
           },
-        },
-      });
+        });
+      }
+      await licenses.write(wxt.config.outDir);
     },
   },
   manifest: ({ browser, mode }) => {
