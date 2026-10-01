@@ -48,7 +48,7 @@
     "oxfmt": "catalog:",
     "oxlint": "catalog:",
     "rollup-plugin-visualizer": "7.1.1",
-    "sharp": "0.35.4",
+    "sharp": "0.35.5",
     "solid-js": "catalog:",
     "sort-package-json": "catalog:",
     "typescript": "catalog:",
