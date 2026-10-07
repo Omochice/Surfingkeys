@@ -27,7 +27,7 @@ jobs:
       - run: pnpm --filter @sk/content exec playwright install --with-deps chromium firefox
       - name: Run tests with coverage
         run: pnpm run coverage
-      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: coverage
           path: coverage/lcov.info
@@ -71,7 +71,7 @@ jobs:
       - run: pnpm ci
       - run: pnpm run ${{ matrix.browser.script }}
       - run: pnpm run measure:bundle-size
-      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: bundle-size-${{ matrix.browser.name }}
           path: apps/extension/custom_metrics_bundle_size.json
