@@ -192,8 +192,8 @@ catalogs:
       specifier: 1.9.17
       version: 1.9.17
     sort-package-json:
-      specifier: 4.0.0
-      version: 4.0.0
+      specifier: 4.1.0
+      version: 4.1.0
     typescript:
       specifier: 7.0.2
       version: 7.0.2
@@ -231,7 +231,7 @@ importers:
         version: 1.88.0
       sort-package-json:
         specifier: 'catalog:'
-        version: 4.0.0
+        version: 4.1.0
       vitest:
         specifier: 'catalog:'
         version: 5.0.5(@types/node@25.9.9)(@vitest/browser-playwright@5.0.5)(@vitest/coverage-istanbul@5.0.5)(@vitest/ui@5.0.5)(jsdom@30.1.3)(vite@8.3.4(@types/node@25.9.9)(jiti@2.7.0)(yaml@2.9.1))
@@ -304,7 +304,7 @@ importers:
         version: 1.9.17
       sort-package-json:
         specifier: 'catalog:'
-        version: 4.0.0
+        version: 4.1.0
       typescript:
         specifier: 'catalog:'
         version: 7.0.2
@@ -353,7 +353,7 @@ importers:
         version: 1.88.0
       sort-package-json:
         specifier: 'catalog:'
-        version: 4.0.0
+        version: 4.1.0
       typescript:
         specifier: 'catalog:'
         version: 7.0.2
@@ -402,7 +402,7 @@ importers:
         version: 1.88.0
       sort-package-json:
         specifier: 'catalog:'
-        version: 4.0.0
+        version: 4.1.0
       typescript:
         specifier: 'catalog:'
         version: 7.0.2
@@ -433,7 +433,7 @@ importers:
         version: 1.88.0
       sort-package-json:
         specifier: 'catalog:'
-        version: 4.0.0
+        version: 4.1.0
       typescript:
         specifier: 'catalog:'
         version: 7.0.2
@@ -500,7 +500,7 @@ importers:
         version: 1.64.1
       sort-package-json:
         specifier: 'catalog:'
-        version: 4.0.0
+        version: 4.1.0
       typescript:
         specifier: 'catalog:'
         version: 7.0.2
@@ -546,7 +546,7 @@ importers:
         version: 1.88.0
       sort-package-json:
         specifier: 'catalog:'
-        version: 4.0.0
+        version: 4.1.0
       typescript:
         specifier: 'catalog:'
         version: 7.0.2
@@ -570,7 +570,7 @@ importers:
         version: 1.88.0
       sort-package-json:
         specifier: 'catalog:'
-        version: 4.0.0
+        version: 4.1.0
       typescript:
         specifier: 'catalog:'
         version: 7.0.2
@@ -610,7 +610,7 @@ importers:
         version: 1.88.0
       sort-package-json:
         specifier: 'catalog:'
-        version: 4.0.0
+        version: 4.1.0
       typescript:
         specifier: 'catalog:'
         version: 7.0.2
@@ -641,7 +641,7 @@ importers:
         version: 1.88.0
       sort-package-json:
         specifier: 'catalog:'
-        version: 4.0.0
+        version: 4.1.0
       typescript:
         specifier: 'catalog:'
         version: 7.0.2
@@ -659,7 +659,7 @@ importers:
         version: 1.88.0
       sort-package-json:
         specifier: 'catalog:'
-        version: 4.0.0
+        version: 4.1.0
       typescript:
         specifier: 'catalog:'
         version: 7.0.2
@@ -2820,8 +2820,8 @@ packages:
   sort-object-keys@2.1.0:
     resolution: {integrity: sha512-SOiEnthkJKPv2L6ec6HMwhUcN0/lppkeYuN1x63PbyPRrgSPIuBJCiYxYyvWRTtjMlOi14vQUCGUJqS6PLVm8g==}
 
-  sort-package-json@4.0.0:
-    resolution: {integrity: sha512-6aYOlYI9AWioZ+rzu+4zKLmoFqJP0/fHDxrd7X04yqEibikY+5YVF0EYlyGn4v6X2PJY7yAUWV7oeP+i5rOm/g==}
+  sort-package-json@4.1.0:
+    resolution: {integrity: sha512-CI7HgkV5rCE5dbYYJMuXkxgiSLc3uJczff9ic3kHuY5QRYKUbfsDSKN4DjTpvqejdJEkKLusQ64ykTte5ypr1A==}
     engines: {node: '>=22'}
     hasBin: true
 
@@ -5062,7 +5062,7 @@ snapshots:
 
   sort-object-keys@2.1.0: {}
 
-  sort-package-json@4.0.0:
+  sort-package-json@4.1.0:
     dependencies:
       detect-indent: 7.0.2
       detect-newline: 4.0.1
