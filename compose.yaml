@@ -19,7 +19,7 @@ services:
       - "127.0.0.1:3000:3000"
 
   mcp-grafana:
-    image: grafana/mcp-grafana:2.1.0@sha256:2b065a62b123a84fffc152e06bf0b6c78c3ca7f898bb118ddb91f0ef2f1ad93b
+    image: grafana/mcp-grafana:2.1.1@sha256:71a3f4e6f412d253611314233df709ec2571fb50e39742d23fa2940f670646dc
     # Without --allowed-hosts the Host check only admits the bind address.
     command:
       [
