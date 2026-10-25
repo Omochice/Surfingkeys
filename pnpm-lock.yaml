@@ -180,8 +180,8 @@ catalogs:
       specifier: 30.1.3
       version: 30.1.3
     npm-run-all2:
-      specifier: 9.0.3
-      version: 9.0.3
+      specifier: 9.0.4
+      version: 9.0.4
     oxfmt:
       specifier: 0.70.0
       version: 0.70.0
@@ -222,7 +222,7 @@ importers:
         version: 6.42.1
       npm-run-all2:
         specifier: 'catalog:'
-        version: 9.0.3
+        version: 9.0.4
       oxfmt:
         specifier: 'catalog:'
         version: 0.70.0
@@ -286,7 +286,7 @@ importers:
         version: 1.33.0
       npm-run-all2:
         specifier: 'catalog:'
-        version: 9.0.3
+        version: 9.0.4
       oxfmt:
         specifier: 'catalog:'
         version: 0.70.0
@@ -344,7 +344,7 @@ importers:
         version: 30.1.3
       npm-run-all2:
         specifier: 'catalog:'
-        version: 9.0.3
+        version: 9.0.4
       oxfmt:
         specifier: 'catalog:'
         version: 0.70.0
@@ -393,7 +393,7 @@ importers:
         version: 30.1.3
       npm-run-all2:
         specifier: 'catalog:'
-        version: 9.0.3
+        version: 9.0.4
       oxfmt:
         specifier: 'catalog:'
         version: 0.70.0
@@ -424,7 +424,7 @@ importers:
         version: 4.10.2
       npm-run-all2:
         specifier: 'catalog:'
-        version: 9.0.3
+        version: 9.0.4
       oxfmt:
         specifier: 'catalog:'
         version: 0.70.0
@@ -488,7 +488,7 @@ importers:
         version: 30.1.3
       npm-run-all2:
         specifier: 'catalog:'
-        version: 9.0.3
+        version: 9.0.4
       oxfmt:
         specifier: 'catalog:'
         version: 0.70.0
@@ -537,7 +537,7 @@ importers:
         version: 30.1.3
       npm-run-all2:
         specifier: 'catalog:'
-        version: 9.0.3
+        version: 9.0.4
       oxfmt:
         specifier: 'catalog:'
         version: 0.70.0
@@ -561,7 +561,7 @@ importers:
         version: link:../types
       npm-run-all2:
         specifier: 'catalog:'
-        version: 9.0.3
+        version: 9.0.4
       oxfmt:
         specifier: 'catalog:'
         version: 0.70.0
@@ -601,7 +601,7 @@ importers:
         version: 30.1.3
       npm-run-all2:
         specifier: 'catalog:'
-        version: 9.0.3
+        version: 9.0.4
       oxfmt:
         specifier: 'catalog:'
         version: 0.70.0
@@ -632,7 +632,7 @@ importers:
         version: link:../types
       npm-run-all2:
         specifier: 'catalog:'
-        version: 9.0.3
+        version: 9.0.4
       oxfmt:
         specifier: 'catalog:'
         version: 0.70.0
@@ -650,7 +650,7 @@ importers:
     devDependencies:
       npm-run-all2:
         specifier: 'catalog:'
-        version: 9.0.3
+        version: 9.0.4
       oxfmt:
         specifier: 'catalog:'
         version: 0.70.0
@@ -2552,8 +2552,8 @@ packages:
     resolution: {integrity: sha512-tdt4aFn9QamlhdN3HV2D2ccpBwO5/fyjjbXUxYA6uBjyekMZcZvDq0aSj9t5Jo+tih6AYFnt/cuIRn9013e0Uw==}
     engines: {node: ^22.22.2 || ^24.15.0 || >=26.0.0}
 
-  npm-run-all2@9.0.3:
-    resolution: {integrity: sha512-BQAEdU1PtYc48qYRdghW2BVTQT3VqWCoFQmO87NlM1h1PYwMCKQpUWaNyB20V26caNzFsXQDfyOdznLlHCih6g==}
+  npm-run-all2@9.0.4:
+    resolution: {integrity: sha512-GuGRF8MddEKavyUzjy0k2z2pA76/N+eT8lHlypx0/AhShLKD2FOerQxHhpFhcqnQmAqCkunUCYlf6Z9RKh/4zg==}
     engines: {node: ^22.22.2 || ^24.15.0 || >=26.0.0, npm: '>= 10'}
     hasBin: true
 
@@ -4711,7 +4711,7 @@ snapshots:
 
   npm-normalize-package-bin@6.0.0: {}
 
-  npm-run-all2@9.0.3:
+  npm-run-all2@9.0.4:
     dependencies:
       ansi-styles: 7.0.0
       cross-spawn: 7.0.6
