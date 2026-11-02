@@ -165,8 +165,8 @@ settings:
 catalogs:
   default:
     '@praha/byethrow':
-      specifier: 0.12.0
-      version: 0.12.0
+      specifier: 0.13.0
+      version: 0.13.0
     '@types/chrome':
       specifier: 0.3.0
       version: 0.3.0
@@ -240,7 +240,7 @@ importers:
     dependencies:
       '@praha/byethrow':
         specifier: 'catalog:'
-        version: 0.12.0(typescript@7.0.2)
+        version: 0.13.0(typescript@7.0.2)
       '@sk/adapter':
         specifier: workspace:*
         version: link:../../packages/adapter
@@ -365,7 +365,7 @@ importers:
     dependencies:
       '@praha/byethrow':
         specifier: 'catalog:'
-        version: 0.12.0(typescript@7.0.2)
+        version: 0.13.0(typescript@7.0.2)
       '@sk/common':
         specifier: workspace:*
         version: link:../common
@@ -414,7 +414,7 @@ importers:
     dependencies:
       '@praha/byethrow':
         specifier: 'catalog:'
-        version: 0.12.0(typescript@7.0.2)
+        version: 0.13.0(typescript@7.0.2)
     devDependencies:
       '@sk/types':
         specifier: workspace:*
@@ -445,7 +445,7 @@ importers:
     dependencies:
       '@praha/byethrow':
         specifier: 'catalog:'
-        version: 0.12.0(typescript@7.0.2)
+        version: 0.13.0(typescript@7.0.2)
       '@sk/adapter':
         specifier: workspace:*
         version: link:../adapter
@@ -515,7 +515,7 @@ importers:
     dependencies:
       '@praha/byethrow':
         specifier: 'catalog:'
-        version: 0.12.0(typescript@7.0.2)
+        version: 0.13.0(typescript@7.0.2)
       '@sk/common':
         specifier: workspace:*
         version: link:../common
@@ -1569,8 +1569,8 @@ packages:
   '@polka/url@1.0.0-next.29':
     resolution: {integrity: sha512-wwQAWhWSuHaag8c4q/KN/vCoeOJYshAIvMQwD4GpSb3OiZklFfvAgmj0VCBBImRpuF/aFgIRzllXlVX93Jevww==}
 
-  '@praha/byethrow@0.12.0':
-    resolution: {integrity: sha512-Q3dRHW8aGqYbEe/W5YKrik6GbtfLGdCrCVcDcP/YJe4uhhbbrkEw9XoRuPZhfMb4uLrUXk27h4phK3I8+cAdRw==}
+  '@praha/byethrow@0.13.0':
+    resolution: {integrity: sha512-YbmTlWzvtwiaK1ZhUOzXleJFju6XvBILxkL3AmvHona7zalABaQsPIGwc6YkugirpwG3n4Sc2iKGSwnTEv/hsQ==}
     peerDependencies:
       typescript: '>=5.0.0'
 
@@ -3896,7 +3896,7 @@ snapshots:
 
   '@polka/url@1.0.0-next.29': {}
 
-  '@praha/byethrow@0.12.0(typescript@7.0.2)':
+  '@praha/byethrow@0.13.0(typescript@7.0.2)':
     dependencies:
       '@standard-schema/spec': 1.1.0
       typescript: 7.0.2
