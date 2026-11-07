@@ -2,7 +2,7 @@ packages:
   - "packages/*"
   - "apps/*"
 catalog:
-  "@praha/byethrow": 0.12.0
+  "@praha/byethrow": 0.13.0
   "@types/chrome": 0.3.0
   dompurify: 3.4.17
   fast-check: 4.10.2
