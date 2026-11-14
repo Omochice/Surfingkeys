@@ -47,7 +47,7 @@
     "zip:firefox": "pnpm --filter @sk/extension zip:firefox"
   },
   "devDependencies": {
-    "@tsconfig/strictest": "2.0.8",
+    "@tsconfig/strictest": "2.0.9",
     "@vitest/coverage-istanbul": "5.1.0",
     "knip": "6.45.1",
     "npm-run-all2": "catalog:",
