@@ -25,8 +25,9 @@ import {
   mapInMode,
 } from "@sk/core/utils";
 import { notify, request, runtime } from "@sk/messaging/runtime";
-import { createSignal } from "solid-js";
-import { render } from "solid-js/web";
+import { render } from "@solidjs/web";
+// Unaliased, it would be shadowed by the Front controller's own flush().
+import { createSignal, flush as flushSolid } from "solid-js";
 import * as v from "valibot";
 
 import { createEngineEnv } from "../common/createEngineEnv";
@@ -410,8 +411,6 @@ const Front = (() => {
 
   function renderTabs(tabs: TabsTab[]) {
     const verticalTabs = runtime.conf.verticalTabs;
-    // The inline fallback below depends on the rendered height, so it relies on Solid rendering
-    // synchronously when the signal is set.
     tabsElement.className = verticalTabs ? "vertical" : "horizontal";
     setTabsState({
       tabs,
@@ -419,6 +418,8 @@ const Front = (() => {
       vertical: verticalTabs,
       unitWidth: window.innerWidth / tabs.length - 2,
     });
+    // Without the flush the inline fallback below would measure the previous tab list.
+    flushSolid();
     if (tabsElement.getBoundingClientRect().height > self.topSize[1]) {
       tabsElement.className = "inline";
     }
@@ -646,10 +647,11 @@ const Front = (() => {
       popup,
       () => {
         const hintLabels = hints.genLabels(2);
-        // setPopupHtml renders synchronously, so the tab-hint nodes exist for the query below.
         setPopupHtml(
           `<div>${message.question}</div><div><div class=sk_tab_hint>${hintLabels[0]}</div><span class=sk_tab_group_title>Ok</span><div class=sk_tab_hint>${hintLabels[1]}</div><span class=sk_tab_group_title>Cancel</span></div>`,
         );
+        // Without the flush the query below would find the previous content's tab hints.
+        flushSolid();
         const [okHint, cancelHint] = popup.querySelectorAll<HTMLElement>("div.sk_tab_hint");
         popup.style.textAlign = "center";
         if (okHint && cancelHint) {
@@ -734,6 +736,8 @@ const Front = (() => {
     bubble.style.top = "0px";
     bubble.style.left = "0px";
     setBubbleHtml(message.content);
+    // Without the flush the measurements below would size the bubble for its previous content.
+    flushSolid();
     bubbleContent.style.maxWidth = pos.winWidth - 32 + "px";
     bubbleContent.scrollTop = 0;
     clearScrollerIndicator();
@@ -1020,6 +1024,9 @@ const StatusBar = (() => {
       }
     }
     setCells(next);
+    // Without the flush Front.flush() below would miss an input a cell just rendered, and a second
+    // show in the same task would merge into stale cells.
+    flushSolid();
     ui.style.display = next.some((c) => c) ? "block" : "none";
     Front.flush();
     if (duration) {

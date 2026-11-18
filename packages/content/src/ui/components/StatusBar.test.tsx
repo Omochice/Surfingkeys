@@ -1,6 +1,6 @@
 import { expectDefined } from "@sk/test-support/helpers";
 import { render } from "@solidjs/testing-library";
-import { createSignal } from "solid-js";
+import { createSignal, flush } from "solid-js";
 import { describe, expect, it } from "vitest";
 
 import { StatusBar } from "./StatusBar";
@@ -18,6 +18,7 @@ describe("StatusBar", () => {
     expect(firstSpan.innerHTML).toBe("Normal");
 
     setCells(["Insert", "", "", ""]);
+    flush();
     expect(firstSpan.innerHTML).toBe("Insert");
   });
 

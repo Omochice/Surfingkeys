@@ -1,5 +1,5 @@
 import { render } from "@solidjs/testing-library";
-import { createSignal } from "solid-js";
+import { createSignal, flush } from "solid-js";
 import { describe, expect, it } from "vitest";
 
 import { Keystroke } from "./Keystroke";
@@ -19,6 +19,7 @@ describe("Keystroke", () => {
     expect(root.innerHTML).toBe("g");
 
     setText("gg");
+    flush();
     expect(root.innerHTML).toBe("gg");
   });
 
@@ -50,6 +51,7 @@ describe("Keystroke", () => {
     expect(root.classList.contains("expandRichHints")).toBe(false);
 
     setRich(true);
+    flush();
     expect(root.classList.contains("expandRichHints")).toBe(true);
   });
 

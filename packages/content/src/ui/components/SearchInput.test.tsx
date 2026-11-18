@@ -1,6 +1,6 @@
 import { expectDefined } from "@sk/test-support/helpers";
 import { render } from "@solidjs/testing-library";
-import { createSignal } from "solid-js";
+import { createSignal, flush } from "solid-js";
 import { describe, expect, it, vi } from "vitest";
 
 import { SearchInput } from "./SearchInput";
@@ -33,6 +33,7 @@ describe("SearchInput", () => {
     expect(input.value).toBe("github");
 
     setValue("gitlab");
+    flush();
     expect(input.value).toBe("gitlab");
   });
 
@@ -149,6 +150,7 @@ describe("SearchInput", () => {
     expect(input.placeholder).toBe("type here");
 
     setPlaceholder("");
+    flush();
     expect(input.placeholder).toBe("");
   });
 
@@ -168,7 +170,31 @@ describe("SearchInput", () => {
     expect(input.style.display).not.toBe("none");
 
     setVisible(false);
+    flush();
     expect(input.style.display).toBe("none");
+  });
+
+  it("keeps text edited in place when the placeholder or visibility changes", () => {
+    const [placeholder, setPlaceholder] = createSignal("type here");
+    const [visible, setVisible] = createSignal(true);
+    const { container } = render(() => (
+      <SearchInput
+        value="query"
+        visible={visible()}
+        placeholder={placeholder()}
+        onInput={noop}
+        onKeyDown={noop}
+      />
+    ));
+    const input = container.querySelector("input");
+    expectDefined(input);
+
+    input.value = '"query"';
+    setPlaceholder("");
+    setVisible(false);
+    flush();
+
+    expect(input.value).toBe('"query"');
   });
 
   it("forwards the underlying input element via ref", () => {

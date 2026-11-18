@@ -1,5 +1,5 @@
+import solid from "@solidjs/vite-plugin";
 import { playwright } from "@vitest/browser-playwright";
-import solid from "vite-plugin-solid";
 import { defineConfig } from "vitest/config";
 
 // Browser-mode project for *.browser.test.ts. jsdom implements neither Element.setHTML nor the
@@ -7,10 +7,6 @@ import { defineConfig } from "vitest/config";
 // from the real sanitizer, so these tests run in actual Chromium/Firefox.
 export default defineConfig({
   plugins: [solid()],
-  // Solid ships separate dev/prod builds; pick the dev build for a single solid-js instance.
-  resolve: {
-    conditions: ["development", "browser"],
-  },
   test: {
     // Distinct from the jsdom project (which inherits the package name) so both can run together
     // under the root coverage run.

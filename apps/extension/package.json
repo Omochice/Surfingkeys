@@ -39,6 +39,8 @@
   "devDependencies": {
     "@sk/test-support": "workspace:*",
     "@sk/types": "workspace:*",
+    "@solidjs/vite-plugin": "catalog:",
+    "@solidjs/web": "catalog:",
     "@types/chrome": "catalog:",
     "@types/node": "26.6.6",
     "jsdom": "catalog:",
@@ -53,7 +55,6 @@
     "typescript": "catalog:",
     "unicode-emoji-json": "0.9.0",
     "vite": "8.3.8",
-    "vite-plugin-solid": "catalog:",
     "vitest": "catalog:",
     "wxt": "catalog:"
   }

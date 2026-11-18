@@ -20,12 +20,12 @@ export type KeystrokeProps = {
  */
 export const Keystroke: Component<KeystrokeProps> = (props) => {
   return (
-    <div classList={{ expandRichHints: props.rich }}>
+    <div class={{ expandRichHints: props.rich }}>
       <Show
         when={props.rich}
         fallback={props.text}
       >
-        <span ref={(el) => setSafeHtml(el, () => props.html)} />
+        <span ref={setSafeHtml(() => props.html)} />
       </Show>
     </div>
   );

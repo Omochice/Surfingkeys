@@ -30,7 +30,7 @@ export const Prompt: Component<PromptProps> = (props) => {
         </>
       }
     >
-      {(value) => <span ref={(el) => setSafeHtml(el, () => value().html)} />}
+      {(value) => <span ref={setSafeHtml(() => value().html)} />}
     </Show>
   );
 };

@@ -1,10 +1,10 @@
 import { readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
 
+import solid from "@solidjs/vite-plugin";
 import { Features, transform as transformCss } from "lightningcss";
 import { visualizer } from "rollup-plugin-visualizer";
 import { build as viteBuild } from "vite";
-import solid from "vite-plugin-solid";
 import { defineConfig } from "wxt";
 
 import { generateEmoji } from "./generate-emoji.js";

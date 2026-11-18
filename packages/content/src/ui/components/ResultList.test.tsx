@@ -1,6 +1,6 @@
 import { expectDefined } from "@sk/test-support/helpers";
 import { fireEvent, render } from "@solidjs/testing-library";
-import { createSignal } from "solid-js";
+import { createSignal, flush } from "solid-js";
 import { describe, expect, it, vi } from "vitest";
 
 import { ResultList } from "./ResultList";
@@ -32,6 +32,7 @@ describe("ResultList", () => {
     expect(third.classList.contains("window")).toBe(true);
 
     setFocused(2);
+    flush();
     expect(first.classList.contains("focused")).toBe(false);
     expect(third.classList.contains("focused")).toBe(true);
   });

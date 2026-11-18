@@ -1,5 +1,5 @@
 import { render } from "@solidjs/testing-library";
-import { createSignal } from "solid-js";
+import { createSignal, flush } from "solid-js";
 import { describe, expect, it } from "vitest";
 
 import { ResultPage } from "./ResultPage";
@@ -12,6 +12,7 @@ describe("ResultPage", () => {
     expect(container.textContent).toContain("1 - 10 / 50");
 
     setText("11 - 20 / 50");
+    flush();
     expect(container.textContent).toContain("11 - 20 / 50");
   });
 

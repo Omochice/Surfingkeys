@@ -1,5 +1,5 @@
 import { render } from "@solidjs/testing-library";
-import { createSignal } from "solid-js";
+import { createSignal, flush } from "solid-js";
 import { describe, expect, it } from "vitest";
 
 import { Prompt } from "./Prompt";
@@ -14,6 +14,7 @@ describe("Prompt", () => {
     expect(container.textContent).toContain("bookmark");
 
     setValue("tabs");
+    flush();
     expect(container.textContent).toContain("tabs");
   });
 

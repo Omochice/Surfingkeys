@@ -15,7 +15,7 @@ export type UsageProps = {
 export const Usage: Component<UsageProps> = (props) => {
   return (
     <>
-      <For each={props.groups}>{(group) => <div ref={(el) => setSafeHtml(el, () => group)} />}</For>
+      <For each={props.groups}>{(group) => <div ref={setSafeHtml(() => group)} />}</For>
       <p style={{ float: "right", width: "100%", "text-align": "right" }}>
         <a
           href="https://github.com/brookhong/surfingkeys"

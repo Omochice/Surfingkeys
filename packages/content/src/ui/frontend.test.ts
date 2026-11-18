@@ -35,8 +35,8 @@ vi.mock("solid-js", async (importOriginal) => {
 
 // render becomes a no-op so the IIFE's render() calls succeed against empty container stubs;
 // importOriginal preserves the exports Solid's compiled component output references.
-vi.mock("solid-js/web", async (importOriginal) => {
-  const actual = await importOriginal<typeof import("solid-js/web")>();
+vi.mock("@solidjs/web", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("@solidjs/web")>();
   return { ...actual, render: vi.fn() };
 });
 
@@ -604,7 +604,7 @@ describe("Find — ArrowUp/ArrowDown history recall", () => {
   });
 
   it("sends the recalled history entry as the visualUpdate query", async () => {
-    // The solid-js/web mock stubs `render`, so StatusBar.show() mounts nothing; the input that
+    // The @solidjs/web mock stubs `render`, so StatusBar.show() mounts nothing; the input that
     // Find.open() queries has to be seeded by hand.
     const findInput = document.createElement("input");
     findInput.id = "sk_find";

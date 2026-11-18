@@ -1,5 +1,5 @@
 import { fireEvent, render } from "@solidjs/testing-library";
-import { createSignal } from "solid-js";
+import { createSignal, flush } from "solid-js";
 import { describe, expect, it, vi } from "vitest";
 
 import { ResultItem } from "./ResultItem";
@@ -20,6 +20,7 @@ describe("ResultItem", () => {
     expect(li.classList.contains("focused")).toBe(false);
 
     setFocused(true);
+    flush();
     expect(li.classList.contains("focused")).toBe(true);
   });
 

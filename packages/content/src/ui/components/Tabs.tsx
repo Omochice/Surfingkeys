@@ -1,5 +1,5 @@
 import { hintLabel, hintLink } from "@sk/core/utils";
-import { For, Show } from "solid-js";
+import { For, Show, untrack } from "solid-js";
 import type { Component } from "solid-js";
 
 export type TabsTab = {
@@ -47,8 +47,7 @@ export const Tabs: Component<TabsProps> = (props) => {
     <For each={props.tabs}>
       {(tab, i) => (
         <div
-          class="sk_tab"
-          classList={{ active: tab.active }}
+          class={["sk_tab", { active: tab.active }]}
           style={props.vertical ? undefined : { width: `${props.unitWidth}px` }}
         >
           <Show when={hintLabelFor(i())}>
@@ -56,7 +55,7 @@ export const Tabs: Component<TabsProps> = (props) => {
               <div
                 class="sk_tab_hint"
                 ref={(el) => {
-                  hintLabel.set(el, label());
+                  hintLabel.set(el, untrack(label));
                   hintLink.set(el, { id: tab.id, windowId: tab.windowId });
                 }}
               >
