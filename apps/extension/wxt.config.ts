@@ -4,6 +4,7 @@ import path from "node:path";
 import { Features, transform as transformCss } from "lightningcss";
 import { visualizer } from "rollup-plugin-visualizer";
 import { build as viteBuild } from "vite";
+import solid from "vite-plugin-solid";
 import { defineConfig } from "wxt";
 
 import { generateEmoji } from "./generate-emoji.js";
@@ -37,7 +38,6 @@ export default defineConfig({
   imports: { exclude: [/packages\//] },
   manifestVersion: 3,
   targetBrowsers: ["chrome", "firefox"],
-  modules: ["@wxt-dev/module-solid"],
   vite: () => ({
     // Minifies more aggressively than the esbuild default, and resolves the
     // nesting / @custom-media used by the stylesheets.
@@ -48,9 +48,11 @@ export default defineConfig({
       },
     },
     build: {
+      target: "esnext",
       cssMinify: "lightningcss",
     },
     plugins: [
+      solid(),
       visualizer({
         filename: "dist/bundle-stats.html",
         template: "treemap",

@@ -209,6 +209,9 @@ catalogs:
     valibot:
       specifier: 1.5.0
       version: 1.5.0
+    vite-plugin-solid:
+      specifier: 2.11.16
+      version: 2.11.16
     vitest:
       specifier: 5.1.0
       version: 5.1.0
@@ -284,9 +287,6 @@ importers:
       '@types/node':
         specifier: 26.6.6
         version: 26.6.6
-      '@wxt-dev/module-solid':
-        specifier: 1.1.4
-        version: 1.1.4(solid-js@1.9.19)(vite@8.3.8(@types/node@26.6.6)(jiti@2.7.0)(yaml@2.9.1))(wxt@0.21.4(oxc-parser@0.156.0)(rolldown@1.3.2)(typescript@7.0.2)(vite@8.3.8(@types/node@26.6.6)(jiti@2.7.0)(yaml@2.9.1)))
       jsdom:
         specifier: 'catalog:'
         version: 30.1.3
@@ -323,6 +323,9 @@ importers:
       vite:
         specifier: 8.3.8
         version: 8.3.8(@types/node@26.6.6)(jiti@2.7.0)(yaml@2.9.1)
+      vite-plugin-solid:
+        specifier: 'catalog:'
+        version: 2.11.16(solid-js@1.9.19)(vite@8.3.8(@types/node@26.6.6)(jiti@2.7.0)(yaml@2.9.1))
       vitest:
         specifier: 'catalog:'
         version: 5.1.0(@types/node@26.6.6)(@vitest/browser-playwright@5.1.0)(@vitest/coverage-istanbul@5.1.0)(@vitest/ui@5.1.0)(jsdom@30.1.3)(vite@8.3.8(@types/node@26.6.6)(jiti@2.7.0)(yaml@2.9.1))
@@ -514,7 +517,7 @@ importers:
         specifier: 'catalog:'
         version: 7.0.2
       vite-plugin-solid:
-        specifier: 2.11.16
+        specifier: 'catalog:'
         version: 2.11.16(solid-js@1.9.19)(vite@8.3.8(@types/node@26.6.6)(jiti@2.7.0)(yaml@2.9.1))
       vitest:
         specifier: 'catalog:'
@@ -2001,11 +2004,6 @@ packages:
 
   '@wxt-dev/browser@0.3.7':
     resolution: {integrity: sha512-TCBcayayb2mycJxt9X3kTq3QZerqltx/I4FW1WVTafBcqQC6vUaDz5Sboummy0rVsSMbYzyKnS5118VTw0dt4A==}
-
-  '@wxt-dev/module-solid@1.1.4':
-    resolution: {integrity: sha512-lnE7AyJeLkG8XMM58NzbtM1GdzzHH7mqt559WT54RwE+4HxBgnGzQVhe7bdWjTWGOdXlTbCi0HyXZqVtzJ3htA==}
-    peerDependencies:
-      wxt: '>=0.19.16'
 
   '@wxt-dev/storage@1.3.0':
     resolution: {integrity: sha512-egzUSlRwOVxtZmX9io1/OwRF5Bo3orKnm/ydjpgf5H8VB//neAqUo0Br1jVmnNfSKMulk2C0sj6wRVC5yFRlSg==}
@@ -4234,16 +4232,6 @@ snapshots:
   '@wxt-dev/browser@0.3.7':
     dependencies:
       '@types/har-format': 1.2.16
-
-  '@wxt-dev/module-solid@1.1.4(solid-js@1.9.19)(vite@8.3.8(@types/node@26.6.6)(jiti@2.7.0)(yaml@2.9.1))(wxt@0.21.4(oxc-parser@0.156.0)(rolldown@1.3.2)(typescript@7.0.2)(vite@8.3.8(@types/node@26.6.6)(jiti@2.7.0)(yaml@2.9.1)))':
-    dependencies:
-      vite-plugin-solid: 2.11.16(solid-js@1.9.19)(vite@8.3.8(@types/node@26.6.6)(jiti@2.7.0)(yaml@2.9.1))
-      wxt: 0.21.4(oxc-parser@0.156.0)(rolldown@1.3.2)(typescript@7.0.2)(vite@8.3.8(@types/node@26.6.6)(jiti@2.7.0)(yaml@2.9.1))
-    transitivePeerDependencies:
-      - '@testing-library/jest-dom'
-      - solid-js
-      - supports-color
-      - vite
 
   '@wxt-dev/storage@1.3.0':
     dependencies:
