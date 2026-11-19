@@ -1,4 +1,4 @@
-import { Index, Show } from "solid-js";
+import { For, Show } from "solid-js";
 import type { Component } from "solid-js";
 
 import { setSafeHtml } from "../setSafeHtml";
@@ -39,7 +39,10 @@ export const StatusBar: Component<StatusBarProps> = (props) => {
   };
 
   return (
-    <Index each={props.cells}>
+    <For
+      each={props.cells}
+      keyed={false}
+    >
       {(cell, i) => (
         <span
           style={
@@ -55,10 +58,10 @@ export const StatusBar: Component<StatusBarProps> = (props) => {
             when={htmlCell(cell())}
             fallback={textCell(cell())}
           >
-            {(html) => <span ref={(el) => setSafeHtml(el, () => html().html)} />}
+            {(html) => <span ref={setSafeHtml(() => html().html)} />}
           </Show>
         </span>
       )}
-    </Index>
+    </For>
   );
 };

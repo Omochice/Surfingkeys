@@ -26,8 +26,8 @@ import {
   tryDecodeURIComponent,
 } from "@sk/core/utils";
 import { notify, request, runtime } from "@sk/messaging/runtime";
-import { createEffect, createRoot, createSignal } from "solid-js";
-import { render } from "solid-js/web";
+import { registerDelegatedRoot, render } from "@solidjs/web";
+import { createEffect, createRoot, createSignal, flush } from "solid-js";
 
 import { parseCommandLine } from "./commandLine";
 import { Prompt } from "./components/Prompt";
@@ -228,6 +228,13 @@ function addVIMark(mark: string, url: string): void {
   notify("addVIMark", { mark: { [mark]: { url, scrollLeft: 0, scrollTop: 0 } } });
 }
 
+function committedSetter<T>(write: (value: T) => unknown): (value: T) => void {
+  return (value) => {
+    write(value);
+    flush();
+  };
+}
+
 function createOmnibar(front: OmnibarFront, clipboard: { write(text: string): void }): OmnibarMode {
   const mode = new ModeHandle("Omnibar");
 
@@ -249,6 +256,8 @@ function createOmnibar(front: OmnibarFront, clipboard: { write(text: string): vo
   const mappings = new Trie();
   const keymap = createKeymap(() => mappings);
 
+  // Reading a signal, `input.value` or the rendered rows right after a write without flush() would
+  // see the previous state, since Solid commits writes on a microtask.
   const [results, setResults] = createSignal<OmnibarResult[]>([]);
   const [focusedIndex, setFocusedIndex] = createSignal(-1);
   const [resultPage, setResultPage] = createSignal("");
@@ -284,6 +293,7 @@ function createOmnibar(front: OmnibarFront, clipboard: { write(text: string): vo
           const remaining = results().slice();
           remaining.splice(idx, 1);
           setResults(remaining);
+          flush();
           const bottom = getPosition() === "bottom";
           const newIdx = bottom ? idx - 1 : idx;
           if (newIdx >= 0 && newIdx < remaining.length) {
@@ -352,6 +362,7 @@ function createOmnibar(front: OmnibarFront, clipboard: { write(text: string): vo
     code: function () {
       // hide Omnibar.input, so that we could use clipboard_holder to make copy
       setInputVisible(false);
+      flush();
 
       const fi = focusedResult();
       let text;
@@ -450,6 +461,7 @@ function createOmnibar(front: OmnibarFront, clipboard: { write(text: string): vo
       urlItems = null;
       collapsingPoint = val;
       setQuery(val);
+      flush();
       if (val.length) {
         self.triggerInput();
       }
@@ -468,6 +480,7 @@ function createOmnibar(front: OmnibarFront, clipboard: { write(text: string): vo
       if (val.length) {
         setQuery(val.slice(0, -1));
       }
+      flush();
       self.triggerInput();
       eaten = true;
     }
@@ -477,6 +490,7 @@ function createOmnibar(front: OmnibarFront, clipboard: { write(text: string): vo
   const focusItem = (index: number): void => {
     if (index >= 0 && index < results().length) {
       setFocusedIndex(index);
+      flush();
     }
   };
 
@@ -488,11 +502,13 @@ function createOmnibar(front: OmnibarFront, clipboard: { write(text: string): vo
       const toFocus = (backward ? lastFocused + total : lastFocused + total + 2) % (total + 1);
       if (toFocus < total) {
         setFocusedIndex(toFocus);
+        flush();
         handler.onTabKey && handler.onTabKey();
       } else {
         // the slot past the last item returns focus to the typed input
         setFocusedIndex(-1);
         setQuery(lastInput);
+        flush();
       }
     }
   }
@@ -523,6 +539,10 @@ function createOmnibar(front: OmnibarFront, clipboard: { write(text: string): vo
   // createRoot rather than render so the <input> can be inserted at the exact position the
   // `#sk_omnibarSearchArea>input` CSS selector requires: between span.prompt and span.resultPage.
   let inputElement: HTMLInputElement | undefined;
+  const searchArea = requireElement("#sk_omnibarSearchArea");
+  // Solid only dispatches delegated events inside a registered root; without this the input's
+  // onInput and onKeyDown would never fire, as no render() root contains it.
+  registerDelegatedRoot(searchArea);
   createRoot(() => {
     const inputEl = SearchInput({
       get value() {
@@ -546,7 +566,7 @@ function createOmnibar(front: OmnibarFront, clipboard: { write(text: string): vo
       },
     });
     if (inputEl instanceof Node) {
-      ui.querySelector("#sk_omnibarSearchArea")!.insertBefore(inputEl, resultPageSpan);
+      resultPageSpan.before(inputEl);
     }
   });
 
@@ -562,22 +582,8 @@ function createOmnibar(front: OmnibarFront, clipboard: { write(text: string): vo
       self.input.focus();
     }
   }
-  render(
-    () =>
-      ResultList({
-        get items() {
-          return results();
-        },
-        get focusedIndex() {
-          return focusedIndex();
-        },
-        onSelect: onResultSelect,
-      }),
-    resultsDiv,
-  );
-  // Scroll the focused row into view once Solid has applied the focused class.
-  createEffect(() => {
-    if (focusedIndex() < 0) {
+  function scrollFocusedIntoView(index: number) {
+    if (index < 0) {
       return;
     }
     const fi = resultsDiv.querySelector<HTMLElement>("li.focused");
@@ -588,7 +594,20 @@ function createOmnibar(front: OmnibarFront, clipboard: { write(text: string): vo
         fi.scrollIntoView(fiRect.top < resultsRect.top);
       }
     }
-  });
+  }
+  render(() => {
+    // A render effect could run before the rows move the focused class and scroll the previous row.
+    createEffect(focusedIndex, scrollFocusedIntoView);
+    return ResultList({
+      get items() {
+        return results();
+      },
+      get focusedIndex() {
+        return focusedIndex();
+      },
+      onSelect: onResultSelect,
+    });
+  }, resultsDiv);
 
   function onInput() {
     if (lastInput !== self.input.value) {
@@ -836,6 +855,7 @@ function createOmnibar(front: OmnibarFront, clipboard: { write(text: string): vo
       setQuery(args.initialQuery);
     }
     resultsDiv.className = "";
+    flush();
     handler.onOpen && handler.onOpen(args.extra);
     lastHandler = handler;
     setPrompt(handler.prompt ?? "");
@@ -920,6 +940,7 @@ function createOmnibar(front: OmnibarFront, clipboard: { write(text: string): vo
     if (!items || items.length === 0) {
       setResults([]);
       setFocusedIndex(-1);
+      flush();
       return;
     }
     const displayItems = orderItemsForDisplay(items, getPosition() === "bottom");
@@ -936,6 +957,7 @@ function createOmnibar(front: OmnibarFront, clipboard: { write(text: string): vo
     } else {
       setFocusedIndex(-1);
     }
+    flush();
     if (getPosition() === "bottom" && built.length > 0) {
       const lis = resultsDiv.querySelectorAll("#sk_omnibarSearchResult>ul>li");
       if (lis.length) {
@@ -957,6 +979,7 @@ function createOmnibar(front: OmnibarFront, clipboard: { write(text: string): vo
     // innerHTML write.
     setResults([{ html: content, data: { text: "" } }]);
     setFocusedIndex(-1);
+    flush();
   };
 
   const addHandler = (name: string, newHandler: OmnibarHandler): void => {
@@ -996,9 +1019,9 @@ function createOmnibar(front: OmnibarFront, clipboard: { write(text: string): vo
     mappings,
     input: inputElement,
     resultsDiv,
-    setPrompt,
-    setQuery,
-    setPlaceholder,
+    setPrompt: committedSetter(setPrompt),
+    setQuery: committedSetter(setQuery),
+    setPlaceholder: committedSetter(setPlaceholder),
     results,
     focusedIndex,
     focusedResult,

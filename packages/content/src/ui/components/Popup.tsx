@@ -8,5 +8,5 @@ export type PopupProps = {
 
 /** Popup panel in the frontend iframe, used for showPopup content and the Ok/Cancel dialog. */
 export const Popup: Component<PopupProps> = (props) => {
-  return <div ref={(el) => setSafeHtml(el, () => props.html)} />;
+  return <div ref={setSafeHtml(() => props.html)} />;
 };

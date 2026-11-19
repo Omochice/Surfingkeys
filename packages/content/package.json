@@ -24,13 +24,15 @@
     "@sk/common": "workspace:*",
     "@sk/core": "workspace:*",
     "@sk/messaging": "workspace:*",
+    "@solidjs/web": "catalog:",
     "solid-js": "catalog:",
     "valibot": "catalog:"
   },
   "devDependencies": {
     "@sk/test-support": "workspace:*",
     "@sk/types": "workspace:*",
-    "@solidjs/testing-library": "0.8.10",
+    "@solidjs/testing-library": "1.0.0-rc.2",
+    "@solidjs/vite-plugin": "catalog:",
     "@types/chrome": "catalog:",
     "@vitest/browser-playwright": "5.1.0",
     "fast-check": "catalog:",
@@ -41,7 +43,6 @@
     "playwright": "1.65.1",
     "sort-package-json": "catalog:",
     "typescript": "catalog:",
-    "vite-plugin-solid": "2.11.16",
     "vitest": "catalog:"
   }
 }

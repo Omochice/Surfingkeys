@@ -1,3 +1,4 @@
+import { createRenderEffect } from "solid-js";
 import type { Component } from "solid-js";
 
 export type SearchInputProps = {
@@ -11,6 +12,23 @@ export type SearchInputProps = {
   ref?: (el: HTMLInputElement) => void;
 };
 
+function bindValue(value: () => string): (el: HTMLInputElement) => void {
+  let target: HTMLInputElement | undefined;
+  let latest: string | undefined;
+  createRenderEffect(value, (next) => {
+    latest = next;
+    if (target != null) {
+      target.value = next;
+    }
+  });
+  return (el) => {
+    target = el;
+    if (latest != null) {
+      el.value = latest;
+    }
+  };
+}
+
 /**
  * The omnibar search `<input>` (`#sk_omnibarSearchArea` input).
  *
@@ -21,8 +39,9 @@ export type SearchInputProps = {
 export const SearchInput: Component<SearchInputProps> = (props) => {
   return (
     <input
-      ref={(el) => props.ref?.(el)}
-      value={props.value}
+      // A `value` attribute would share the template's grouped binding, so a placeholder or
+      // visibility change would write the last `value` back over text edited in place.
+      ref={[bindValue(() => props.value), (el) => props.ref?.(el)]}
       placeholder={props.placeholder}
       style={{ display: props.visible ? "" : "none" }}
       onInput={(event) => {

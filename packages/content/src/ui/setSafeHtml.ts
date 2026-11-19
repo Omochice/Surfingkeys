@@ -2,15 +2,25 @@ import { SAFE_HTML_OPTIONS } from "@sk/core/utils";
 import { createRenderEffect } from "solid-js";
 
 /**
- * Injects sanitized HTML into an element via the standard HTML Sanitizer API (`Element.setHTML`),
- * re-running whenever the reactive `html` accessor changes.
+ * Ref factory that injects sanitized HTML into the element via the standard HTML Sanitizer API
+ * (`Element.setHTML`), re-injecting whenever the reactive `html` accessor changes.
  *
- * A render effect rather than `createEffect` so the markup is injected synchronously during
- * rendering: components reading the injected nodes in `onMount` run after render effects but before
- * deferred effects, so the content must already be present by then.
+ * Call it in the component body (e.g. `ref={setSafeHtml(() => props.html)}`), not inside a ref
+ * callback.
  */
-export const setSafeHtml = (el: Element, html: () => string): void => {
-  createRenderEffect(() => {
-    el.setHTML(html(), SAFE_HTML_OPTIONS);
+export const setSafeHtml = (html: () => string): ((el: Element) => void) => {
+  let target: Element | undefined;
+  let latest: string | undefined;
+  // createEffect would queue the injection beside user effects, which could then read the previous
+  // markup.
+  createRenderEffect(html, (value) => {
+    latest = value;
+    target?.setHTML(value, SAFE_HTML_OPTIONS);
   });
+  return (el) => {
+    target = el;
+    if (latest != null) {
+      el.setHTML(latest, SAFE_HTML_OPTIONS);
+    }
+  };
 };

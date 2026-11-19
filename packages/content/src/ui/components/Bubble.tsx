@@ -8,5 +8,5 @@ export type BubbleProps = {
 
 /** Content of the mouse-selection bubble (#sk_bubble's .sk_bubble_content). */
 export const Bubble: Component<BubbleProps> = (props) => {
-  return <div ref={(el) => setSafeHtml(el, () => props.html)} />;
+  return <div ref={setSafeHtml(() => props.html)} />;
 };

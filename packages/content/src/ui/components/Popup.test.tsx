@@ -1,5 +1,5 @@
 import { render } from "@solidjs/testing-library";
-import { createSignal } from "solid-js";
+import { createSignal, flush } from "solid-js";
 import { describe, expect, it } from "vitest";
 
 import { Popup } from "./Popup";
@@ -12,6 +12,7 @@ describe("Popup", () => {
     expect(container.querySelector("p")?.textContent).toBe("hello");
 
     setHtml("<p>world</p>");
+    flush();
     expect(container.querySelector("p")?.textContent).toBe("world");
   });
 

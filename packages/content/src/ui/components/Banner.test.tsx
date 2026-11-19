@@ -1,5 +1,5 @@
 import { render } from "@solidjs/testing-library";
-import { createSignal } from "solid-js";
+import { createSignal, flush } from "solid-js";
 import { describe, expect, it } from "vitest";
 
 import { Banner } from "./Banner";
@@ -12,6 +12,7 @@ describe("Banner", () => {
     expect(container.textContent).toContain("Saved");
 
     setText("Copied");
+    flush();
     expect(container.textContent).toContain("Copied");
   });
 

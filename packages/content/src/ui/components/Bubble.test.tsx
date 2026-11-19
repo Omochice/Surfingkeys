@@ -1,5 +1,5 @@
 import { render } from "@solidjs/testing-library";
-import { createSignal } from "solid-js";
+import { createSignal, flush } from "solid-js";
 import { describe, expect, it } from "vitest";
 
 import { Bubble } from "./Bubble";
@@ -12,6 +12,7 @@ describe("Bubble", () => {
     expect(container.querySelector("p")?.textContent).toBe("tip");
 
     setHtml("<p>changed</p>");
+    flush();
     expect(container.querySelector("p")?.textContent).toBe("changed");
   });
 

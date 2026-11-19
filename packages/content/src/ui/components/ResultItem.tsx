@@ -1,4 +1,4 @@
-import { onMount } from "solid-js";
+import { onSettled } from "solid-js";
 import type { Component } from "solid-js";
 
 import { setSafeHtml } from "../setSafeHtml";
@@ -20,7 +20,7 @@ export type ResultItemProps = {
 /** A single omnibar result row. */
 export const ResultItem: Component<ResultItemProps> = (props) => {
   let li: HTMLLIElement | undefined;
-  onMount(() => {
+  onSettled(() => {
     if (li && props.faviconSrc) {
       const img = li.querySelector<HTMLImageElement>("img.icon");
       if (img) {
@@ -30,12 +30,13 @@ export const ResultItem: Component<ResultItemProps> = (props) => {
   });
   return (
     <li
-      ref={(el) => {
-        li = el;
-        setSafeHtml(el, () => props.html);
-      }}
-      class={props.className}
-      classList={{ focused: props.focused }}
+      ref={[
+        (el) => {
+          li = el;
+        },
+        setSafeHtml(() => props.html),
+      ]}
+      class={[props.className, { focused: props.focused }]}
       onClick={() => props.onSelect()}
     />
   );
