@@ -228,7 +228,6 @@ function addVIMark(mark: string, url: string): void {
   notify("addVIMark", { mark: { [mark]: { url, scrollLeft: 0, scrollTop: 0 } } });
 }
 
-/** Wraps a Solid setter so the write is rendered before the wrapper returns. */
 function committedSetter<T>(write: (value: T) => unknown): (value: T) => void {
   return (value) => {
     write(value);
@@ -1020,8 +1019,6 @@ function createOmnibar(front: OmnibarFront, clipboard: { write(text: string): vo
     mappings,
     input: inputElement,
     resultsDiv,
-    // Handlers read `input.value` and the rows right after these calls, which a staged write would
-    // leave at the previous state.
     setPrompt: committedSetter(setPrompt),
     setQuery: committedSetter(setQuery),
     setPlaceholder: committedSetter(setPlaceholder),

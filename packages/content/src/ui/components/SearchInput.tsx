@@ -35,9 +35,6 @@ function bindValue(value: () => string): (el: HTMLInputElement) => void {
  * IME composition is honored per W3C UI Events / Input Events Level 2: input and keydown events
  * with `isComposing` true are filtered out, and `compositionend` re-emits the committed value once
  * as a safety net for browsers that fire `input` before `compositionend`.
- *
- * Text edited in place without reaching `onInput` (mid-composition, or a script writing the
- * element's value) survives placeholder and visibility changes; only a new `value` overwrites it.
  */
 export const SearchInput: Component<SearchInputProps> = (props) => {
   return (

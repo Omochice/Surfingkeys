@@ -7,9 +7,6 @@ import { createRenderEffect } from "solid-js";
  *
  * Call it in the component body (e.g. `ref={setSafeHtml(() => props.html)}`), not inside a ref
  * callback.
- *
- * @param html Accessor for the markup to inject.
- * @returns The ref callback that binds the element.
  */
 export const setSafeHtml = (html: () => string): ((el: Element) => void) => {
   let target: Element | undefined;
