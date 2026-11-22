@@ -180,8 +180,8 @@ catalogs:
       specifier: 3.0.1
       version: 3.0.1
     '@solidjs/web':
-      specifier: 2.0.1
-      version: 2.0.1
+      specifier: 2.0.3
+      version: 2.0.3
     '@types/chrome':
       specifier: 0.3.0
       version: 0.3.0
@@ -286,10 +286,10 @@ importers:
         version: link:../../packages/types
       '@solidjs/vite-plugin':
         specifier: 'catalog:'
-        version: 3.0.1(@babel/core@7.29.13)(@solidjs/web@2.0.1(solid-js@2.0.2))(solid-js@2.0.2)(vite@8.3.8(@types/node@26.6.6)(jiti@2.7.0)(yaml@2.9.1))
+        version: 3.0.1(@babel/core@7.29.13)(@solidjs/web@2.0.3(solid-js@2.0.2))(solid-js@2.0.2)(vite@8.3.8(@types/node@26.6.6)(jiti@2.7.0)(yaml@2.9.1))
       '@solidjs/web':
         specifier: 'catalog:'
-        version: 2.0.1(solid-js@2.0.2)
+        version: 2.0.3(solid-js@2.0.2)
       '@types/chrome':
         specifier: 'catalog:'
         version: 0.3.0
@@ -478,7 +478,7 @@ importers:
         version: link:../messaging
       '@solidjs/web':
         specifier: 'catalog:'
-        version: 2.0.1(solid-js@2.0.2)
+        version: 2.0.3(solid-js@2.0.2)
       solid-js:
         specifier: 'catalog:'
         version: 2.0.2
@@ -494,10 +494,10 @@ importers:
         version: link:../types
       '@solidjs/testing-library':
         specifier: 1.0.0-rc.2
-        version: 1.0.0-rc.2(@solidjs/web@2.0.1(solid-js@2.0.2))(solid-js@2.0.2)
+        version: 1.0.0-rc.2(@solidjs/web@2.0.3(solid-js@2.0.2))(solid-js@2.0.2)
       '@solidjs/vite-plugin':
         specifier: 'catalog:'
-        version: 3.0.1(@babel/core@7.29.13)(@solidjs/web@2.0.1(solid-js@2.0.2))(solid-js@2.0.2)(vite@8.3.8(@types/node@26.6.6)(jiti@2.7.0)(yaml@2.9.1))
+        version: 3.0.1(@babel/core@7.29.13)(@solidjs/web@2.0.3(solid-js@2.0.2))(solid-js@2.0.2)(vite@8.3.8(@types/node@26.6.6)(jiti@2.7.0)(yaml@2.9.1))
       '@types/chrome':
         specifier: 'catalog:'
         version: 0.3.0
@@ -1815,11 +1815,11 @@ packages:
       '@testing-library/jest-dom':
         optional: true
 
-  '@solidjs/web@2.0.1':
-    resolution: {integrity: sha512-o7spK20IEMk0bA+lVeULfTQPD9Oyb/VLS9gv5BNQdHIxFWBRFNlHf1ofF0z9b2uA3pLlRtYh+5/USk3fSTdsjQ==}
+  '@solidjs/web@2.0.3':
+    resolution: {integrity: sha512-XYl9JGOtQ8yJSZRnd6uC+5gYXsYvnIRNxhn89m+F1v6D4d4ZFdTJY2Lq/8XJ3YcjckkCrK/mNfd3kIiqqgnG7w==}
     engines: {node: '>=22.12.0'}
     peerDependencies:
-      solid-js: ^2.0.1
+      solid-js: ^2.0.3
 
   '@standard-schema/spec@1.1.0':
     resolution: {integrity: sha512-l2aFy5jALhniG5HgqrD6jXLi/rUWrKvqN/qJx6yoJsgKhblVd+iqqU4RCXavm/jPityDo5TCvKMnpjKnOriy0w==}
@@ -4062,17 +4062,17 @@ snapshots:
 
   '@solidjs/signals@2.0.3': {}
 
-  '@solidjs/testing-library@1.0.0-rc.2(@solidjs/web@2.0.1(solid-js@2.0.2))(solid-js@2.0.2)':
+  '@solidjs/testing-library@1.0.0-rc.2(@solidjs/web@2.0.3(solid-js@2.0.2))(solid-js@2.0.2)':
     dependencies:
-      '@solidjs/web': 2.0.1(solid-js@2.0.2)
+      '@solidjs/web': 2.0.3(solid-js@2.0.2)
       '@testing-library/dom': 10.4.2
       solid-js: 2.0.2
 
-  '@solidjs/vite-plugin@3.0.1(@babel/core@7.29.13)(@solidjs/web@2.0.1(solid-js@2.0.2))(solid-js@2.0.2)(vite@8.3.8(@types/node@26.6.6)(jiti@2.7.0)(yaml@2.9.1))':
+  '@solidjs/vite-plugin@3.0.1(@babel/core@7.29.13)(@solidjs/web@2.0.3(solid-js@2.0.2))(solid-js@2.0.2)(vite@8.3.8(@types/node@26.6.6)(jiti@2.7.0)(yaml@2.9.1))':
     dependencies:
       '@ampproject/remapping': 2.3.0
       '@solidjs/compiler': 2.0.0
-      '@solidjs/web': 2.0.1(solid-js@2.0.2)
+      '@solidjs/web': 2.0.3(solid-js@2.0.2)
       magic-string: 0.30.21
       merge-anything: 5.1.7
       solid-js: 2.0.2
@@ -4081,7 +4081,7 @@ snapshots:
     optionalDependencies:
       '@babel/core': 7.29.13
 
-  '@solidjs/web@2.0.1(solid-js@2.0.2)':
+  '@solidjs/web@2.0.3(solid-js@2.0.2)':
     dependencies:
       csstype: 3.2.3
       seroval: 1.8.1
