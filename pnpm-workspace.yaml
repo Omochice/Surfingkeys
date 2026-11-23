@@ -2,7 +2,7 @@ packages:
   - "packages/*"
   - "apps/*"
 catalog:
-  "@praha/byethrow": 0.12.0
+  "@praha/byethrow": 0.13.0
   "@solidjs/vite-plugin": 3.0.1
   "@solidjs/web": 2.0.3
   "@types/chrome": 0.3.0
