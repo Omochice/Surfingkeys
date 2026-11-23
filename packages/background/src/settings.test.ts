@@ -196,15 +196,15 @@ describe("createSettings — getState", () => {
   });
 
   it("is disabled when the url matches the blocklist pattern", async () => {
-    expect(await stateFor({}, { blocklistPattern: { source: "example\\.com", flags: "" } })).toBe(
-      "disabled",
-    );
+    expect(
+      await stateFor({}, { blocklistPattern: { source: String.raw`example\.com`, flags: "" } }),
+    ).toBe("disabled");
   });
 
   it("is lurking when the url matches the lurking pattern", async () => {
-    expect(await stateFor({}, { lurkingPattern: { source: "example\\.com", flags: "" } })).toBe(
-      "lurking",
-    );
+    expect(
+      await stateFor({}, { lurkingPattern: { source: String.raw`example\.com`, flags: "" } }),
+    ).toBe("lurking");
   });
 
   it("is enabled when nothing matches", async () => {
