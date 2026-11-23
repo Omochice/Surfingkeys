@@ -193,7 +193,7 @@ describe("RegExp settings serialization", () => {
   it("serializes a RegExp to its source and flags", () => {
     const settings = { pat: /foo\d+/gi, n: 1 };
     expect(JSON.parse(JSON.stringify(settings, regExpReplacer))).toEqual({
-      pat: { source: "foo\\d+", flags: "gi" },
+      pat: { source: String.raw`foo\d+`, flags: "gi" },
       n: 1,
     });
   });
