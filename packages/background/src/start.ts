@@ -90,6 +90,24 @@ const textSchema = v.object({ text: v.string() });
 const tokenSchema = v.object({ token: v.string() });
 const commentIndexSchema = v.object({ index: v.number() });
 const editCommentSchema = v.object({ index: v.number(), content: v.string() });
+const downloadSortableKeys = [
+  "url",
+  "bytesReceived",
+  "danger",
+  "finalUrl",
+  "totalBytes",
+  "filename",
+  "paused",
+  "state",
+  "mime",
+  "startTime",
+  "endTime",
+  "exists",
+] as const;
+const downloadOrderKeys = [
+  ...downloadSortableKeys,
+  ...downloadSortableKeys.map((key) => `-${key}` as const),
+];
 const getDownloadsSchema = v.object({
   query: v.optional(
     v.object({
@@ -99,7 +117,7 @@ const getDownloadsSchema = v.object({
       urlRegex: v.optional(v.string()),
       filenameRegex: v.optional(v.string()),
       limit: v.optional(v.number()),
-      orderBy: v.optional(v.array(v.string())),
+      orderBy: v.optional(v.array(v.picklist(downloadOrderKeys))),
     }),
   ),
 });
