@@ -5,7 +5,7 @@ catalog:
   "@praha/byethrow": 0.13.0
   "@solidjs/vite-plugin": 3.0.1
   "@solidjs/web": 2.0.4
-  "@types/chrome": 0.3.7
+  "@types/chrome": 0.3.8
   dompurify: 3.5.0
   fast-check: 4.11.0
   jsdom: 31.0.1
