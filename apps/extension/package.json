@@ -42,7 +42,7 @@
     "@solidjs/vite-plugin": "catalog:",
     "@solidjs/web": "catalog:",
     "@types/chrome": "catalog:",
-    "@types/node": "26.6.6",
+    "@types/node": "26.6.7",
     "jsdom": "catalog:",
     "lightningcss": "1.33.0",
     "npm-run-all2": "catalog:",
