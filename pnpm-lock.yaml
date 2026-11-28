@@ -193,8 +193,8 @@ catalogs:
       specifier: 2.0.4
       version: 2.0.4
     '@types/chrome':
-      specifier: 0.3.7
-      version: 0.3.7
+      specifier: 0.3.8
+      version: 0.3.8
     dompurify:
       specifier: 3.5.0
       version: 3.5.0
@@ -302,7 +302,7 @@ importers:
         version: 2.0.4(solid-js@2.0.4)
       '@types/chrome':
         specifier: 'catalog:'
-        version: 0.3.7
+        version: 0.3.8
       '@types/node':
         specifier: 26.6.10
         version: 26.6.10
@@ -366,7 +366,7 @@ importers:
         version: link:../types
       '@types/chrome':
         specifier: 'catalog:'
-        version: 0.3.7
+        version: 0.3.8
       jsdom:
         specifier: 'catalog:'
         version: 31.0.1
@@ -412,7 +412,7 @@ importers:
         version: link:../types
       '@types/chrome':
         specifier: 'catalog:'
-        version: 0.3.7
+        version: 0.3.8
       '@types/webextension-polyfill':
         specifier: 0.12.6
         version: 0.12.6
@@ -510,7 +510,7 @@ importers:
         version: 3.0.1(@babel/core@7.29.13)(@solidjs/web@2.0.4(solid-js@2.0.4))(solid-js@2.0.4)(vite@8.3.8(@types/node@26.6.10)(jiti@2.7.0)(yaml@2.9.1))
       '@types/chrome':
         specifier: 'catalog:'
-        version: 0.3.7
+        version: 0.3.8
       '@vitest/browser-playwright':
         specifier: 5.1.1
         version: 5.1.1(playwright@1.65.1)(vite@8.3.8(@types/node@26.6.10)(jiti@2.7.0)(yaml@2.9.1))(vitest@5.1.1)
@@ -626,7 +626,7 @@ importers:
         version: link:../types
       '@types/chrome':
         specifier: 'catalog:'
-        version: 0.3.7
+        version: 0.3.8
       jsdom:
         specifier: 'catalog:'
         version: 31.0.1
@@ -1806,8 +1806,8 @@ packages:
   '@types/chai@5.2.3':
     resolution: {integrity: sha512-Mw558oeA9fFbv65/y4mHtXDs9bPnFMZAL/jxdPFUpOHHIXX91mcgEHbS5Lahr+pwZFR8A7GQleRWeI6cGFC2UA==}
 
-  '@types/chrome@0.3.7':
-    resolution: {integrity: sha512-jWZgbHqWbTL1a5+PoyN0OJutNyejWgyZ5MdcvKo6iJE1TNRtXR3FxsC4WzNl52yZWPidfWC8NV/VUNZf+OFKcA==}
+  '@types/chrome@0.3.8':
+    resolution: {integrity: sha512-7Bg57eOKkgJUMhwYKCvbsOgp+fKcpPBhDLHx90V8xxIKylhllUfvSjnsxAtri1jWB6rMpdSku95ohJ+aRSZFEQ==}
 
   '@types/deep-eql@4.0.2':
     resolution: {integrity: sha512-c9h9dVVMigMPc4bwTvC5dxqtqJZwQPePsWjPlpSOnojbor6pGqdk541lfA7AqFQr5pB1BRdq0juY9db81BwyFw==}
@@ -4022,7 +4022,7 @@ snapshots:
       '@types/deep-eql': 4.0.2
       assertion-error: 2.0.1
 
-  '@types/chrome@0.3.7':
+  '@types/chrome@0.3.8':
     dependencies:
       '@types/har-format': 1.2.16
 
